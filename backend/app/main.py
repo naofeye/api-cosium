@@ -32,6 +32,7 @@ from app.api.routers import (
     reminders,
     renewals,
     search,
+    sse,
     sync,
 )
 from app.core.exceptions import (
@@ -173,3 +174,4 @@ app.include_router(client_360.router)
 app.include_router(admin_health.router)
 app.include_router(dashboard.router)
 app.include_router(onboarding.router)
+app.include_router(sse.router)

@@ -151,6 +151,11 @@ def get_unmatched(db: Session, tenant_id: int) -> list[BankTransactionResponse]:
     return [BankTransactionResponse.model_validate(t) for t in txs]
 
 
+def get_unreconciled_payments(db: Session, tenant_id: int) -> list[PaymentResponse]:
+    payments = banking_repo.list_unreconciled_payments(db, tenant_id)
+    return [PaymentResponse.model_validate(p) for p in payments]
+
+
 def list_transactions(
     db: Session,
     tenant_id: int,

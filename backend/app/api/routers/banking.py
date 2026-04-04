@@ -74,6 +74,14 @@ def manual_match(
     )
 
 
+@router.get("/banking/unreconciled-payments", response_model=list[PaymentResponse])
+def get_unreconciled_payments(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> list[PaymentResponse]:
+    return banking_service.get_unreconciled_payments(db, tenant_id=tenant_ctx.tenant_id)
+
+
 @router.get("/banking/transactions", response_model=BankTransactionListResponse)
 def list_transactions(
     reconciled: bool | None = Query(None),
