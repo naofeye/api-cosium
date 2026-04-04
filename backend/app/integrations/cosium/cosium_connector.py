@@ -51,7 +51,7 @@ class CosiumConnector(ERPConnector):
         return token
 
     def get_customers(self, page: int = 0, page_size: int = 100) -> list[ERPCustomer]:
-        items = self._client.get_paginated("/customers", page_size=page_size, max_pages=10)
+        items = self._client.get_paginated("/customers", page_size=page_size, max_pages=50)
         customers: list[ERPCustomer] = []
         for raw in items:
             mapped = cosium_customer_to_optiflow(raw)
@@ -74,7 +74,7 @@ class CosiumConnector(ERPConnector):
         return customers
 
     def get_invoices(self, page: int = 0, page_size: int = 100) -> list[ERPInvoice]:
-        items = self._client.get_paginated("/invoices", page_size=page_size, max_pages=10)
+        items = self._client.get_paginated("/invoices", page_size=page_size, max_pages=50)
         invoices: list[ERPInvoice] = []
         for raw in items:
             mapped = cosium_invoice_to_optiflow(raw)
@@ -100,7 +100,7 @@ class CosiumConnector(ERPConnector):
         return items if isinstance(items, list) else [items]
 
     def get_products(self, page: int = 0, page_size: int = 100) -> list[ERPProduct]:
-        items = self._client.get_paginated("/products", page_size=page_size, max_pages=10)
+        items = self._client.get_paginated("/products", page_size=page_size, max_pages=50)
         products: list[ERPProduct] = []
         for raw in items:
             mapped = cosium_product_to_optiflow(raw)
