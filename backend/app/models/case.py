@@ -15,3 +15,4 @@ class Case(Base):
     status: Mapped[str] = mapped_column(String(50), default="draft", nullable=False, index=True)
     source: Mapped[str | None] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=None)

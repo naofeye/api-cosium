@@ -1,13 +1,22 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { ToastProvider } from "@/components/ui/Toast";
 import { SWRProvider } from "@/lib/swr";
+import { initTheme } from "@/lib/theme";
+import { initShortcuts } from "@/lib/shortcuts";
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isPublicPage = pathname === "/login" || pathname?.startsWith("/onboarding") || pathname === "/getting-started";
+
+  useEffect(() => {
+    initTheme();
+    const cleanup = initShortcuts();
+    return cleanup;
+  }, []);
 
   if (isPublicPage) {
     return <ToastProvider>{children}</ToastProvider>;

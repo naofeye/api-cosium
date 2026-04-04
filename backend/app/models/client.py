@@ -23,3 +23,4 @@ class Customer(Base):
     notes: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
     updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, onupdate=lambda: datetime.now(UTC))
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=None)

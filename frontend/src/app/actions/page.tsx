@@ -89,13 +89,13 @@ export default function ActionsPage() {
     error: dashErr,
     isLoading: dashLoading,
     mutate: mutateDash,
-  } = useSWR<DashboardData>("/dashboard/summary");
+  } = useSWR<DashboardData>("/dashboard/summary", { refreshInterval: 30000 });
   const {
     data: actions,
     error: actErr,
     isLoading: actLoading,
     mutate: mutateActions,
-  } = useSWR<ActionItemList>("/action-items?status=pending");
+  } = useSWR<ActionItemList>("/action-items?status=pending", { refreshInterval: 30000 });
   const [refreshing, setRefreshing] = useState(false);
 
   const isLoading = dashLoading || actLoading;

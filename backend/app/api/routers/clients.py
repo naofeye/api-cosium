@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from app.core.deps import require_tenant_role
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.clients import (
@@ -19,11 +20,19 @@ def list_clients(
     query: str = Query("", alias="q"),
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
+    include_deleted: bool = Query(False),
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> ClientListResponse:
+    # Only admin can see deleted clients
+    effective_include_deleted = include_deleted and tenant_ctx.role == "admin"
     return client_service.search_clients(
-        db, tenant_id=tenant_ctx.tenant_id, query=query, page=page, page_size=page_size
+        db,
+        tenant_id=tenant_ctx.tenant_id,
+        query=query,
+        page=page,
+        page_size=page_size,
+        include_deleted=effective_include_deleted,
     )
 
 
@@ -64,3 +73,14 @@ def delete_client(
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> None:
     client_service.delete_client(db, tenant_id=tenant_ctx.tenant_id, client_id=client_id, user_id=tenant_ctx.user_id)
+
+
+@router.post("/{client_id}/restore", response_model=ClientResponse)
+def restore_client(
+    client_id: int,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin")),
+) -> ClientResponse:
+    return client_service.restore_client(
+        db, tenant_id=tenant_ctx.tenant_id, client_id=client_id, user_id=tenant_ctx.user_id
+    )

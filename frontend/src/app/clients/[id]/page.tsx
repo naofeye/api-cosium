@@ -12,7 +12,8 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { fetchJson } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
-import { Euro, CheckCircle, Clock, FolderOpen, Plus, Trash2 } from "lucide-react";
+import { Euro, CheckCircle, Clock, FolderOpen, Plus, Trash2, Download } from "lucide-react";
+import { downloadPdf } from "@/lib/download";
 
 import { TabResume } from "./tabs/TabResume";
 import { TabDossiers } from "./tabs/TabDossiers";
@@ -155,6 +156,13 @@ export default function ClientDetailPage() {
       breadcrumb={[{ label: "Clients", href: "/clients" }, { label: `${data.first_name} ${data.last_name}` }]}
       actions={
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => downloadPdf(`/clients/${id}/360/pdf`, `client_${id}_360.pdf`)}
+          >
+            <Download className="h-4 w-4 mr-1" /> Fiche PDF
+          </Button>
           <Button
             variant="outline"
             onClick={() => {

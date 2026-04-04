@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
+from app.domain.schemas.client_360 import Client360Response
 from app.models import Case, Customer, Devis, DevisLigne, Facture, FactureLigne, Tenant
 
 logger = get_logger("pdf_service")
@@ -213,4 +214,159 @@ def generate_facture_pdf(db: Session, facture_id: int, tenant_id: int) -> bytes:
 
     doc.build(elements)
     logger.info("facture_pdf_generated", tenant_id=tenant_id, facture_id=facture_id, numero=facture.numero)
+    return buffer.getvalue()
+
+
+def generate_client_360_pdf(db: Session, client_id: int, tenant_id: int) -> bytes:
+    """Genere un PDF resume 360 pour un client."""
+    from app.services import client_360_service
+
+    data: Client360Response = client_360_service.get_client_360(db, tenant_id=tenant_id, client_id=client_id)
+    tenant_info = _get_tenant_info(db, tenant_id)
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A4, leftMargin=20 * mm, rightMargin=20 * mm, topMargin=20 * mm, bottomMargin=20 * mm
+    )
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle("of_title", parent=styles["Title"], fontSize=16, textColor=colors.HexColor("#1e3a5f")))
+    styles.add(
+        ParagraphStyle("of_heading", parent=styles["Heading2"], fontSize=13, textColor=colors.HexColor("#2563eb"))
+    )
+    styles.add(
+        ParagraphStyle("of_subheading", parent=styles["Heading3"], fontSize=11, textColor=colors.HexColor("#374151"))
+    )
+    custom = {"title": styles["of_title"], "heading": styles["of_heading"], "normal": styles["Normal"]}
+
+    elements: list = []
+
+    # Header
+    elements.append(Paragraph(tenant_info["name"], custom["title"]))
+    elements.append(Spacer(1, 4 * mm))
+    elements.append(Paragraph(f"Fiche Client 360 — {data.first_name} {data.last_name}", custom["heading"]))
+    elements.append(Paragraph(f"Generee le {datetime.now().strftime('%d/%m/%Y a %H:%M')}", custom["normal"]))
+    elements.append(Spacer(1, 8 * mm))
+
+    # Client info
+    elements.append(Paragraph("Informations client", styles["of_subheading"]))
+    info_lines = [f"<b>Nom :</b> {data.first_name} {data.last_name}"]
+    if data.email:
+        info_lines.append(f"<b>Email :</b> {data.email}")
+    if data.phone:
+        info_lines.append(f"<b>Telephone :</b> {data.phone}")
+    if data.address:
+        addr = data.address
+        if data.postal_code or data.city:
+            addr += f", {data.postal_code or ''} {data.city or ''}".strip()
+        info_lines.append(f"<b>Adresse :</b> {addr}")
+    if data.birth_date:
+        info_lines.append(f"<b>Date de naissance :</b> {data.birth_date}")
+    for line in info_lines:
+        elements.append(Paragraph(line, custom["normal"]))
+    elements.append(Spacer(1, 8 * mm))
+
+    # Financial summary
+    elements.append(Paragraph("Resume financier", styles["of_subheading"]))
+    fin = data.resume_financier
+    fin_data = [
+        ["Total facture", _format_money(fin.total_facture)],
+        ["Total paye", _format_money(fin.total_paye)],
+        ["Reste du", _format_money(fin.reste_du)],
+        ["Taux de recouvrement", f"{fin.taux_recouvrement:.1f} %"],
+    ]
+    fin_table = Table(fin_data, colWidths=[120 * mm, 50 * mm])
+    fin_table.setStyle(
+        TableStyle(
+            [
+                ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+                ("FONTSIZE", (0, 0), (-1, -1), 9),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e5e7eb")),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ]
+        )
+    )
+    elements.append(fin_table)
+    elements.append(Spacer(1, 8 * mm))
+
+    # Recent dossiers
+    if data.dossiers:
+        elements.append(Paragraph(f"Dossiers ({len(data.dossiers)})", styles["of_subheading"]))
+        dossier_header = ["ID", "Statut", "Source", "Date creation"]
+        dossier_rows = [dossier_header]
+        for d in data.dossiers[:20]:
+            dossier_rows.append([str(d.id), d.statut, d.source or "-", d.created_at or "-"])
+        d_table = Table(dossier_rows, colWidths=[20 * mm, 40 * mm, 50 * mm, 60 * mm])
+        d_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2563eb")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e5e7eb")),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f9fafb")]),
+                    ("TOPPADDING", (0, 0), (-1, -1), 3),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                ]
+            )
+        )
+        elements.append(d_table)
+        elements.append(Spacer(1, 6 * mm))
+
+    # Devis
+    if data.devis:
+        elements.append(Paragraph(f"Devis ({len(data.devis)})", styles["of_subheading"]))
+        devis_header = ["Numero", "Statut", "Montant TTC", "Reste a charge"]
+        devis_rows = [devis_header]
+        for d in data.devis[:20]:
+            devis_rows.append([d.numero, d.statut, _format_money(d.montant_ttc), _format_money(d.reste_a_charge)])
+        dv_table = Table(devis_rows, colWidths=[45 * mm, 35 * mm, 45 * mm, 45 * mm])
+        dv_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2563eb")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8),
+                    ("ALIGN", (2, 0), (-1, -1), "RIGHT"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e5e7eb")),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f9fafb")]),
+                    ("TOPPADDING", (0, 0), (-1, -1), 3),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                ]
+            )
+        )
+        elements.append(dv_table)
+        elements.append(Spacer(1, 6 * mm))
+
+    # Factures
+    if data.factures:
+        elements.append(Paragraph(f"Factures ({len(data.factures)})", styles["of_subheading"]))
+        fact_header = ["Numero", "Statut", "Montant TTC", "Date emission"]
+        fact_rows = [fact_header]
+        for f in data.factures[:20]:
+            fact_rows.append([f.numero, f.statut, _format_money(f.montant_ttc), f.date_emission or "-"])
+        f_table = Table(fact_rows, colWidths=[45 * mm, 35 * mm, 45 * mm, 45 * mm])
+        f_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2563eb")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8),
+                    ("ALIGN", (2, 0), (2, -1), "RIGHT"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e5e7eb")),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f9fafb")]),
+                    ("TOPPADDING", (0, 0), (-1, -1), 3),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                ]
+            )
+        )
+        elements.append(f_table)
+        elements.append(Spacer(1, 6 * mm))
+
+    # Footer
+    elements.append(Spacer(1, 10 * mm))
+    elements.append(Paragraph("Document genere automatiquement par OptiFlow AI. Confidentiel.", styles["Italic"]))
+
+    doc.build(elements)
+    logger.info("client_360_pdf_generated", tenant_id=tenant_id, client_id=client_id)
     return buffer.getvalue()

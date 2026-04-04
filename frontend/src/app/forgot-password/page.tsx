@@ -64,8 +64,8 @@ export default function ForgotPasswordPage() {
           {submitted ? (
             <div className="space-y-4">
               <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700">
-                Si un compte existe avec cet email, un lien de reinitialisation a ete envoye.
-                Verifiez votre boite de reception.
+                Si un compte existe avec cet email, un lien de reinitialisation a ete envoye. Verifiez votre boite de
+                reception.
               </div>
               <div className="text-center">
                 <Link href="/login" className="text-sm text-primary hover:underline">

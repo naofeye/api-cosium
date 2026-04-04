@@ -272,7 +272,17 @@ def get_marketing_kpis(db: Session, tenant_id: int) -> MarketingKPIs:
 def get_dashboard_full(
     db: Session, tenant_id: int, date_from: datetime | None = None, date_to: datetime | None = None
 ) -> DashboardFull:
-    return DashboardFull(
+    from app.core.redis_cache import cache_get, cache_set
+
+    # Only use cache when no date filters are applied
+    cache_key = f"analytics:dashboard:{tenant_id}"
+    if not date_from and not date_to:
+        cached = cache_get(cache_key)
+        if cached:
+            logger.debug("dashboard_full_cache_hit", tenant_id=tenant_id)
+            return DashboardFull(**cached)
+
+    result = DashboardFull(
         financial=get_financial_kpis(db, tenant_id, date_from, date_to),
         aging=get_aging_balance(db, tenant_id),
         payers=get_payer_performance(db, tenant_id),
@@ -280,3 +290,8 @@ def get_dashboard_full(
         commercial=get_commercial_kpis(db, tenant_id),
         marketing=get_marketing_kpis(db, tenant_id),
     )
+
+    if not date_from and not date_to:
+        cache_set(cache_key, result.model_dump(), ttl=60)
+
+    return result

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import useSWR from "swr";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -10,6 +11,31 @@ import { FolderOpen, ShoppingCart, Megaphone, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { DashboardKPIs } from "./components/DashboardKPIs";
 import { DashboardCharts } from "./components/DashboardCharts";
+
+type PeriodKey = "today" | "7d" | "30d" | "90d";
+
+const PERIODS: { key: PeriodKey; label: string; days: number }[] = [
+  { key: "today", label: "Aujourd'hui", days: 0 },
+  { key: "7d", label: "7 jours", days: 7 },
+  { key: "30d", label: "30 jours", days: 30 },
+  { key: "90d", label: "90 jours", days: 90 },
+];
+
+function formatDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function getDateRange(period: PeriodKey): { date_from: string; date_to: string } {
+  const now = new Date();
+  const date_to = formatDate(now);
+  if (period === "today") {
+    return { date_from: date_to, date_to };
+  }
+  const days = PERIODS.find((p) => p.key === period)!.days;
+  const from = new Date(now);
+  from.setDate(from.getDate() - days);
+  return { date_from: formatDate(from), date_to };
+}
 
 interface DashboardData {
   financial: {
@@ -49,8 +75,15 @@ interface RenewalData {
 }
 
 export default function DashboardPage() {
-  const { data, error, isLoading, mutate } = useSWR<DashboardData>("/analytics/dashboard");
+  const [period, setPeriod] = useState<PeriodKey>("30d");
+  const { date_from, date_to } = useMemo(() => getDateRange(period), [period]);
+
+  const { data, error, isLoading, mutate } = useSWR<DashboardData>(
+    `/analytics/dashboard?date_from=${date_from}&date_to=${date_to}`,
+    { refreshInterval: 60000 },
+  );
   const { data: renewalData } = useSWR<RenewalData>("/renewals/dashboard", {
+    refreshInterval: 60000,
     onError: () => {
       /* ignore renewal errors silently */
     },
@@ -73,6 +106,21 @@ export default function DashboardPage() {
 
   return (
     <PageLayout title="Dashboard" description="Tableau de pilotage OptiFlow" breadcrumb={[{ label: "Dashboard" }]}>
+      <div className="flex items-center gap-2 mb-6">
+        {PERIODS.map((p) => (
+          <button
+            key={p.key}
+            onClick={() => setPeriod(p.key)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              period === p.key
+                ? "bg-primary text-white"
+                : "bg-bg-card text-text-secondary border border-border hover:bg-gray-100"
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
       <DashboardKPIs financial={financial} />
       <DashboardCharts caParMois={commercial.ca_par_mois} aging={aging} />
 

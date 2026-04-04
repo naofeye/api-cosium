@@ -1,11 +1,12 @@
 "use client";
 
-import { Bell, LogOut, User, X, Clock } from "lucide-react";
+import { Bell, LogOut, User, X, Clock, Moon, Sun } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { logout } from "@/lib/auth";
 import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { fetchJson } from "@/lib/api";
+import { toggleDarkMode } from "@/lib/theme";
 import { GlobalSearch } from "./GlobalSearch";
 import { TenantSelector } from "./TenantSelector";
 
@@ -37,7 +38,12 @@ interface NotificationList {
 export function Header({ breadcrumb }: HeaderProps) {
   const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isDark, setIsDark] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains("dark"));
+  }, []);
 
   // SWR for unread count (auto-refresh every 30s)
   const { data: unreadData } = useSWR<{ count: number }>("/notifications/unread-count", { refreshInterval: 30000 });
@@ -122,6 +128,14 @@ export function Header({ breadcrumb }: HeaderProps) {
         <div className="flex items-center gap-4">
           <GlobalSearch />
           <TenantSelector />
+          <button
+            onClick={() => setIsDark(toggleDarkMode())}
+            className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+            aria-label={isDark ? "Passer en mode clair" : "Passer en mode sombre"}
+            title={isDark ? "Mode clair" : "Mode sombre"}
+          >
+            {isDark ? <Sun className="h-5 w-5 text-amber-400" /> : <Moon className="h-5 w-5 text-gray-500" />}
+          </button>
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={toggleDropdown}

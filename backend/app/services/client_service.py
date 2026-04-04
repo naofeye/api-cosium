@@ -14,8 +14,15 @@ from app.services import audit_service
 logger = get_logger("client_service")
 
 
-def search_clients(db: Session, tenant_id: int, query: str, page: int, page_size: int) -> ClientListResponse:
-    items, total = client_repo.search(db, tenant_id, query, page, page_size)
+def search_clients(
+    db: Session,
+    tenant_id: int,
+    query: str,
+    page: int,
+    page_size: int,
+    include_deleted: bool = False,
+) -> ClientListResponse:
+    items, total = client_repo.search(db, tenant_id, query, page, page_size, include_deleted=include_deleted)
     return ClientListResponse(
         items=[ClientResponse.model_validate(c) for c in items],
         total=total,
@@ -25,7 +32,7 @@ def search_clients(db: Session, tenant_id: int, query: str, page: int, page_size
 
 
 def get_client(db: Session, tenant_id: int, client_id: int) -> ClientResponse:
-    customer = client_repo.get_by_id(db, client_id=client_id, tenant_id=tenant_id)
+    customer = client_repo.get_by_id_active(db, client_id=client_id, tenant_id=tenant_id)
     if not customer:
         raise NotFoundError("client", client_id)
     return ClientResponse.model_validate(customer)
@@ -47,7 +54,7 @@ def create_client(db: Session, tenant_id: int, payload: ClientCreate, user_id: i
 
 
 def update_client(db: Session, tenant_id: int, client_id: int, payload: ClientUpdate, user_id: int) -> ClientResponse:
-    customer = client_repo.get_by_id(db, client_id=client_id, tenant_id=tenant_id)
+    customer = client_repo.get_by_id_active(db, client_id=client_id, tenant_id=tenant_id)
     if not customer:
         raise NotFoundError("client", client_id)
     updated = client_repo.update(db, customer, **payload.model_dump(exclude_unset=True))
@@ -65,9 +72,21 @@ def update_client(db: Session, tenant_id: int, client_id: int, payload: ClientUp
 
 
 def delete_client(db: Session, tenant_id: int, client_id: int, user_id: int) -> None:
-    customer = client_repo.get_by_id(db, client_id=client_id, tenant_id=tenant_id)
+    customer = client_repo.get_by_id_active(db, client_id=client_id, tenant_id=tenant_id)
     if not customer:
         raise NotFoundError("client", client_id)
     client_repo.delete(db, customer)
     audit_service.log_action(db, tenant_id, user_id, "delete", "client", client_id)
     logger.info("client_deleted", tenant_id=tenant_id, client_id=client_id, user_id=user_id)
+
+
+def restore_client(db: Session, tenant_id: int, client_id: int, user_id: int) -> ClientResponse:
+    customer = client_repo.get_by_id(db, client_id=client_id, tenant_id=tenant_id)
+    if not customer:
+        raise NotFoundError("client", client_id)
+    if customer.deleted_at is None:
+        raise NotFoundError("client", client_id)
+    restored = client_repo.restore(db, customer)
+    audit_service.log_action(db, tenant_id, user_id, "restore", "client", client_id)
+    logger.info("client_restored", tenant_id=tenant_id, client_id=client_id, user_id=user_id)
+    return ClientResponse.model_validate(restored)

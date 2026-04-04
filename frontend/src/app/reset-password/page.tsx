@@ -70,9 +70,7 @@ function ResetPasswordForm() {
       });
       if (!res.ok && res.status !== 204) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(
-          body?.error?.message || body?.detail || "Le lien est invalide ou a expire."
-        );
+        throw new Error(body?.error?.message || body?.detail || "Le lien est invalide ou a expire.");
       }
       setSuccess(true);
       setTimeout(() => router.push("/login"), 3000);
@@ -120,9 +118,7 @@ function ResetPasswordForm() {
       </FormField>
 
       {serverError && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          {serverError}
-        </div>
+        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{serverError}</div>
       )}
 
       <Button type="submit" disabled={!isValid} loading={isSubmitting} className="w-full">
@@ -148,9 +144,7 @@ export default function ResetPasswordPage() {
               O
             </div>
             <h1 className="text-2xl font-bold text-text-primary">Nouveau mot de passe</h1>
-            <p className="mt-1 text-sm text-text-secondary">
-              Choisissez un nouveau mot de passe pour votre compte.
-            </p>
+            <p className="mt-1 text-sm text-text-secondary">Choisissez un nouveau mot de passe pour votre compte.</p>
           </div>
           <Suspense fallback={<div className="text-center text-sm text-text-secondary">Chargement...</div>}>
             <ResetPasswordForm />

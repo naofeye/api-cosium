@@ -5,7 +5,10 @@ from app.models import Case, Customer
 
 
 def count_cases(db: Session, tenant_id: int) -> int:
-    return db.scalar(select(func.count()).select_from(Case).where(Case.tenant_id == tenant_id)) or 0
+    return (
+        db.scalar(select(func.count()).select_from(Case).where(Case.tenant_id == tenant_id, Case.deleted_at.is_(None)))
+        or 0
+    )
 
 
 def list_cases(db: Session, tenant_id: int, limit: int = 25, offset: int = 0) -> list[dict]:
@@ -19,7 +22,7 @@ def list_cases(db: Session, tenant_id: int, limit: int = 25, offset: int = 0) ->
             Customer.last_name,
         )
         .join(Customer, Customer.id == Case.customer_id)
-        .where(Case.tenant_id == tenant_id)
+        .where(Case.tenant_id == tenant_id, Case.deleted_at.is_(None))
         .order_by(Case.id.desc())
         .limit(limit)
         .offset(offset)
@@ -48,7 +51,7 @@ def get_case(db: Session, case_id: int, tenant_id: int) -> dict | None:
             Customer.email,
         )
         .join(Customer, Customer.id == Case.customer_id)
-        .where(Case.id == case_id, Case.tenant_id == tenant_id)
+        .where(Case.id == case_id, Case.tenant_id == tenant_id, Case.deleted_at.is_(None))
     ).first()
     if not row:
         return None

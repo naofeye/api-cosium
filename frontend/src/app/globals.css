@@ -16,6 +16,15 @@
   --color-border: #e5e7eb;
 }
 
+.dark {
+  --color-bg-page: #111827;
+  --color-bg-card: #1f2937;
+  --color-text-primary: #f9fafb;
+  --color-text-secondary: #9ca3af;
+  --color-border: #374151;
+  --color-bg-sidebar: #0f172a;
+}
+
 body {
   background-color: var(--color-bg-page);
   color: var(--color-text-primary);
