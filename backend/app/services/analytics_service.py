@@ -165,15 +165,18 @@ def get_operational_kpis(db: Session, tenant_id: int) -> OperationalKPIs:
             c for (c,) in db.execute(select(DocumentType.code).where(DocumentType.is_required.is_(True))).all()
         ]
         cases = db.scalars(select(Case.id).where(Case.tenant_id == tenant_id)).all()
+
+        # Single GROUP BY query instead of N+1 per-case queries
+        case_doc_counts = dict(
+            db.execute(
+                select(Document.case_id, func.count(func.distinct(Document.type)))
+                .where(Document.tenant_id == tenant_id, Document.type.in_(required_codes))
+                .group_by(Document.case_id)
+            ).all()
+        )
+
         for case_id in cases:
-            present = (
-                db.scalar(
-                    select(func.count(func.distinct(Document.type))).where(
-                        Document.case_id == case_id, Document.type.in_(required_codes)
-                    )
-                )
-                or 0
-            )
+            present = case_doc_counts.get(case_id, 0)
             missing = required_count - present
             total_missing += missing
             if missing == 0:

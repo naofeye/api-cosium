@@ -4,8 +4,12 @@ from sqlalchemy.orm import Session
 from app.models import Payment
 
 
-def list_by_case(db: Session, case_id: int, tenant_id: int) -> list[Payment]:
-    return db.execute(select(Payment).where(Payment.case_id == case_id, Payment.tenant_id == tenant_id)).scalars().all()
+def list_by_case(db: Session, case_id: int, tenant_id: int, limit: int = 200) -> list[Payment]:
+    return (
+        db.execute(select(Payment).where(Payment.case_id == case_id, Payment.tenant_id == tenant_id).limit(limit))
+        .scalars()
+        .all()
+    )
 
 
 def get_summary(db: Session, case_id: int, tenant_id: int) -> dict:

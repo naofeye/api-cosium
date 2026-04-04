@@ -8,9 +8,11 @@ def get_by_id(db: Session, document_id: int, tenant_id: int) -> Document | None:
     return db.scalars(select(Document).where(Document.id == document_id, Document.tenant_id == tenant_id)).first()
 
 
-def list_by_case(db: Session, case_id: int, tenant_id: int) -> list[Document]:
+def list_by_case(db: Session, case_id: int, tenant_id: int, limit: int = 500) -> list[Document]:
     return (
-        db.execute(select(Document).where(Document.case_id == case_id, Document.tenant_id == tenant_id)).scalars().all()
+        db.execute(select(Document).where(Document.case_id == case_id, Document.tenant_id == tenant_id).limit(limit))
+        .scalars()
+        .all()
     )
 
 

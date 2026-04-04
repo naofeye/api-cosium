@@ -73,6 +73,16 @@ def sync_customers(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     skipped = 0
     warnings: list[str] = []
 
+    # Batch-load all existing customers for the tenant to avoid N+1 queries
+    existing_by_email: dict[str, Customer] = {}
+    existing_by_name: dict[tuple[str, str], Customer] = {}
+    all_existing = db.scalars(select(Customer).where(Customer.tenant_id == tenant_id)).all()
+    for c in all_existing:
+        if c.email:
+            existing_by_email[c.email.lower()] = c
+        if c.first_name and c.last_name:
+            existing_by_name[(c.first_name, c.last_name)] = c
+
     for erp_c in erp_customers:
         if not erp_c.last_name:
             skipped += 1
@@ -81,7 +91,12 @@ def sync_customers(db: Session, tenant_id: int, user_id: int = 0) -> dict:
             logger.warning("sync_customer_skipped", reason="empty_last_name", email=erp_c.email)
             continue
 
-        existing = _find_existing_customer(db, tenant_id, erp_c)
+        # In-memory lookup instead of per-customer DB queries
+        existing: Customer | None = None
+        if erp_c.email:
+            existing = existing_by_email.get(erp_c.email.lower())
+        if not existing and erp_c.first_name and erp_c.last_name:
+            existing = existing_by_name.get((erp_c.first_name, erp_c.last_name))
 
         if existing:
             changed = _update_customer_fields(existing, erp_c)
@@ -92,6 +107,11 @@ def sync_customers(db: Session, tenant_id: int, user_id: int = 0) -> dict:
             customer = _create_customer_from_erp(tenant_id, erp_c)
             db.add(customer)
             created += 1
+            # Keep lookup maps current for duplicate detection within the batch
+            if erp_c.email:
+                existing_by_email[erp_c.email.lower()] = customer
+            if erp_c.first_name and erp_c.last_name:
+                existing_by_name[(erp_c.first_name, erp_c.last_name)] = customer
 
     db.commit()
 
