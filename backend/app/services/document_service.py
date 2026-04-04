@@ -65,12 +65,12 @@ def upload_document(db: Session, tenant_id: int, case_id: int, file: UploadFile,
     if user_id:
         audit_service.log_action(
             db,
+            tenant_id,
             user_id,
             "create",
             "document",
             doc.id,
             new_value={"case_id": case_id, "filename": filename},
-            tenant_id=tenant_id,
         )
     event_service.emit_event(db, tenant_id, "DocumentAjoute", "document", doc.id, user_id, {"case_id": case_id})
     logger.info("document_uploaded", tenant_id=tenant_id, case_id=case_id, document_id=doc.id, filename=filename)

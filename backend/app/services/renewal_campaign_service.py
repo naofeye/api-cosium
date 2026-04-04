@@ -80,6 +80,7 @@ def create_renewal_campaign(
     if user_id:
         audit_service.log_action(
             db,
+            tenant_id,
             user_id,
             "create",
             "renewal_campaign",

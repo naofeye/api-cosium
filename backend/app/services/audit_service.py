@@ -11,13 +11,13 @@ logger = get_logger("audit_service")
 
 def log_action(
     db: Session,
+    tenant_id: int,
     user_id: int,
     action: str,
     entity_type: str,
     entity_id: int,
     old_value: dict | None = None,
     new_value: dict | None = None,
-    tenant_id: int = 0,
 ) -> None:
     audit_repo.create(
         db,

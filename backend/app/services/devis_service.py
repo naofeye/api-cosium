@@ -90,12 +90,12 @@ def create_devis(db: Session, tenant_id: int, payload: DevisCreate, user_id: int
     if user_id:
         audit_service.log_action(
             db,
+            tenant_id,
             user_id,
             "create",
             "devis",
             devis.id,
             new_value={"numero": numero, "montant_ttc": total_ttc},
-            tenant_id=tenant_id,
         )
         event_service.emit_event(db, tenant_id, "DevisCree", "devis", devis.id, user_id)
 
@@ -149,7 +149,7 @@ def update_devis(db: Session, tenant_id: int, devis_id: int, payload: DevisUpdat
 
     if user_id:
         audit_service.log_action(
-            db, user_id, "update", "devis", devis.id, new_value={"montant_ttc": total_ttc}, tenant_id=tenant_id
+            db, tenant_id, user_id, "update", "devis", devis.id, new_value={"montant_ttc": total_ttc}
         )
 
     logger.info("devis_updated", tenant_id=tenant_id, devis_id=devis.id)
@@ -175,13 +175,13 @@ def change_status(db: Session, tenant_id: int, devis_id: int, new_status: str, u
     if user_id:
         audit_service.log_action(
             db,
+            tenant_id,
             user_id,
             "update",
             "devis",
             devis.id,
             old_value={"status": old_status},
             new_value={"status": new_status},
-            tenant_id=tenant_id,
         )
         event_name = EVENT_MAP.get(new_status)
         if event_name:

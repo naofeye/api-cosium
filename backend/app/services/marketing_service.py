@@ -40,7 +40,13 @@ def create_segment(db: Session, tenant_id: int, payload: SegmentCreate, user_id:
 
     if user_id:
         audit_service.log_action(
-            db, user_id, "create", "segment", segment.id, new_value={"name": payload.name, "members": len(client_ids)}
+            db,
+            tenant_id,
+            user_id,
+            "create",
+            "segment",
+            segment.id,
+            new_value={"name": payload.name, "members": len(client_ids)},
         )
     logger.info("segment_created", tenant_id=tenant_id, segment_id=segment.id, members=len(client_ids))
     return SegmentResponse(
@@ -93,7 +99,7 @@ def create_campaign(db: Session, tenant_id: int, payload: CampaignCreate, user_i
         payload.template,
     )
     if user_id:
-        audit_service.log_action(db, user_id, "create", "campaign", campaign.id)
+        audit_service.log_action(db, tenant_id, user_id, "create", "campaign", campaign.id)
     logger.info("campaign_created", tenant_id=tenant_id, campaign_id=campaign.id)
     return CampaignResponse(
         id=campaign.id,
@@ -160,7 +166,13 @@ def send_campaign(db: Session, tenant_id: int, campaign_id: int, user_id: int) -
     if user_id:
         event_service.emit_event(db, tenant_id, "CampagneLancee", "campaign", campaign_id, user_id)
         audit_service.log_action(
-            db, user_id, "update", "campaign", campaign_id, new_value={"sent": sent_count, "failed": failed_count}
+            db,
+            tenant_id,
+            user_id,
+            "update",
+            "campaign",
+            campaign_id,
+            new_value={"sent": sent_count, "failed": failed_count},
         )
 
     logger.info("campaign_sent", tenant_id=tenant_id, campaign_id=campaign_id, sent=sent_count, failed=failed_count)

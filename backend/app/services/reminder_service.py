@@ -42,7 +42,7 @@ def create_plan(db: Session, tenant_id: int, payload: ReminderPlanCreate, user_i
         payload.is_active,
     )
     if user_id:
-        audit_service.log_action(db, user_id, "create", "reminder_plan", plan.id)
+        audit_service.log_action(db, tenant_id, user_id, "create", "reminder_plan", plan.id)
     logger.info("plan_created", tenant_id=tenant_id, plan_id=plan.id, name=payload.name)
     return ReminderPlanResponse.model_validate(plan)
 
@@ -150,7 +150,7 @@ def create_reminder(db: Session, tenant_id: int, payload: ReminderCreate, user_i
         user_id,
     )
     if user_id:
-        audit_service.log_action(db, user_id, "create", "reminder", reminder.id)
+        audit_service.log_action(db, tenant_id, user_id, "create", "reminder", reminder.id)
     logger.info("reminder_created", tenant_id=tenant_id, reminder_id=reminder.id)
     return ReminderResponse.model_validate(reminder)
 

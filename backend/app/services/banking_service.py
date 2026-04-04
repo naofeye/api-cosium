@@ -49,12 +49,12 @@ def create_payment(
     if user_id:
         audit_service.log_action(
             db,
+            tenant_id,
             user_id,
             "create",
             "payment",
             payment.id,
             new_value={"amount": payload.amount_paid, "payer": payload.payer_type},
-            tenant_id=tenant_id,
         )
         event_service.emit_event(db, tenant_id, "PaiementRecu", "payment", payment.id, user_id)
 
@@ -98,12 +98,12 @@ def import_statement(db: Session, tenant_id: int, file: UploadFile, user_id: int
     if user_id:
         audit_service.log_action(
             db,
+            tenant_id,
             user_id,
             "create",
             "bank_import",
             0,
             new_value={"file": source_file, "count": count},
-            tenant_id=tenant_id,
         )
 
     logger.info("bank_statement_imported", tenant_id=tenant_id, file=source_file, count=count)
@@ -134,12 +134,12 @@ def manual_match(
     if user_id:
         audit_service.log_action(
             db,
+            tenant_id,
             user_id,
             "update",
             "bank_transaction",
             transaction_id,
             new_value={"payment_id": payment_id},
-            tenant_id=tenant_id,
         )
 
     logger.info("manual_match_done", tenant_id=tenant_id, tx_id=transaction_id, payment_id=payment_id)

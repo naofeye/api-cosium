@@ -21,7 +21,7 @@ def add_interaction(db: Session, tenant_id: int, payload: InteractionCreate, use
         payload.content,
         user_id,
     )
-    audit_service.log_action(db, user_id, "create", "interaction", item.id)
+    audit_service.log_action(db, tenant_id, user_id, "create", "interaction", item.id)
     logger.info("interaction_created", tenant_id=tenant_id, id=item.id, client_id=payload.client_id, type=payload.type)
     return InteractionResponse.model_validate(item)
 
@@ -45,5 +45,5 @@ def delete_interaction(db: Session, tenant_id: int, interaction_id: int, user_id
     if not item:
         raise NotFoundError("interaction", interaction_id)
     interaction_repo.delete(db, item)
-    audit_service.log_action(db, user_id, "delete", "interaction", interaction_id)
+    audit_service.log_action(db, tenant_id, user_id, "delete", "interaction", interaction_id)
     logger.info("interaction_deleted", tenant_id=tenant_id, id=interaction_id)

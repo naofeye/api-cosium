@@ -45,7 +45,7 @@ def list_organizations(db: Session, tenant_id: int) -> list[PayerOrgResponse]:
 def create_organization(db: Session, tenant_id: int, payload: PayerOrgCreate, user_id: int) -> PayerOrgResponse:
     org = pec_repo.create_organization(db, tenant_id, payload.name, payload.type, payload.code, payload.contact_email)
     if user_id:
-        audit_service.log_action(db, user_id, "create", "payer_organization", org.id, tenant_id=tenant_id)
+        audit_service.log_action(db, tenant_id, user_id, "create", "payer_organization", org.id)
     logger.info("organization_created", tenant_id=tenant_id, org_id=org.id, name=payload.name)
     return PayerOrgResponse.model_validate(org)
 
@@ -71,12 +71,12 @@ def create_pec(db: Session, tenant_id: int, payload: PecCreate, user_id: int) ->
     if user_id:
         audit_service.log_action(
             db,
+            tenant_id,
             user_id,
             "create",
             "pec_request",
             pec.id,
             new_value={"montant": payload.montant_demande, "org": org.name},
-            tenant_id=tenant_id,
         )
         event_service.emit_event(db, tenant_id, "PECSoumise", "pec_request", pec.id, user_id)
 
@@ -157,13 +157,13 @@ def change_status(db: Session, tenant_id: int, pec_id: int, payload: PecStatusUp
     if user_id:
         audit_service.log_action(
             db,
+            tenant_id,
             user_id,
             "update",
             "pec_request",
             pec_id,
             old_value={"status": old_status},
             new_value={"status": payload.status},
-            tenant_id=tenant_id,
         )
         event_name = EVENT_MAP.get(payload.status)
         if event_name:
@@ -205,12 +205,12 @@ def create_relance(db: Session, tenant_id: int, pec_id: int, payload: RelanceCre
     )
     audit_service.log_action(
         db,
+        tenant_id,
         user_id,
         "create",
         "relance",
         relance.id,
         new_value={"pec_id": pec_id, "type": payload.type},
-        tenant_id=tenant_id,
     )
     logger.info("relance_created", tenant_id=tenant_id, pec_id=pec_id, relance_id=relance.id, type=payload.type)
     return RelanceResponse.model_validate(relance)

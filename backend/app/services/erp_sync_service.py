@@ -103,7 +103,7 @@ def sync_customers(db: Session, tenant_id: int, user_id: int = 0) -> dict:
         "total": len(erp_customers),
     }
     if user_id:
-        audit_service.log_action(db, user_id, "create", "sync_customers", 0, new_value=result)
+        audit_service.log_action(db, tenant_id, user_id, "create", "sync_customers", 0, new_value=result)
     logger.info("sync_customers_done", tenant_id=tenant_id, erp=connector.erp_type, **result)
     return result
 
@@ -119,7 +119,7 @@ def sync_invoices(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     result = {"fetched": len(erp_invoices), "note": "Invoice import requires mapping to OptiFlow factures model"}
 
     if user_id:
-        audit_service.log_action(db, user_id, "create", "sync_invoices", 0, new_value=result)
+        audit_service.log_action(db, tenant_id, user_id, "create", "sync_invoices", 0, new_value=result)
     logger.info("sync_invoices_done", tenant_id=tenant_id, erp=connector.erp_type, fetched=len(erp_invoices))
     return result
 
@@ -135,7 +135,7 @@ def sync_products(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     result = {"fetched": len(erp_products), "note": "Product catalog import for future use"}
 
     if user_id:
-        audit_service.log_action(db, user_id, "create", "sync_products", 0, new_value=result)
+        audit_service.log_action(db, tenant_id, user_id, "create", "sync_products", 0, new_value=result)
     logger.info("sync_products_done", tenant_id=tenant_id, erp=connector.erp_type, fetched=len(erp_products))
     return result
 

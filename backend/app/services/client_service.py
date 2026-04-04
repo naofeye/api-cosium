@@ -35,12 +35,12 @@ def create_client(db: Session, tenant_id: int, payload: ClientCreate, user_id: i
     customer = client_repo.create(db, tenant_id=tenant_id, **payload.model_dump(exclude_none=True))
     audit_service.log_action(
         db,
+        tenant_id,
         user_id,
         "create",
         "client",
         customer.id,
         new_value=payload.model_dump(exclude_none=True),
-        tenant_id=tenant_id,
     )
     logger.info("client_created", tenant_id=tenant_id, client_id=customer.id, user_id=user_id)
     return ClientResponse.model_validate(customer)
@@ -53,12 +53,12 @@ def update_client(db: Session, tenant_id: int, client_id: int, payload: ClientUp
     updated = client_repo.update(db, customer, **payload.model_dump(exclude_unset=True))
     audit_service.log_action(
         db,
+        tenant_id,
         user_id,
         "update",
         "client",
         client_id,
         new_value=payload.model_dump(exclude_unset=True),
-        tenant_id=tenant_id,
     )
     logger.info("client_updated", tenant_id=tenant_id, client_id=client_id, user_id=user_id)
     return ClientResponse.model_validate(updated)
@@ -69,5 +69,5 @@ def delete_client(db: Session, tenant_id: int, client_id: int, user_id: int) -> 
     if not customer:
         raise NotFoundError("client", client_id)
     client_repo.delete(db, customer)
-    audit_service.log_action(db, user_id, "delete", "client", client_id, tenant_id=tenant_id)
+    audit_service.log_action(db, tenant_id, user_id, "delete", "client", client_id)
     logger.info("client_deleted", tenant_id=tenant_id, client_id=client_id, user_id=user_id)

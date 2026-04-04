@@ -29,7 +29,7 @@ def get_client_data(db: Session, tenant_id: int, client_id: int, user_id: int) -
     if not customer or customer.tenant_id != tenant_id:
         raise NotFoundError("client", client_id)
     if user_id:
-        audit_service.log_action(db, user_id, "create", "gdpr_access", client_id)
+        audit_service.log_action(db, tenant_id, user_id, "create", "gdpr_access", client_id)
 
     cases = db.scalars(select(Case).where(Case.customer_id == client_id, Case.tenant_id == tenant_id)).all()
     case_ids = [c.id for c in cases]
@@ -84,7 +84,7 @@ def export_client_data(db: Session, tenant_id: int, client_id: int, user_id: int
     data = get_client_data(db, tenant_id, client_id, user_id)
 
     if user_id:
-        audit_service.log_action(db, user_id, "create", "gdpr_export", client_id)
+        audit_service.log_action(db, tenant_id, user_id, "create", "gdpr_export", client_id)
 
     logger.info("gdpr_export", tenant_id=tenant_id, client_id=client_id)
     return json.dumps(data, ensure_ascii=False, indent=2, default=str).encode("utf-8")
@@ -120,7 +120,9 @@ def anonymize_client(db: Session, tenant_id: int, client_id: int, user_id: int) 
     db.commit()
 
     if user_id:
-        audit_service.log_action(db, user_id, "delete", "gdpr_anonymize", client_id, old_value={"name": old_name})
+        audit_service.log_action(
+            db, tenant_id, user_id, "delete", "gdpr_anonymize", client_id, old_value={"name": old_name}
+        )
 
     logger.info("gdpr_anonymized", tenant_id=tenant_id, client_id=client_id)
     return {"client_id": client_id, "status": "anonymized"}

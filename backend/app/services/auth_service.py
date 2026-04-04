@@ -159,7 +159,9 @@ def change_password(db: Session, user_id: int, old_password: str, new_password: 
     # Revoke all refresh tokens
     db.query(RefreshToken).filter(RefreshToken.user_id == user_id).update({"revoked": True})
     db.commit()
-    audit_service.log_action(db, user_id, "update", "user", user_id)
+    tu = db.query(TenantUser).filter(TenantUser.user_id == user_id, TenantUser.is_active).first()
+    tenant_id = tu.tenant_id if tu else 1
+    audit_service.log_action(db, tenant_id, user_id, "update", "user", user_id)
     logger.info("password_changed", user_id=user_id)
 
 
@@ -225,5 +227,7 @@ def reset_password(db: Session, token: str, new_password: str) -> None:
     db.query(RefreshToken).filter(RefreshToken.user_id == user.id).update({"revoked": True})
     db.commit()
 
-    audit_service.log_action(db, user.id, "update", "password_reset", user.id)
+    tu = db.query(TenantUser).filter(TenantUser.user_id == user.id, TenantUser.is_active).first()
+    tenant_id = tu.tenant_id if tu else 1
+    audit_service.log_action(db, tenant_id, user.id, "update", "password_reset", user.id)
     logger.info("password_reset_completed", user_id=user.id)

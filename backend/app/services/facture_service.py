@@ -66,12 +66,12 @@ def create_from_devis(db: Session, tenant_id: int, devis_id: int, user_id: int) 
     if user_id:
         audit_service.log_action(
             db,
+            tenant_id,
             user_id,
             "create",
             "facture",
             facture.id,
             new_value={"numero": numero, "devis_id": devis_id},
-            tenant_id=tenant_id,
         )
         event_service.emit_event(db, tenant_id, "FactureEmise", "facture", facture.id, user_id)
 

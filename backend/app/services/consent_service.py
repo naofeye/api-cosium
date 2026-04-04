@@ -32,6 +32,7 @@ def update_consent(
     if user_id:
         audit_service.log_action(
             db,
+            tenant_id,
             user_id,
             "update",
             "marketing_consent",
