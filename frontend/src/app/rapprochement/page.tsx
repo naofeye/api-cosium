@@ -1,0 +1,187 @@
+"use client";
+
+import { useState } from "react";
+import useSWR from "swr";
+import { PageLayout } from "@/components/layout/PageLayout";
+import { Button } from "@/components/ui/Button";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
+import { DateDisplay } from "@/components/ui/DateDisplay";
+import { KPICard } from "@/components/ui/KPICard";
+import { fetchJson } from "@/lib/api";
+import { Upload, RefreshCw, Link2, CheckCircle, AlertCircle, FileText } from "lucide-react";
+
+interface BankTx {
+  id: number;
+  date: string;
+  libelle: string;
+  montant: number;
+  reference: string | null;
+  reconciled: boolean;
+  reconciled_payment_id: number | null;
+}
+
+interface TxList {
+  items: BankTx[];
+  total: number;
+}
+
+export default function RapprochementPage() {
+  const [uploading, setUploading] = useState(false);
+  const [reconciling, setReconciling] = useState(false);
+  const [importResult, setImportResult] = useState<string | null>(null);
+  const [reconcileResult, setReconcileResult] = useState<string | null>(null);
+  const [showReconciled, setShowReconciled] = useState<boolean | undefined>(undefined);
+  const [mutationError, setMutationError] = useState<string | null>(null);
+
+  const swrKey = `/banking/transactions${showReconciled !== undefined ? `?reconciled=${showReconciled}` : ""}`;
+  const { data: txData, error: swrError, isLoading, mutate } = useSWR<TxList>(swrKey);
+
+  const transactions = txData?.items ?? [];
+  const total = txData?.total ?? 0;
+  const error = swrError?.message ?? mutationError ?? null;
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setImportResult(null);
+    setMutationError(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const data = await fetchJson<{ imported?: number; total?: number }>("/banking/import-statement", {
+        method: "POST",
+        body: formData,
+      });
+      setImportResult(`${data.imported ?? data.total ?? 0} transaction(s) importee(s)`);
+      mutate();
+    } catch {
+      setMutationError("Erreur lors de l'import");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const autoReconcile = async () => {
+    setReconciling(true);
+    setReconcileResult(null);
+    setMutationError(null);
+    try {
+      const resp = await fetchJson<{ matched: number; unmatched: number }>("/banking/reconcile", { method: "POST" });
+      setReconcileResult(`${resp.matched} rapproche(s), ${resp.unmatched} non rapproche(s)`);
+      mutate();
+    } catch {
+      setMutationError("Erreur lors du rapprochement");
+    } finally {
+      setReconciling(false);
+    }
+  };
+
+  const unmatchedCount = transactions.filter((t) => !t.reconciled).length;
+  const matchedCount = transactions.filter((t) => t.reconciled).length;
+
+  return (
+    <PageLayout
+      title="Rapprochement bancaire"
+      description="Import de releves et rapprochement avec les paiements"
+      breadcrumb={[{ label: "Rapprochement" }]}
+    >
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <KPICard icon={FileText} label="Total transactions" value={total} color="primary" />
+        <KPICard icon={CheckCircle} label="Rapprochees" value={matchedCount} color="success" />
+        <KPICard
+          icon={AlertCircle}
+          label="Non rapprochees"
+          value={unmatchedCount}
+          color={unmatchedCount > 0 ? "danger" : "success"}
+        />
+      </div>
+
+      <div className="flex items-center gap-3 mb-6">
+        <label className="cursor-pointer">
+          <input type="file" accept=".csv" onChange={handleUpload} className="hidden" />
+          <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-bg-card px-4 py-2 text-sm font-medium hover:bg-gray-50 transition-colors">
+            <Upload className="h-4 w-4" />
+            {uploading ? "Import en cours..." : "Importer un releve CSV"}
+          </span>
+        </label>
+        <Button variant="outline" onClick={autoReconcile} disabled={reconciling}>
+          <RefreshCw className={`h-4 w-4 mr-1.5 ${reconciling ? "animate-spin" : ""}`} />
+          {reconciling ? "Rapprochement..." : "Rapprochement auto"}
+        </Button>
+        <select
+          value={showReconciled === undefined ? "" : String(showReconciled)}
+          onChange={(e) => setShowReconciled(e.target.value === "" ? undefined : e.target.value === "true")}
+          className="rounded-lg border border-border px-3 py-2 text-sm"
+        >
+          <option value="">Toutes</option>
+          <option value="false">Non rapprochees</option>
+          <option value="true">Rapprochees</option>
+        </select>
+      </div>
+
+      {importResult && (
+        <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 flex items-center gap-2">
+          <CheckCircle className="h-4 w-4" /> {importResult}
+        </div>
+      )}
+      {reconcileResult && (
+        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700 flex items-center gap-2">
+          <Link2 className="h-4 w-4" /> {reconcileResult}
+        </div>
+      )}
+
+      {isLoading ? (
+        <LoadingState text="Chargement des transactions..." />
+      ) : error ? (
+        <ErrorState message={error} onRetry={() => mutate()} />
+      ) : transactions.length === 0 ? (
+        <EmptyState title="Aucune transaction" description="Importez un releve CSV pour commencer le rapprochement." />
+      ) : (
+        <div className="rounded-xl border border-border bg-bg-card shadow-sm">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-gray-50">
+                <th className="px-4 py-3 text-left font-medium text-text-secondary">Date</th>
+                <th className="px-4 py-3 text-left font-medium text-text-secondary">Libelle</th>
+                <th className="px-4 py-3 text-right font-medium text-text-secondary">Montant</th>
+                <th className="px-4 py-3 text-left font-medium text-text-secondary">Reference</th>
+                <th className="px-4 py-3 text-center font-medium text-text-secondary">Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              {transactions.map((tx) => (
+                <tr key={tx.id} className="border-b border-border last:border-0 hover:bg-gray-50">
+                  <td className="px-4 py-3">
+                    <DateDisplay date={tx.date} />
+                  </td>
+                  <td className="px-4 py-3 font-medium max-w-xs truncate">{tx.libelle}</td>
+                  <td className="px-4 py-3 text-right">
+                    <MoneyDisplay amount={tx.montant} colored />
+                  </td>
+                  <td className="px-4 py-3 text-text-secondary font-mono text-xs">{tx.reference || "-"}</td>
+                  <td className="px-4 py-3 text-center">
+                    {tx.reconciled ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
+                        <CheckCircle className="h-3.5 w-3.5" /> Rapprochee
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700">
+                        <AlertCircle className="h-3.5 w-3.5" /> Non rapprochee
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </PageLayout>
+  );
+}

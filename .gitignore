@@ -1,0 +1,47 @@
+# Environnement
+.env
+.env.local
+.env.production
+
+# Credentials (ne JAMAIS commiter)
+credential*.txt
+*.credentials
+*.secret
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+.next/
+out/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+docker-compose.override.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# MinIO data
+minio_data/
+
+# Cosium scraped pages (filenames too long for Git)
+docs/cosium/pages/

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.tsx$\")",
+      "Bash(grep \"\\\\.py$\")",
+      "Bash(grep -E \"\\\\.md$\")",
+      "Bash(ls -1 tests/test_*.py)"
+    ]
+  }
+}

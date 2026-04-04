@@ -1,0 +1,55 @@
+import boto3
+from botocore.config import Config
+from botocore.exceptions import ClientError
+
+from app.core.config import settings
+from app.core.logging import get_logger
+
+logger = get_logger("storage")
+
+
+class StorageAdapter:
+    def __init__(self) -> None:
+        self._client = boto3.client(
+            "s3",
+            endpoint_url=settings.s3_endpoint,
+            aws_access_key_id=settings.s3_access_key,
+            aws_secret_access_key=settings.s3_secret_key,
+            config=Config(signature_version="s3v4"),
+            region_name="us-east-1",
+        )
+
+    def ensure_bucket(self, bucket: str) -> None:
+        try:
+            self._client.head_bucket(Bucket=bucket)
+            logger.info("bucket_exists", bucket=bucket)
+        except ClientError:
+            self._client.create_bucket(Bucket=bucket)
+            logger.info("bucket_created", bucket=bucket)
+
+    def upload_file(
+        self, bucket: str, key: str, file_data: bytes, content_type: str = "application/octet-stream"
+    ) -> str:
+        self._client.put_object(
+            Bucket=bucket,
+            Key=key,
+            Body=file_data,
+            ContentType=content_type,
+        )
+        logger.info("file_uploaded", bucket=bucket, key=key)
+        return key
+
+    def get_download_url(self, bucket: str, key: str, expires: int = 3600) -> str:
+        url = self._client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": bucket, "Key": key},
+            ExpiresIn=expires,
+        )
+        return url
+
+    def delete_file(self, bucket: str, key: str) -> None:
+        self._client.delete_object(Bucket=bucket, Key=key)
+        logger.info("file_deleted", bucket=bucket, key=key)
+
+
+storage = StorageAdapter()

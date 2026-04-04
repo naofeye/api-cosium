@@ -1,0 +1,54 @@
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+  "E",    # pycodestyle errors
+  "W",    # pycodestyle warnings
+  "F",    # pyflakes
+  "I",    # isort
+  "N",    # pep8-naming
+  "UP",   # pyupgrade
+  "B",    # flake8-bugbear
+  "A",    # flake8-builtins
+  "C4",   # flake8-comprehensions
+  "T20",  # flake8-print (no print())
+]
+ignore = [
+  "A002",  # argument shadows builtin (type, id — very common in APIs)
+  "A003",  # class attribute shadows builtin (id, type, etc.)
+  "E402",  # module import not at top (Sentry conditional init)
+  "E501",  # line too long (handled by formatter)
+  "E741",  # ambiguous variable name (l, e — common in loops)
+  "B008",  # function call in default arg (Depends())
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "cosium_live: tests requiring real Cosium API credentials (skipped by default)",
+  "slow: slow tests",
+]
+addopts = "-m 'not cosium_live'"
+filterwarnings = [
+    "ignore::DeprecationWarning:botocore.*",
+    "ignore::DeprecationWarning:sqlalchemy.*",
+    "ignore::DeprecationWarning:fastapi.*",
+    "ignore::DeprecationWarning:starlette.*",
+    "ignore::DeprecationWarning:datetime",
+]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/seed*.py", "app/tasks/*"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 80
