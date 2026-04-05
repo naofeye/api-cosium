@@ -20,17 +20,18 @@ router = APIRouter(prefix="/api/v1", tags=["notifications"])
 )
 def list_notifications(
     unread_only: bool = Query(False),
-    limit: int = Query(50, ge=1, le=100),
-    offset: int = Query(0, ge=0),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> NotificationListResponse:
+    offset = (page - 1) * page_size
     return notification_service.list_notifications(
         db,
         tenant_id=tenant_ctx.tenant_id,
         user_id=tenant_ctx.user_id,
         unread_only=unread_only,
-        limit=limit,
+        limit=page_size,
         offset=offset,
     )
 

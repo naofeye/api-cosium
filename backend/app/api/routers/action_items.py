@@ -21,18 +21,19 @@ router = APIRouter(prefix="/api/v1", tags=["action-items"])
 def list_action_items(
     status: str | None = Query(None),
     priority: str | None = Query(None),
-    limit: int = Query(50, ge=1, le=100),
-    offset: int = Query(0, ge=0),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> ActionItemListResponse:
+    offset = (page - 1) * page_size
     return action_item_service.list_action_items(
         db,
         tenant_id=tenant_ctx.tenant_id,
         user_id=tenant_ctx.user_id,
         status=status,
         priority=priority,
-        limit=limit,
+        limit=page_size,
         offset=offset,
     )
 

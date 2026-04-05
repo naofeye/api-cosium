@@ -25,7 +25,7 @@ def _seed_bulk_data(db, count: int = 200, tenant_id: int = 1):
 def test_cases_pagination_limits_results(client, db, auth_headers):
     """La pagination doit limiter le nombre de resultats."""
     _seed_bulk_data(db, 50)
-    resp = client.get("/api/v1/cases?limit=10&offset=0", headers=auth_headers)
+    resp = client.get("/api/v1/cases?page=1&page_size=10", headers=auth_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 10
@@ -34,8 +34,8 @@ def test_cases_pagination_limits_results(client, db, auth_headers):
 def test_cases_pagination_offset(client, db, auth_headers):
     """L'offset doit decaler les resultats."""
     _seed_bulk_data(db, 30)
-    page1 = client.get("/api/v1/cases?limit=10&offset=0", headers=auth_headers).json()
-    page2 = client.get("/api/v1/cases?limit=10&offset=10", headers=auth_headers).json()
+    page1 = client.get("/api/v1/cases?page=1&page_size=10", headers=auth_headers).json()
+    page2 = client.get("/api/v1/cases?page=2&page_size=10", headers=auth_headers).json()
     assert len(page1) == 10
     assert len(page2) == 10
     ids1 = {c["id"] for c in page1}
@@ -47,7 +47,7 @@ def test_cases_list_responds_under_1s(client, db, auth_headers):
     """La liste des dossiers doit repondre en moins de 1s avec 200 dossiers."""
     _seed_bulk_data(db, 200)
     start = time.time()
-    resp = client.get("/api/v1/cases?limit=25", headers=auth_headers)
+    resp = client.get("/api/v1/cases?page=1&page_size=25", headers=auth_headers)
     elapsed = time.time() - start
     assert resp.status_code == 200
     assert elapsed < 1.0, f"Response took {elapsed:.2f}s, should be < 1s"
@@ -65,8 +65,8 @@ def test_clients_list_responds_under_1s(client, db, auth_headers):
 
 def test_pagination_max_limit_enforced(client, db, auth_headers):
     """Le limit ne doit pas depasser 100."""
-    resp = client.get("/api/v1/cases?limit=500", headers=auth_headers)
-    assert resp.status_code == 422, "limit > 100 should be rejected"
+    resp = client.get("/api/v1/cases?page_size=500", headers=auth_headers)
+    assert resp.status_code == 422, "page_size > 100 should be rejected"
 
 
 def test_gzip_compression_active(client, auth_headers):

@@ -86,7 +86,8 @@ def test_delete_client(client: TestClient, auth_headers: dict) -> None:
     )
     client_id = create_resp.json()["id"]
     resp = client.delete(f"/api/v1/clients/{client_id}", headers=auth_headers)
-    assert resp.status_code == 204
+    assert resp.status_code == 200
+    assert "message" in resp.json()
     resp2 = client.get(f"/api/v1/clients/{client_id}", headers=auth_headers)
     assert resp2.status_code == 404
 

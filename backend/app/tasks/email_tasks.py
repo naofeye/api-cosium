@@ -6,7 +6,7 @@ from app.tasks import celery_app
 logger = get_logger("email_tasks")
 
 
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
+@celery_app.task(bind=True, max_retries=3)
 def send_email_async(self, to: str, subject: str, body_html: str) -> None:
     from app.integrations.email_sender import email_sender
 
@@ -16,5 +16,12 @@ def send_email_async(self, to: str, subject: str, body_html: str) -> None:
             raise RuntimeError("Email send returned False")
         logger.info("email_sent_async", to=to, subject=subject)
     except Exception as exc:
-        logger.warning("email_retry", to=to, attempt=self.request.retries, error=str(exc))
-        self.retry(exc=exc)
+        backoff = 60 * (2 ** self.request.retries)  # 60s, 120s, 240s
+        logger.warning(
+            "email_retry",
+            to=to,
+            attempt=self.request.retries,
+            next_retry_seconds=backoff,
+            error=str(exc),
+        )
+        raise self.retry(exc=exc, countdown=backoff)

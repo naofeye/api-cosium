@@ -37,4 +37,5 @@ def test_delete_interaction(client: TestClient, auth_headers: dict) -> None:
     resp = client.post("/api/v1/interactions", json={"client_id": cid, "type": "note", "direction": "interne", "subject": "A supprimer"}, headers=auth_headers)
     iid = resp.json()["id"]
     resp = client.delete(f"/api/v1/interactions/{iid}", headers=auth_headers)
-    assert resp.status_code == 204
+    assert resp.status_code == 200
+    assert "message" in resp.json()

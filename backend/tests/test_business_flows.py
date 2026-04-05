@@ -262,7 +262,7 @@ def test_client_soft_delete_and_restore(client: TestClient, auth_headers: dict) 
 
     # Soft delete
     resp = client.delete(f"/api/v1/clients/{client_id}", headers=auth_headers)
-    assert resp.status_code == 204
+    assert resp.status_code == 200
 
     # Verify not in list (default excludes deleted)
     resp = client.get("/api/v1/clients?q=TestDelete", headers=auth_headers)
@@ -300,7 +300,7 @@ def test_delete_client_create_same_email_restore_conflict(client: TestClient, au
 
     # Soft delete first client
     resp = client.delete(f"/api/v1/clients/{original_id}", headers=auth_headers)
-    assert resp.status_code == 204
+    assert resp.status_code == 200
 
     # Create second client with same email
     resp = client.post(
@@ -340,7 +340,7 @@ def test_delete_client_cases_still_accessible(client: TestClient, auth_headers: 
     # If we have the customer_id, delete them
     if customer_id:
         resp = client.delete(f"/api/v1/clients/{customer_id}", headers=auth_headers)
-        assert resp.status_code == 204
+        assert resp.status_code == 200
 
         # Case should still be accessible (orphan protection via FK, not cascade delete)
         resp = client.get(f"/api/v1/cases/{case_id}", headers=auth_headers)

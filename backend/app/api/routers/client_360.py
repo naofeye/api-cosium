@@ -110,7 +110,7 @@ def create_interaction(
 
 @router.delete(
     "/interactions/{interaction_id}",
-    status_code=204,
+    status_code=200,
     summary="Supprimer une interaction",
     description="Supprime une interaction du journal.",
 )
@@ -118,10 +118,11 @@ def delete_interaction(
     interaction_id: int,
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
-) -> None:
+) -> dict[str, str]:
     interaction_service.delete_interaction(
         db,
         tenant_id=tenant_ctx.tenant_id,
         interaction_id=interaction_id,
         user_id=tenant_ctx.user_id,
     )
+    return {"message": "Interaction supprimee avec succes"}

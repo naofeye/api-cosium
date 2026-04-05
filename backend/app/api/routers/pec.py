@@ -79,13 +79,14 @@ def create_pec(
 def list_pec(
     status: str | None = Query(None),
     organization_id: int | None = Query(None),
-    limit: int = Query(25, ge=1, le=100),
-    offset: int = Query(0, ge=0),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> list[PecResponse]:
+    offset = (page - 1) * page_size
     return pec_service.list_pec(
-        db, tenant_id=tenant_ctx.tenant_id, status=status, organization_id=organization_id, limit=limit, offset=offset
+        db, tenant_id=tenant_ctx.tenant_id, status=status, organization_id=organization_id, limit=page_size, offset=offset
     )
 
 

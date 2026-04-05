@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.gzip import GZipMiddleware as _BaseGZipMiddleware
 
 from app import models  # noqa: F401
 from app.api.routers import (
@@ -74,11 +74,31 @@ app = FastAPI(
     redoc_url="/redoc" if _is_dev else None,
 )
 
-# Middleware stack (order matters: first added = outermost)
-app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(RequestIdMiddleware)
+# --- Selective GZip that skips SSE / file-download streams ---
+
+_GZIP_SKIP_SEGMENTS = ("/sse", "/download", "/export")
+
+
+class SelectiveGZipMiddleware(_BaseGZipMiddleware):
+    """GZip middleware that bypasses streaming responses (SSE, PDF downloads)."""
+
+    async def __call__(self, scope, receive, send):  # type: ignore[override]
+        if scope["type"] == "http":
+            path: str = scope.get("path", "")
+            if any(seg in path for seg in _GZIP_SKIP_SEGMENTS):
+                await self.app(scope, receive, send)
+                return
+        await super().__call__(scope, receive, send)
+
+
+# Middleware stack — last added = outermost in Starlette.
+# Desired order (outer → inner): CORS > SecurityHeaders > RequestId > RateLimiter > GZip
+# So we add them innermost-first:
+
+app.add_middleware(SelectiveGZipMiddleware, minimum_size=1000)
 app.add_middleware(RateLimiterMiddleware)
-app.add_middleware(GZipMiddleware, minimum_size=1000)
+app.add_middleware(RequestIdMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],

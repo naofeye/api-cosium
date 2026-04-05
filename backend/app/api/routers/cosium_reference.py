@@ -72,7 +72,7 @@ def sync_reference(
     description="Liste paginee des evenements calendrier synchronises depuis Cosium.",
 )
 def list_calendar_events(
-    page: int = Query(0, ge=0, description="Numero de page (commence a 0)"),
+    page: int = Query(1, ge=1, description="Numero de page (commence a 1)"),
     page_size: int = Query(25, ge=1, le=100, description="Nombre d'elements par page"),
     status: str | None = Query(None, description="Filtrer par statut (ex: CONFIRMED)"),
     db: Session = Depends(get_db),
@@ -89,7 +89,8 @@ def list_calendar_events(
 
     query = query.order_by(CosiumCalendarEvent.start_date.desc())
     total = db.scalar(count_query) or 0
-    items = db.scalars(query.offset(page * page_size).limit(page_size)).all()
+    offset = (page - 1) * page_size
+    items = db.scalars(query.offset(offset).limit(page_size)).all()
 
     return PaginatedCalendarEvents(
         items=[CalendarEventResponse.model_validate(i) for i in items],
@@ -108,7 +109,7 @@ def list_calendar_events(
     description="Liste paginee des mutuelles synchronisees depuis Cosium.",
 )
 def list_mutuelles(
-    page: int = Query(0, ge=0),
+    page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
     search: str | None = Query(None, description="Recherche par nom"),
     db: Session = Depends(get_db),
@@ -126,7 +127,8 @@ def list_mutuelles(
 
     query = query.order_by(CosiumMutuelle.name)
     total = db.scalar(count_query) or 0
-    items = db.scalars(query.offset(page * page_size).limit(page_size)).all()
+    offset = (page - 1) * page_size
+    items = db.scalars(query.offset(offset).limit(page_size)).all()
 
     return PaginatedMutuelles(
         items=[MutuelleResponse.model_validate(i) for i in items],
@@ -145,7 +147,7 @@ def list_mutuelles(
     description="Liste paginee des medecins/prescripteurs synchronises depuis Cosium.",
 )
 def list_doctors(
-    page: int = Query(0, ge=0),
+    page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
     search: str | None = Query(None, description="Recherche par nom"),
     db: Session = Depends(get_db),
@@ -167,7 +169,8 @@ def list_doctors(
 
     query = query.order_by(CosiumDoctor.lastname, CosiumDoctor.firstname)
     total = db.scalar(count_query) or 0
-    items = db.scalars(query.offset(page * page_size).limit(page_size)).all()
+    offset = (page - 1) * page_size
+    items = db.scalars(query.offset(offset).limit(page_size)).all()
 
     return PaginatedDoctors(
         items=[DoctorResponse.model_validate(i) for i in items],

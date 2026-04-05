@@ -38,12 +38,13 @@ def create_facture(
     description="Retourne la liste paginee des factures du magasin.",
 )
 def list_factures(
-    limit: int = Query(25, ge=1, le=100),
-    offset: int = Query(0, ge=0),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> list[FactureResponse]:
-    return facture_service.list_factures(db, tenant_id=tenant_ctx.tenant_id, limit=limit, offset=offset)
+    offset = (page - 1) * page_size
+    return facture_service.list_factures(db, tenant_id=tenant_ctx.tenant_id, limit=page_size, offset=offset)
 
 
 @router.get(

@@ -131,7 +131,7 @@ def update_client(
 
 @router.delete(
     "/{client_id}",
-    status_code=204,
+    status_code=200,
     summary="Supprimer un client",
     description="Supprime un client (soft delete).",
 )
@@ -139,8 +139,9 @@ def delete_client(
     client_id: int,
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
-) -> None:
+) -> dict[str, str]:
     client_service.delete_client(db, tenant_id=tenant_ctx.tenant_id, client_id=client_id, user_id=tenant_ctx.user_id)
+    return {"message": "Client supprime avec succes"}
 
 
 @router.post(

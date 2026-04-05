@@ -56,8 +56,18 @@ def sync_all_tenants(self) -> dict[str, int]:
             finally:
                 release_lock(lock_key)
 
-        logger.info("sync_all_tenants_complete", synced=synced, failed=failed, total=len(tenants))
-        return {"synced": synced, "failed": failed, "total": len(tenants)}
+        total = len(tenants)
+        logger.info("sync_all_tenants_complete", synced=synced, failed=failed, total=total)
+
+        if failed > 0:
+            logger.error("sync_all_tenants_partial_failure", failed=failed, total=total)
+            # Don't retry (data is partially committed), but raise to mark task as FAILURE
+            # so monitoring can detect it
+            raise RuntimeError(
+                f"sync_all_tenants partial failure: {failed}/{total} tenants failed"
+            )
+
+        return {"synced": synced, "failed": failed, "total": total}
     finally:
         db.close()
 
@@ -181,6 +191,17 @@ def test_cosium_connection(self) -> dict[str, int]:
                 db.commit()
 
         logger.info("test_cosium_connection_complete", ok=ok_count, failed=fail_count)
+
+        if fail_count > 0:
+            logger.error(
+                "test_cosium_connection_has_failures",
+                ok=ok_count,
+                failed=fail_count,
+            )
+            raise RuntimeError(
+                f"test_cosium_connection: {fail_count} tenant(s) failed connectivity check"
+            )
+
         return {"ok": ok_count, "failed": fail_count}
     finally:
         db.close()
