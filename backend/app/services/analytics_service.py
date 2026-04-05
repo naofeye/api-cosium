@@ -284,7 +284,9 @@ def get_cosium_kpis(db: Session, tenant_id: int) -> CosiumKPIs:
     total_outstanding = float(
         db.scalar(
             select(func.coalesce(func.sum(CosiumInvoice.outstanding_balance), 0)).where(
-                CosiumInvoice.tenant_id == tenant_id, CosiumInvoice.outstanding_balance > 0
+                CosiumInvoice.tenant_id == tenant_id,
+                CosiumInvoice.type == "INVOICE",
+                CosiumInvoice.outstanding_balance > 0,
             )
         )
         or 0

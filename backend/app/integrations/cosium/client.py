@@ -232,9 +232,11 @@ class CosiumClient:
 
             all_items.extend(items)
 
-            # Check pagination
+            # Check pagination — supports both formats:
+            # HAL/customers: { "page": { "totalPages": N } }
+            # Spring/invoices: { "totalPages": N } (top-level)
             page_info = data.get("page", {})
-            total_pages = page_info.get("totalPages", 1)
+            total_pages = page_info.get("totalPages") or data.get("totalPages", 1)
             if page + 1 >= total_pages:
                 break
 

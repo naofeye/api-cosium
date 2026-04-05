@@ -203,43 +203,22 @@ def sync_invoices(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     connector, tenant = _get_connector_for_tenant(db, tenant_id)
     _authenticate_connector(connector, tenant)
 
-    # Collect all invoices via month-by-month date ranges (24 months)
+    # Collect all invoices via direct pagination (no offset limit on invoices)
     all_invoices: list[ERPInvoice] = []
     seen_ids: set[str] = set()
-    now = datetime.now(UTC)
 
-    for months_back in range(24):
-        start = (now - relativedelta(months=months_back + 1)).replace(day=1)
-        end = (now - relativedelta(months=months_back)).replace(day=1)
-        date_from = start.strftime("%Y-%m-%dT00:00:00.000Z")
-        date_to = end.strftime("%Y-%m-%dT00:00:00.000Z")
-
-        try:
-            if hasattr(connector, "get_invoices_by_date_range"):
-                batch = connector.get_invoices_by_date_range(date_from, date_to)
-            else:
-                # Fallback for non-Cosium connectors
-                batch = connector.get_invoices()
-                all_invoices.extend(batch)
-                break
-
-            for inv in batch:
-                if inv.erp_id not in seen_ids:
-                    seen_ids.add(inv.erp_id)
-                    all_invoices.append(inv)
-        except Exception as e:
-            logger.error(
-                "sync_invoices_month_failed",
-                date_from=date_from,
-                date_to=date_to,
-                error=str(e),
-                exc_info=True,
-            )
-            # Authentication or connection errors are critical — abort the whole sync
-            if "auth" in str(e).lower() or "connect" in str(e).lower() or "timeout" in str(e).lower():
-                raise ValueError(
-                    f"Erreur critique lors de la synchronisation des factures ({date_from} - {date_to}): {e}"
-                ) from e
+    try:
+        # Invoices endpoint supports full pagination (unlike customers)
+        # Use max_pages=600 to cover ~30000 invoices at 50/page
+        batch = connector.get_invoices(page=0, page_size=50)
+        for inv in batch:
+            if inv.erp_id not in seen_ids:
+                seen_ids.add(inv.erp_id)
+                all_invoices.append(inv)
+    except Exception as e:
+        logger.error("sync_invoices_failed", error=str(e), exc_info=True)
+        if "auth" in str(e).lower() or "connect" in str(e).lower() or "timeout" in str(e).lower():
+            raise ValueError(f"Erreur critique lors de la synchronisation des factures: {e}") from e
 
     logger.info("sync_invoices_fetched", tenant_id=tenant_id, total=len(all_invoices))
 
@@ -270,10 +249,16 @@ def sync_invoices(db: Session, tenant_id: int, user_id: int = 0) -> dict:
         # Try to match customer
         customer_id = _match_customer_by_name(inv.customer_name, customer_name_map)
 
-        # Parse date
+        # Parse date (Cosium returns ISO strings like "2026-03-20T23:00:00.000Z")
         invoice_date = None
         if inv.date:
-            invoice_date = inv.date if isinstance(inv.date, datetime) else None
+            if isinstance(inv.date, datetime):
+                invoice_date = inv.date
+            elif isinstance(inv.date, str):
+                try:
+                    invoice_date = datetime.fromisoformat(inv.date.replace("Z", "+00:00"))
+                except (ValueError, TypeError):
+                    pass
 
         if cosium_id in existing_map:
             row = existing_map[cosium_id]
