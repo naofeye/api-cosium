@@ -155,13 +155,22 @@ def sync_all(
         ("customers", erp_sync_service.sync_customers),
         ("invoices", erp_sync_service.sync_invoices),
         ("payments", erp_sync_service.sync_payments),
-        ("third_party_payments", erp_sync_service.sync_third_party_payments),
         ("prescriptions", erp_sync_service.sync_prescriptions),
     ]:
         try:
             results[sync_name] = sync_fn(db, tenant_id=tenant_ctx.tenant_id, user_id=tenant_ctx.user_id)
         except Exception as e:
             results[sync_name] = {"error": str(e)}
+
+    # Sync reference data (calendar, mutuelles, doctors, etc.)
+    try:
+        from app.services.cosium_reference_sync import sync_all_reference
+
+        ref_results = sync_all_reference(db, tenant_id=tenant_ctx.tenant_id, user_id=tenant_ctx.user_id)
+        results["reference"] = ref_results
+    except Exception as e:
+        results["reference"] = {"error": str(e)}
+
     return results
 
 
