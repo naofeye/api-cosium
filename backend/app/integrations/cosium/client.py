@@ -83,12 +83,17 @@ class CosiumClient:
         # Mode 3: Basic auth (legacy)
         return self._authenticate_basic(t, l, p)
 
-    def _authenticate_cookie(self) -> str:
-        """Cookie-based auth using device-credential + access_token from settings."""
-        self.token = settings.cosium_access_token
+    def _authenticate_cookie(self, access_token: str | None = None, device_credential: str | None = None) -> str:
+        """Cookie-based auth using device-credential + access_token.
+
+        Accepts explicit values (from tenant DB) or falls back to settings.
+        """
+        at = access_token or settings.cosium_access_token
+        dc = device_credential or settings.cosium_device_credential
+        self.token = at
         self._cookies = {
-            "access_token": settings.cosium_access_token,
-            "device-credential": settings.cosium_device_credential,
+            "access_token": at,
+            "device-credential": dc,
         }
         self._auth_mode = "cookie"
         self._authenticated_at = time.time()
@@ -238,7 +243,9 @@ class CosiumClient:
             )
 
             # Rate limit: pause between pages to avoid Cosium throttling
-            time.sleep(0.3)
+            # Only sleep when fetching multiple pages (single-page requests skip the delay)
+            if max_pages > 1:
+                time.sleep(0.1)
 
         return all_items
 

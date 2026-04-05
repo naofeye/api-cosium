@@ -21,6 +21,9 @@ import {
   Pencil,
   Trash2,
   Clock,
+  Key,
+  Save,
+  Calendar,
 } from "lucide-react";
 import { ActivityChart } from "./components/ActivityChart";
 import { HealthStatus } from "./components/HealthStatus";
@@ -56,7 +59,10 @@ interface SyncStatus {
   configured: boolean;
   authenticated: boolean;
   tenant: string | null;
+  tenant_name: string | null;
   base_url: string;
+  last_sync_at: string | null;
+  first_sync_done: boolean;
 }
 interface SyncResult {
   created?: number;
@@ -101,6 +107,10 @@ export default function AdminPage() {
   const loading = syncLoading || healthLoading || metricsLoading;
   const [syncing, setSyncing] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, SyncResult>>({});
+  const [cookieAccessToken, setCookieAccessToken] = useState("");
+  const [cookieDeviceCredential, setCookieDeviceCredential] = useState("");
+  const [cookieSaving, setCookieSaving] = useState(false);
+  const [cookieMessage, setCookieMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const runSync = async (type: string) => {
     setSyncing(type);
@@ -111,6 +121,31 @@ export default function AdminPage() {
       /* ignore */
     } finally {
       setSyncing(null);
+    }
+  };
+
+  const saveCosiumCookies = async () => {
+    if (!cookieAccessToken.trim() || !cookieDeviceCredential.trim()) {
+      setCookieMessage({ type: "error", text: "Les deux champs sont obligatoires." });
+      return;
+    }
+    setCookieSaving(true);
+    setCookieMessage(null);
+    try {
+      const res = await fetchJson<{ status: string; message: string }>("/admin/cosium-cookies", {
+        method: "POST",
+        body: JSON.stringify({
+          access_token: cookieAccessToken.trim(),
+          device_credential: cookieDeviceCredential.trim(),
+        }),
+      });
+      setCookieMessage({ type: "success", text: res.message || "Cookies enregistres." });
+      setCookieAccessToken("");
+      setCookieDeviceCredential("");
+    } catch {
+      setCookieMessage({ type: "error", text: "Erreur lors de l'enregistrement des cookies." });
+    } finally {
+      setCookieSaving(false);
     }
   };
 
@@ -166,6 +201,89 @@ export default function AdminPage() {
         ) : (
           <p className="text-sm text-text-secondary">Non disponible</p>
         )}
+      </div>
+
+      {/* Synchronisation Cosium — Statut detaille */}
+      {syncStatus && (
+        <div className="rounded-xl border border-border bg-bg-card p-6 shadow-sm mb-6">
+          <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
+            <Calendar className="h-5 w-5" /> Synchronisation Cosium
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <KPICard
+              icon={syncStatus.first_sync_done ? CheckCircle : AlertCircle}
+              label="Premiere synchronisation"
+              value={syncStatus.first_sync_done ? "Effectuee" : "Non effectuee"}
+              color={syncStatus.first_sync_done ? "success" : "warning"}
+            />
+            <KPICard
+              icon={Clock}
+              label="Derniere synchronisation"
+              value={
+                syncStatus.last_sync_at
+                  ? new Intl.DateTimeFormat("fr-FR", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }).format(new Date(syncStatus.last_sync_at))
+                  : "Jamais"
+              }
+              color={syncStatus.last_sync_at ? "info" : "warning"}
+            />
+            <KPICard
+              icon={Wifi}
+              label="Type ERP"
+              value={(syncStatus as SyncStatus & { erp_type?: string }).erp_type || "cosium"}
+              color="info"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Acces Cosium — Cookies */}
+      <div className="rounded-xl border border-border bg-bg-card p-6 shadow-sm mb-6">
+        <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
+          <Key className="h-5 w-5" /> Acces Cosium — Cookies navigateur
+        </h3>
+        <p className="text-sm text-text-secondary mb-4">
+          Pour renouveler l&apos;acces, connectez-vous sur Cosium dans votre navigateur, puis copiez les cookies{" "}
+          <code className="bg-gray-100 px-1 rounded text-xs">access_token</code> et{" "}
+          <code className="bg-gray-100 px-1 rounded text-xs">device-credential</code> depuis les DevTools (onglet
+          Application &gt; Cookies).
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="text-sm font-medium text-text-primary block mb-1">Cookie access_token</label>
+            <input
+              type="text"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Collez le cookie access_token ici..."
+              value={cookieAccessToken}
+              onChange={(e) => setCookieAccessToken(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-text-primary block mb-1">Cookie device-credential</label>
+            <input
+              type="text"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Collez le cookie device-credential ici..."
+              value={cookieDeviceCredential}
+              onChange={(e) => setCookieDeviceCredential(e.target.value)}
+            />
+          </div>
+        </div>
+        {cookieMessage && (
+          <p className={`text-sm mb-3 ${cookieMessage.type === "success" ? "text-emerald-600" : "text-red-600"}`}>
+            {cookieMessage.text}
+          </p>
+        )}
+        <Button onClick={saveCosiumCookies} disabled={cookieSaving}>
+          <Save className="h-4 w-4 mr-1.5" />
+          {cookieSaving ? "Enregistrement..." : "Enregistrer les cookies"}
+        </Button>
       </div>
 
       {/* Synchronisation */}

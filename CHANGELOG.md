@@ -1,5 +1,25 @@
 # Changelog
 
+## v1.4.0 — Cosium Integration & Performance (2026-04-04)
+
+### Nouvelles fonctionnalites
+- **Sync Cosium complete** : 3710+ clients reels synchronises depuis Cosium (A-Z + accents + chiffres + tri multiple)
+- **Factures par plage de dates** : `get_invoices_by_date_range()` pour sync incrementale mois par mois
+- **Catalogue produits** : sync produits Cosium avec code EAN/GTIN, famille, prix
+- **Sync incrementale** : detection delta pour eviter les re-imports complets
+- **Recherche par NIR** : recherche client par numero de securite sociale
+- **AsyncSelect** : composant frontend search-as-you-type avec debounce SWR pour selection de clients dans les formulaires
+
+### Performance
+- **Optimisation sync Cosium** : delai inter-pages reduit de 0.3s a 0.1s, supprime pour les requetes single-page (`max_pages=1`)
+- **338+ tests backend** (couverture 88%)
+
+### Qualite
+- Toutes les pages data-loading utilisent SWR (cache, deduplication, auto-revalidation)
+- `setLoading` reserve uniquement aux mutations (POST/PATCH), jamais au chargement de donnees
+
+---
+
 ## v1.3.0 — Templates, Aide & Consolidation (2026-04-04)
 
 ### Nouvelles fonctionnalites

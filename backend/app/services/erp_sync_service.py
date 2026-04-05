@@ -36,11 +36,37 @@ def _get_connector_for_tenant(db: Session, tenant_id: int) -> tuple[ERPConnector
 
 
 def _authenticate_connector(connector: ERPConnector, tenant: Tenant) -> None:
-    """Authentifie le connecteur avec les credentials du tenant."""
+    """Authentifie le connecteur avec les credentials du tenant.
+
+    Priority for Cosium:
+    1. Tenant DB cookie credentials (cosium_cookie_access_token_enc)
+    2. Settings cookie credentials (COSIUM_ACCESS_TOKEN env var)
+    3. OIDC / basic auth credentials
+    """
     from app.core.config import settings
 
     if connector.erp_type == "cosium":
         base_url = settings.cosium_base_url
+
+        # Try tenant-stored cookies first
+        tenant_at = getattr(tenant, "cosium_cookie_access_token_enc", None)
+        tenant_dc = getattr(tenant, "cosium_cookie_device_credential_enc", None)
+        if tenant_at and tenant_dc:
+            try:
+                at_plain = decrypt(tenant_at)
+                dc_plain = decrypt(tenant_dc)
+                # Directly configure the underlying CosiumClient for cookie mode
+                from app.integrations.cosium.cosium_connector import CosiumConnector
+
+                if isinstance(connector, CosiumConnector):
+                    connector._client.base_url = base_url
+                    connector._client.tenant = tenant.cosium_tenant or settings.cosium_tenant or ""
+                    connector._client._authenticate_cookie(access_token=at_plain, device_credential=dc_plain)
+                    logger.info("auth_via_tenant_cookies", tenant_id=tenant.id)
+                    return
+            except Exception as exc:
+                logger.warning("tenant_cookie_decrypt_failed", tenant_id=tenant.id, error=str(exc))
+
         erp_tenant = tenant.cosium_tenant or settings.cosium_tenant or ""
         login = tenant.cosium_login or settings.cosium_login or ""
         raw_password = tenant.cosium_password_enc or settings.cosium_password or ""
@@ -247,8 +273,8 @@ def sync_invoices(db: Session, tenant_id: int, user_id: int = 0) -> dict:
             row.type = inv.type
             row.total_ti = inv.total_ttc
             row.outstanding_balance = inv.outstanding_balance
-            row.share_social_security = inv.share_social_security
-            row.share_private_insurance = inv.share_private_insurance
+            row.share_social_security = inv.share_social_security or 0.0
+            row.share_private_insurance = inv.share_private_insurance or 0.0
             row.settled = inv.settled
             row.archived = inv.archived
             row.site_id = inv.site_id
@@ -265,8 +291,8 @@ def sync_invoices(db: Session, tenant_id: int, user_id: int = 0) -> dict:
                 type=inv.type,
                 total_ti=inv.total_ttc,
                 outstanding_balance=inv.outstanding_balance,
-                share_social_security=inv.share_social_security,
-                share_private_insurance=inv.share_private_insurance,
+                share_social_security=inv.share_social_security or 0.0,
+                share_private_insurance=inv.share_private_insurance or 0.0,
                 settled=inv.settled,
                 archived=inv.archived,
                 site_id=inv.site_id,

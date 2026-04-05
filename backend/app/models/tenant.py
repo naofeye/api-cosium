@@ -29,6 +29,8 @@ class Tenant(Base):
     cosium_tenant: Mapped[str | None] = mapped_column(String(100), nullable=True)
     cosium_login: Mapped[str | None] = mapped_column(String(255), nullable=True)
     cosium_password_enc: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    cosium_cookie_access_token_enc: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    cosium_cookie_device_credential_enc: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     cosium_connected: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     first_sync_done: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     last_cosium_sync_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

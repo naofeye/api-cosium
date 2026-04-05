@@ -1,17 +1,19 @@
-"""Admin health check and metrics endpoints."""
+"""Admin health check, metrics, and Cosium cookie management endpoints."""
 
 import time
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_tenant_role
+from app.core.encryption import encrypt
 from app.core.tenant_context import TenantContext
 from app.db.session import get_db
 from app.domain.schemas.admin import HealthCheckResponse, MetricsResponse
-from app.models import AuditLog, Case, Customer, Facture, Payment
+from app.models import AuditLog, Case, Customer, Facture, Payment, Tenant
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
@@ -111,3 +113,39 @@ def metrics(
             "active_users_last_hour": active_users,
         },
     }
+
+
+class CosiumCookiesPayload(BaseModel):
+    access_token: str = Field(..., min_length=1, description="Cookie access_token depuis le navigateur Cosium")
+    device_credential: str = Field(
+        ..., min_length=1, description="Cookie device-credential depuis le navigateur Cosium"
+    )
+
+
+class CosiumCookiesResponse(BaseModel):
+    status: str
+    message: str
+
+
+@router.post(
+    "/cosium-cookies",
+    response_model=CosiumCookiesResponse,
+    summary="Mettre a jour les cookies Cosium",
+    description="Enregistre les cookies access_token et device-credential du navigateur Cosium (chiffres en base).",
+)
+def update_cosium_cookies(
+    payload: CosiumCookiesPayload,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin")),
+) -> CosiumCookiesResponse:
+    """Admin-only: store encrypted Cosium browser cookies for the tenant."""
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_ctx.tenant_id).first()
+    if not tenant:
+        return CosiumCookiesResponse(status="error", message="Tenant introuvable")
+
+    tenant.cosium_cookie_access_token_enc = encrypt(payload.access_token)
+    tenant.cosium_cookie_device_credential_enc = encrypt(payload.device_credential)
+    tenant.cosium_connected = True
+    db.commit()
+
+    return CosiumCookiesResponse(status="ok", message="Cookies Cosium mis a jour avec succes")

@@ -42,6 +42,7 @@ docker compose up --build
 - **Dashboard** : KPIs financiers, balance agee, graphiques Recharts
 - **IA Copilote** : 4 modes (dossier, financier, documentaire, marketing)
 - **Multi-tenant** : isolation par magasin, switch tenant, dashboard reseau
+- **Sync Cosium** : 3710+ clients reels, factures par plage de dates, catalogue produits, sync incrementale, recherche par NIR
 - **Onboarding** : wizard 5 etapes, connexion Cosium (OIDC/basic)
 - **Facturation SaaS** : integration Stripe, quotas IA
 - **Aide** : centre d'aide avec FAQ, raccourcis clavier, contact support
@@ -65,7 +66,7 @@ docker compose up --build
 │   │   ├── db/                # Engine, session
 │   │   └── main.py            # Point d'entree FastAPI
 │   ├── alembic/               # 18 migrations
-│   ├── tests/                 # 44 fichiers de tests (306+ tests)
+│   ├── tests/                 # 44 fichiers de tests (338+ tests)
 │   └── requirements.txt
 ├── frontend/
 │   ├── src/
@@ -91,7 +92,7 @@ docker compose up --build
 ## Tests
 
 ```bash
-# Backend (306+ tests, couverture 88%)
+# Backend (338+ tests, couverture 88%)
 docker compose exec api pytest -v
 
 # Frontend (70+ tests)

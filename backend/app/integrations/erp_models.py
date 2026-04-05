@@ -34,8 +34,8 @@ class ERPInvoice(BaseModel):
     customer_erp_id: str = ""
     customer_name: str = ""
     outstanding_balance: float = 0.0
-    share_social_security: float = 0.0
-    share_private_insurance: float = 0.0
+    share_social_security: float | None = 0.0
+    share_private_insurance: float | None = 0.0
     archived: bool = False
     site_id: int | None = None
 

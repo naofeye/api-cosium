@@ -8,6 +8,8 @@ class SyncStatusResponse(BaseModel):
     authenticated: bool = False
     erp_type: str = "cosium"
     tenant_name: str | None = None
+    last_sync_at: str | None = None
+    first_sync_done: bool = False
 
 
 class SyncResultResponse(BaseModel):
