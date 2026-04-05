@@ -31,7 +31,7 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
           <Sidebar />
           <main id="main-content" className="flex-1 ml-64 min-h-screen bg-bg-page">{children}</main>
         </div>
-        <span className="fixed bottom-2 right-2 text-xs text-gray-400">v1.2.0</span>
+        <span className="fixed bottom-2 right-2 text-xs text-gray-400">v0.1.0</span>
       </ToastProvider>
     </SWRProvider>
   );

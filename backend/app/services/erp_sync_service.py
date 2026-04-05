@@ -72,8 +72,13 @@ def _authenticate_connector(connector: ERPConnector, tenant: Tenant) -> None:
         raw_password = tenant.cosium_password_enc or settings.cosium_password or ""
         try:
             password = decrypt(raw_password) if raw_password else ""
-        except Exception:
+        except Exception as exc:
             # Backward compat: fallback to raw value if not encrypted
+            logger.warning(
+                "password_decrypt_fallback",
+                tenant_id=tenant.id,
+                error=str(exc),
+            )
             password = raw_password
     else:
         erp_config = tenant.erp_config or {}
@@ -223,12 +228,18 @@ def sync_invoices(db: Session, tenant_id: int, user_id: int = 0) -> dict:
                     seen_ids.add(inv.erp_id)
                     all_invoices.append(inv)
         except Exception as e:
-            logger.warning(
+            logger.error(
                 "sync_invoices_month_failed",
                 date_from=date_from,
                 date_to=date_to,
                 error=str(e),
+                exc_info=True,
             )
+            # Authentication or connection errors are critical — abort the whole sync
+            if "auth" in str(e).lower() or "connect" in str(e).lower() or "timeout" in str(e).lower():
+                raise ValueError(
+                    f"Erreur critique lors de la synchronisation des factures ({date_from} - {date_to}): {e}"
+                ) from e
 
     logger.info("sync_invoices_fetched", tenant_id=tenant_id, total=len(all_invoices))
 

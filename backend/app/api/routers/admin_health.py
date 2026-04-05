@@ -9,11 +9,11 @@ from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_tenant_role
-from app.core.encryption import encrypt
 from app.core.tenant_context import TenantContext
 from app.db.session import get_db
 from app.domain.schemas.admin import HealthCheckResponse, MetricsResponse
-from app.models import AuditLog, Case, Customer, Facture, Payment, Tenant
+from app.models import AuditLog, Case, Customer, Facture, Payment
+from app.services import onboarding_service
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
@@ -139,13 +139,10 @@ def update_cosium_cookies(
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin")),
 ) -> CosiumCookiesResponse:
     """Admin-only: store encrypted Cosium browser cookies for the tenant."""
-    tenant = db.query(Tenant).filter(Tenant.id == tenant_ctx.tenant_id).first()
-    if not tenant:
-        return CosiumCookiesResponse(status="error", message="Tenant introuvable")
-
-    tenant.cosium_cookie_access_token_enc = encrypt(payload.access_token)
-    tenant.cosium_cookie_device_credential_enc = encrypt(payload.device_credential)
-    tenant.cosium_connected = True
-    db.commit()
-
+    onboarding_service.update_cosium_cookies(
+        db,
+        tenant_id=tenant_ctx.tenant_id,
+        access_token=payload.access_token,
+        device_credential=payload.device_credential,
+    )
     return CosiumCookiesResponse(status="ok", message="Cookies Cosium mis a jour avec succes")

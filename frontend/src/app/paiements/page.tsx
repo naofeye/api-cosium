@@ -42,7 +42,9 @@ export default function PaiementsPage() {
   useEffect(() => {
     fetchJson<CaseOption[]>("/cases")
       .then(setCases)
-      .catch(() => {});
+      .catch((err) => {
+        console.error("[Paiements] Erreur chargement des dossiers:", err);
+      });
   }, []);
 
   const onSubmit = async (data: PaymentCreateFormData) => {

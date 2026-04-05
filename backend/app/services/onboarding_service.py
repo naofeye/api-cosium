@@ -157,6 +157,21 @@ def trigger_first_sync(db: Session, tenant_id: int) -> dict:
         raise BusinessError(f"Synchronisation echouee : {e}") from e
 
 
+def update_cosium_cookies(db: Session, tenant_id: int, access_token: str, device_credential: str) -> bool:
+    """Store encrypted Cosium browser cookies for the tenant."""
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if not tenant:
+        raise BusinessError("Magasin introuvable")
+
+    tenant.cosium_cookie_access_token_enc = encrypt(access_token)
+    tenant.cosium_cookie_device_credential_enc = encrypt(device_credential)
+    tenant.cosium_connected = True
+    db.commit()
+
+    logger.info("cosium_cookies_updated", tenant_id=tenant_id)
+    return True
+
+
 def get_onboarding_status(db: Session, tenant_id: int) -> OnboardingStatusResponse:
     tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
     if not tenant:

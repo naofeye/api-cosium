@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Numeric, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
@@ -22,6 +22,8 @@ class Payment(Base):
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending", index=True)
     idempotency_key: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+
+    case: Mapped["Case"] = relationship("Case", back_populates="payments", lazy="noload")  # type: ignore[name-defined]
 
 
 class BankTransaction(Base):

@@ -78,7 +78,9 @@ export function Header({ breadcrumb }: HeaderProps) {
       .then(() => {
         mutateNotifs();
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.error("[Notifications] Erreur lors du marquage comme lu:", err);
+      });
   };
 
   const handleLogout = () => {

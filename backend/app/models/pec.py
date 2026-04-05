@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, ForeignKey, Numeric, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
@@ -36,6 +36,8 @@ class PecRequest(Base):
     montant_accorde: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="soumise", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+
+    case: Mapped["Case"] = relationship("Case", back_populates="pec_requests", lazy="noload")  # type: ignore[name-defined]
 
 
 class PecStatusHistory(Base):

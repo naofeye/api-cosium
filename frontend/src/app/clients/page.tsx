@@ -125,7 +125,7 @@ export default function ClientsPage() {
       render: (row) => (
         <div className="flex items-center gap-2">
           {row.avatar_url ? (
-            <img src={`${API_BASE}/clients/${row.id}/avatar`} alt="" className="h-8 w-8 rounded-full object-cover" />
+            <img src={`${API_BASE}/clients/${row.id}/avatar`} alt={`Photo de ${row.first_name} ${row.last_name}`} className="h-8 w-8 rounded-full object-cover" />
           ) : (
             <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-700">
               {(row.first_name?.[0] || "").toUpperCase()}

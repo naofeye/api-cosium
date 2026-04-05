@@ -45,24 +45,24 @@ interface MetricsData {
 
 export default function AdminPage() {
   const { data: syncStatus, isLoading: syncLoading } = useSWR<SyncStatus>("/sync/status", {
-    onError: () => {
-      /* ignore */
+    onError: (err: Error) => {
+      console.error("[Admin] Erreur chargement statut sync:", err.message);
     },
   });
   const { data: health, isLoading: healthLoading } = useSWR<HealthData>("/admin/health", {
-    onError: () => {
-      /* ignore */
+    onError: (err: Error) => {
+      console.error("[Admin] Erreur chargement sante services:", err.message);
     },
   });
   const { data: metrics, isLoading: metricsLoading } = useSWR<MetricsData>("/admin/metrics", {
-    onError: () => {
-      /* ignore */
+    onError: (err: Error) => {
+      console.error("[Admin] Erreur chargement metriques:", err.message);
     },
   });
   const { data: activity } = useSWR<AuditLogEntry[]>("/audit-logs/recent", {
     refreshInterval: 10000,
-    onError: () => {
-      /* ignore */
+    onError: (err: Error) => {
+      console.error("[Admin] Erreur chargement activite recente:", err.message);
     },
   });
 

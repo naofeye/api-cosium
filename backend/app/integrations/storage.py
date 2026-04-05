@@ -3,6 +3,7 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from app.core.config import settings
+from app.core.exceptions import BusinessError
 from app.core.logging import get_logger
 
 logger = get_logger("storage")
@@ -30,12 +31,25 @@ class StorageAdapter:
     def upload_file(
         self, bucket: str, key: str, file_data: bytes, content_type: str = "application/octet-stream"
     ) -> str:
-        self._client.put_object(
-            Bucket=bucket,
-            Key=key,
-            Body=file_data,
-            ContentType=content_type,
-        )
+        try:
+            self._client.put_object(
+                Bucket=bucket,
+                Key=key,
+                Body=file_data,
+                ContentType=content_type,
+            )
+        except ClientError as exc:
+            logger.error("file_upload_failed", bucket=bucket, key=key, error=str(exc))
+            raise BusinessError(
+                f"Impossible de televerser le fichier : {exc}",
+                code="STORAGE_UPLOAD_ERROR",
+            ) from exc
+        except Exception as exc:
+            logger.error("file_upload_unexpected_error", bucket=bucket, key=key, error=str(exc))
+            raise BusinessError(
+                "Erreur inattendue lors du televersement du fichier",
+                code="STORAGE_UPLOAD_ERROR",
+            ) from exc
         logger.info("file_uploaded", bucket=bucket, key=key)
         return key
 
@@ -57,7 +71,20 @@ class StorageAdapter:
         return url
 
     def delete_file(self, bucket: str, key: str) -> None:
-        self._client.delete_object(Bucket=bucket, Key=key)
+        try:
+            self._client.delete_object(Bucket=bucket, Key=key)
+        except ClientError as exc:
+            logger.error("file_delete_failed", bucket=bucket, key=key, error=str(exc))
+            raise BusinessError(
+                f"Impossible de supprimer le fichier : {exc}",
+                code="STORAGE_DELETE_ERROR",
+            ) from exc
+        except Exception as exc:
+            logger.error("file_delete_unexpected_error", bucket=bucket, key=key, error=str(exc))
+            raise BusinessError(
+                "Erreur inattendue lors de la suppression du fichier",
+                code="STORAGE_DELETE_ERROR",
+            ) from exc
         logger.info("file_deleted", bucket=bucket, key=key)
 
 

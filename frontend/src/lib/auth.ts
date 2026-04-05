@@ -123,6 +123,8 @@ export function logout() {
   fetch(`${API_BASE}/auth/logout`, {
     method: "POST",
     credentials: "include",
-  }).catch(() => {});
+  }).catch((err) => {
+    console.error("[Auth] Erreur lors de la deconnexion:", err);
+  });
   clearAuthState();
 }
