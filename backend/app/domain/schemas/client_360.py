@@ -74,6 +74,7 @@ class Client360Response(BaseModel):
     city: str | None = None
     postal_code: str | None = None
     social_security_number: str | None = None
+    avatar_url: str | None = None
     created_at: datetime | None = None
     dossiers: list[DossierSummary] = []
     devis: list[DevisSummary] = []

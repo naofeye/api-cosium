@@ -121,6 +121,7 @@ def get_client_360(db: Session, tenant_id: int, client_id: int) -> Client360Resp
         city=customer.city,
         postal_code=customer.postal_code,
         social_security_number=customer.social_security_number,
+        avatar_url=f"/api/v1/clients/{customer.id}/avatar" if customer.avatar_url else None,
         created_at=customer.created_at,
         dossiers=dossiers,
         devis=devis_list,

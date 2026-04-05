@@ -12,7 +12,12 @@ from app.services import audit_service
 router = APIRouter(prefix="/api/v1/audit-logs", tags=["audit"])
 
 
-@router.get("", response_model=AuditLogListResponse)
+@router.get(
+    "",
+    response_model=AuditLogListResponse,
+    summary="Consulter les logs d'audit",
+    description="Retourne la liste paginee et filtrable des logs d'audit (admin uniquement).",
+)
 def list_audit_logs(
     entity_type: str | None = Query(None),
     entity_id: int | None = Query(None),
@@ -37,7 +42,12 @@ def list_audit_logs(
     )
 
 
-@router.get("/recent", response_model=list[AuditLogResponse])
+@router.get(
+    "/recent",
+    response_model=list[AuditLogResponse],
+    summary="Activite recente",
+    description="Retourne les dernieres actions pour le fil d'activite.",
+)
 def recent_activity(
     limit: int = Query(20, ge=1, le=50),
     db: Session = Depends(get_db),

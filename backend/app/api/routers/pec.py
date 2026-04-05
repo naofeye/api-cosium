@@ -22,7 +22,12 @@ router = APIRouter(prefix="/api/v1", tags=["pec"])
 # --- Organizations ---
 
 
-@router.get("/payer-organizations", response_model=list[PayerOrgResponse])
+@router.get(
+    "/payer-organizations",
+    response_model=list[PayerOrgResponse],
+    summary="Lister les organismes payeurs",
+    description="Retourne la liste des mutuelles et organismes de tiers payant.",
+)
 def list_organizations(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
@@ -30,7 +35,13 @@ def list_organizations(
     return pec_service.list_organizations(db, tenant_id=tenant_ctx.tenant_id)
 
 
-@router.post("/payer-organizations", response_model=PayerOrgResponse, status_code=201)
+@router.post(
+    "/payer-organizations",
+    response_model=PayerOrgResponse,
+    status_code=201,
+    summary="Creer un organisme payeur",
+    description="Ajoute un nouvel organisme payeur (mutuelle, secu).",
+)
 def create_organization(
     payload: PayerOrgCreate,
     db: Session = Depends(get_db),
@@ -44,7 +55,13 @@ def create_organization(
 # --- PEC Requests ---
 
 
-@router.post("/pec", response_model=PecResponse, status_code=201)
+@router.post(
+    "/pec",
+    response_model=PecResponse,
+    status_code=201,
+    summary="Creer une demande de PEC",
+    description="Soumet une nouvelle demande de prise en charge.",
+)
 def create_pec(
     payload: PecCreate,
     db: Session = Depends(get_db),
@@ -53,7 +70,12 @@ def create_pec(
     return pec_service.create_pec(db, tenant_id=tenant_ctx.tenant_id, payload=payload, user_id=tenant_ctx.user_id)
 
 
-@router.get("/pec", response_model=list[PecResponse])
+@router.get(
+    "/pec",
+    response_model=list[PecResponse],
+    summary="Lister les demandes de PEC",
+    description="Retourne la liste filtrable des demandes de prise en charge.",
+)
 def list_pec(
     status: str | None = Query(None),
     organization_id: int | None = Query(None),
@@ -67,7 +89,12 @@ def list_pec(
     )
 
 
-@router.get("/pec/{pec_id}", response_model=PecDetail)
+@router.get(
+    "/pec/{pec_id}",
+    response_model=PecDetail,
+    summary="Detail d'une PEC",
+    description="Retourne le detail complet d'une demande de prise en charge.",
+)
 def get_pec(
     pec_id: int,
     db: Session = Depends(get_db),
@@ -76,7 +103,12 @@ def get_pec(
     return pec_service.get_pec_detail(db, tenant_id=tenant_ctx.tenant_id, pec_id=pec_id)
 
 
-@router.patch("/pec/{pec_id}/status", response_model=PecResponse)
+@router.patch(
+    "/pec/{pec_id}/status",
+    response_model=PecResponse,
+    summary="Changer le statut d'une PEC",
+    description="Met a jour le statut d'une demande de prise en charge.",
+)
 def change_status(
     pec_id: int,
     payload: PecStatusUpdate,
@@ -88,7 +120,12 @@ def change_status(
     )
 
 
-@router.get("/pec/{pec_id}/history", response_model=list[PecStatusHistoryResponse])
+@router.get(
+    "/pec/{pec_id}/history",
+    response_model=list[PecStatusHistoryResponse],
+    summary="Historique d'une PEC",
+    description="Retourne l'historique des changements de statut d'une PEC.",
+)
 def get_history(
     pec_id: int,
     db: Session = Depends(get_db),
@@ -100,7 +137,13 @@ def get_history(
 # --- Relances ---
 
 
-@router.post("/pec/{pec_id}/relances", response_model=RelanceResponse, status_code=201)
+@router.post(
+    "/pec/{pec_id}/relances",
+    response_model=RelanceResponse,
+    status_code=201,
+    summary="Creer une relance PEC",
+    description="Cree une relance pour une demande de prise en charge en attente.",
+)
 def create_relance(
     pec_id: int,
     payload: RelanceCreate,
@@ -112,7 +155,12 @@ def create_relance(
     )
 
 
-@router.get("/pec/{pec_id}/relances", response_model=list[RelanceResponse])
+@router.get(
+    "/pec/{pec_id}/relances",
+    response_model=list[RelanceResponse],
+    summary="Lister les relances d'une PEC",
+    description="Retourne les relances envoyees pour une demande de prise en charge.",
+)
 def get_relances(
     pec_id: int,
     db: Session = Depends(get_db),

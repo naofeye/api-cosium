@@ -10,7 +10,12 @@ from app.services import dashboard_service
 router = APIRouter(prefix="/api/v1", tags=["dashboard"])
 
 
-@router.get("/dashboard/summary", response_model=DashboardSummary)
+@router.get(
+    "/dashboard/summary",
+    response_model=DashboardSummary,
+    summary="Resume du tableau de bord",
+    description="Retourne les KPIs principaux pour le tableau de bord d'accueil.",
+)
 def dashboard_summary(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),

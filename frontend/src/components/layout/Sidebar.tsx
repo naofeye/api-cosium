@@ -74,6 +74,7 @@ export function Sidebar() {
           onClick={() => setCollapsed(!collapsed)}
           className="rounded-lg p-1.5 hover:bg-gray-800"
           aria-label={collapsed ? "Agrandir le menu" : "Réduire le menu"}
+          title={collapsed ? "Agrandir le menu" : "Reduire le menu"}
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>

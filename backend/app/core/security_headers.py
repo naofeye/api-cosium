@@ -13,6 +13,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-        if request.url.scheme == "https":
-            response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+        # Always set HSTS — in production, reverse proxy terminates TLS so scheme
+        # may appear as http; the header is harmless on plain HTTP connections.
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
         return response

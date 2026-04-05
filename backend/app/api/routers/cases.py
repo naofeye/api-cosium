@@ -10,7 +10,12 @@ from app.services import case_service, completeness_service
 router = APIRouter(prefix="/api/v1", tags=["cases"])
 
 
-@router.get("/cases", response_model=list[CaseResponse])
+@router.get(
+    "/cases",
+    response_model=list[CaseResponse],
+    summary="Lister les dossiers",
+    description="Retourne la liste paginee des dossiers clients.",
+)
 def list_cases(
     limit: int = Query(25, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -20,7 +25,13 @@ def list_cases(
     return case_service.list_cases(db, tenant_id=tenant_ctx.tenant_id, limit=limit, offset=offset)
 
 
-@router.post("/cases", response_model=CaseResponse, status_code=201)
+@router.post(
+    "/cases",
+    response_model=CaseResponse,
+    status_code=201,
+    summary="Creer un dossier",
+    description="Cree un nouveau dossier client.",
+)
 def create_case(
     payload: CaseCreate,
     db: Session = Depends(get_db),
@@ -29,7 +40,12 @@ def create_case(
     return case_service.create_case(db, tenant_id=tenant_ctx.tenant_id, payload=payload, user_id=tenant_ctx.user_id)
 
 
-@router.get("/cases/{case_id}", response_model=CaseDetail)
+@router.get(
+    "/cases/{case_id}",
+    response_model=CaseDetail,
+    summary="Detail d'un dossier",
+    description="Retourne le detail complet d'un dossier avec ses documents et paiements.",
+)
 def get_case(
     case_id: int,
     db: Session = Depends(get_db),
@@ -38,7 +54,12 @@ def get_case(
     return case_service.get_case_detail(db, tenant_id=tenant_ctx.tenant_id, case_id=case_id)
 
 
-@router.get("/cases/{case_id}/completeness", response_model=CompletenessResponse)
+@router.get(
+    "/cases/{case_id}/completeness",
+    response_model=CompletenessResponse,
+    summary="Completude d'un dossier",
+    description="Retourne le score de completude et les elements manquants du dossier.",
+)
 def get_completeness(
     case_id: int,
     db: Session = Depends(get_db),

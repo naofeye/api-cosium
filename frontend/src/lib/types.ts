@@ -40,6 +40,7 @@ export interface Customer {
   postal_code: string | null;
   social_security_number: string | null;
   notes: string | null;
+  avatar_url: string | null;
   created_at: string | null;
   updated_at: string | null;
 }

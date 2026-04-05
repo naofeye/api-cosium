@@ -16,7 +16,13 @@ from app.services import devis_service, pdf_service
 router = APIRouter(prefix="/api/v1", tags=["devis"])
 
 
-@router.post("/devis", response_model=DevisResponse, status_code=201)
+@router.post(
+    "/devis",
+    response_model=DevisResponse,
+    status_code=201,
+    summary="Creer un devis",
+    description="Cree un nouveau devis avec ses lignes.",
+)
 def create_devis(
     payload: DevisCreate,
     db: Session = Depends(get_db),
@@ -25,7 +31,12 @@ def create_devis(
     return devis_service.create_devis(db, tenant_id=tenant_ctx.tenant_id, payload=payload, user_id=tenant_ctx.user_id)
 
 
-@router.get("/devis", response_model=list[DevisResponse])
+@router.get(
+    "/devis",
+    response_model=list[DevisResponse],
+    summary="Lister les devis",
+    description="Retourne la liste paginee des devis du magasin.",
+)
 def list_devis(
     limit: int = Query(25, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -35,7 +46,12 @@ def list_devis(
     return devis_service.list_devis(db, tenant_id=tenant_ctx.tenant_id, limit=limit, offset=offset)
 
 
-@router.get("/devis/{devis_id}", response_model=DevisDetail)
+@router.get(
+    "/devis/{devis_id}",
+    response_model=DevisDetail,
+    summary="Detail d'un devis",
+    description="Retourne le detail complet d'un devis avec ses lignes.",
+)
 def get_devis(
     devis_id: int,
     db: Session = Depends(get_db),
@@ -44,7 +60,12 @@ def get_devis(
     return devis_service.get_devis_detail(db, tenant_id=tenant_ctx.tenant_id, devis_id=devis_id)
 
 
-@router.put("/devis/{devis_id}", response_model=DevisResponse)
+@router.put(
+    "/devis/{devis_id}",
+    response_model=DevisResponse,
+    summary="Modifier un devis",
+    description="Met a jour un devis existant.",
+)
 def update_devis(
     devis_id: int,
     payload: DevisUpdate,
@@ -56,7 +77,12 @@ def update_devis(
     )
 
 
-@router.patch("/devis/{devis_id}/status", response_model=DevisResponse)
+@router.patch(
+    "/devis/{devis_id}/status",
+    response_model=DevisResponse,
+    summary="Changer le statut d'un devis",
+    description="Met a jour le statut d'un devis (envoye, signe, refuse, etc.).",
+)
 def change_status(
     devis_id: int,
     payload: DevisStatusUpdate,
@@ -68,7 +94,11 @@ def change_status(
     )
 
 
-@router.get("/devis/{devis_id}/pdf")
+@router.get(
+    "/devis/{devis_id}/pdf",
+    summary="Telecharger le PDF d'un devis",
+    description="Genere et retourne le fichier PDF d'un devis.",
+)
 def download_devis_pdf(
     devis_id: int,
     db: Session = Depends(get_db),

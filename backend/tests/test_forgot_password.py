@@ -40,16 +40,15 @@ class TestForgotPassword:
         assert tokens[0].used is False
 
     def test_forgot_password_sends_email(self, client, seed_user):
-        with patch("app.integrations.email_sender.email_sender") as mock_email:
-            mock_email.send_email.return_value = True
+        with patch("app.tasks.email_tasks.send_email_async") as mock_task:
             client.post(
                 "/api/v1/auth/forgot-password",
                 json={"email": "test@optiflow.local"},
             )
-            mock_email.send_email.assert_called_once()
-            call_kwargs = mock_email.send_email.call_args
-            assert call_kwargs[1]["to"] == "test@optiflow.local"
-            assert "reinitialisation" in call_kwargs[1]["subject"].lower()
+            mock_task.delay.assert_called_once()
+            kwargs = mock_task.delay.call_args[1]
+            assert kwargs["to"] == "test@optiflow.local"
+            assert "reinitialisation" in kwargs["subject"].lower()
 
 
 class TestResetPassword:

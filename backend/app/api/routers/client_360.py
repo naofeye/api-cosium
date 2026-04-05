@@ -11,7 +11,12 @@ from app.services import client_360_service, interaction_service, pdf_service
 router = APIRouter(prefix="/api/v1", tags=["client-360"])
 
 
-@router.get("/clients/{client_id}/360", response_model=Client360Response)
+@router.get(
+    "/clients/{client_id}/360",
+    response_model=Client360Response,
+    summary="Vue 360 d'un client",
+    description="Retourne la vision complete d'un client avec ses dossiers, finances et interactions.",
+)
 def get_client_360(
     client_id: int,
     db: Session = Depends(get_db),
@@ -24,7 +29,11 @@ def get_client_360(
     )
 
 
-@router.get("/clients/{client_id}/360/pdf")
+@router.get(
+    "/clients/{client_id}/360/pdf",
+    summary="PDF vue 360",
+    description="Genere et retourne le fichier PDF de la vue 360 d'un client.",
+)
 def download_client_360_pdf(
     client_id: int,
     db: Session = Depends(get_db),
@@ -38,7 +47,12 @@ def download_client_360_pdf(
     )
 
 
-@router.get("/clients/{client_id}/interactions", response_model=InteractionListResponse)
+@router.get(
+    "/clients/{client_id}/interactions",
+    response_model=InteractionListResponse,
+    summary="Historique des interactions",
+    description="Retourne la chronologie des interactions avec un client.",
+)
 def list_interactions(
     client_id: int,
     type: str | None = Query(None),
@@ -56,7 +70,13 @@ def list_interactions(
     return InteractionListResponse(items=items, total=total)
 
 
-@router.post("/interactions", response_model=InteractionResponse, status_code=201)
+@router.post(
+    "/interactions",
+    response_model=InteractionResponse,
+    status_code=201,
+    summary="Ajouter une interaction",
+    description="Enregistre une nouvelle interaction avec un client.",
+)
 def create_interaction(
     payload: InteractionCreate,
     db: Session = Depends(get_db),
@@ -70,7 +90,12 @@ def create_interaction(
     )
 
 
-@router.delete("/interactions/{interaction_id}", status_code=204)
+@router.delete(
+    "/interactions/{interaction_id}",
+    status_code=204,
+    summary="Supprimer une interaction",
+    description="Supprime une interaction du journal.",
+)
 def delete_interaction(
     interaction_id: int,
     db: Session = Depends(get_db),

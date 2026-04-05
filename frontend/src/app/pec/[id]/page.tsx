@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/Button";
 import { fetchJson } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
 import { Euro, Shield } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
+import Link from "next/link";
 import { TabHistorique, HistoryItem } from "./tabs/TabHistorique";
 import { TabRelances, RelanceItem } from "./tabs/TabRelances";
 
@@ -105,6 +107,22 @@ export default function PecDetailPage() {
     return (
       <PageLayout title="Chargement..." breadcrumb={[{ label: "PEC", href: "/pec" }, { label: "..." }]}>
         <LoadingState text="Chargement de la PEC..." />
+      </PageLayout>
+    );
+  }
+
+  if (pecError?.message?.includes("introuvable") || pecError?.message?.includes("404")) {
+    return (
+      <PageLayout title="Introuvable" breadcrumb={[{ label: "PEC", href: "/pec" }, { label: "Introuvable" }]}>
+        <EmptyState
+          title="PEC introuvable"
+          description="Cette prise en charge n'existe pas ou a ete supprimee."
+          action={
+            <Link href="/pec">
+              <Button>Retour a la liste</Button>
+            </Link>
+          }
+        />
       </PageLayout>
     );
   }

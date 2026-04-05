@@ -19,7 +19,12 @@ from app.services import ai_renewal_copilot, renewal_campaign_service, renewal_e
 router = APIRouter(prefix="/api/v1/renewals", tags=["renewals"])
 
 
-@router.get("/opportunities", response_model=list[RenewalOpportunity])
+@router.get(
+    "/opportunities",
+    response_model=list[RenewalOpportunity],
+    summary="Opportunites de renouvellement",
+    description="Liste les opportunites de renouvellement detectees.",
+)
 def list_opportunities(
     age_minimum_months: int = Query(24, ge=6, le=60),
     min_invoice_amount: float = Query(0.0, ge=0),
@@ -34,7 +39,12 @@ def list_opportunities(
     return renewal_engine.detect_renewals(db, tenant_ctx.tenant_id, config)
 
 
-@router.get("/dashboard", response_model=RenewalDashboardResponse)
+@router.get(
+    "/dashboard",
+    response_model=RenewalDashboardResponse,
+    summary="Dashboard renouvellements",
+    description="Tableau de bord des renouvellements avec KPIs.",
+)
 def get_dashboard(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
@@ -43,7 +53,13 @@ def get_dashboard(
     return renewal_engine.get_renewal_dashboard(db, tenant_ctx.tenant_id)
 
 
-@router.post("/campaign", response_model=RenewalCampaignResponse, status_code=201)
+@router.post(
+    "/campaign",
+    response_model=RenewalCampaignResponse,
+    status_code=201,
+    summary="Creer une campagne de renouvellement",
+    description="Cree une campagne de renouvellement avec message IA optionnel.",
+)
 def create_campaign(
     payload: RenewalCampaignCreate,
     db: Session = Depends(get_db),
@@ -58,7 +74,12 @@ def create_campaign(
     )
 
 
-@router.get("/ai-analysis", response_model=RenewalAnalysisResult)
+@router.get(
+    "/ai-analysis",
+    response_model=RenewalAnalysisResult,
+    summary="Analyse IA des renouvellements",
+    description="Analyse IA du potentiel de renouvellement du magasin.",
+)
 def get_ai_analysis(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
@@ -76,7 +97,12 @@ def get_ai_analysis(
     return RenewalAnalysisResult(analysis=analysis)
 
 
-@router.post("/generate-message", response_model=RenewalMessageResult)
+@router.post(
+    "/generate-message",
+    response_model=RenewalMessageResult,
+    summary="Generer un message de renouvellement",
+    description="Genere un message personnalise de renouvellement via IA.",
+)
 def generate_message(
     customer_id: int = Query(...),
     channel: str = Query("email", pattern="^(email|sms)$"),

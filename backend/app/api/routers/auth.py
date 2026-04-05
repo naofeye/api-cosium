@@ -42,7 +42,12 @@ def _set_auth_cookies(response: Response, result: TokenResponse) -> None:
     )
 
 
-@router.post("/login", response_model=LoginResponse)
+@router.post(
+    "/login",
+    response_model=LoginResponse,
+    summary="Connexion",
+    description="Authentifie un utilisateur par email et mot de passe, retourne les cookies JWT.",
+)
 def login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)) -> LoginResponse:
     result = auth_service.authenticate(db, payload)
     _set_auth_cookies(response, result)
@@ -54,7 +59,12 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
     )
 
 
-@router.post("/refresh", status_code=204)
+@router.post(
+    "/refresh",
+    status_code=204,
+    summary="Rafraichir le token",
+    description="Renouvelle les tokens JWT via le cookie de refresh.",
+)
 def refresh_token(request: Request, response: Response, db: Session = Depends(get_db)) -> None:
     # Read refresh token from httpOnly cookie (not from body)
     refresh_tok = request.cookies.get("optiflow_refresh")
@@ -64,7 +74,12 @@ def refresh_token(request: Request, response: Response, db: Session = Depends(ge
     _set_auth_cookies(response, result)
 
 
-@router.post("/switch-tenant", response_model=LoginResponse)
+@router.post(
+    "/switch-tenant",
+    response_model=LoginResponse,
+    summary="Changer de magasin",
+    description="Bascule vers un autre tenant accessible par l'utilisateur.",
+)
 def switch_tenant(
     payload: SwitchTenantRequest,
     response: Response,
@@ -81,7 +96,12 @@ def switch_tenant(
     )
 
 
-@router.post("/change-password", status_code=204)
+@router.post(
+    "/change-password",
+    status_code=204,
+    summary="Changer le mot de passe",
+    description="Modifie le mot de passe de l'utilisateur connecte.",
+)
 def change_password(
     payload: ChangePasswordRequest,
     db: Session = Depends(get_db),
@@ -90,17 +110,29 @@ def change_password(
     auth_service.change_password(db, current_user.id, payload.old_password, payload.new_password)
 
 
-@router.post("/forgot-password", status_code=204)
+@router.post(
+    "/forgot-password",
+    status_code=204,
+    summary="Mot de passe oublie",
+    description="Envoie un email de reinitialisation de mot de passe.",
+)
 def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)) -> None:
     auth_service.request_password_reset(db, payload.email)
 
 
-@router.post("/reset-password", status_code=204)
+@router.post(
+    "/reset-password",
+    status_code=204,
+    summary="Reinitialiser le mot de passe",
+    description="Definit un nouveau mot de passe a partir du token de reinitialisation.",
+)
 def reset_password_endpoint(payload: ResetPasswordRequest, db: Session = Depends(get_db)) -> None:
     auth_service.reset_password(db, payload.token, payload.new_password)
 
 
-@router.post("/logout", status_code=204)
+@router.post(
+    "/logout", status_code=204, summary="Deconnexion", description="Revoque le refresh token et supprime les cookies."
+)
 def logout(request: Request, response: Response, db: Session = Depends(get_db)) -> None:
     refresh_tok = request.cookies.get("optiflow_refresh")
     if refresh_tok:
@@ -110,7 +142,12 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)) 
     response.delete_cookie("optiflow_authenticated", path="/")
 
 
-@router.get("/me", response_model=UserMeResponse)
+@router.get(
+    "/me",
+    response_model=UserMeResponse,
+    summary="Profil utilisateur",
+    description="Retourne les informations de l'utilisateur connecte.",
+)
 def get_me(current_user: User = Depends(get_current_user)) -> UserMeResponse:
     return UserMeResponse(
         id=current_user.id,

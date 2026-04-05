@@ -39,7 +39,12 @@ class MessageResponse(BaseModel):
 # --- Endpoints ---
 
 
-@router.post("/checkout", response_model=CheckoutResponse)
+@router.post(
+    "/checkout",
+    response_model=CheckoutResponse,
+    summary="Creer une session de paiement",
+    description="Cree une session Stripe Checkout pour souscrire a un plan.",
+)
 def create_checkout(
     payload: CheckoutRequest,
     db: Session = Depends(get_db),
@@ -51,7 +56,12 @@ def create_checkout(
     return CheckoutResponse(checkout_url=checkout_url)
 
 
-@router.post("/webhook", response_model=MessageResponse)
+@router.post(
+    "/webhook",
+    response_model=MessageResponse,
+    summary="Webhook Stripe",
+    description="Recoit et traite les webhooks Stripe (pas d'authentification JWT).",
+)
 async def stripe_webhook(request: Request) -> MessageResponse:
     """Reçoit et traite les webhooks Stripe (public, pas d'auth JWT)."""
     from app.db.session import SessionLocal
@@ -71,7 +81,12 @@ async def stripe_webhook(request: Request) -> MessageResponse:
     return MessageResponse(message="ok")
 
 
-@router.get("/status", response_model=BillingStatusResponse)
+@router.get(
+    "/status",
+    response_model=BillingStatusResponse,
+    summary="Statut de facturation",
+    description="Retourne les informations de facturation du tenant courant.",
+)
 def get_billing_status(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
@@ -81,7 +96,12 @@ def get_billing_status(
     return BillingStatusResponse(**info)
 
 
-@router.post("/cancel", response_model=MessageResponse)
+@router.post(
+    "/cancel",
+    response_model=MessageResponse,
+    summary="Annuler l'abonnement",
+    description="Annule l'abonnement du tenant en fin de periode.",
+)
 def cancel_subscription(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),

@@ -11,7 +11,11 @@ from app.services import export_service
 router = APIRouter(prefix="/api/v1/exports", tags=["exports"])
 
 
-@router.get("/{entity_type}")
+@router.get(
+    "/{entity_type}",
+    summary="Exporter des donnees",
+    description="Exporte les donnees d'une entite au format CSV ou XLSX.",
+)
 def export_data(
     entity_type: str,
     format: str = Query("csv", pattern="^(csv|xlsx)$"),

@@ -12,7 +12,12 @@ from app.services import action_item_service
 router = APIRouter(prefix="/api/v1", tags=["action-items"])
 
 
-@router.get("/action-items", response_model=ActionItemListResponse)
+@router.get(
+    "/action-items",
+    response_model=ActionItemListResponse,
+    summary="Lister les actions a faire",
+    description="Retourne la liste des actions a faire filtrable par statut et priorite.",
+)
 def list_action_items(
     status: str | None = Query(None),
     priority: str | None = Query(None),
@@ -32,7 +37,12 @@ def list_action_items(
     )
 
 
-@router.patch("/action-items/{item_id}", status_code=204)
+@router.patch(
+    "/action-items/{item_id}",
+    status_code=204,
+    summary="Mettre a jour une action",
+    description="Met a jour le statut d'une action a faire.",
+)
 def update_action_item(
     item_id: int,
     payload: ActionItemUpdate,
@@ -47,7 +57,12 @@ def update_action_item(
     )
 
 
-@router.post("/action-items/refresh", response_model=ActionItemListResponse)
+@router.post(
+    "/action-items/refresh",
+    response_model=ActionItemListResponse,
+    summary="Rafraichir les actions",
+    description="Regenere la liste des actions a faire basee sur l'etat des dossiers.",
+)
 def refresh_action_items(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),

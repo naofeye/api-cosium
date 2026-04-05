@@ -21,6 +21,7 @@ class Customer(Base):
     postal_code: Mapped[str | None] = mapped_column(String(20), nullable=True)
     social_security_number: Mapped[str | None] = mapped_column(String(15), nullable=True)
     notes: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
     updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, onupdate=lambda: datetime.now(UTC))
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=None)

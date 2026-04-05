@@ -18,7 +18,12 @@ router = APIRouter(prefix="/api/v1/marketing", tags=["marketing"])
 # --- Segments ---
 
 
-@router.get("/segments", response_model=list[SegmentResponse])
+@router.get(
+    "/segments",
+    response_model=list[SegmentResponse],
+    summary="Lister les segments",
+    description="Retourne la liste des segments marketing.",
+)
 def list_segments(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
@@ -26,7 +31,13 @@ def list_segments(
     return marketing_service.list_segments(db, tenant_id=tenant_ctx.tenant_id)
 
 
-@router.post("/segments", response_model=SegmentResponse, status_code=201)
+@router.post(
+    "/segments",
+    response_model=SegmentResponse,
+    status_code=201,
+    summary="Creer un segment",
+    description="Cree un nouveau segment marketing base sur des criteres.",
+)
 def create_segment(
     payload: SegmentCreate,
     db: Session = Depends(get_db),
@@ -40,7 +51,12 @@ def create_segment(
     )
 
 
-@router.post("/segments/{segment_id}/refresh", response_model=SegmentResponse)
+@router.post(
+    "/segments/{segment_id}/refresh",
+    response_model=SegmentResponse,
+    summary="Rafraichir un segment",
+    description="Recalcule les membres d'un segment marketing.",
+)
 def refresh_segment(
     segment_id: int,
     db: Session = Depends(get_db),
@@ -56,7 +72,12 @@ def refresh_segment(
 # --- Campaigns ---
 
 
-@router.get("/campaigns", response_model=list[CampaignResponse])
+@router.get(
+    "/campaigns",
+    response_model=list[CampaignResponse],
+    summary="Lister les campagnes",
+    description="Retourne la liste des campagnes marketing.",
+)
 def list_campaigns(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
@@ -64,7 +85,13 @@ def list_campaigns(
     return marketing_service.list_campaigns(db, tenant_id=tenant_ctx.tenant_id)
 
 
-@router.post("/campaigns", response_model=CampaignResponse, status_code=201)
+@router.post(
+    "/campaigns",
+    response_model=CampaignResponse,
+    status_code=201,
+    summary="Creer une campagne",
+    description="Cree une nouvelle campagne marketing.",
+)
 def create_campaign(
     payload: CampaignCreate,
     db: Session = Depends(get_db),
@@ -78,7 +105,12 @@ def create_campaign(
     )
 
 
-@router.post("/campaigns/{campaign_id}/send", response_model=CampaignStats)
+@router.post(
+    "/campaigns/{campaign_id}/send",
+    response_model=CampaignStats,
+    summary="Envoyer une campagne",
+    description="Declenche l'envoi d'une campagne marketing aux destinataires.",
+)
 def send_campaign(
     campaign_id: int,
     db: Session = Depends(get_db),
@@ -92,7 +124,12 @@ def send_campaign(
     )
 
 
-@router.get("/campaigns/{campaign_id}/stats", response_model=CampaignStats)
+@router.get(
+    "/campaigns/{campaign_id}/stats",
+    response_model=CampaignStats,
+    summary="Statistiques d'une campagne",
+    description="Retourne les statistiques d'envoi d'une campagne.",
+)
 def get_campaign_stats(
     campaign_id: int,
     db: Session = Depends(get_db),

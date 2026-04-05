@@ -9,7 +9,12 @@ from app.services import consent_service
 router = APIRouter(prefix="/api/v1", tags=["consents"])
 
 
-@router.get("/clients/{client_id}/consents", response_model=list[ConsentResponse])
+@router.get(
+    "/clients/{client_id}/consents",
+    response_model=list[ConsentResponse],
+    summary="Consentements d'un client",
+    description="Retourne les consentements marketing d'un client par canal.",
+)
 def get_consents(
     client_id: int,
     db: Session = Depends(get_db),
@@ -22,7 +27,12 @@ def get_consents(
     )
 
 
-@router.put("/clients/{client_id}/consents/{channel}", response_model=ConsentResponse)
+@router.put(
+    "/clients/{client_id}/consents/{channel}",
+    response_model=ConsentResponse,
+    summary="Modifier un consentement",
+    description="Met a jour le consentement d'un client pour un canal donne.",
+)
 def update_consent(
     client_id: int,
     channel: str,

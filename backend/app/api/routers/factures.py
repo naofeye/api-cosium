@@ -14,7 +14,13 @@ from app.services import facture_service, pdf_service
 router = APIRouter(prefix="/api/v1", tags=["factures"])
 
 
-@router.post("/factures", response_model=FactureResponse, status_code=201)
+@router.post(
+    "/factures",
+    response_model=FactureResponse,
+    status_code=201,
+    summary="Creer une facture",
+    description="Genere une facture a partir d'un devis signe.",
+)
 def create_facture(
     payload: FactureCreate,
     db: Session = Depends(get_db),
@@ -25,7 +31,12 @@ def create_facture(
     )
 
 
-@router.get("/factures", response_model=list[FactureResponse])
+@router.get(
+    "/factures",
+    response_model=list[FactureResponse],
+    summary="Lister les factures",
+    description="Retourne la liste paginee des factures du magasin.",
+)
 def list_factures(
     limit: int = Query(25, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -35,7 +46,12 @@ def list_factures(
     return facture_service.list_factures(db, tenant_id=tenant_ctx.tenant_id, limit=limit, offset=offset)
 
 
-@router.get("/factures/{facture_id}", response_model=FactureDetail)
+@router.get(
+    "/factures/{facture_id}",
+    response_model=FactureDetail,
+    summary="Detail d'une facture",
+    description="Retourne le detail complet d'une facture avec ses lignes.",
+)
 def get_facture(
     facture_id: int,
     db: Session = Depends(get_db),
@@ -44,7 +60,11 @@ def get_facture(
     return facture_service.get_facture_detail(db, tenant_id=tenant_ctx.tenant_id, facture_id=facture_id)
 
 
-@router.get("/factures/{facture_id}/pdf")
+@router.get(
+    "/factures/{facture_id}/pdf",
+    summary="Telecharger le PDF d'une facture",
+    description="Genere et retourne le fichier PDF d'une facture.",
+)
 def download_facture_pdf(
     facture_id: int,
     db: Session = Depends(get_db),

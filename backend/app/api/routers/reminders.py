@@ -23,7 +23,12 @@ router = APIRouter(prefix="/api/v1/reminders", tags=["reminders"])
 # --- Overdue ---
 
 
-@router.get("/overdue", response_model=list[OverdueItem])
+@router.get(
+    "/overdue",
+    response_model=list[OverdueItem],
+    summary="Factures en retard",
+    description="Retourne les factures en retard de paiement.",
+)
 def get_overdue(
     min_days: int = Query(7, ge=0),
     db: Session = Depends(get_db),
@@ -35,7 +40,12 @@ def get_overdue(
 # --- Stats ---
 
 
-@router.get("/stats", response_model=ReminderStats)
+@router.get(
+    "/stats",
+    response_model=ReminderStats,
+    summary="Statistiques des relances",
+    description="Retourne les statistiques globales des relances.",
+)
 def get_stats(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
@@ -46,7 +56,12 @@ def get_stats(
 # --- Plans ---
 
 
-@router.get("/plans", response_model=list[ReminderPlanResponse])
+@router.get(
+    "/plans",
+    response_model=list[ReminderPlanResponse],
+    summary="Lister les plans de relance",
+    description="Retourne les plans de relance configures.",
+)
 def list_plans(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
@@ -54,7 +69,13 @@ def list_plans(
     return reminder_service.list_plans(db, tenant_id=tenant_ctx.tenant_id)
 
 
-@router.post("/plans", response_model=ReminderPlanResponse, status_code=201)
+@router.post(
+    "/plans",
+    response_model=ReminderPlanResponse,
+    status_code=201,
+    summary="Creer un plan de relance",
+    description="Cree un nouveau plan de relance automatique.",
+)
 def create_plan(
     payload: ReminderPlanCreate,
     db: Session = Depends(get_db),
@@ -68,7 +89,12 @@ def create_plan(
     )
 
 
-@router.post("/plans/{plan_id}/execute", response_model=list[ReminderResponse])
+@router.post(
+    "/plans/{plan_id}/execute",
+    response_model=list[ReminderResponse],
+    summary="Executer un plan de relance",
+    description="Execute manuellement un plan de relance et cree les relances.",
+)
 def execute_plan(
     plan_id: int,
     db: Session = Depends(get_db),
@@ -82,7 +108,12 @@ def execute_plan(
     )
 
 
-@router.patch("/plans/{plan_id}/toggle", response_model=ReminderPlanResponse)
+@router.patch(
+    "/plans/{plan_id}/toggle",
+    response_model=ReminderPlanResponse,
+    summary="Activer/desactiver un plan",
+    description="Active ou desactive un plan de relance.",
+)
 def toggle_plan(
     plan_id: int,
     is_active: bool = Query(...),
@@ -100,7 +131,12 @@ def toggle_plan(
 # --- Reminders ---
 
 
-@router.get("", response_model=ReminderListResponse)
+@router.get(
+    "",
+    response_model=ReminderListResponse,
+    summary="Lister les relances",
+    description="Retourne la liste paginee des relances avec filtre par statut.",
+)
 def list_reminders(
     status: str | None = Query(None),
     limit: int = Query(50, ge=1, le=100),
@@ -118,7 +154,13 @@ def list_reminders(
     return ReminderListResponse(items=items, total=total)
 
 
-@router.post("", response_model=ReminderResponse, status_code=201)
+@router.post(
+    "",
+    response_model=ReminderResponse,
+    status_code=201,
+    summary="Creer une relance",
+    description="Cree une relance manuelle pour une facture.",
+)
 def create_reminder(
     payload: ReminderCreate,
     db: Session = Depends(get_db),
@@ -132,7 +174,12 @@ def create_reminder(
     )
 
 
-@router.post("/{reminder_id}/send", response_model=ReminderResponse)
+@router.post(
+    "/{reminder_id}/send",
+    response_model=ReminderResponse,
+    summary="Envoyer une relance",
+    description="Envoie une relance par email ou SMS.",
+)
 def send_reminder(
     reminder_id: int,
     db: Session = Depends(get_db),
@@ -146,7 +193,12 @@ def send_reminder(
     )
 
 
-@router.post("/auto-generate", response_model=AutoGenerateResponse)
+@router.post(
+    "/auto-generate",
+    response_model=AutoGenerateResponse,
+    summary="Generation automatique",
+    description="Declenche la generation automatique de relances via les plans actifs.",
+)
 def auto_generate(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
@@ -160,7 +212,12 @@ def auto_generate(
 # --- Templates ---
 
 
-@router.get("/templates", response_model=list[ReminderTemplateResponse])
+@router.get(
+    "/templates",
+    response_model=list[ReminderTemplateResponse],
+    summary="Lister les modeles de relance",
+    description="Retourne les modeles de relance disponibles.",
+)
 def list_templates(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
@@ -168,7 +225,13 @@ def list_templates(
     return reminder_service.list_templates(db, tenant_id=tenant_ctx.tenant_id)
 
 
-@router.post("/templates", response_model=ReminderTemplateResponse, status_code=201)
+@router.post(
+    "/templates",
+    response_model=ReminderTemplateResponse,
+    status_code=201,
+    summary="Creer un modele de relance",
+    description="Cree un nouveau modele de relance reutilisable.",
+)
 def create_template(
     payload: ReminderTemplateCreate,
     db: Session = Depends(get_db),

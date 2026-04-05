@@ -9,7 +9,12 @@ from app.services import payment_service
 router = APIRouter(prefix="/api/v1", tags=["payments"])
 
 
-@router.get("/cases/{case_id}/payments", response_model=PaymentSummary)
+@router.get(
+    "/cases/{case_id}/payments",
+    response_model=PaymentSummary,
+    summary="Resume des paiements d'un dossier",
+    description="Retourne le resume financier des paiements lies a un dossier.",
+)
 def get_case_payments(
     case_id: int,
     db: Session = Depends(get_db),

@@ -8,7 +8,11 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { DateDisplay } from "@/components/ui/DateDisplay";
 import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
+import { Button } from "@/components/ui/Button";
 import { useFactures } from "@/lib/hooks/use-api";
+import { exportToCsv } from "@/lib/export-csv";
+import { formatMoney } from "@/lib/format";
+import { Download } from "lucide-react";
 import type { Facture } from "@/lib/types";
 
 export default function FacturesPage() {
@@ -28,6 +32,19 @@ export default function FacturesPage() {
     );
   }, [search, factures]);
 
+  const handleExportCsv = () => {
+    if (!filtered.length) return;
+    const headers = ["Numero", "Client", "Statut", "Montant TTC", "Date emission"];
+    const rows = filtered.map((f) => [
+      f.numero,
+      f.customer_name || "-",
+      f.status,
+      formatMoney(f.montant_ttc),
+      f.date_emission,
+    ]);
+    exportToCsv("factures.csv", headers, rows);
+  };
+
   const columns: Column<Facture>[] = [
     { key: "numero", header: "Numero", render: (row) => <span className="font-mono font-medium">{row.numero}</span> },
     { key: "customer", header: "Client", render: (row) => row.customer_name || "-" },
@@ -37,7 +54,16 @@ export default function FacturesPage() {
   ];
 
   return (
-    <PageLayout title="Factures" description="Gestion des factures" breadcrumb={[{ label: "Factures" }]}>
+    <PageLayout
+      title="Factures"
+      description="Gestion des factures"
+      breadcrumb={[{ label: "Factures" }]}
+      actions={
+        <Button variant="outline" onClick={handleExportCsv}>
+          <Download className="h-4 w-4 mr-1" /> Exporter CSV
+        </Button>
+      }
+    >
       <div className="mb-6">
         <SearchInput placeholder="Rechercher une facture..." onSearch={setSearch} />
       </div>

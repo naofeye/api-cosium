@@ -39,10 +39,19 @@ class StorageAdapter:
         logger.info("file_uploaded", bucket=bucket, key=key)
         return key
 
-    def get_download_url(self, bucket: str, key: str, expires: int = 3600) -> str:
+    def get_download_url(
+        self,
+        bucket: str,
+        key: str,
+        expires: int = 3600,
+        extra_params: dict[str, str] | None = None,
+    ) -> str:
+        params: dict[str, str] = {"Bucket": bucket, "Key": key}
+        if extra_params:
+            params.update(extra_params)
         url = self._client.generate_presigned_url(
             "get_object",
-            Params={"Bucket": bucket, "Key": key},
+            Params=params,
             ExpiresIn=expires,
         )
         return url

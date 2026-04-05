@@ -16,6 +16,8 @@ import { fetchJson } from "@/lib/api";
 import { downloadPdf } from "@/lib/download";
 import { formatMoney } from "@/lib/format";
 import { Euro, FileText, ShieldCheck, Heart, Download } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
+import Link from "next/link";
 
 interface DevisLigne {
   id: number;
@@ -92,6 +94,22 @@ export default function DevisDetailPage() {
     return (
       <PageLayout title="Chargement..." breadcrumb={[{ label: "Devis", href: "/devis" }, { label: "..." }]}>
         <LoadingState text="Chargement du devis..." />
+      </PageLayout>
+    );
+  }
+
+  if (swrError?.message?.includes("introuvable") || swrError?.message?.includes("404")) {
+    return (
+      <PageLayout title="Introuvable" breadcrumb={[{ label: "Devis", href: "/devis" }, { label: "Introuvable" }]}>
+        <EmptyState
+          title="Devis introuvable"
+          description="Ce devis n'existe pas ou a ete supprime."
+          action={
+            <Link href="/devis">
+              <Button>Retour a la liste</Button>
+            </Link>
+          }
+        />
       </PageLayout>
     );
   }

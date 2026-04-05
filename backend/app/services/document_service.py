@@ -77,13 +77,21 @@ def upload_document(db: Session, tenant_id: int, case_id: int, file: UploadFile,
     return DocumentResponse.model_validate(doc)
 
 
-def get_download_url(db: Session, tenant_id: int, document_id: int) -> str:
+def get_download_url(db: Session, tenant_id: int, document_id: int, inline: bool = False) -> str:
     doc = document_repo.get_by_id(db, document_id=document_id, tenant_id=tenant_id)
     if not doc:
         raise NotFoundError("document", document_id)
+
+    extra_params: dict[str, str] = {}
+    if inline:
+        extra_params["ResponseContentDisposition"] = f'inline; filename="{doc.filename}"'
+    else:
+        extra_params["ResponseContentDisposition"] = f'attachment; filename="{doc.filename}"'
+
     url = storage.get_download_url(
         bucket=settings.s3_bucket,
         key=doc.storage_key,
         expires=3600,
+        extra_params=extra_params,
     )
     return url

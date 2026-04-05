@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/Button";
 import { downloadPdf } from "@/lib/download";
 import { formatMoney } from "@/lib/format";
 import { Euro, FileText, Receipt, Download } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
+import Link from "next/link";
 
 interface FactureLigne {
   id: number;
@@ -49,6 +51,22 @@ export default function FactureDetailPage() {
     return (
       <PageLayout title="Chargement..." breadcrumb={[{ label: "Factures", href: "/factures" }, { label: "..." }]}>
         <LoadingState text="Chargement de la facture..." />
+      </PageLayout>
+    );
+  }
+
+  if (error?.message?.includes("introuvable") || error?.message?.includes("404")) {
+    return (
+      <PageLayout title="Introuvable" breadcrumb={[{ label: "Factures", href: "/factures" }, { label: "Introuvable" }]}>
+        <EmptyState
+          title="Facture introuvable"
+          description="Cette facture n'existe pas ou a ete supprimee."
+          action={
+            <Link href="/factures">
+              <Button>Retour a la liste</Button>
+            </Link>
+          }
+        />
       </PageLayout>
     );
   }

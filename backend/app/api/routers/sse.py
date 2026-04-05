@@ -70,7 +70,11 @@ async def event_generator(
         await asyncio.sleep(POLL_INTERVAL_SECONDS)
 
 
-@router.get("/notifications")
+@router.get(
+    "/notifications",
+    summary="Flux SSE de notifications",
+    description="Flux temps reel des nouvelles notifications via Server-Sent Events.",
+)
 async def stream_notifications(
     request: Request,
     db: Session = Depends(get_db),

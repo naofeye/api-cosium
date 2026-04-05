@@ -11,7 +11,12 @@ from app.services import gdpr_service
 router = APIRouter(prefix="/api/v1/gdpr", tags=["gdpr"])
 
 
-@router.get("/clients/{client_id}/data", response_model=ClientDataResponse)
+@router.get(
+    "/clients/{client_id}/data",
+    response_model=ClientDataResponse,
+    summary="Donnees personnelles d'un client",
+    description="Retourne toutes les donnees personnelles d'un client (droit d'acces RGPD).",
+)
 def get_client_data(
     client_id: int,
     db: Session = Depends(get_db),
@@ -25,7 +30,11 @@ def get_client_data(
     )
 
 
-@router.post("/clients/{client_id}/export")
+@router.post(
+    "/clients/{client_id}/export",
+    summary="Exporter les donnees RGPD",
+    description="Exporte les donnees personnelles d'un client au format JSON (portabilite).",
+)
 def export_client_data(
     client_id: int,
     db: Session = Depends(get_db),
@@ -44,7 +53,12 @@ def export_client_data(
     )
 
 
-@router.post("/clients/{client_id}/anonymize", response_model=AnonymizeResponse)
+@router.post(
+    "/clients/{client_id}/anonymize",
+    response_model=AnonymizeResponse,
+    summary="Anonymiser un client",
+    description="Anonymise irreversiblement les donnees personnelles d'un client (droit a l'oubli).",
+)
 def anonymize_client(
     client_id: int,
     db: Session = Depends(get_db),

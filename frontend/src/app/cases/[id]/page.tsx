@@ -10,6 +10,9 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { formatMoney } from "@/lib/format";
 import { FileText, Euro, CheckCircle, AlertCircle } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Button } from "@/components/ui/Button";
+import Link from "next/link";
 import { TabResume } from "./tabs/TabResume";
 import { TabDocuments } from "./tabs/TabDocuments";
 import { TabFinances } from "./tabs/TabFinances";
@@ -38,6 +41,22 @@ export default function CaseDetailPage() {
     return (
       <PageLayout title="Chargement..." breadcrumb={[{ label: "Dossiers", href: "/cases" }, { label: "..." }]}>
         <LoadingState text="Chargement du dossier..." />
+      </PageLayout>
+    );
+  }
+
+  if (caseError?.message?.includes("introuvable") || caseError?.message?.includes("404")) {
+    return (
+      <PageLayout title="Introuvable" breadcrumb={[{ label: "Dossiers", href: "/cases" }, { label: "Introuvable" }]}>
+        <EmptyState
+          title="Dossier introuvable"
+          description="Ce dossier n'existe pas ou a ete supprime."
+          action={
+            <Link href="/cases">
+              <Button>Retour a la liste</Button>
+            </Link>
+          }
+        />
       </PageLayout>
     );
   }

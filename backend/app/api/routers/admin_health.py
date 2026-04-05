@@ -16,7 +16,12 @@ from app.models import AuditLog, Case, Customer, Facture, Payment
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
 
-@router.get("/health", response_model=HealthCheckResponse)
+@router.get(
+    "/health",
+    response_model=HealthCheckResponse,
+    summary="Verification de sante",
+    description="Verifie l'etat de sante de tous les services (PostgreSQL, Redis, MinIO).",
+)
 def health_check(db: Session = Depends(get_db)) -> HealthCheckResponse:
     """Public health check for load balancer. No auth required."""
     checks = {}
@@ -57,7 +62,12 @@ def health_check(db: Session = Depends(get_db)) -> HealthCheckResponse:
     return {"status": "healthy" if all_ok else "degraded", "services": checks}
 
 
-@router.get("/metrics", response_model=MetricsResponse)
+@router.get(
+    "/metrics",
+    response_model=MetricsResponse,
+    summary="Metriques du tenant",
+    description="Retourne les compteurs et metriques d'activite du tenant (admin).",
+)
 def metrics(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin")),

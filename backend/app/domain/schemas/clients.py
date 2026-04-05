@@ -41,6 +41,7 @@ class ClientResponse(BaseModel):
     postal_code: str | None = None
     social_security_number: str | None = None
     notes: str | None = None
+    avatar_url: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
     deleted_at: datetime | None = None
@@ -59,3 +60,15 @@ class ClientListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class ClientImportResult(BaseModel):
+    imported: int
+    skipped: int
+    errors: list[str]
+
+
+class DuplicateGroup(BaseModel):
+    name: str
+    count: int
+    clients: list[ClientResponse]

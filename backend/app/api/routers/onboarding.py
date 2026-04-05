@@ -16,7 +16,13 @@ from app.services import onboarding_service
 router = APIRouter(prefix="/api/v1/onboarding", tags=["onboarding"])
 
 
-@router.post("/signup", response_model=TokenResponse, status_code=201)
+@router.post(
+    "/signup",
+    response_model=TokenResponse,
+    status_code=201,
+    summary="Inscription",
+    description="Cree un nouveau compte utilisateur et tenant.",
+)
 def signup(
     payload: SignupRequest,
     db: Session = Depends(get_db),
@@ -24,7 +30,12 @@ def signup(
     return onboarding_service.signup(db, payload=payload)
 
 
-@router.post("/connect-cosium", response_model=ConnectCosiumResult)
+@router.post(
+    "/connect-cosium",
+    response_model=ConnectCosiumResult,
+    summary="Connecter Cosium",
+    description="Configure les identifiants Cosium pour le magasin.",
+)
 def connect_cosium(
     payload: ConnectCosiumRequest,
     db: Session = Depends(get_db),
@@ -34,7 +45,12 @@ def connect_cosium(
     return ConnectCosiumResult(status="connected")
 
 
-@router.post("/first-sync", response_model=FirstSyncResult)
+@router.post(
+    "/first-sync",
+    response_model=FirstSyncResult,
+    summary="Premiere synchronisation",
+    description="Declenche la premiere synchronisation des donnees depuis l'ERP.",
+)
 def first_sync(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
@@ -43,7 +59,12 @@ def first_sync(
     return FirstSyncResult(status="completed", details=result)
 
 
-@router.get("/status", response_model=OnboardingStatusResponse)
+@router.get(
+    "/status",
+    response_model=OnboardingStatusResponse,
+    summary="Statut d'onboarding",
+    description="Retourne la progression de l'assistant de configuration.",
+)
 def get_status(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),

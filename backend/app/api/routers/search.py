@@ -9,7 +9,12 @@ from app.services import search_service
 router = APIRouter(prefix="/api/v1/search", tags=["search"])
 
 
-@router.get("", response_model=SearchResponse)
+@router.get(
+    "",
+    response_model=SearchResponse,
+    summary="Recherche globale",
+    description="Recherche multi-entite (clients, dossiers, factures, devis).",
+)
 def global_search(
     q: str = Query("", min_length=0, max_length=200),
     db: Session = Depends(get_db),

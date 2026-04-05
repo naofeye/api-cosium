@@ -21,7 +21,12 @@ class CopilotResponse(BaseModel):
     case_id: int | None = None
 
 
-@router.post("/copilot/query", response_model=CopilotResponse)
+@router.post(
+    "/copilot/query",
+    response_model=CopilotResponse,
+    summary="Interroger le copilote IA",
+    description="Pose une question au copilote IA dans un contexte metier.",
+)
 def copilot_query(
     payload: CopilotQuery,
     db: Session = Depends(get_db),

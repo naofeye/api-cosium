@@ -141,6 +141,7 @@ export function Header({ breadcrumb }: HeaderProps) {
               onClick={toggleDropdown}
               className="relative rounded-lg p-2 hover:bg-gray-100"
               aria-label="Notifications"
+              title="Notifications"
             >
               <Bell className="h-5 w-5 text-gray-500" />
               {unreadCount > 0 && (
@@ -164,6 +165,7 @@ export function Header({ breadcrumb }: HeaderProps) {
                       onClick={() => setShowDropdown(false)}
                       className="rounded p-1 hover:bg-gray-100"
                       aria-label="Fermer"
+                      title="Fermer"
                     >
                       <X className="h-3.5 w-3.5 text-text-secondary" />
                     </button>
@@ -202,6 +204,7 @@ export function Header({ breadcrumb }: HeaderProps) {
               onClick={handleLogout}
               className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-danger"
               aria-label="Se deconnecter"
+              title="Se deconnecter"
             >
               <LogOut className="h-4 w-4" />
             </button>

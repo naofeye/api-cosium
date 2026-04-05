@@ -1,7 +1,8 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import { LoadingState } from "./LoadingState";
 import { ErrorState } from "./ErrorState";
@@ -12,7 +13,10 @@ export interface Column<T> {
   header: string;
   render: (row: T) => ReactNode;
   className?: string;
+  sortable?: boolean;
 }
+
+type SortDirection = "asc" | "desc";
 
 interface DataTableProps<T> {
   columns: Column<T>[];
@@ -45,6 +49,42 @@ export function DataTable<T extends { id: number | string }>({
   total,
   onPageChange,
 }: DataTableProps<T>) {
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+
+  const handleSort = (columnKey: string) => {
+    if (sortKey === columnKey) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(columnKey);
+      setSortDirection("asc");
+    }
+  };
+
+  const sortedData = useMemo(() => {
+    if (!sortKey) return data;
+    const col = columns.find((c) => c.key === sortKey);
+    if (!col?.sortable) return data;
+
+    return [...data].sort((a, b) => {
+      const aVal = (a as Record<string, unknown>)[sortKey];
+      const bVal = (b as Record<string, unknown>)[sortKey];
+
+      if (aVal == null && bVal == null) return 0;
+      if (aVal == null) return 1;
+      if (bVal == null) return -1;
+
+      let cmp = 0;
+      if (typeof aVal === "number" && typeof bVal === "number") {
+        cmp = aVal - bVal;
+      } else {
+        cmp = String(aVal).localeCompare(String(bVal), "fr", { sensitivity: "base" });
+      }
+
+      return sortDirection === "asc" ? cmp : -cmp;
+    });
+  }, [data, sortKey, sortDirection, columns]);
+
   if (loading) return <LoadingState text="Chargement des données..." />;
   if (error) return <ErrorState message={error} onRetry={onRetry} />;
   if (data.length === 0) return <EmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />;
@@ -58,14 +98,38 @@ export function DataTable<T extends { id: number | string }>({
           <thead>
             <tr className="border-b border-border bg-gray-50">
               {columns.map((col) => (
-                <th key={col.key} className={cn("px-4 py-3 text-left font-medium text-text-secondary", col.className)}>
-                  {col.header}
+                <th
+                  key={col.key}
+                  className={cn(
+                    "px-4 py-3 text-left font-medium text-text-secondary",
+                    col.sortable && "cursor-pointer select-none hover:text-text-primary",
+                    col.className,
+                  )}
+                  onClick={col.sortable ? () => handleSort(col.key) : undefined}
+                  aria-sort={sortKey === col.key ? (sortDirection === "asc" ? "ascending" : "descending") : undefined}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    {col.header}
+                    {col.sortable && (
+                      <span className="inline-flex text-gray-400">
+                        {sortKey === col.key ? (
+                          sortDirection === "asc" ? (
+                            <ChevronUp className="h-3.5 w-3.5" />
+                          ) : (
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          )
+                        ) : (
+                          <ChevronsUpDown className="h-3.5 w-3.5" />
+                        )}
+                      </span>
+                    )}
+                  </span>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {data.map((row) => (
+            {sortedData.map((row) => (
               <tr
                 key={row.id}
                 className={cn(
@@ -95,6 +159,7 @@ export function DataTable<T extends { id: number | string }>({
               disabled={page <= 1}
               className="rounded-lg border border-border p-1.5 hover:bg-gray-100 disabled:opacity-40"
               aria-label="Page précédente"
+              title="Page precedente"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -103,6 +168,7 @@ export function DataTable<T extends { id: number | string }>({
               disabled={page >= totalPages}
               className="rounded-lg border border-border p-1.5 hover:bg-gray-100 disabled:opacity-40"
               aria-label="Page suivante"
+              title="Page suivante"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
