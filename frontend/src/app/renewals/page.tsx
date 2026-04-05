@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import useSWR from "swr";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/Button";
@@ -36,7 +36,7 @@ export default function RenewalsPage() {
   const [useAi, setUseAi] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
-  const [loadingAi, setLoadingAi] = useState(false);
+  const [aiPending, startAiTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   const isLoading = dashLoading || oppLoading;
@@ -93,16 +93,15 @@ export default function RenewalsPage() {
     }
   };
 
-  const handleAiAnalysis = async () => {
-    setLoadingAi(true);
-    try {
-      const res = await fetchJson<{ analysis: string }>("/renewals/ai-analysis");
-      setAiAnalysis(res.analysis);
-    } catch {
-      setAiAnalysis("Impossible de generer l'analyse IA. Verifiez la configuration.");
-    } finally {
-      setLoadingAi(false);
-    }
+  const handleAiAnalysis = () => {
+    startAiTransition(async () => {
+      try {
+        const res = await fetchJson<{ analysis: string }>("/renewals/ai-analysis");
+        setAiAnalysis(res.analysis);
+      } catch {
+        setAiAnalysis("Impossible de generer l'analyse IA. Verifiez la configuration.");
+      }
+    });
   };
 
   const displayError = fetchError ?? error;
@@ -136,9 +135,9 @@ export default function RenewalsPage() {
           <Button variant="outline" onClick={mutateAll}>
             <RefreshCw className="mr-2 h-4 w-4" /> Actualiser
           </Button>
-          <Button onClick={handleAiAnalysis} disabled={loadingAi}>
+          <Button onClick={handleAiAnalysis} disabled={aiPending}>
             <Sparkles className="mr-2 h-4 w-4" />
-            {loadingAi ? "Analyse en cours..." : "Analyse IA"}
+            {aiPending ? "Analyse en cours..." : "Analyse IA"}
           </Button>
         </div>
       }

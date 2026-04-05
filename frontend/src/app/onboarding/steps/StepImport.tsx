@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { fetchJson } from "@/lib/api";
@@ -9,24 +9,23 @@ import type { FirstSyncResponse, SyncDetail } from "../helpers";
 
 export function StepImport({ onComplete, onSkip }: { onComplete: () => void; onSkip: () => void }) {
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const [syncPending, startSyncTransition] = useTransition();
   const [syncResult, setSyncResult] = useState<SyncDetail | null>(null);
   const [apiError, setApiError] = useState("");
 
-  const handleSync = async () => {
+  const handleSync = () => {
     setApiError("");
-    setLoading(true);
-    try {
-      const data = await fetchJson<FirstSyncResponse>("/onboarding/first-sync", { method: "POST" });
-      setSyncResult(data.details);
-      toast("Importation terminee avec succes", "success");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Erreur lors de l'importation";
-      setApiError(msg);
-      toast(msg, "error");
-    } finally {
-      setLoading(false);
-    }
+    startSyncTransition(async () => {
+      try {
+        const data = await fetchJson<FirstSyncResponse>("/onboarding/first-sync", { method: "POST" });
+        setSyncResult(data.details);
+        toast("Importation terminee avec succes", "success");
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Erreur lors de l'importation";
+        setApiError(msg);
+        toast(msg, "error");
+      }
+    });
   };
 
   return (
@@ -37,7 +36,7 @@ export function StepImport({ onComplete, onSkip }: { onComplete: () => void; onS
           Importez vos clients, factures et produits depuis Cosium en un clic.
         </p>
       </div>
-      {!syncResult && !loading && (
+      {!syncResult && !syncPending && (
         <div className="rounded-xl border border-gray-200 bg-gray-50 p-8 text-center">
           <Download className="mx-auto h-12 w-12 text-blue-400 mb-4" />
           <p className="text-sm text-gray-600 mb-6">L&apos;importation va recuperer vos donnees depuis Cosium.</p>
@@ -46,7 +45,7 @@ export function StepImport({ onComplete, onSkip }: { onComplete: () => void; onS
           </Button>
         </div>
       )}
-      {loading && (
+      {syncPending && (
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-8 text-center">
           <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
           <p className="text-sm font-medium text-blue-700">Importation en cours...</p>
@@ -83,7 +82,7 @@ export function StepImport({ onComplete, onSkip }: { onComplete: () => void; onS
           </Button>
         </div>
       )}
-      {apiError && !loading && (
+      {apiError && !syncPending && (
         <div className="space-y-3">
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{apiError}</div>
           <Button type="button" onClick={handleSync} className="w-full">
@@ -91,7 +90,7 @@ export function StepImport({ onComplete, onSkip }: { onComplete: () => void; onS
           </Button>
         </div>
       )}
-      {!syncResult && !loading && (
+      {!syncResult && !syncPending && (
         <Button type="button" variant="ghost" onClick={onSkip} className="w-full">
           Passer cette etape
         </Button>

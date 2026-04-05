@@ -70,13 +70,25 @@ def cosium_invoice_to_optiflow(data: dict) -> dict:
 
 
 def cosium_product_to_optiflow(data: dict) -> dict:
-    """Mappe un produit Cosium vers un dict pour import."""
+    """Mappe un produit Cosium vers un dict pour import.
+
+    Product IDs are NOT at top-level; they must be extracted from _links.self.href.
+    Field mapping: productCode (not code), barcode, eanCode, gtinCode, familyType.
+    sellingPriceTaxIncluded may be absent on some products.
+    """
+    # Extract ID from HAL self link: .../products/{id}
+    cosium_id = str(data.get("id", ""))
+    if not cosium_id:
+        self_href = data.get("_links", {}).get("self", {}).get("href", "")
+        if "/products/" in self_href:
+            cosium_id = self_href.rsplit("/products/", 1)[-1].split("?")[0]
+
     return {
-        "cosium_id": str(data.get("id", "")),
-        "code": data.get("code", ""),
+        "cosium_id": cosium_id,
+        "code": data.get("productCode", data.get("code", data.get("barcode", ""))),
         "ean": data.get("eanCode", ""),
         "gtin": data.get("gtinCode", ""),
         "label": data.get("label", data.get("designation", "")),
         "family": data.get("familyType", ""),
-        "price": data.get("sellingPriceTaxIncluded", 0),
+        "price": data.get("sellingPriceTaxIncluded", 0) or 0,
     }

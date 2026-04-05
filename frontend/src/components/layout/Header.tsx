@@ -102,12 +102,13 @@ export function Header({ breadcrumb }: HeaderProps) {
   return (
     <>
       {trialDays !== null && (
-        <div className="sticky top-0 z-40 flex items-center justify-center gap-2 bg-amber-400 px-4 py-1.5 text-center text-sm font-medium text-amber-900">
-          <Clock className="h-4 w-4" />
+        <div className="sticky top-0 z-40 flex items-center justify-center gap-2 bg-amber-400 px-4 py-1.5 text-center text-sm font-medium text-amber-900" role="alert">
+          <Clock className="h-4 w-4" aria-hidden="true" />
           <span>Periode d&apos;essai — {trialDays} jours restants</span>
         </div>
       )}
       <header
+        role="banner"
         className={`sticky ${trialDays !== null ? "top-[36px]" : "top-0"} z-30 flex h-16 items-center justify-between border-b border-border bg-bg-card px-6 shadow-sm`}
       >
         <div className="flex items-center gap-2 text-sm text-text-secondary">
@@ -134,7 +135,7 @@ export function Header({ breadcrumb }: HeaderProps) {
             aria-label={isDark ? "Passer en mode clair" : "Passer en mode sombre"}
             title={isDark ? "Mode clair" : "Mode sombre"}
           >
-            {isDark ? <Sun className="h-5 w-5 text-amber-400" /> : <Moon className="h-5 w-5 text-gray-500" />}
+            {isDark ? <Sun className="h-5 w-5 text-amber-400" aria-hidden="true" /> : <Moon className="h-5 w-5 text-gray-500" aria-hidden="true" />}
           </button>
           <div className="relative" ref={dropdownRef}>
             <button
@@ -143,7 +144,7 @@ export function Header({ breadcrumb }: HeaderProps) {
               aria-label="Notifications"
               title="Notifications"
             >
-              <Bell className="h-5 w-5 text-gray-500" />
+              <Bell className="h-5 w-5 text-gray-500" aria-hidden="true" />
               {unreadCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
                   {unreadCount > 99 ? "99+" : unreadCount}
@@ -167,7 +168,7 @@ export function Header({ breadcrumb }: HeaderProps) {
                       aria-label="Fermer"
                       title="Fermer"
                     >
-                      <X className="h-3.5 w-3.5 text-text-secondary" />
+                      <X className="h-3.5 w-3.5 text-text-secondary" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -197,8 +198,12 @@ export function Header({ breadcrumb }: HeaderProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white">
-              <User className="h-4 w-4" />
+            <div
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white"
+              aria-label="Profil utilisateur"
+              role="img"
+            >
+              <User className="h-4 w-4" aria-hidden="true" />
             </div>
             <button
               onClick={handleLogout}
@@ -206,7 +211,7 @@ export function Header({ breadcrumb }: HeaderProps) {
               aria-label="Se deconnecter"
               title="Se deconnecter"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
         </div>

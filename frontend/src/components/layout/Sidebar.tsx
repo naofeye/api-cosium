@@ -23,6 +23,7 @@ import {
   ChevronLeft,
   ChevronRight,
   HelpCircle,
+  FileStack,
 } from "lucide-react";
 import { useState } from "react";
 import { useTenant } from "@/lib/tenant-context";
@@ -34,6 +35,7 @@ const navItems = [
   { href: "/clients", label: "Clients", icon: Users },
   { href: "/devis", label: "Devis", icon: FileText },
   { href: "/factures", label: "Factures", icon: Receipt },
+  { href: "/cosium-factures", label: "Factures Cosium", icon: FileStack },
   { href: "/pec", label: "PEC", icon: Shield },
   { href: "/paiements", label: "Paiements", icon: CreditCard },
   { href: "/rapprochement", label: "Rapprochement", icon: ArrowLeftRight },
@@ -61,6 +63,8 @@ export function Sidebar() {
 
   return (
     <aside
+      role="navigation"
+      aria-label="Menu principal"
       className={cn(
         "fixed inset-y-0 left-0 z-40 flex flex-col bg-bg-sidebar text-text-on-dark transition-all duration-200",
         collapsed ? "w-16" : "w-64",
@@ -89,6 +93,8 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              aria-current={active ? "page" : undefined}
+              aria-label={collapsed ? item.label : undefined}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none",
                 active
@@ -97,7 +103,7 @@ export function Sidebar() {
               )}
               title={collapsed ? item.label : undefined}
             >
-              <item.icon className="h-5 w-5 shrink-0" />
+              <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
               {!collapsed && <span>{item.label}</span>}
             </Link>
           );
@@ -111,6 +117,8 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              aria-current={active ? "page" : undefined}
+              aria-label={collapsed ? item.label : undefined}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none",
                 active
@@ -119,7 +127,7 @@ export function Sidebar() {
               )}
               title={collapsed ? item.label : undefined}
             >
-              <item.icon className="h-5 w-5 shrink-0" />
+              <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
               {!collapsed && <span>{item.label}</span>}
             </Link>
           );
@@ -131,6 +139,12 @@ export function Sidebar() {
             {!collapsed && <div className="mx-3 my-3 border-t border-gray-700" />}
             <Link
               href={networkAdminItem.href}
+              aria-current={
+                pathname === networkAdminItem.href || pathname.startsWith(networkAdminItem.href + "/")
+                  ? "page"
+                  : undefined
+              }
+              aria-label={collapsed ? networkAdminItem.label : undefined}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none",
                 pathname === networkAdminItem.href || pathname.startsWith(networkAdminItem.href + "/")
@@ -139,7 +153,7 @@ export function Sidebar() {
               )}
               title={collapsed ? networkAdminItem.label : undefined}
             >
-              <networkAdminItem.icon className="h-5 w-5 shrink-0" />
+              <networkAdminItem.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
               {!collapsed && <span>{networkAdminItem.label}</span>}
             </Link>
           </>

@@ -44,14 +44,17 @@ const LABELS: Record<string, string> = {
 
 interface StatusBadgeProps {
   status: string;
+  label?: string;
   className?: string;
 }
 
-export function StatusBadge({ status, className }: StatusBadgeProps) {
+export function StatusBadge({ status, label: labelOverride, className }: StatusBadgeProps) {
   const colors = STATUS_COLORS[status] ?? "bg-gray-100 text-gray-700";
-  const label = LABELS[status] ?? status.replace(/_/g, " ");
+  const label = labelOverride ?? LABELS[status] ?? status.replace(/_/g, " ");
   return (
     <span
+      role="status"
+      aria-label={`Statut : ${label}`}
       className={cn(
         "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
         colors,

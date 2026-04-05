@@ -1,6 +1,7 @@
 import useSWR, { type SWRConfiguration } from "swr";
 import type {
   Case,
+  CosiumInvoice,
   Customer,
   Devis,
   DevisDetail,
@@ -98,6 +99,23 @@ export function useAnalytics(type: string, params?: { date_from?: string; date_t
   if (params?.date_to) sp.set("date_to", params.date_to);
   const query = sp.toString() ? `?${sp}` : "";
   return useSWR(`/analytics/${type}${query}`);
+}
+
+// --- Cosium Invoices ---
+export function useCosiumInvoices(params?: {
+  page?: number;
+  page_size?: number;
+  type_filter?: string;
+  settled?: boolean | null;
+  search?: string;
+}) {
+  const sp = new URLSearchParams();
+  if (params?.page) sp.set("page", String(params.page));
+  sp.set("page_size", String(params?.page_size ?? 25));
+  if (params?.type_filter) sp.set("type_filter", params.type_filter);
+  if (params?.settled !== undefined && params?.settled !== null) sp.set("settled", String(params.settled));
+  if (params?.search) sp.set("search", params.search);
+  return useSWR<PaginatedResponse<CosiumInvoice>>(`/cosium-invoices?${sp}`);
 }
 
 // --- Client 360 ---

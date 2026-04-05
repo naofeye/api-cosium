@@ -225,7 +225,8 @@ class CosiumConnector(ERPConnector):
         return items if isinstance(items, list) else [items]
 
     def get_products(self, page: int = 0, page_size: int = 50) -> list[ERPProduct]:
-        items = self._client.get_paginated("/products", page_size=page_size, max_pages=100)
+        # Catalog has 398k+ products. Limit to 1 page for sample sync.
+        items = self._client.get_paginated("/products", page_size=page_size, max_pages=1)
         products: list[ERPProduct] = []
         for raw in items:
             mapped = cosium_product_to_optiflow(raw)

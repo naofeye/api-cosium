@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { DataTable, type Column } from "@/components/ui/DataTable";
@@ -37,7 +37,7 @@ export default function ClientsPage() {
   const [importing, setImporting] = useState(false);
   const [showDuplicates, setShowDuplicates] = useState(false);
   const [duplicates, setDuplicates] = useState<DuplicateGroup[]>([]);
-  const [loadingDupes, setLoadingDupes] = useState(false);
+  const [dupesPending, startDupesTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data, error, isLoading, mutate } = useClients({ q: search || undefined, page });
@@ -101,21 +101,20 @@ export default function ClientsPage() {
     }
   };
 
-  const handleShowDuplicates = async () => {
+  const handleShowDuplicates = () => {
     if (showDuplicates) {
       setShowDuplicates(false);
       return;
     }
-    setLoadingDupes(true);
-    try {
-      const result = await fetchJson<DuplicateGroup[]>("/clients/duplicates");
-      setDuplicates(result);
-      setShowDuplicates(true);
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Erreur", "error");
-    } finally {
-      setLoadingDupes(false);
-    }
+    startDupesTransition(async () => {
+      try {
+        const result = await fetchJson<DuplicateGroup[]>("/clients/duplicates");
+        setDuplicates(result);
+        setShowDuplicates(true);
+      } catch (err) {
+        toast(err instanceof Error ? err.message : "Erreur", "error");
+      }
+    });
   };
 
   const columns: Column<Customer>[] = [
@@ -152,9 +151,9 @@ export default function ClientsPage() {
       breadcrumb={[{ label: "Clients" }]}
       actions={
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleShowDuplicates} disabled={loadingDupes}>
+          <Button variant="outline" onClick={handleShowDuplicates} disabled={dupesPending}>
             <AlertTriangle className="h-4 w-4 mr-1" />
-            {loadingDupes ? "Recherche..." : showDuplicates ? "Masquer doublons" : "Doublons"}
+            {dupesPending ? "Recherche..." : showDuplicates ? "Masquer doublons" : "Doublons"}
           </Button>
           <Button variant="outline" onClick={handleImportClick} disabled={importing}>
             <Upload className="h-4 w-4 mr-1" />

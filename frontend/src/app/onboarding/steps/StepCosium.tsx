@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { fetchJson } from "@/lib/api";
@@ -14,7 +14,7 @@ export function StepCosium({ onComplete, onSkip }: { onComplete: () => void; onS
   const [form, setForm] = useState({ cosium_tenant: "", cosium_login: "", cosium_password: "" });
   const [errors, setErrors] = useState<CosiumFieldErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [loading, setLoading] = useState(false);
+  const [testPending, startTestTransition] = useTransition();
   const [connectionStatus, setConnectionStatus] = useState<"idle" | "success" | "error">("idle");
   const [apiError, setApiError] = useState("");
 
@@ -45,29 +45,28 @@ export function StepCosium({ onComplete, onSkip }: { onComplete: () => void; onS
 
   const isValid = form.cosium_tenant.trim() && form.cosium_login.trim() && form.cosium_password.trim();
 
-  const handleTest = async () => {
+  const handleTest = () => {
     setApiError("");
-    setLoading(true);
     setConnectionStatus("idle");
-    try {
-      await fetchJson<ConnectCosiumResponse>("/onboarding/connect-cosium", {
-        method: "POST",
-        body: JSON.stringify({
-          cosium_tenant: form.cosium_tenant.trim(),
-          cosium_login: form.cosium_login.trim(),
-          cosium_password: form.cosium_password,
-        }),
-      });
-      setConnectionStatus("success");
-      toast("Connexion a Cosium reussie", "success");
-    } catch (err) {
-      setConnectionStatus("error");
-      const msg = err instanceof Error ? err.message : "Impossible de se connecter a Cosium";
-      setApiError(msg);
-      toast(msg, "error");
-    } finally {
-      setLoading(false);
-    }
+    startTestTransition(async () => {
+      try {
+        await fetchJson<ConnectCosiumResponse>("/onboarding/connect-cosium", {
+          method: "POST",
+          body: JSON.stringify({
+            cosium_tenant: form.cosium_tenant.trim(),
+            cosium_login: form.cosium_login.trim(),
+            cosium_password: form.cosium_password,
+          }),
+        });
+        setConnectionStatus("success");
+        toast("Connexion a Cosium reussie", "success");
+      } catch (err) {
+        setConnectionStatus("error");
+        const msg = err instanceof Error ? err.message : "Impossible de se connecter a Cosium";
+        setApiError(msg);
+        toast(msg, "error");
+      }
+    });
   };
 
   const inputClass = (fieldName: keyof CosiumFieldErrors) =>
@@ -150,7 +149,7 @@ export function StepCosium({ onComplete, onSkip }: { onComplete: () => void; onS
         </div>
       )}
       <div className="flex flex-col gap-3">
-        <Button type="button" onClick={handleTest} disabled={!isValid} loading={loading} className="w-full">
+        <Button type="button" onClick={handleTest} disabled={!isValid} loading={testPending} className="w-full">
           Tester la connexion
         </Button>
         {connectionStatus === "success" && (

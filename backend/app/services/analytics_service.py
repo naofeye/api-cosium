@@ -8,6 +8,7 @@ from app.domain.schemas.analytics import (
     AgingBalance,
     AgingBucket,
     CommercialKPIs,
+    CosiumKPIs,
     DashboardFull,
     FinancialKPIs,
     MarketingKPIs,
@@ -27,6 +28,7 @@ from app.models import (
     Payment,
     PecRequest,
 )
+from app.models.cosium_data import CosiumInvoice
 
 logger = get_logger("analytics_service")
 
@@ -269,6 +271,61 @@ def get_marketing_kpis(db: Session, tenant_id: int) -> MarketingKPIs:
     )
 
 
+def get_cosium_kpis(db: Session, tenant_id: int) -> CosiumKPIs:
+    """Compute KPIs from real Cosium invoice data."""
+    total_facture_cosium = float(
+        db.scalar(
+            select(func.coalesce(func.sum(CosiumInvoice.total_ti), 0)).where(
+                CosiumInvoice.tenant_id == tenant_id, CosiumInvoice.type == "INVOICE"
+            )
+        )
+        or 0
+    )
+    total_outstanding = float(
+        db.scalar(
+            select(func.coalesce(func.sum(CosiumInvoice.outstanding_balance), 0)).where(
+                CosiumInvoice.tenant_id == tenant_id, CosiumInvoice.outstanding_balance > 0
+            )
+        )
+        or 0
+    )
+    total_paid = round(total_facture_cosium - total_outstanding, 2)
+
+    invoice_count = (
+        db.scalar(
+            select(func.count())
+            .select_from(CosiumInvoice)
+            .where(CosiumInvoice.tenant_id == tenant_id, CosiumInvoice.type == "INVOICE")
+        )
+        or 0
+    )
+    quote_count = (
+        db.scalar(
+            select(func.count())
+            .select_from(CosiumInvoice)
+            .where(CosiumInvoice.tenant_id == tenant_id, CosiumInvoice.type == "QUOTE")
+        )
+        or 0
+    )
+    credit_note_count = (
+        db.scalar(
+            select(func.count())
+            .select_from(CosiumInvoice)
+            .where(CosiumInvoice.tenant_id == tenant_id, CosiumInvoice.type == "CREDIT_NOTE")
+        )
+        or 0
+    )
+
+    return CosiumKPIs(
+        total_facture_cosium=round(total_facture_cosium, 2),
+        total_outstanding=round(total_outstanding, 2),
+        total_paid=max(total_paid, 0),
+        invoice_count=invoice_count,
+        quote_count=quote_count,
+        credit_note_count=credit_note_count,
+    )
+
+
 def get_dashboard_full(
     db: Session, tenant_id: int, date_from: datetime | None = None, date_to: datetime | None = None
 ) -> DashboardFull:
@@ -289,6 +346,7 @@ def get_dashboard_full(
         operational=get_operational_kpis(db, tenant_id),
         commercial=get_commercial_kpis(db, tenant_id),
         marketing=get_marketing_kpis(db, tenant_id),
+        cosium=get_cosium_kpis(db, tenant_id),
     )
 
     if not date_from and not date_to:

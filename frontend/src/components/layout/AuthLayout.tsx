@@ -29,7 +29,7 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
         <SSEListener />
         <div className="flex min-h-screen">
           <Sidebar />
-          <main className="flex-1 ml-64 min-h-screen bg-bg-page">{children}</main>
+          <main id="main-content" className="flex-1 ml-64 min-h-screen bg-bg-page">{children}</main>
         </div>
         <span className="fixed bottom-2 right-2 text-xs text-gray-400">v1.2.0</span>
       </ToastProvider>

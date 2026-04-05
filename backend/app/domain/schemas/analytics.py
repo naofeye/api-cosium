@@ -64,6 +64,15 @@ class MarketingKPIs(BaseModel):
     taux_ouverture: float = 0
 
 
+class CosiumKPIs(BaseModel):
+    total_facture_cosium: float = 0
+    total_outstanding: float = 0
+    total_paid: float = 0
+    invoice_count: int = 0
+    quote_count: int = 0
+    credit_note_count: int = 0
+
+
 class DashboardFull(BaseModel):
     financial: FinancialKPIs
     aging: AgingBalance
@@ -71,3 +80,4 @@ class DashboardFull(BaseModel):
     operational: OperationalKPIs
     commercial: CommercialKPIs
     marketing: MarketingKPIs
+    cosium: CosiumKPIs | None = None

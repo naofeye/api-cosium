@@ -264,6 +264,25 @@ export interface AuditLog {
   created_at: string;
 }
 
+// --- Cosium Invoice ---
+export interface CosiumInvoice {
+  id: number;
+  cosium_id: number;
+  invoice_number: string;
+  invoice_date: string | null;
+  customer_name: string;
+  customer_id: number | null;
+  type: string;
+  total_ti: number;
+  outstanding_balance: number;
+  share_social_security: number;
+  share_private_insurance: number;
+  settled: boolean;
+  archived: boolean;
+  site_id: number | null;
+  synced_at: string;
+}
+
 // --- Analytics ---
 export interface FinancialKPIs {
   ca_total: number;
