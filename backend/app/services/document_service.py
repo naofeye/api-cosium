@@ -54,14 +54,23 @@ def upload_document(db: Session, tenant_id: int, case_id: int, file: UploadFile,
         content_type=file.content_type or "application/octet-stream",
     )
 
-    doc = document_repo.create_document(
-        db,
-        tenant_id=tenant_id,
-        case_id=case_id,
-        type="uploaded",
-        filename=filename,
-        storage_key=storage_key,
-    )
+    try:
+        doc = document_repo.create_document(
+            db,
+            tenant_id=tenant_id,
+            case_id=case_id,
+            type="uploaded",
+            filename=filename,
+            storage_key=storage_key,
+        )
+    except Exception:
+        # DB record creation failed — remove orphaned file from storage
+        try:
+            storage.delete_file(bucket=settings.s3_bucket, key=storage_key)
+        except Exception as cleanup_err:
+            logger.warning("orphan_file_cleanup_failed", key=storage_key, error=str(cleanup_err))
+        raise
+
     if user_id:
         audit_service.log_action(
             db,
@@ -77,16 +86,22 @@ def upload_document(db: Session, tenant_id: int, case_id: int, file: UploadFile,
     return DocumentResponse.model_validate(doc)
 
 
+def _sanitize_filename(name: str) -> str:
+    """Remove characters that could cause header injection."""
+    return name.replace('"', "").replace("\\", "_").replace("\n", "").replace("\r", "")
+
+
 def get_download_url(db: Session, tenant_id: int, document_id: int, inline: bool = False) -> str:
     doc = document_repo.get_by_id(db, document_id=document_id, tenant_id=tenant_id)
     if not doc:
         raise NotFoundError("document", document_id)
 
+    safe_filename = _sanitize_filename(doc.filename)
     extra_params: dict[str, str] = {}
     if inline:
-        extra_params["ResponseContentDisposition"] = f'inline; filename="{doc.filename}"'
+        extra_params["ResponseContentDisposition"] = f'inline; filename="{safe_filename}"'
     else:
-        extra_params["ResponseContentDisposition"] = f'attachment; filename="{doc.filename}"'
+        extra_params["ResponseContentDisposition"] = f'attachment; filename="{safe_filename}"'
 
     url = storage.get_download_url(
         bucket=settings.s3_bucket,

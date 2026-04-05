@@ -24,8 +24,13 @@ from app.tasks import celery_app
 logger = get_logger("reminder_tasks")
 
 
-@celery_app.task(name="app.tasks.reminder_tasks.auto_generate_reminders")
-def auto_generate_reminders() -> dict[str, int]:
+@celery_app.task(
+    name="app.tasks.reminder_tasks.auto_generate_reminders",
+    bind=True,
+    max_retries=2,
+    default_retry_delay=300,
+)
+def auto_generate_reminders(self) -> dict[str, int]:
     """Execute all active reminder plans against overdue items.
 
     Returns a summary of created reminders per plan.

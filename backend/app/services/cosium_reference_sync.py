@@ -19,6 +19,7 @@ from app.integrations.cosium.adapter_reference import (
     adapt_supplier,
     adapt_tag,
 )
+from app.integrations.cosium.client import CosiumClient
 from app.integrations.cosium.cosium_connector import CosiumConnector
 from app.models.cosium_reference import (
     CosiumBrand,
@@ -35,7 +36,7 @@ from app.services.erp_sync_service import _authenticate_connector, _get_connecto
 logger = get_logger("cosium_reference_sync")
 
 
-def _get_cosium_client(db: Session, tenant_id: int):
+def _get_cosium_client(db: Session, tenant_id: int) -> CosiumClient:
     """Get an authenticated CosiumClient for the given tenant."""
     connector, tenant = _get_connector_for_tenant(db, tenant_id)
     _authenticate_connector(connector, tenant)

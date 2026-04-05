@@ -62,7 +62,8 @@ def create_payment(
     return PaymentResponse.model_validate(payment)
 
 
-def import_statement(db: Session, tenant_id: int, file: UploadFile, user_id: int) -> int:
+def import_statement(db: Session, tenant_id: int, file: UploadFile, user_id: int) -> tuple[int, int]:
+    """Parse and import a bank statement CSV. Returns (imported, skipped) counts."""
     raw = file.file.read()
     try:
         content = raw.decode("utf-8-sig")
@@ -74,7 +75,12 @@ def import_statement(db: Session, tenant_id: int, file: UploadFile, user_id: int
     reader = csv.DictReader(io.StringIO(content), delimiter=";")
 
     count = 0
+    skipped = 0
+    duplicates = 0
     source_file = file.filename or "import.csv"
+
+    # Pre-load existing transaction signatures for dedup
+    existing_txs = banking_repo.get_transaction_signatures(db, tenant_id)
 
     for row in reader:
         try:
@@ -93,11 +99,22 @@ def import_statement(db: Session, tenant_id: int, file: UploadFile, user_id: int
                 except ValueError:
                     continue
             else:
+                skipped += 1
+                logger.warning("bank_import_row_skipped", reason="unparseable_date", date_str=date_str)
                 continue
+
+            # Duplicate detection: same date + amount + libelle
+            sig = (date.date().isoformat(), round(montant, 2), libelle[:100])
+            if sig in existing_txs:
+                duplicates += 1
+                continue
+            existing_txs.add(sig)
 
             banking_repo.create_transaction(db, tenant_id, date, libelle, montant, reference, source_file)
             count += 1
-        except (ValueError, KeyError):
+        except (ValueError, KeyError) as exc:
+            skipped += 1
+            logger.warning("bank_import_row_skipped", reason=str(exc))
             continue
 
     db.commit()
@@ -110,11 +127,14 @@ def import_statement(db: Session, tenant_id: int, file: UploadFile, user_id: int
             "create",
             "bank_import",
             0,
-            new_value={"file": source_file, "count": count},
+            new_value={"file": source_file, "imported": count, "skipped": skipped, "duplicates": duplicates},
         )
 
-    logger.info("bank_statement_imported", tenant_id=tenant_id, file=source_file, count=count)
-    return count
+    logger.info(
+        "bank_statement_imported",
+        tenant_id=tenant_id, file=source_file, imported=count, skipped=skipped, duplicates=duplicates,
+    )
+    return count, skipped
 
 
 def auto_reconcile(db: Session, tenant_id: int, user_id: int) -> ReconcileResult:

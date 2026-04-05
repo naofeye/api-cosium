@@ -63,7 +63,9 @@ def mark_read(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> None:
-    notification_service.mark_read(db, tenant_id=tenant_ctx.tenant_id, notification_id=notification_id)
+    notification_service.mark_read(
+        db, tenant_id=tenant_ctx.tenant_id, notification_id=notification_id, user_id=tenant_ctx.user_id
+    )
 
 
 @router.patch(

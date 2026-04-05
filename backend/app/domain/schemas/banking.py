@@ -61,3 +61,4 @@ class ReconcileResult(BaseModel):
 
 class ImportStatementResult(BaseModel):
     imported: int
+    skipped: int = 0

@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_tenant_role
+from app.core.exceptions import BusinessError
+from app.core.redis_cache import acquire_lock, release_lock
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.sync import ERPTypeItem, SeedDemoResponse, SyncResultResponse, SyncStatusResponse
@@ -48,11 +50,17 @@ def sync_customers(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> SyncResultResponse:
-    return erp_sync_service.sync_customers(
-        db,
-        tenant_id=tenant_ctx.tenant_id,
-        user_id=tenant_ctx.user_id,
-    )
+    lock_key = f"sync:customers:{tenant_ctx.tenant_id}"
+    if not acquire_lock(lock_key, ttl=600):
+        raise BusinessError("SYNC_IN_PROGRESS", "Une synchronisation des clients est deja en cours. Veuillez patienter.")
+    try:
+        return erp_sync_service.sync_customers(
+            db,
+            tenant_id=tenant_ctx.tenant_id,
+            user_id=tenant_ctx.user_id,
+        )
+    finally:
+        release_lock(lock_key)
 
 
 @router.post(
@@ -150,32 +158,38 @@ def sync_all(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> dict:
-    results = {}
-    for sync_name, sync_fn in [
-        ("customers", erp_sync_service.sync_customers),
-        ("invoices", erp_sync_service.sync_invoices),
-        ("payments", erp_sync_service.sync_payments),
-        ("prescriptions", erp_sync_service.sync_prescriptions),
-    ]:
+    lock_key = f"sync:all:{tenant_ctx.tenant_id}"
+    if not acquire_lock(lock_key, ttl=1200):
+        raise BusinessError("SYNC_IN_PROGRESS", "Une synchronisation complete est deja en cours. Veuillez patienter.")
+    try:
+        results: dict[str, object] = {}
+        for sync_name, sync_fn in [
+            ("customers", erp_sync_service.sync_customers),
+            ("invoices", erp_sync_service.sync_invoices),
+            ("payments", erp_sync_service.sync_payments),
+            ("prescriptions", erp_sync_service.sync_prescriptions),
+        ]:
+            try:
+                results[sync_name] = sync_fn(db, tenant_id=tenant_ctx.tenant_id, user_id=tenant_ctx.user_id)
+            except Exception as e:
+                from app.core.logging import get_logger
+                get_logger("sync").error("sync_domain_failed", domain=sync_name, error=str(e))
+                results[sync_name] = {"error": "Echec de la synchronisation. Consultez les logs pour plus de details."}
+
+        # Sync reference data (calendar, mutuelles, doctors, etc.)
         try:
-            results[sync_name] = sync_fn(db, tenant_id=tenant_ctx.tenant_id, user_id=tenant_ctx.user_id)
+            from app.services.cosium_reference_sync import sync_all_reference
+
+            ref_results = sync_all_reference(db, tenant_id=tenant_ctx.tenant_id, user_id=tenant_ctx.user_id)
+            results["reference"] = ref_results
         except Exception as e:
             from app.core.logging import get_logger
-            get_logger("sync").error("sync_domain_failed", domain=sync_name, error=str(e))
-            results[sync_name] = {"error": "Echec de la synchronisation. Consultez les logs pour plus de details."}
+            get_logger("sync").error("sync_reference_failed", error=str(e))
+            results["reference"] = {"error": "Echec de la synchronisation des donnees de reference."}
 
-    # Sync reference data (calendar, mutuelles, doctors, etc.)
-    try:
-        from app.services.cosium_reference_sync import sync_all_reference
-
-        ref_results = sync_all_reference(db, tenant_id=tenant_ctx.tenant_id, user_id=tenant_ctx.user_id)
-        results["reference"] = ref_results
-    except Exception as e:
-        from app.core.logging import get_logger
-        get_logger("sync").error("sync_reference_failed", error=str(e))
-        results["reference"] = {"error": "Echec de la synchronisation des donnees de reference."}
-
-    return results
+        return results
+    finally:
+        release_lock(lock_key)
 
 
 @router.get(

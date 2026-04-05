@@ -220,11 +220,17 @@ def get_commercial_kpis(db: Session, tenant_id: int) -> CommercialKPIs:
     )
     panier_moyen = round(float(avg), 2) if avg else 0
 
-    # CA par mois (6 derniers mois)
+    # CA par mois (6 derniers mois) — proper month arithmetic
     ca_mois = []
     now = datetime.now(UTC).replace(tzinfo=None)
     for i in range(5, -1, -1):
-        month_start = (now.replace(day=1) - timedelta(days=30 * i)).replace(day=1)
+        # Subtract i months from the current month using proper arithmetic
+        target_month = now.month - i
+        target_year = now.year
+        while target_month <= 0:
+            target_month += 12
+            target_year -= 1
+        month_start = datetime(target_year, target_month, 1)
         if i > 0:
             next_month = (month_start + timedelta(days=32)).replace(day=1)
         else:
@@ -352,6 +358,6 @@ def get_dashboard_full(
     )
 
     if not date_from and not date_to:
-        cache_set(cache_key, result.model_dump(), ttl=60)
+        cache_set(cache_key, result.model_dump(), ttl=300)
 
     return result

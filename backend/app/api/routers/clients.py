@@ -138,7 +138,7 @@ def update_client(
 def delete_client(
     client_id: int,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> None:
     client_service.delete_client(db, tenant_id=tenant_ctx.tenant_id, client_id=client_id, user_id=tenant_ctx.user_id)
 

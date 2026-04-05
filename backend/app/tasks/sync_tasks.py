@@ -18,8 +18,13 @@ from app.tasks import celery_app
 logger = get_logger("sync_tasks")
 
 
-@celery_app.task(name="app.tasks.sync_tasks.sync_all_tenants")
-def sync_all_tenants() -> dict[str, int]:
+@celery_app.task(
+    name="app.tasks.sync_tasks.sync_all_tenants",
+    bind=True,
+    max_retries=2,
+    default_retry_delay=300,
+)
+def sync_all_tenants(self) -> dict[str, int]:
     """Sync all active tenants with their ERP (daily full sync)."""
     from app.db.session import SessionLocal
     from app.models import Tenant
@@ -34,7 +39,13 @@ def sync_all_tenants() -> dict[str, int]:
         synced = 0
         failed = 0
 
+        from app.core.redis_cache import acquire_lock, release_lock
+
         for tenant in tenants:
+            lock_key = f"sync:tenant:{tenant.id}"
+            if not acquire_lock(lock_key, ttl=1200):
+                logger.warning("tenant_sync_skipped_locked", tenant_id=tenant.id)
+                continue
             try:
                 _sync_single_tenant(db, tenant.id)
                 logger.info("tenant_sync_done", tenant_id=tenant.id, tenant_name=tenant.name)
@@ -42,6 +53,8 @@ def sync_all_tenants() -> dict[str, int]:
             except Exception as e:
                 logger.error("tenant_sync_failed", tenant_id=tenant.id, error=str(e))
                 failed += 1
+            finally:
+                release_lock(lock_key)
 
         logger.info("sync_all_tenants_complete", synced=synced, failed=failed, total=len(tenants))
         return {"synced": synced, "failed": failed, "total": len(tenants)}
@@ -86,8 +99,13 @@ def _sync_single_tenant(db, tenant_id: int) -> dict[str, dict]:
     return results
 
 
-@celery_app.task(name="app.tasks.sync_tasks.test_cosium_connection")
-def test_cosium_connection() -> dict[str, int]:
+@celery_app.task(
+    name="app.tasks.sync_tasks.test_cosium_connection",
+    bind=True,
+    max_retries=1,
+    default_retry_delay=120,
+)
+def test_cosium_connection(self) -> dict[str, int]:
     """Test Cosium connectivity for all active tenants (every 4 hours).
 
     If a tenant's connection fails with 401, create a notification for admin users.

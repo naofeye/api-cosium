@@ -94,7 +94,7 @@ export function useActionItems() {
 
 // --- Dashboard ---
 export function useDashboard() {
-  return useSWR<DashboardSummary>("/dashboard/summary");
+  return useSWR<DashboardSummary>("/dashboard/summary", { refreshInterval: 60000 });
 }
 
 // --- Analytics ---

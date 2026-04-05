@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.core.deps import require_tenant_role
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.marketing import (
@@ -41,7 +42,7 @@ def list_segments(
 def create_segment(
     payload: SegmentCreate,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> SegmentResponse:
     return marketing_service.create_segment(
         db,
@@ -95,7 +96,7 @@ def list_campaigns(
 def create_campaign(
     payload: CampaignCreate,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> CampaignResponse:
     return marketing_service.create_campaign(
         db,
@@ -114,7 +115,7 @@ def create_campaign(
 def send_campaign(
     campaign_id: int,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> CampaignStats:
     return marketing_service.send_campaign(
         db,

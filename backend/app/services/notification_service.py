@@ -45,9 +45,9 @@ def get_unread_count(db: Session, tenant_id: int, user_id: int) -> UnreadCountRe
     return UnreadCountResponse(count=count)
 
 
-def mark_read(db: Session, tenant_id: int, notification_id: int) -> None:
-    notification_repo.mark_read(db, notification_id=notification_id, tenant_id=tenant_id)
-    logger.info("notification_read", tenant_id=tenant_id, notification_id=notification_id)
+def mark_read(db: Session, tenant_id: int, notification_id: int, user_id: int) -> None:
+    notification_repo.mark_read(db, notification_id=notification_id, tenant_id=tenant_id, user_id=user_id)
+    logger.info("notification_read", tenant_id=tenant_id, notification_id=notification_id, user_id=user_id)
 
 
 def mark_all_read(db: Session, tenant_id: int, user_id: int) -> None:

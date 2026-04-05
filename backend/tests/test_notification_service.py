@@ -80,7 +80,7 @@ class TestListNotifications:
         notif = notification_service.notify(
             db, tenant.id, seed_user.id, type="info", title="Unread", message="Test",
         )
-        notification_service.mark_read(db, tenant.id, notif.id)
+        notification_service.mark_read(db, tenant.id, notif.id, seed_user.id)
 
         # Creer une deuxieme non lue
         notification_service.notify(
@@ -125,7 +125,7 @@ class TestMarkRead:
         )
         initial_count = notification_service.get_unread_count(db, tenant.id, seed_user.id).count
 
-        notification_service.mark_read(db, tenant.id, notif.id)
+        notification_service.mark_read(db, tenant.id, notif.id, seed_user.id)
 
         after_count = notification_service.get_unread_count(db, tenant.id, seed_user.id).count
         assert after_count == initial_count - 1

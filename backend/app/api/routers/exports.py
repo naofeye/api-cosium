@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.orm import Session
 
-from app.core.tenant_context import TenantContext, get_tenant_context
+from app.core.deps import require_tenant_role
+from app.core.tenant_context import TenantContext
 from app.db.session import get_db
 from app.services import export_service
 
@@ -20,7 +21,7 @@ def export_balance_clients(
     date_from: date | None = Query(None, description="Date de debut (YYYY-MM-DD)"),
     date_to: date | None = Query(None, description="Date de fin (YYYY-MM-DD)"),
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> StreamingResponse:
     data = export_service.export_balance_clients_xlsx(
         db, tenant_id=tenant_ctx.tenant_id, date_from=date_from, date_to=date_to,
@@ -42,7 +43,7 @@ def export_balance_clients_pdf(
     date_from: date | None = Query(None, description="Date de debut (YYYY-MM-DD)"),
     date_to: date | None = Query(None, description="Date de fin (YYYY-MM-DD)"),
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> StreamingResponse:
     data = export_service.export_balance_clients_pdf(
         db, tenant_id=tenant_ctx.tenant_id, date_from=date_from, date_to=date_to,
@@ -64,7 +65,7 @@ def export_dashboard_pdf(
     date_from: datetime | None = Query(None, description="Date de debut"),
     date_to: datetime | None = Query(None, description="Date de fin"),
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> StreamingResponse:
     data = export_service.export_dashboard_pdf(
         db, tenant_id=tenant_ctx.tenant_id, date_from=date_from, date_to=date_to,
@@ -87,7 +88,7 @@ def export_fec(
     date_to: date = Query(..., description="Date de fin (YYYY-MM-DD)"),
     siren: str = Query("000000000", description="Numero SIREN de l'entreprise"),
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> StreamingResponse:
     data = export_service.generate_fec(
         db,
@@ -116,7 +117,7 @@ def export_data(
     date_from: datetime | None = Query(None),
     date_to: datetime | None = Query(None),
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> Response:
     if format == "xlsx":
         data = export_service.export_to_xlsx(

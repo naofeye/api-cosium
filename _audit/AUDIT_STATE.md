@@ -28,3 +28,9 @@
 | 8 | Accessibility | 6 | 6 | 95/100 | 0 | DONE |
 | 9 | Dead Code | 7 | 0 (info) | 96/100 | 0 | DONE |
 | 10 | Config & Deployment | 8 | 5 | 97/100 | 0 | DONE |
+| 11 | Compilation+ (Deep) | 3 | 2 | 97/100 | 0 | DONE |
+| 12 | Bugs+ (Deep) | 8 | 3 | 98/100 | 0 | DONE |
+| 13 | Security+ (Deep) | 7 | 7 | 98/100 | 0 | DONE |
+| 14 | Schema+ (Deep) | 1 | 1 | 99/100 | 0 | DONE |
+| 15 | Robustness+ (Deep) | 9 | 7 | 99/100 | 0 | DONE |
+| 16 | Performance+ (Deep) | 9 | 5 | 99/100 | 0 | DONE |

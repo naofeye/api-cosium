@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, File, Header, Query, UploadFile
 from sqlalchemy.orm import Session
 
+from app.core.deps import require_tenant_role
+from app.core.exceptions import ValidationError
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.banking import (
@@ -28,7 +30,7 @@ def create_payment(
     payload: PaymentCreate,
     x_idempotency_key: str | None = Header(None),
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager", "operator")),
 ) -> PaymentResponse:
     return banking_service.create_payment(
         db,
@@ -48,10 +50,14 @@ def create_payment(
 async def import_statement(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> ImportStatementResult:
-    count = banking_service.import_statement(db, tenant_id=tenant_ctx.tenant_id, file=file, user_id=tenant_ctx.user_id)
-    return ImportStatementResult(imported=count)
+    if not file.filename or not file.filename.lower().endswith(".csv"):
+        raise ValidationError("file", "Le fichier doit etre au format CSV.")
+    imported, skipped = banking_service.import_statement(
+        db, tenant_id=tenant_ctx.tenant_id, file=file, user_id=tenant_ctx.user_id
+    )
+    return ImportStatementResult(imported=imported, skipped=skipped)
 
 
 @router.post(
@@ -62,7 +68,7 @@ async def import_statement(
 )
 def auto_reconcile(
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> ReconcileResult:
     return banking_service.auto_reconcile(db, tenant_id=tenant_ctx.tenant_id, user_id=tenant_ctx.user_id)
 
@@ -89,7 +95,7 @@ def get_unmatched(
 def manual_match(
     payload: ReconcileRequest,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> BankTransactionResponse:
     return banking_service.manual_match(
         db,

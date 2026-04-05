@@ -78,8 +78,8 @@ class TestImportStatement:
         mock_file.file.read.return_value = csv_content.encode("utf-8")
         mock_file.filename = "releve_mars.csv"
 
-        count = banking_service.import_statement(db, tid, mock_file, seed_user.id)
-        assert count == 2
+        imported, skipped = banking_service.import_statement(db, tid, mock_file, seed_user.id)
+        assert imported == 2
 
         txs = db.query(BankTransaction).filter(BankTransaction.tenant_id == tid).all()
         assert len(txs) == 2

@@ -103,6 +103,8 @@ def _get_rows(
     model = config["model"]
     columns = config["columns"]
 
+    max_export_rows = 50000
+
     q = select(model)
     if hasattr(model, "tenant_id"):
         q = q.where(model.tenant_id == tenant_id)
@@ -111,7 +113,7 @@ def _get_rows(
     if date_to and hasattr(model, "created_at"):
         q = q.where(model.created_at <= date_to)
 
-    items = db.scalars(q.order_by(model.id.desc())).all()
+    items = db.scalars(q.order_by(model.id.desc()).limit(max_export_rows)).all()
     rows = []
     for item in items:
         row = []
@@ -233,7 +235,7 @@ def generate_fec(
         )
         .order_by(Facture.date_emission, Facture.id)
     )
-    factures = list(db.scalars(factures_q).all())
+    factures = list(db.scalars(factures_q.limit(50000)).all())
 
     # Fetch payments in date range
     payments_q = (
@@ -246,7 +248,7 @@ def generate_fec(
         )
         .order_by(Payment.date_paiement, Payment.id)
     )
-    payments = list(db.scalars(payments_q).all())
+    payments = list(db.scalars(payments_q.limit(50000)).all())
 
     output = io.StringIO()
     writer = csv.writer(output, delimiter="\t", lineterminator="\n")

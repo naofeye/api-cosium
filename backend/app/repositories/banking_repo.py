@@ -59,6 +59,18 @@ def list_unreconciled_payments(db: Session, tenant_id: int, limit: int = 500) ->
 # --- Bank Transactions ---
 
 
+def get_transaction_signatures(db: Session, tenant_id: int) -> set[tuple[str, float, str]]:
+    """Return a set of (date_iso, amount_rounded, libelle_prefix) for dedup."""
+    rows = db.execute(
+        select(BankTransaction.date, BankTransaction.montant, BankTransaction.libelle)
+        .where(BankTransaction.tenant_id == tenant_id)
+    ).all()
+    return {
+        (r.date.date().isoformat() if r.date else "", round(float(r.montant), 2), (r.libelle or "")[:100])
+        for r in rows
+    }
+
+
 def create_transaction(
     db: Session,
     tenant_id: int,

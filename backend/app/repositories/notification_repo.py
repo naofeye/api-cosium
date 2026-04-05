@@ -33,12 +33,13 @@ def get_unread_count(db: Session, user_id: int, tenant_id: int) -> int:
     )
 
 
-def mark_read(db: Session, notification_id: int, tenant_id: int) -> None:
+def mark_read(db: Session, notification_id: int, tenant_id: int, user_id: int) -> None:
     db.execute(
         update(Notification)
         .where(
             Notification.id == notification_id,
             Notification.tenant_id == tenant_id,
+            Notification.user_id == user_id,
         )
         .values(is_read=True)
     )
