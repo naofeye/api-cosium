@@ -29,10 +29,10 @@ export function TabDossiers({ dossiers }: TabDossiersProps) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-gray-50">
-              <th className="px-4 py-3 text-left font-medium text-text-secondary">ID</th>
-              <th className="px-4 py-3 text-left font-medium text-text-secondary">Statut</th>
-              <th className="px-4 py-3 text-left font-medium text-text-secondary">Source</th>
-              <th className="px-4 py-3 text-left font-medium text-text-secondary">Date</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">ID</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">Statut</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">Source</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">Date</th>
             </tr>
           </thead>
           <tbody>

@@ -168,6 +168,8 @@ export function Header({ breadcrumb }: HeaderProps) {
               onClick={toggleDropdown}
               className="relative rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
               aria-label="Notifications"
+              aria-haspopup="dialog"
+              aria-expanded={showDropdown}
               title="Notifications"
             >
               <Bell className="h-5 w-5 text-gray-500" aria-hidden="true" />
@@ -179,7 +181,13 @@ export function Header({ breadcrumb }: HeaderProps) {
             </button>
 
             {showDropdown && (
-              <div className="absolute right-0 top-12 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-bg-card shadow-xl">
+              <div
+                role="dialog"
+                aria-modal="false"
+                aria-label="Panneau de notifications"
+                onKeyDown={(e) => { if (e.key === "Escape") setShowDropdown(false); }}
+                className="absolute right-0 top-12 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-bg-card shadow-xl"
+              >
                 <div className="flex items-center justify-between border-b border-border px-4 py-3">
                   <h3 className="text-sm font-semibold text-text-primary">Notifications</h3>
                   <div className="flex items-center gap-2">

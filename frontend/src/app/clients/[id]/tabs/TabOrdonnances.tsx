@@ -54,16 +54,16 @@ export function TabOrdonnances({ cosiumId }: TabOrdonnancesProps) {
       <table className="min-w-full text-sm">
         <thead>
           <tr className="border-b border-border text-left text-text-secondary">
-            <th className="py-2 px-3 font-medium">Date</th>
-            <th className="py-2 px-3 font-medium">Prescripteur</th>
-            <th className="py-2 px-3 font-medium text-right">OD Sph</th>
-            <th className="py-2 px-3 font-medium text-right">OD Cyl</th>
-            <th className="py-2 px-3 font-medium text-right">OD Axe</th>
-            <th className="py-2 px-3 font-medium text-right">OD Add</th>
-            <th className="py-2 px-3 font-medium text-right">OG Sph</th>
-            <th className="py-2 px-3 font-medium text-right">OG Cyl</th>
-            <th className="py-2 px-3 font-medium text-right">OG Axe</th>
-            <th className="py-2 px-3 font-medium text-right">OG Add</th>
+            <th scope="col" className="py-2 px-3 font-medium">Date</th>
+            <th scope="col" className="py-2 px-3 font-medium">Prescripteur</th>
+            <th scope="col" className="py-2 px-3 font-medium text-right">OD Sph</th>
+            <th scope="col" className="py-2 px-3 font-medium text-right">OD Cyl</th>
+            <th scope="col" className="py-2 px-3 font-medium text-right">OD Axe</th>
+            <th scope="col" className="py-2 px-3 font-medium text-right">OD Add</th>
+            <th scope="col" className="py-2 px-3 font-medium text-right">OG Sph</th>
+            <th scope="col" className="py-2 px-3 font-medium text-right">OG Cyl</th>
+            <th scope="col" className="py-2 px-3 font-medium text-right">OG Axe</th>
+            <th scope="col" className="py-2 px-3 font-medium text-right">OG Add</th>
           </tr>
         </thead>
         <tbody>

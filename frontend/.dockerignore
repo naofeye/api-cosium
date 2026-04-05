@@ -1,2 +1,10 @@
 node_modules
 .next
+.git
+.gitignore
+*.md
+.env*
+.vscode
+coverage
+__tests__
+vitest.config.*

@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, type ReactNode } from "react";
+import { forwardRef, useId, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 interface FormFieldProps {
@@ -9,17 +9,22 @@ interface FormFieldProps {
   error?: string;
   children: ReactNode;
   className?: string;
+  htmlFor?: string;
 }
 
-export function FormField({ label, required, error, children, className }: FormFieldProps) {
+export function FormField({ label, required, error, children, className, htmlFor }: FormFieldProps) {
+  const autoId = useId();
+  const fieldId = htmlFor ?? autoId;
+  const errorId = error ? `${fieldId}-error` : undefined;
+
   return (
-    <div className={className}>
-      <label className="mb-1.5 block text-sm font-medium text-gray-700">
+    <div className={className} data-field-id={fieldId} data-error-id={errorId}>
+      <label htmlFor={fieldId} className="mb-1.5 block text-sm font-medium text-gray-700">
         {label}
         {required && <span className="text-danger"> *</span>}
       </label>
       {children}
-      {error && <p className="mt-1 text-xs text-danger">{error}</p>}
+      {error && <p id={errorId} className="mt-1 text-xs text-danger" role="alert">{error}</p>}
     </div>
   );
 }

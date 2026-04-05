@@ -141,13 +141,13 @@ export default function NewDevisPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="pb-2 text-left font-medium text-text-secondary">Designation *</th>
-                <th className="pb-2 text-center font-medium text-text-secondary w-20">Qte</th>
-                <th className="pb-2 text-right font-medium text-text-secondary w-28">PU HT</th>
-                <th className="pb-2 text-center font-medium text-text-secondary w-20">TVA %</th>
-                <th className="pb-2 text-right font-medium text-text-secondary w-28">HT</th>
-                <th className="pb-2 text-right font-medium text-text-secondary w-28">TTC</th>
-                <th className="pb-2 w-10"></th>
+                <th scope="col" className="pb-2 text-left font-medium text-text-secondary">Designation *</th>
+                <th scope="col" className="pb-2 text-center font-medium text-text-secondary w-20">Qte</th>
+                <th scope="col" className="pb-2 text-right font-medium text-text-secondary w-28">PU HT</th>
+                <th scope="col" className="pb-2 text-center font-medium text-text-secondary w-20">TVA %</th>
+                <th scope="col" className="pb-2 text-right font-medium text-text-secondary w-28">HT</th>
+                <th scope="col" className="pb-2 text-right font-medium text-text-secondary w-28">TTC</th>
+                <th scope="col" className="pb-2 w-10"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>

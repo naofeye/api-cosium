@@ -50,10 +50,10 @@ export function TabFinances({ devis, factures, paiements }: TabFinancesProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-gray-50">
-                <th className="px-4 py-2 text-left text-text-secondary font-medium">Numero</th>
-                <th className="px-4 py-2 text-left text-text-secondary font-medium">Statut</th>
-                <th className="px-4 py-2 text-right text-text-secondary font-medium">TTC</th>
-                <th className="px-4 py-2 text-right text-text-secondary font-medium">RAC</th>
+                <th scope="col" className="px-4 py-2 text-left text-text-secondary font-medium">Numero</th>
+                <th scope="col" className="px-4 py-2 text-left text-text-secondary font-medium">Statut</th>
+                <th scope="col" className="px-4 py-2 text-right text-text-secondary font-medium">TTC</th>
+                <th scope="col" className="px-4 py-2 text-right text-text-secondary font-medium">RAC</th>
               </tr>
             </thead>
             <tbody>
@@ -87,10 +87,10 @@ export function TabFinances({ devis, factures, paiements }: TabFinancesProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-gray-50">
-                <th className="px-4 py-2 text-left text-text-secondary font-medium">Numero</th>
-                <th className="px-4 py-2 text-left text-text-secondary font-medium">Statut</th>
-                <th className="px-4 py-2 text-right text-text-secondary font-medium">TTC</th>
-                <th className="px-4 py-2 text-left text-text-secondary font-medium">Date</th>
+                <th scope="col" className="px-4 py-2 text-left text-text-secondary font-medium">Numero</th>
+                <th scope="col" className="px-4 py-2 text-left text-text-secondary font-medium">Statut</th>
+                <th scope="col" className="px-4 py-2 text-right text-text-secondary font-medium">TTC</th>
+                <th scope="col" className="px-4 py-2 text-left text-text-secondary font-medium">Date</th>
               </tr>
             </thead>
             <tbody>
@@ -124,10 +124,10 @@ export function TabFinances({ devis, factures, paiements }: TabFinancesProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-gray-50">
-                <th className="px-4 py-2 text-left text-text-secondary font-medium">Payeur</th>
-                <th className="px-4 py-2 text-right text-text-secondary font-medium">Du</th>
-                <th className="px-4 py-2 text-right text-text-secondary font-medium">Paye</th>
-                <th className="px-4 py-2 text-left text-text-secondary font-medium">Statut</th>
+                <th scope="col" className="px-4 py-2 text-left text-text-secondary font-medium">Payeur</th>
+                <th scope="col" className="px-4 py-2 text-right text-text-secondary font-medium">Du</th>
+                <th scope="col" className="px-4 py-2 text-right text-text-secondary font-medium">Paye</th>
+                <th scope="col" className="px-4 py-2 text-left text-text-secondary font-medium">Statut</th>
               </tr>
             </thead>
             <tbody>

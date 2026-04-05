@@ -98,7 +98,7 @@ export function OpportunityTable({
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>
-              <th className="px-4 py-3 w-10">
+              <th scope="col" className="px-4 py-3 w-10">
                 <input
                   type="checkbox"
                   checked={selected.size === opportunities.length}
@@ -106,14 +106,14 @@ export function OpportunityTable({
                   aria-label="Tout selectionner"
                 />
               </th>
-              <th className="px-4 py-3">Client</th>
-              <th className="px-4 py-3">Equipement</th>
-              <th className="px-4 py-3">Dernier achat</th>
-              <th className="px-4 py-3">Mois</th>
-              <th className="px-4 py-3">Montant</th>
-              <th className="px-4 py-3">Mutuelle</th>
-              <th className="px-4 py-3">Score</th>
-              <th className="px-4 py-3">Action</th>
+              <th scope="col" className="px-4 py-3">Client</th>
+              <th scope="col" className="px-4 py-3">Equipement</th>
+              <th scope="col" className="px-4 py-3">Dernier achat</th>
+              <th scope="col" className="px-4 py-3">Mois</th>
+              <th scope="col" className="px-4 py-3">Montant</th>
+              <th scope="col" className="px-4 py-3">Mutuelle</th>
+              <th scope="col" className="px-4 py-3">Score</th>
+              <th scope="col" className="px-4 py-3">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">

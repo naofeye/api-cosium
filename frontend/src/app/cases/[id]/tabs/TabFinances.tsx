@@ -21,10 +21,10 @@ export function TabFinances({ payments }: TabFinancesProps) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-gray-50">
-              <th className="px-4 py-3 text-left font-medium text-text-secondary">Payeur</th>
-              <th className="px-4 py-3 text-right font-medium text-text-secondary">Du</th>
-              <th className="px-4 py-3 text-right font-medium text-text-secondary">Paye</th>
-              <th className="px-4 py-3 text-left font-medium text-text-secondary">Statut</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">Payeur</th>
+              <th scope="col" className="px-4 py-3 text-right font-medium text-text-secondary">Du</th>
+              <th scope="col" className="px-4 py-3 text-right font-medium text-text-secondary">Paye</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">Statut</th>
             </tr>
           </thead>
           <tbody>

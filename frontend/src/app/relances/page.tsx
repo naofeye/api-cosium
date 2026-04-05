@@ -145,15 +145,18 @@ export default function RelancesPage() {
       </div>
 
       <div className="border-b border-border mb-6">
-        <div className="flex gap-0">
+        <div className="flex gap-0" role="tablist" aria-label="Sections relances">
           {[
             { key: "overdue" as const, label: `A relancer (${overdue?.length ?? 0})` },
             { key: "historique" as const, label: `Historique (${reminders.length})` },
           ].map((tab) => (
             <button
               key={tab.key}
+              role="tab"
+              aria-selected={activeTab === tab.key}
+              id={`tab-${tab.key}`}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${
                 activeTab === tab.key
                   ? "border-primary text-primary"
                   : "border-transparent text-text-secondary hover:text-text-primary"
@@ -173,12 +176,12 @@ export default function RelancesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-text-secondary">Client</th>
-                  <th className="px-4 py-3 text-left font-medium text-text-secondary">Payeur</th>
-                  <th className="px-4 py-3 text-right font-medium text-text-secondary">Montant</th>
-                  <th className="px-4 py-3 text-center font-medium text-text-secondary">Retard</th>
-                  <th className="px-4 py-3 text-center font-medium text-text-secondary">Score</th>
-                  <th className="px-4 py-3 text-center font-medium text-text-secondary">Action</th>
+                  <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">Client</th>
+                  <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">Payeur</th>
+                  <th scope="col" className="px-4 py-3 text-right font-medium text-text-secondary">Montant</th>
+                  <th scope="col" className="px-4 py-3 text-center font-medium text-text-secondary">Retard</th>
+                  <th scope="col" className="px-4 py-3 text-center font-medium text-text-secondary">Score</th>
+                  <th scope="col" className="px-4 py-3 text-center font-medium text-text-secondary">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -224,11 +227,11 @@ export default function RelancesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-gray-50">
-                  <th className="px-4 py-3 text-left font-medium text-text-secondary">ID</th>
-                  <th className="px-4 py-3 text-left font-medium text-text-secondary">Canal</th>
-                  <th className="px-4 py-3 text-left font-medium text-text-secondary">Statut</th>
-                  <th className="px-4 py-3 text-left font-medium text-text-secondary">Contenu</th>
-                  <th className="px-4 py-3 text-left font-medium text-text-secondary">Date</th>
+                  <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">ID</th>
+                  <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">Canal</th>
+                  <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">Statut</th>
+                  <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">Contenu</th>
+                  <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">Date</th>
                 </tr>
               </thead>
               <tbody>

@@ -35,7 +35,7 @@ export function KPICard({ icon: Icon, label, value, trend, color = "primary", cl
     >
       <div className="flex items-center justify-between">
         <div className={cn("rounded-lg p-2", iconColorMap[color])}>
-          <Icon className="h-5 w-5" />
+          <Icon className="h-5 w-5" aria-hidden="true" />
         </div>
         {trend && (
           <span className={cn("text-xs font-medium", trend.value >= 0 ? "text-success" : "text-danger")}>

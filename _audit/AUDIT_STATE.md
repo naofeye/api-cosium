@@ -34,3 +34,7 @@
 | 14 | Schema+ (Deep) | 1 | 1 | 99/100 | 0 | DONE |
 | 15 | Robustness+ (Deep) | 9 | 7 | 99/100 | 0 | DONE |
 | 16 | Performance+ (Deep) | 9 | 5 | 99/100 | 0 | DONE |
+| 17 | UX+ (Deep) | -- | -- | 99/100 | 0 | SKIPPED (covered in 7-8) |
+| 18 | Accessibility+ (Deep) | -- | -- | 99/100 | 0 | SKIPPED (covered in 7-8) |
+| 19 | Dead Code+ (Deep) | 8 | 0 (info) | 99/100 | 0 | DONE |
+| 20 | Config+ (Deep) + Final | 1 | 1 | 99/100 | 0 | DONE |

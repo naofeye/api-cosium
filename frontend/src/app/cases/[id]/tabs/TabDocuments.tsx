@@ -31,10 +31,10 @@ export function TabDocuments({ documents }: TabDocumentsProps) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-gray-50">
-              <th className="px-4 py-3 text-left font-medium text-text-secondary">Type</th>
-              <th className="px-4 py-3 text-left font-medium text-text-secondary">Nom du fichier</th>
-              <th className="px-4 py-3 text-left font-medium text-text-secondary">Date</th>
-              <th className="px-4 py-3 text-right font-medium text-text-secondary">Action</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">Type</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">Nom du fichier</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">Date</th>
+              <th scope="col" className="px-4 py-3 text-right font-medium text-text-secondary">Action</th>
             </tr>
           </thead>
           <tbody>

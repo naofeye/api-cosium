@@ -55,12 +55,12 @@ export function TabCosiumPaiements({ cosiumId }: TabCosiumPaiementsProps) {
       <table className="min-w-full text-sm">
         <thead>
           <tr className="border-b border-border text-left text-text-secondary">
-            <th className="py-2 px-3 font-medium">Date</th>
-            <th className="py-2 px-3 font-medium">Type</th>
-            <th className="py-2 px-3 font-medium text-right">Montant</th>
-            <th className="py-2 px-3 font-medium">Banque</th>
-            <th className="py-2 px-3 font-medium">Reference</th>
-            <th className="py-2 px-3 font-medium">Site</th>
+            <th scope="col" className="py-2 px-3 font-medium">Date</th>
+            <th scope="col" className="py-2 px-3 font-medium">Type</th>
+            <th scope="col" className="py-2 px-3 font-medium text-right">Montant</th>
+            <th scope="col" className="py-2 px-3 font-medium">Banque</th>
+            <th scope="col" className="py-2 px-3 font-medium">Reference</th>
+            <th scope="col" className="py-2 px-3 font-medium">Site</th>
           </tr>
         </thead>
         <tbody>

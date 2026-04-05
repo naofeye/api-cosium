@@ -59,10 +59,10 @@ export function TabDocuments({ documents }: TabDocumentsProps) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-gray-50">
-              <th className="px-4 py-3 text-left font-medium text-text-secondary">Type</th>
-              <th className="px-4 py-3 text-left font-medium text-text-secondary">Fichier</th>
-              <th className="px-4 py-3 text-left font-medium text-text-secondary">Date</th>
-              <th className="px-4 py-3 text-right font-medium text-text-secondary">Actions</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">Type</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">Fichier</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">Date</th>
+              <th scope="col" className="px-4 py-3 text-right font-medium text-text-secondary">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -109,9 +109,13 @@ export function TabDocuments({ documents }: TabDocumentsProps) {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
           onClick={() => setPreviewDoc(null)}
+          role="presentation"
         >
           <div
             className="relative max-w-3xl max-h-[80vh] bg-white rounded-xl shadow-xl p-2"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Previsualisation de ${previewDoc.filename}`}
             onClick={(e) => e.stopPropagation()}
           >
             <button

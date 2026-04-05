@@ -223,11 +223,11 @@ export default function RapprochementPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-gray-50">
-                    <th className="px-4 py-3 text-left font-medium text-text-secondary">Date</th>
-                    <th className="px-4 py-3 text-left font-medium text-text-secondary">Libelle</th>
-                    <th className="px-4 py-3 text-right font-medium text-text-secondary">Montant</th>
-                    <th className="px-4 py-3 text-left font-medium text-text-secondary">Reference</th>
-                    <th className="px-4 py-3 text-center font-medium text-text-secondary">Statut</th>
+                    <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">Date</th>
+                    <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">Libelle</th>
+                    <th scope="col" className="px-4 py-3 text-right font-medium text-text-secondary">Montant</th>
+                    <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">Reference</th>
+                    <th scope="col" className="px-4 py-3 text-center font-medium text-text-secondary">Statut</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -232,12 +232,16 @@ export default function ClientDetailPage() {
       </div>
 
       <div className="border-b border-border mb-6">
-        <div className="flex gap-0 overflow-x-auto">
+        <div className="flex gap-0 overflow-x-auto" role="tablist" aria-label="Sections du client">
           {tabs.map((t) => (
             <button
               key={t.key}
+              role="tab"
+              aria-selected={activeTab === t.key}
+              aria-controls={`tabpanel-${t.key}`}
+              id={`tab-${t.key}`}
               onClick={() => setActiveTab(t.key)}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === t.key ? "border-primary text-primary" : "border-transparent text-text-secondary hover:text-text-primary"}`}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${activeTab === t.key ? "border-primary text-primary" : "border-transparent text-text-secondary hover:text-text-primary"}`}
             >
               {t.label}
               {t.count !== undefined && (

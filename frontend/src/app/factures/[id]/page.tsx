@@ -154,12 +154,12 @@ export default function FactureDetailPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-gray-50">
-              <th className="px-4 py-3 text-left font-medium text-text-secondary">Designation</th>
-              <th className="px-4 py-3 text-center font-medium text-text-secondary">Qte</th>
-              <th className="px-4 py-3 text-right font-medium text-text-secondary">PU HT</th>
-              <th className="px-4 py-3 text-center font-medium text-text-secondary">TVA %</th>
-              <th className="px-4 py-3 text-right font-medium text-text-secondary">HT</th>
-              <th className="px-4 py-3 text-right font-medium text-text-secondary">TTC</th>
+              <th scope="col" className="px-4 py-3 text-left font-medium text-text-secondary">Designation</th>
+              <th scope="col" className="px-4 py-3 text-center font-medium text-text-secondary">Qte</th>
+              <th scope="col" className="px-4 py-3 text-right font-medium text-text-secondary">PU HT</th>
+              <th scope="col" className="px-4 py-3 text-center font-medium text-text-secondary">TVA %</th>
+              <th scope="col" className="px-4 py-3 text-right font-medium text-text-secondary">HT</th>
+              <th scope="col" className="px-4 py-3 text-right font-medium text-text-secondary">TTC</th>
             </tr>
           </thead>
           <tbody>

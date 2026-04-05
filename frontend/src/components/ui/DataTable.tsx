@@ -100,13 +100,17 @@ export function DataTable<T extends { id: number | string }>({
               {columns.map((col) => (
                 <th
                   key={col.key}
+                  scope="col"
                   className={cn(
                     "px-4 py-3 text-left font-medium text-text-secondary",
                     col.sortable && "cursor-pointer select-none hover:text-text-primary",
                     col.className,
                   )}
                   onClick={col.sortable ? () => handleSort(col.key) : undefined}
+                  onKeyDown={col.sortable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleSort(col.key); } } : undefined}
+                  tabIndex={col.sortable ? 0 : undefined}
                   aria-sort={sortKey === col.key ? (sortDirection === "asc" ? "ascending" : "descending") : undefined}
+                  role={col.sortable ? "columnheader" : undefined}
                 >
                   <span className="inline-flex items-center gap-1">
                     {col.header}

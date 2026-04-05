@@ -35,8 +35,11 @@ export function FileUpload({ onFileSelect, accept, className }: FileUploadProps)
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={fileName ?? "Glissez vos fichiers ici ou cliquez pour parcourir"}
       className={cn(
-        "flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors cursor-pointer",
+        "flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none",
         dragOver ? "border-primary bg-blue-50" : "border-border hover:border-gray-400",
         className,
       )}
@@ -47,12 +50,18 @@ export function FileUpload({ onFileSelect, accept, className }: FileUploadProps)
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
       onClick={() => inputRef.current?.click()}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          inputRef.current?.click();
+        }
+      }}
     >
-      <Upload className="h-8 w-8 text-gray-400" />
+      <Upload className="h-8 w-8 text-gray-400" aria-hidden="true" />
       <p className="mt-3 text-sm text-text-secondary">
         {fileName ?? "Glissez vos fichiers ici ou cliquez pour parcourir"}
       </p>
-      <input ref={inputRef} type="file" className="hidden" accept={accept} onChange={handleChange} />
+      <input ref={inputRef} type="file" className="hidden" accept={accept} onChange={handleChange} aria-hidden="true" />
     </div>
   );
 }

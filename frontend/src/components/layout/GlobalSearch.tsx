@@ -84,9 +84,14 @@ export function GlobalSearch() {
   return (
     <div ref={containerRef} className="relative w-full max-w-md">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
         <input
-          type="text"
+          type="search"
+          role="combobox"
+          aria-expanded={showDropdown}
+          aria-haspopup="listbox"
+          aria-controls="global-search-results"
+          aria-label="Recherche globale"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -111,7 +116,7 @@ export function GlobalSearch() {
       </div>
 
       {showDropdown && (
-        <div className="absolute top-full left-0 right-0 mt-1 max-h-80 overflow-y-auto rounded-xl border border-border bg-bg-card shadow-xl z-50">
+        <div id="global-search-results" role="listbox" aria-label="Resultats de recherche" className="absolute top-full left-0 right-0 mt-1 max-h-80 overflow-y-auto rounded-xl border border-border bg-bg-card shadow-xl z-50">
           {allResults.length === 0 && (
             <div className="px-4 py-6 text-center text-sm text-text-secondary">
               Aucun resultat pour &quot;{debouncedQuery}&quot;
@@ -123,10 +128,10 @@ export function GlobalSearch() {
                 const config = TYPE_CONFIG[item.type as keyof typeof TYPE_CONFIG];
                 const Icon = config.icon;
                 return (
-                  <li key={`${item.type}-${item.id}-${i}`}>
+                  <li key={`${item.type}-${item.id}-${i}`} role="option" aria-selected={false}>
                     <button
                       onClick={() => handleSelect(item as SearchResultItem & { type: keyof typeof TYPE_CONFIG })}
-                      className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
                     >
                       <Icon className={`h-4 w-4 shrink-0 ${config.color}`} />
                       <div className="min-w-0 flex-1">

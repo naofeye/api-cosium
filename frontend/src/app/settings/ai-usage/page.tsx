@@ -216,9 +216,9 @@ export default function AiUsagePage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-gray-50 text-left text-xs font-medium uppercase tracking-wider text-text-secondary">
-                    <th className="px-6 py-3">Jour</th>
-                    <th className="px-6 py-3 text-right">Requêtes</th>
-                    <th className="px-6 py-3 text-right">Tokens</th>
+                    <th scope="col" className="px-6 py-3">Jour</th>
+                    <th scope="col" className="px-6 py-3 text-right">Requêtes</th>
+                    <th scope="col" className="px-6 py-3 text-right">Tokens</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">

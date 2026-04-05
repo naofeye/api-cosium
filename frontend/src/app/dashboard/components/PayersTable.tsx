@@ -22,11 +22,11 @@ export function PayersTable({ payers }: PayersTableProps) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border">
-            <th className="pb-2 text-left font-medium text-text-secondary">Organisme</th>
-            <th className="pb-2 text-left font-medium text-text-secondary">Type</th>
-            <th className="pb-2 text-right font-medium text-text-secondary">Demande</th>
-            <th className="pb-2 text-right font-medium text-text-secondary">Accorde</th>
-            <th className="pb-2 text-center font-medium text-text-secondary">Taux acceptation</th>
+            <th scope="col" className="pb-2 text-left font-medium text-text-secondary">Organisme</th>
+            <th scope="col" className="pb-2 text-left font-medium text-text-secondary">Type</th>
+            <th scope="col" className="pb-2 text-right font-medium text-text-secondary">Demande</th>
+            <th scope="col" className="pb-2 text-right font-medium text-text-secondary">Accorde</th>
+            <th scope="col" className="pb-2 text-center font-medium text-text-secondary">Taux acceptation</th>
           </tr>
         </thead>
         <tbody>
