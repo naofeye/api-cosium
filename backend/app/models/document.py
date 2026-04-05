@@ -27,4 +27,4 @@ class Document(Base):
     storage_key: Mapped[str] = mapped_column(String(255), nullable=False)
     uploaded_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
 
-    case: Mapped["Case"] = relationship("Case", back_populates="documents", lazy="noload")  # type: ignore[name-defined]
+    case: Mapped["Case"] = relationship("Case", back_populates="documents", lazy="noload")  # type: ignore[name-defined]  # noqa: F821

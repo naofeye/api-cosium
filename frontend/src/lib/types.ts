@@ -24,7 +24,6 @@ export interface User {
   email: string;
   role: string;
   is_active: boolean;
-  created_at: string;
 }
 
 // --- Client ---
@@ -43,6 +42,7 @@ export interface Customer {
   avatar_url: string | null;
   created_at: string | null;
   updated_at: string | null;
+  deleted_at: string | null;
 }
 
 export interface CustomerCreate {

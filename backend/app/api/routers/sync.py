@@ -160,7 +160,9 @@ def sync_all(
         try:
             results[sync_name] = sync_fn(db, tenant_id=tenant_ctx.tenant_id, user_id=tenant_ctx.user_id)
         except Exception as e:
-            results[sync_name] = {"error": str(e)}
+            from app.core.logging import get_logger
+            get_logger("sync").error("sync_domain_failed", domain=sync_name, error=str(e))
+            results[sync_name] = {"error": "Echec de la synchronisation. Consultez les logs pour plus de details."}
 
     # Sync reference data (calendar, mutuelles, doctors, etc.)
     try:
@@ -169,7 +171,9 @@ def sync_all(
         ref_results = sync_all_reference(db, tenant_id=tenant_ctx.tenant_id, user_id=tenant_ctx.user_id)
         results["reference"] = ref_results
     except Exception as e:
-        results["reference"] = {"error": str(e)}
+        from app.core.logging import get_logger
+        get_logger("sync").error("sync_reference_failed", error=str(e))
+        results["reference"] = {"error": "Echec de la synchronisation des donnees de reference."}
 
     return results
 

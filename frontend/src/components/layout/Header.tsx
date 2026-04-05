@@ -3,6 +3,7 @@
 import { Bell, LogOut, User, X, Clock, Moon, Sun, Menu } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { logout } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { fetchJson } from "@/lib/api";
@@ -81,7 +82,7 @@ export function Header({ breadcrumb }: HeaderProps) {
         mutateNotifs();
       })
       .catch((err) => {
-        console.error("[Notifications] Erreur lors du marquage comme lu:", err);
+        logger.error("[Notifications] Erreur lors du marquage comme lu:", err);
       });
   };
 

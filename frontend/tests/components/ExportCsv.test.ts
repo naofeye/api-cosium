@@ -9,7 +9,8 @@ describe("exportToCsv", () => {
     mockClick = vi.fn();
     capturedBlob = null;
 
-    vi.spyOn(URL, "createObjectURL").mockImplementation((blob: Blob) => {
+    vi.spyOn(URL, "createObjectURL").mockImplementation((obj: Blob | MediaSource) => {
+      const blob = obj as Blob;
       capturedBlob = blob;
       return "blob:test";
     });

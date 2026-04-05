@@ -22,7 +22,7 @@ class Devis(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
     updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, onupdate=lambda: datetime.now(UTC))
 
-    case: Mapped["Case"] = relationship("Case", back_populates="devis", lazy="noload")  # type: ignore[name-defined]
+    case: Mapped["Case"] = relationship("Case", back_populates="devis", lazy="noload")  # type: ignore[name-defined]  # noqa: F821
 
 
 class DevisLigne(Base):

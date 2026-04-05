@@ -37,7 +37,7 @@ class PecRequest(Base):
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="soumise", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
 
-    case: Mapped["Case"] = relationship("Case", back_populates="pec_requests", lazy="noload")  # type: ignore[name-defined]
+    case: Mapped["Case"] = relationship("Case", back_populates="pec_requests", lazy="noload")  # type: ignore[name-defined]  # noqa: F821
 
 
 class PecStatusHistory(Base):

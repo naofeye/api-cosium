@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { logger } from "@/lib/logger";
 import { paymentCreateSchema, type PaymentCreateFormData } from "@/lib/schemas/payment";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/Button";
@@ -43,7 +44,7 @@ export default function PaiementsPage() {
     fetchJson<CaseOption[]>("/cases")
       .then(setCases)
       .catch((err) => {
-        console.error("[Paiements] Erreur chargement des dossiers:", err);
+        logger.error("[Paiements] Erreur chargement des dossiers:", err);
       });
   }, []);
 

@@ -6,6 +6,15 @@ from app.models.audit import AuditLog  # noqa: F401
 from app.models.case import Case  # noqa: F401
 from app.models.client import Customer  # noqa: F401
 from app.models.cosium_data import CosiumInvoice, CosiumProduct  # noqa: F401
+from app.models.cosium_reference import (  # noqa: F401
+    CosiumBrand,
+    CosiumCalendarEvent,
+    CosiumDoctor,
+    CosiumMutuelle,
+    CosiumSite,
+    CosiumSupplier,
+    CosiumTag,
+)
 from app.models.devis import Devis, DevisLigne  # noqa: F401
 from app.models.document import Document, DocumentType  # noqa: F401
 from app.models.facture import Facture, FactureLigne  # noqa: F401
@@ -17,12 +26,3 @@ from app.models.pec import PayerContract, PayerOrganization, PecRequest, PecStat
 from app.models.reminder import Reminder, ReminderPlan, ReminderTemplate  # noqa: F401
 from app.models.tenant import Organization, Tenant, TenantErpCredentials, TenantUser  # noqa: F401
 from app.models.user import PasswordResetToken, RefreshToken, User  # noqa: F401
-from app.models.cosium_reference import (  # noqa: F401
-    CosiumBrand,
-    CosiumCalendarEvent,
-    CosiumDoctor,
-    CosiumMutuelle,
-    CosiumSite,
-    CosiumSupplier,
-    CosiumTag,
-)

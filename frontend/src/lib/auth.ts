@@ -1,4 +1,5 @@
 import Cookies from "js-cookie";
+import { logger } from "@/lib/logger";
 
 const TENANT_ID_KEY = "optiflow_tenant_id";
 const TENANT_NAME_KEY = "optiflow_tenant_name";
@@ -124,7 +125,7 @@ export function logout() {
     method: "POST",
     credentials: "include",
   }).catch((err) => {
-    console.error("[Auth] Erreur lors de la deconnexion:", err);
+    logger.error("[Auth] Erreur lors de la deconnexion:", err);
   });
   clearAuthState();
 }

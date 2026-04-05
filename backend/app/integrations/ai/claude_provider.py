@@ -66,7 +66,7 @@ class ClaudeProvider(AIProvider):
 
         except Exception as e:
             logger.error("claude_query_failed", error=str(e))
-            return {"text": f"[Erreur IA] {str(e)}", "tokens_in": 0, "tokens_out": 0, "model": self.model}
+            return {"text": "[Erreur IA] Une erreur est survenue lors de la requete IA. Veuillez reessayer.", "tokens_in": 0, "tokens_out": 0, "model": self.model}
 
 
 claude_provider = ClaudeProvider()

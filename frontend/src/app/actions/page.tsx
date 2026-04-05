@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
+import { logger } from "@/lib/logger";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { KPICard } from "@/components/ui/KPICard";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -105,7 +106,9 @@ export default function ActionsPage() {
     setRefreshing(true);
     fetchJson<ActionItemList>("/action-items/refresh", { method: "POST" })
       .then(() => mutateActions())
-      .catch(() => {})
+      .catch((err) => {
+        logger.error("[Actions] Erreur lors de l'actualisation:", err);
+      })
       .finally(() => setRefreshing(false));
   };
 
@@ -115,7 +118,9 @@ export default function ActionsPage() {
       body: JSON.stringify({ status: "done" }),
     })
       .then(() => mutateActions())
-      .catch(() => {});
+      .catch((err) => {
+        logger.error("[Actions] Erreur lors du marquage:", err);
+      });
   };
 
   const dismiss = (itemId: number) => {
@@ -124,7 +129,9 @@ export default function ActionsPage() {
       body: JSON.stringify({ status: "dismissed" }),
     })
       .then(() => mutateActions())
-      .catch(() => {});
+      .catch((err) => {
+        logger.error("[Actions] Erreur lors du report:", err);
+      });
   };
 
   const getEntityLink = (item: ActionItem): string => {

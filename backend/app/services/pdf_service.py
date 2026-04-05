@@ -1,7 +1,7 @@
 """Service de generation PDF pour devis et factures."""
 
 import io
-from datetime import datetime
+from datetime import UTC, datetime
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -61,7 +61,7 @@ def generate_devis_pdf(db: Session, devis_id: int, tenant_id: int) -> bytes:
     custom_styles = {"title": styles["of_title"], "heading": styles["of_heading"], "normal": styles["Normal"]}
 
     elements: list = []
-    date_str = devis.created_at.strftime("%d/%m/%Y") if devis.created_at else datetime.now().strftime("%d/%m/%Y")
+    date_str = devis.created_at.strftime("%d/%m/%Y") if devis.created_at else datetime.now(UTC).strftime("%d/%m/%Y")
     _build_header(elements, custom_styles, "DEVIS", devis.numero, date_str, tenant_info)
     _build_customer_block(elements, custom_styles, customer)
     _build_lines_table(elements, lignes)
@@ -113,7 +113,7 @@ def generate_facture_pdf(db: Session, facture_id: int, tenant_id: int) -> bytes:
 
     elements: list = []
     date_str = (
-        facture.date_emission.strftime("%d/%m/%Y") if facture.date_emission else datetime.now().strftime("%d/%m/%Y")
+        facture.date_emission.strftime("%d/%m/%Y") if facture.date_emission else datetime.now(UTC).strftime("%d/%m/%Y")
     )
     _build_header(elements, custom_styles, "FACTURE", facture.numero, date_str, tenant_info)
     _build_customer_block(elements, custom_styles, customer)
@@ -155,7 +155,7 @@ def generate_client_360_pdf(db: Session, client_id: int, tenant_id: int) -> byte
     elements.append(Paragraph(tenant_info["name"], custom["title"]))
     elements.append(Spacer(1, 4 * mm))
     elements.append(Paragraph(f"Fiche Client 360 — {data.first_name} {data.last_name}", custom["heading"]))
-    elements.append(Paragraph(f"Generee le {datetime.now().strftime('%d/%m/%Y a %H:%M')}", custom["normal"]))
+    elements.append(Paragraph(f"Generee le {datetime.now(UTC).strftime('%d/%m/%Y a %H:%M')}", custom["normal"]))
     elements.append(Spacer(1, 8 * mm))
 
     # Client info

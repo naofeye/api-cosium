@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response, StreamingResponse
@@ -25,7 +25,7 @@ def export_balance_clients(
     data = export_service.export_balance_clients_xlsx(
         db, tenant_id=tenant_ctx.tenant_id, date_from=date_from, date_to=date_to,
     )
-    filename = f"balance_clients_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    filename = f"balance_clients_{datetime.now(UTC).strftime('%Y%m%d')}.xlsx"
     return StreamingResponse(
         iter([data]),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -47,7 +47,7 @@ def export_balance_clients_pdf(
     data = export_service.export_balance_clients_pdf(
         db, tenant_id=tenant_ctx.tenant_id, date_from=date_from, date_to=date_to,
     )
-    filename = f"balance_clients_{datetime.now().strftime('%Y%m%d')}.pdf"
+    filename = f"balance_clients_{datetime.now(UTC).strftime('%Y%m%d')}.pdf"
     return StreamingResponse(
         iter([data]),
         media_type="application/pdf",
@@ -69,7 +69,7 @@ def export_dashboard_pdf(
     data = export_service.export_dashboard_pdf(
         db, tenant_id=tenant_ctx.tenant_id, date_from=date_from, date_to=date_to,
     )
-    filename = f"dashboard_optiflow_{datetime.now().strftime('%Y%m%d')}.pdf"
+    filename = f"dashboard_optiflow_{datetime.now(UTC).strftime('%Y%m%d')}.pdf"
     return StreamingResponse(
         iter([data]),
         media_type="application/pdf",

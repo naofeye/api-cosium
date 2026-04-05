@@ -22,7 +22,7 @@ class EmailSender:
             msg["To"] = to
             msg.attach(MIMEText(body_html, "html"))
 
-            with smtplib.SMTP(self.host, self.port) as server:
+            with smtplib.SMTP(self.host, self.port, timeout=10) as server:
                 server.sendmail(self.from_email, to, msg.as_string())
 
             logger.info("email_sent", to=to, subject=subject)

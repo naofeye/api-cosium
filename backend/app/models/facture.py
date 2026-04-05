@@ -21,7 +21,7 @@ class Facture(Base):
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="emise", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
 
-    case: Mapped["Case"] = relationship("Case", back_populates="factures", lazy="noload")  # type: ignore[name-defined]
+    case: Mapped["Case"] = relationship("Case", back_populates="factures", lazy="noload")  # type: ignore[name-defined]  # noqa: F821
 
 
 class FactureLigne(Base):

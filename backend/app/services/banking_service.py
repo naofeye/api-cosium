@@ -63,7 +63,14 @@ def create_payment(
 
 
 def import_statement(db: Session, tenant_id: int, file: UploadFile, user_id: int) -> int:
-    content = file.file.read().decode("utf-8-sig")
+    raw = file.file.read()
+    try:
+        content = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        try:
+            content = raw.decode("latin-1")
+        except UnicodeDecodeError:
+            raise BusinessError("FILE_DECODE_ERROR", "Impossible de lire le fichier. Format d'encodage non supporte.") from None
     reader = csv.DictReader(io.StringIO(content), delimiter=";")
 
     count = 0

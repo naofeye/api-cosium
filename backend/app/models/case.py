@@ -18,8 +18,8 @@ class Case(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=None)
 
     # Relationships for eager loading (selectinload)
-    documents: Mapped[list["Document"]] = relationship("Document", back_populates="case", lazy="noload")  # type: ignore[name-defined]
-    devis: Mapped[list["Devis"]] = relationship("Devis", back_populates="case", lazy="noload")  # type: ignore[name-defined]
-    factures: Mapped[list["Facture"]] = relationship("Facture", back_populates="case", lazy="noload")  # type: ignore[name-defined]
-    payments: Mapped[list["Payment"]] = relationship("Payment", back_populates="case", lazy="noload")  # type: ignore[name-defined]
-    pec_requests: Mapped[list["PecRequest"]] = relationship("PecRequest", back_populates="case", lazy="noload")  # type: ignore[name-defined]
+    documents: Mapped[list["Document"]] = relationship("Document", back_populates="case", lazy="noload")  # type: ignore[name-defined]  # noqa: F821
+    devis: Mapped[list["Devis"]] = relationship("Devis", back_populates="case", lazy="noload")  # type: ignore[name-defined]  # noqa: F821
+    factures: Mapped[list["Facture"]] = relationship("Facture", back_populates="case", lazy="noload")  # type: ignore[name-defined]  # noqa: F821
+    payments: Mapped[list["Payment"]] = relationship("Payment", back_populates="case", lazy="noload")  # type: ignore[name-defined]  # noqa: F821
+    pec_requests: Mapped[list["PecRequest"]] = relationship("PecRequest", back_populates="case", lazy="noload")  # type: ignore[name-defined]  # noqa: F821

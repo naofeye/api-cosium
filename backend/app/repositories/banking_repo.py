@@ -45,12 +45,13 @@ def get_by_idempotency_key(db: Session, key: str, tenant_id: int) -> Payment | N
     return db.scalars(select(Payment).where(Payment.idempotency_key == key, Payment.tenant_id == tenant_id)).first()
 
 
-def list_unreconciled_payments(db: Session, tenant_id: int) -> list[Payment]:
+def list_unreconciled_payments(db: Session, tenant_id: int, limit: int = 500) -> list[Payment]:
     return list(
         db.scalars(
             select(Payment)
             .where(Payment.amount_paid > 0, Payment.tenant_id == tenant_id)
             .order_by(Payment.created_at.desc())
+            .limit(limit)
         ).all()
     )
 
@@ -94,12 +95,13 @@ def list_transactions(
     return list(rows), total
 
 
-def get_unmatched(db: Session, tenant_id: int) -> list[BankTransaction]:
+def get_unmatched(db: Session, tenant_id: int, limit: int = 1000) -> list[BankTransaction]:
     return list(
         db.scalars(
             select(BankTransaction)
             .where(BankTransaction.reconciled.is_(False), BankTransaction.tenant_id == tenant_id)
             .order_by(BankTransaction.date.desc())
+            .limit(limit)
         ).all()
     )
 
@@ -120,6 +122,18 @@ def auto_reconcile(db: Session, tenant_id: int) -> tuple[int, int]:
     unmatched = get_unmatched(db, tenant_id)
     matched_count = 0
 
+    # Pre-compute the set of already-reconciled payment IDs once (avoid N+1)
+    already_matched: set[int] = {
+        r[0]
+        for r in db.execute(
+            select(BankTransaction.reconciled_payment_id).where(
+                BankTransaction.reconciled.is_(True),
+                BankTransaction.tenant_id == tenant_id,
+            )
+        ).all()
+        if r[0]
+    }
+
     for tx in unmatched:
         # Match by exact amount + date within 3 days + reference substring
         candidates = db.scalars(
@@ -134,46 +148,25 @@ def auto_reconcile(db: Session, tenant_id: int) -> tuple[int, int]:
             )
         ).all()
 
+        matched_payment_id: int | None = None
+
         # Try reference matching first
         if tx.reference:
             for p in candidates:
                 if p.reference_externe and tx.reference in p.reference_externe:
-                    reconcile(db, tx, p.id)
-                    matched_count += 1
+                    matched_payment_id = p.id
                     break
-            else:
-                # If no reference match, take first amount+date match
-                if candidates:
-                    already_matched = {
-                        r[0]
-                        for r in db.execute(
-                            select(BankTransaction.reconciled_payment_id).where(
-                                BankTransaction.reconciled.is_(True),
-                                BankTransaction.tenant_id == tenant_id,
-                            )
-                        ).all()
-                        if r[0]
-                    }
-                    for p in candidates:
-                        if p.id not in already_matched:
-                            reconcile(db, tx, p.id)
-                            matched_count += 1
-                            break
-        elif candidates:
-            already_matched = {
-                r[0]
-                for r in db.execute(
-                    select(BankTransaction.reconciled_payment_id).where(
-                        BankTransaction.reconciled.is_(True),
-                        BankTransaction.tenant_id == tenant_id,
-                    )
-                ).all()
-                if r[0]
-            }
+
+        # If no reference match, take first unmatched amount+date candidate
+        if matched_payment_id is None and candidates:
             for p in candidates:
                 if p.id not in already_matched:
-                    reconcile(db, tx, p.id)
-                    matched_count += 1
+                    matched_payment_id = p.id
                     break
+
+        if matched_payment_id is not None:
+            reconcile(db, tx, matched_payment_id)
+            already_matched.add(matched_payment_id)
+            matched_count += 1
 
     return matched_count, len(unmatched) - matched_count

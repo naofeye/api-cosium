@@ -4,7 +4,6 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-
 # --- Calendar Events ---
 
 class CalendarEventResponse(BaseModel):

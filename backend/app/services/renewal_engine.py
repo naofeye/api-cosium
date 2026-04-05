@@ -86,6 +86,17 @@ def detect_renewals(
         min_invoice_amount=config.min_invoice_amount,
     )
 
+    # Cap candidates to prevent runaway N+1 queries on large datasets
+    max_candidates = 500
+    if len(candidates) > max_candidates:
+        logger.warning(
+            "renewal_candidates_capped",
+            tenant_id=tenant_id,
+            total=len(candidates),
+            cap=max_candidates,
+        )
+        candidates = candidates[:max_candidates]
+
     opportunities: list[RenewalOpportunity] = []
 
     for item in candidates:

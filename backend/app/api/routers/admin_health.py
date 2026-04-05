@@ -149,7 +149,7 @@ def test_cosium_connection(
                 connected=False,
                 error="Cookie expire. Veuillez vous reconnecter a Cosium et copier le nouveau cookie access_token.",
             )
-        return CosiumConnectionTest(connected=False, error=f"Erreur de connexion: {error_msg[:100]}")
+        return CosiumConnectionTest(connected=False, error="Erreur de connexion Cosium. Verifiez vos identifiants et la disponibilite du service.")
 
 
 class CosiumCookiesPayload(BaseModel):

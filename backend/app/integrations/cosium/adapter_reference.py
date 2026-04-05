@@ -3,7 +3,6 @@
 LECTURE SEULE : ces fonctions ne font que transformer des donnees lues depuis Cosium.
 """
 
-import re
 from datetime import datetime
 
 
@@ -44,7 +43,7 @@ def _parse_datetime(value: str | None) -> datetime | None:
         pass
     # Try epoch millis (some Cosium dates come as numbers)
     try:
-        if isinstance(value, (int, float)):
+        if isinstance(value, int | float):
             return datetime.fromtimestamp(value / 1000.0)
     except (ValueError, TypeError, OSError):
         pass

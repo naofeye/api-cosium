@@ -8,7 +8,6 @@ Remplace sync_service.py avec une couche d'abstraction multi-ERP.
 
 from datetime import UTC, datetime
 
-from dateutil.relativedelta import relativedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 

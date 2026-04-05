@@ -95,7 +95,6 @@ class TestClaudeProviderWithKey:
         provider = self._make_provider()
         result = provider.query_with_usage("Bonjour")
         assert "[Erreur IA]" in result["text"]
-        assert "rate limit" in result["text"]
         assert result["tokens_in"] == 0
         assert result["tokens_out"] == 0
 

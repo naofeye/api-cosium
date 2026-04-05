@@ -2,15 +2,15 @@
 
 import csv
 import io
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from reportlab.lib import colors as rl_colors
 from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -545,7 +545,7 @@ def export_balance_clients_pdf(
     date_style = ParagraphStyle(
         "BalanceDate", parent=styles["Normal"], fontSize=10, alignment=1, spaceAfter=20, textColor=rl_colors.grey
     )
-    generated = datetime.now().strftime("%d/%m/%Y %H:%M")
+    generated = datetime.now(UTC).strftime("%d/%m/%Y %H:%M")
     period_text = ""
     if date_from or date_to:
         period_text = f" | Periode : {date_from.strftime('%d/%m/%Y') if date_from else '...'}"
@@ -622,7 +622,7 @@ def export_dashboard_pdf(
     title_style = ParagraphStyle(
         "DashTitle", parent=styles["Heading1"], fontSize=18, alignment=1, spaceAfter=6
     )
-    generated = datetime.now().strftime("%d/%m/%Y %H:%M")
+    generated = datetime.now(UTC).strftime("%d/%m/%Y %H:%M")
     elements.append(Paragraph(f"Tableau de Bord OptiFlow — {generated}", title_style))
     elements.append(Spacer(1, 10))
 

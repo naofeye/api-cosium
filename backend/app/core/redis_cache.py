@@ -49,8 +49,8 @@ def cache_set(key: str, value: dict | list, ttl: int = 300) -> None:
         return
     try:
         r.setex(key, ttl, json.dumps(value, default=str))
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("cache_set_failed", key=key, error=str(exc))
 
 
 def cache_delete_pattern(pattern: str) -> None:
@@ -61,5 +61,5 @@ def cache_delete_pattern(pattern: str) -> None:
     try:
         for key in r.scan_iter(match=pattern):
             r.delete(key)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("cache_delete_pattern_failed", pattern=pattern, error=str(exc))

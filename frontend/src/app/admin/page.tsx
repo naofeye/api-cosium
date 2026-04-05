@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { logger } from "@/lib/logger";
 import useSWR from "swr";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { KPICard } from "@/components/ui/KPICard";
@@ -47,23 +48,23 @@ interface MetricsData {
 export default function AdminPage() {
   const { data: syncStatus, isLoading: syncLoading } = useSWR<SyncStatus>("/sync/status", {
     onError: (err: Error) => {
-      console.error("[Admin] Erreur chargement statut sync:", err.message);
+      logger.error("[Admin] Erreur chargement statut sync:", err.message);
     },
   });
   const { data: health, isLoading: healthLoading } = useSWR<HealthData>("/admin/health", {
     onError: (err: Error) => {
-      console.error("[Admin] Erreur chargement sante services:", err.message);
+      logger.error("[Admin] Erreur chargement sante services:", err.message);
     },
   });
   const { data: metrics, isLoading: metricsLoading } = useSWR<MetricsData>("/admin/metrics", {
     onError: (err: Error) => {
-      console.error("[Admin] Erreur chargement metriques:", err.message);
+      logger.error("[Admin] Erreur chargement metriques:", err.message);
     },
   });
   const { data: activity } = useSWR<AuditLogEntry[]>("/audit-logs/recent", {
     refreshInterval: 10000,
     onError: (err: Error) => {
-      console.error("[Admin] Erreur chargement activite recente:", err.message);
+      logger.error("[Admin] Erreur chargement activite recente:", err.message);
     },
   });
 
