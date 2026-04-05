@@ -50,20 +50,45 @@ class CosiumConnector(ERPConnector):
         logger.info("cosium_connector_authenticated", tenant=tenant)
         return token
 
-    def get_customers(self, page: int = 0, page_size: int = 10) -> list[ERPCustomer]:
+    def get_customers(self, page: int = 0, page_size: int = 50) -> list[ERPCustomer]:
         # Cosium API has a hard offset limit of ~50 items per listing.
-        # Strategy: fetch with multiple sort orders to get different result sets.
+        # Strategy: filter by loose_last_name letter-by-letter to bypass the limit.
+        import string
+
         seen_ids: set[str] = set()
         items: list[dict] = []
-        for sort in [None, "lastName", "firstName"]:
-            params = {"sort": sort} if sort else None
-            batch = self._client.get_paginated("/customers", params=params, page_size=page_size, max_pages=5)
+
+        # First: fetch without filter (first 50 clients)
+        batch = self._client.get_paginated("/customers", page_size=50, max_pages=1)
+        for raw in batch:
+            cid = str(raw.get("id", ""))
+            if cid and cid not in seen_ids:
+                seen_ids.add(cid)
+                items.append(raw)
+
+        # Then: filter by each letter A-Z
+        for letter in string.ascii_uppercase:
+            data = self._client.get("/customers", {"loose_last_name": letter, "page_number": 0, "page_size": 1})
+            total = data.get("page", {}).get("totalElements", 0)
+            if total == 0:
+                continue
+
+            if total <= 50:
+                batch = self._client.get_paginated("/customers", params={"loose_last_name": letter}, page_size=50, max_pages=1)
+            else:
+                # Sub-filter with 2-char prefix for letters with > 50 results
+                batch = []
+                for second in string.ascii_uppercase:
+                    sub = self._client.get_paginated("/customers", params={"loose_last_name": f"{letter}{second}"}, page_size=50, max_pages=1)
+                    batch.extend(sub)
+
             for raw in batch:
                 cid = str(raw.get("id", ""))
                 if cid and cid not in seen_ids:
                     seen_ids.add(cid)
                     items.append(raw)
-            logger.info("cosium_customers_batch", sort=sort or "default", batch_size=len(batch), unique_total=len(items))
+
+        logger.info("cosium_customers_fetched", total_unique=len(items))
         customers: list[ERPCustomer] = []
         for raw in items:
             mapped = cosium_customer_to_optiflow(raw)
