@@ -710,7 +710,9 @@ def export_dashboard_pdf(
         elements.append(Paragraph("CA par Mois", section_style))
         ca_data = [["Mois", "CA"]]
         for m in com.ca_par_mois:
-            ca_data.append([m["mois"], _money(m["ca"])])
+            mois = m.mois if hasattr(m, "mois") else m["mois"]
+            ca = m.ca if hasattr(m, "ca") else m["ca"]
+            ca_data.append([mois, _money(ca)])
         t = Table(ca_data, colWidths=[250, 200])
         t.setStyle(kpi_style)
         elements.append(t)

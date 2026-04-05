@@ -244,7 +244,7 @@ export default function DevisDetailPage() {
 
       <div className="rounded-xl border border-border bg-bg-card shadow-sm">
         <div className="px-5 py-3 border-b border-border">
-          <h3 className="text-sm font-semibold text-text-primary">Lignes du devis ({devis.lignes.length})</h3>
+          <h3 className="text-sm font-semibold text-text-primary">Lignes du devis ({(devis.lignes ?? []).length})</h3>
         </div>
         <table className="w-full text-sm">
           <thead>
@@ -258,7 +258,7 @@ export default function DevisDetailPage() {
             </tr>
           </thead>
           <tbody>
-            {devis.lignes.map((l) => (
+            {(devis.lignes ?? []).map((l) => (
               <tr key={l.id} className="border-b border-border last:border-0">
                 <td className="px-4 py-3 font-medium">{l.designation}</td>
                 <td className="px-4 py-3 text-center">{l.quantite}</td>

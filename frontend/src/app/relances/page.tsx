@@ -10,7 +10,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
 import { Button } from "@/components/ui/Button";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, formatDate } from "@/lib/format";
 import { Euro, Send, TrendingUp, BarChart3, AlertTriangle, CheckCircle } from "lucide-react";
 
 interface OverdueItem {
@@ -244,7 +244,7 @@ export default function RelancesPage() {
                     </td>
                     <td className="px-4 py-3 max-w-xs truncate text-text-secondary">{r.content || "-"}</td>
                     <td className="px-4 py-3 text-text-secondary text-xs">
-                      {new Date(r.created_at).toLocaleDateString("fr-FR")}
+                      {formatDate(r.created_at)}
                     </td>
                   </tr>
                 ))}

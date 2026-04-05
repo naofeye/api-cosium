@@ -12,6 +12,7 @@ import { RenewalSection } from "./components/RenewalSection";
 import { PayersTable } from "./components/PayersTable";
 import { OnboardingGuide } from "@/components/ui/OnboardingGuide";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { SkeletonCard } from "@/components/ui/SkeletonCard";
 import { useToast } from "@/components/ui/Toast";
 import { FileDown, Calendar, Eye, RefreshCw as RefreshIcon } from "lucide-react";
 import Link from "next/link";
@@ -154,8 +155,22 @@ export default function DashboardPage() {
 
   if (isLoading)
     return (
-      <PageLayout title="Chargement...">
-        <LoadingState text="Chargement du dashboard..." />
+      <PageLayout title="Dashboard" description="Tableau de pilotage OptiFlow" breadcrumb={[{ label: "Dashboard" }]}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
       </PageLayout>
     );
   if (error || !data)

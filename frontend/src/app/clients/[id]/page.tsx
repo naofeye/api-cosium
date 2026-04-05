@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { fetchJson } from "@/lib/api";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, formatDate } from "@/lib/format";
 import { Euro, CheckCircle, Clock, FolderOpen, Plus, Trash2, Download, Eye, Calendar } from "lucide-react";
 import { downloadPdf } from "@/lib/download";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -154,8 +154,8 @@ interface Client360 {
     share_private_insurance: number;
     settled: boolean;
   }[];
-  cosium_data: CosiumDataBundle;
-  resume_financier: { total_facture: number; total_paye: number; reste_du: number; taux_recouvrement: number };
+  cosium_data?: CosiumDataBundle | null;
+  resume_financier?: { total_facture: number; total_paye: number; reste_du: number; taux_recouvrement: number } | null;
 }
 
 type Tab =
@@ -196,7 +196,7 @@ export default function ClientDetailPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const { renewalEligible, renewalMonths } = useMemo(() => {
-    if (!data || data.factures.length === 0) return { renewalEligible: false, renewalMonths: 0 };
+    if (!data || !data.factures || data.factures.length === 0) return { renewalEligible: false, renewalMonths: 0 };
     const dates = data.factures.map((f) => new Date(f.date_emission).getTime());
     const lastDate = Math.max(...dates);
     const months = Math.floor((Date.now() - lastDate) / (30 * 24 * 60 * 60 * 1000));
@@ -271,22 +271,22 @@ export default function ClientDetailPage() {
       </PageLayout>
     );
 
-  const fin = data.resume_financier;
-  const cd = data.cosium_data;
-  const correction = cd?.correction_actuelle;
+  const fin = data.resume_financier ?? { total_facture: 0, total_paye: 0, reste_du: 0, taux_recouvrement: 0 };
+  const cd = data.cosium_data ?? null;
+  const correction = cd?.correction_actuelle ?? null;
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: "resume", label: "Resume" },
-    { key: "dossiers", label: "Dossiers", count: data.dossiers.length },
-    { key: "finances", label: "Finances", count: data.factures.length },
-    { key: "documents", label: "Documents", count: data.documents.length },
+    { key: "dossiers", label: "Dossiers", count: data.dossiers?.length ?? 0 },
+    { key: "finances", label: "Finances", count: data.factures?.length ?? 0 },
+    { key: "documents", label: "Documents", count: data.documents?.length ?? 0 },
     { key: "ordonnances", label: "Ordonnances", count: cd?.prescriptions?.length ?? 0 },
     { key: "cosium-paiements", label: "Paiements Cosium", count: cd?.cosium_payments?.length ?? 0 },
     { key: "rendez-vous", label: "Rendez-vous", count: cd?.calendar_events?.length ?? 0 },
     { key: "equipements", label: "Equipements", count: cd?.equipments?.length ?? 0 },
     ...(data.cosium_id ? [{ key: "cosium-docs" as Tab, label: "Docs Cosium" }] : []),
     { key: "marketing", label: "Marketing" },
-    { key: "historique", label: "Historique", count: data.interactions.length },
+    { key: "historique", label: "Historique", count: data.interactions?.length ?? 0 },
   ];
 
   return (
@@ -352,7 +352,7 @@ export default function ClientDetailPage() {
           {cd?.last_visit_date && (
             <span className="inline-flex items-center gap-1 text-text-secondary">
               <Calendar className="h-4 w-4" aria-hidden="true" />
-              Derniere visite : {new Date(cd.last_visit_date).toLocaleDateString("fr-FR")}
+              Derniere visite : {formatDate(cd.last_visit_date)}
             </span>
           )}
         </div>
@@ -422,38 +422,38 @@ export default function ClientDetailPage() {
             city={data.city}
             renewalEligible={renewalEligible}
             renewalMonths={renewalMonths}
-            interactions={data.interactions}
+            interactions={data.interactions ?? []}
             correction={cd?.correction_actuelle ?? null}
             totalCaCosium={cd?.total_ca_cosium ?? 0}
             lastVisitDate={cd?.last_visit_date ?? null}
             nextRdv={cd?.calendar_events?.find((ev) => !ev.canceled && ev.start_date && new Date(ev.start_date) > new Date()) ?? null}
-            cosiumInvoices={data.cosium_invoices}
+            cosiumInvoices={data.cosium_invoices ?? []}
           />
         </ErrorBoundary>
       )}
       {activeTab === "dossiers" && (
         <ErrorBoundary name="TabDossiers">
-          <TabDossiers dossiers={data.dossiers} />
+          <TabDossiers dossiers={data.dossiers ?? []} />
         </ErrorBoundary>
       )}
       {activeTab === "finances" && (
         <ErrorBoundary name="TabFinances">
           <TabFinances
-            devis={data.devis}
-            factures={data.factures}
-            paiements={data.paiements}
-            cosiumInvoices={data.cosium_invoices}
+            devis={data.devis ?? []}
+            factures={data.factures ?? []}
+            paiements={data.paiements ?? []}
+            cosiumInvoices={data.cosium_invoices ?? []}
           />
         </ErrorBoundary>
       )}
       {activeTab === "documents" && (
         <ErrorBoundary name="TabDocuments">
-          <TabDocuments documents={data.documents} />
+          <TabDocuments documents={data.documents ?? []} />
         </ErrorBoundary>
       )}
       {activeTab === "marketing" && (
         <ErrorBoundary name="TabMarketing">
-          <TabMarketing consentements={data.consentements} />
+          <TabMarketing consentements={data.consentements ?? []} />
         </ErrorBoundary>
       )}
       {activeTab === "cosium-docs" && (
@@ -484,7 +484,7 @@ export default function ClientDetailPage() {
       {activeTab === "historique" && (
         <ErrorBoundary name="TabHistorique">
           <TabHistorique
-            interactions={data.interactions}
+            interactions={data.interactions ?? []}
             showForm={showForm}
             onShowForm={setShowForm}
             intType={intType}

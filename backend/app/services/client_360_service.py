@@ -56,7 +56,7 @@ def _build_cosium_data(
         rx_query = rx_query.where(CosiumPrescription.customer_id == client_id)
 
     prescriptions_raw = db.scalars(
-        rx_query.order_by(CosiumPrescription.file_date.desc().nullslast()).limit(50)
+        rx_query.order_by(CosiumPrescription.file_date.desc().nullslast()).limit(20)
     ).all()
 
     prescriptions = [
@@ -123,8 +123,12 @@ def _build_cosium_data(
                         type=specs.get("type", specs.get("famille", "")),
                     )
                 )
-        except (json.JSONDecodeError, TypeError):
-            pass
+        except (json.JSONDecodeError, TypeError) as exc:
+            logger.warning(
+                "malformed_spectacles_json",
+                prescription_id=rx.id,
+                error=str(exc),
+            )
 
     # --- Cosium Payments (join via invoice cosium_id) ---
     invoice_cosium_ids = [ci.cosium_id for ci in cosium_invoices_raw]
@@ -172,7 +176,7 @@ def _build_cosium_data(
         )
     cal_query = cal_query.order_by(
         CosiumCalendarEvent.start_date.desc().nullslast()
-    ).limit(50)
+    ).limit(30)
     calendar_raw = db.scalars(cal_query).all()
 
     calendar_events = [
@@ -342,7 +346,7 @@ def get_client_360(db: Session, tenant_id: int, client_id: int) -> Client360Resp
             | (sa_func.upper(CosiumInvoice.customer_name).contains(client_full_name.upper()))
         )
         .order_by(CosiumInvoice.invoice_date.desc())
-        .limit(100)
+        .limit(50)
     ).all()
 
     cosium_invoices_list = [
@@ -419,7 +423,7 @@ def get_client_cosium_data(db: Session, tenant_id: int, client_id: int) -> Cosiu
             | (sa_func.upper(CosiumInvoice.customer_name).contains(client_full_name.upper()))
         )
         .order_by(CosiumInvoice.invoice_date.desc())
-        .limit(100)
+        .limit(50)
     ).all()
 
     return _build_cosium_data(db, tenant_id, client_id, customer, cosium_invoices_raw)

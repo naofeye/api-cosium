@@ -2,7 +2,7 @@
 
 import { DateDisplay } from "@/components/ui/DateDisplay";
 import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
-import { formatPhone, formatMoney } from "@/lib/format";
+import { formatPhone, formatMoney, formatDate } from "@/lib/format";
 import {
   User,
   Phone,
@@ -185,7 +185,7 @@ export function TabResume({
               <div className="flex justify-between flex-1">
                 <span className="text-text-secondary">Derniere visite</span>
                 <span className="font-medium">
-                  {lastVisitDate ? new Date(lastVisitDate).toLocaleDateString("fr-FR") : "Inconnue"}
+                  {lastVisitDate ? formatDate(lastVisitDate) : "Inconnue"}
                 </span>
               </div>
             </div>
@@ -195,7 +195,7 @@ export function TabResume({
                 <div className="flex justify-between flex-1">
                   <span className="text-text-secondary">Prochain RDV</span>
                   <span className="font-medium text-blue-600">
-                    {nextRdv.start_date ? new Date(nextRdv.start_date).toLocaleDateString("fr-FR") : "-"}
+                    {nextRdv.start_date ? formatDate(nextRdv.start_date) : "\u2014"}
                     {nextRdv.subject ? ` — ${nextRdv.subject}` : ""}
                   </span>
                 </div>
@@ -210,7 +210,7 @@ export function TabResume({
             <h3 className="text-lg font-semibold mb-4">Correction actuelle</h3>
             <p className="text-xs text-text-secondary mb-3">
               {correction.prescription_date
-                ? `Ordonnance du ${new Date(correction.prescription_date).toLocaleDateString("fr-FR")}`
+                ? `Ordonnance du ${formatDate(correction.prescription_date)}`
                 : "Date inconnue"}
               {correction.prescriber_name ? ` — Dr ${correction.prescriber_name}` : ""}
             </p>

@@ -10,7 +10,7 @@ import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
 import { Button } from "@/components/ui/Button";
 import { useCosiumInvoices } from "@/lib/hooks/use-api";
 import { exportToCsv } from "@/lib/export-csv";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, formatDate } from "@/lib/format";
 import { Download } from "lucide-react";
 import type { CosiumInvoice } from "@/lib/types";
 
@@ -66,7 +66,7 @@ export default function CosiumFacturesPage() {
     const headers = ["Numero", "Date", "Client", "Type", "Montant TTC", "Solde restant", "Statut"];
     const rows = data.items.map((inv) => [
       inv.invoice_number,
-      inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString("fr-FR") : "-",
+      formatDate(inv.invoice_date),
       inv.customer_name || "-",
       typeLabel(inv.type),
       formatMoney(inv.total_ti),

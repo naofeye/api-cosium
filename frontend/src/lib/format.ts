@@ -6,13 +6,34 @@ export function formatMoney(amount: number): string {
   }).format(amount);
 }
 
-export function formatDate(date: string | Date): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(d);
+export function formatDate(date: string | Date | null | undefined): string {
+  if (!date) return "\u2014";
+  try {
+    const d = typeof date === "string" ? new Date(date) : date;
+    return new Intl.DateTimeFormat("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(d);
+  } catch {
+    return typeof date === "string" ? date : "\u2014";
+  }
+}
+
+export function formatDateTime(date: string | Date | null | undefined): string {
+  if (!date) return "\u2014";
+  try {
+    const d = typeof date === "string" ? new Date(date) : date;
+    return new Intl.DateTimeFormat("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(d);
+  } catch {
+    return typeof date === "string" ? date : "\u2014";
+  }
 }
 
 export function formatPercent(value: number): string {

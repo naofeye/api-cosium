@@ -49,6 +49,8 @@ export function DataTable<T extends { id: number | string }>({
   total,
   onPageChange,
 }: DataTableProps<T>) {
+  const safeData = data ?? [];
+
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
@@ -62,11 +64,11 @@ export function DataTable<T extends { id: number | string }>({
   };
 
   const sortedData = useMemo(() => {
-    if (!sortKey) return data;
+    if (!sortKey) return safeData;
     const col = columns.find((c) => c.key === sortKey);
-    if (!col?.sortable) return data;
+    if (!col?.sortable) return safeData;
 
-    return [...data].sort((a, b) => {
+    return [...safeData].sort((a, b) => {
       const aVal = (a as Record<string, unknown>)[sortKey];
       const bVal = (b as Record<string, unknown>)[sortKey];
 
@@ -83,11 +85,11 @@ export function DataTable<T extends { id: number | string }>({
 
       return sortDirection === "asc" ? cmp : -cmp;
     });
-  }, [data, sortKey, sortDirection, columns]);
+  }, [safeData, sortKey, sortDirection, columns]);
 
   if (loading) return <LoadingState text="Chargement des données..." />;
   if (error) return <ErrorState message={error} onRetry={onRetry} />;
-  if (data.length === 0) return <EmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />;
+  if (safeData.length === 0) return <EmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />;
 
   const totalPages = total ? Math.ceil(total / pageSize) : 1;
 
