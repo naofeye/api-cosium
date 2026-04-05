@@ -24,13 +24,23 @@ from app.domain.schemas.cosium_reference import (
     TagResponse,
 )
 from app.models.cosium_reference import (
+    CosiumBank,
     CosiumBrand,
+    CosiumCalendarCategory,
     CosiumCalendarEvent,
+    CosiumCompany,
+    CosiumCustomerTag,
     CosiumDoctor,
+    CosiumEquipmentType,
+    CosiumFrameMaterial,
+    CosiumLensFocusCategory,
+    CosiumLensFocusType,
+    CosiumLensMaterial,
     CosiumMutuelle,
     CosiumSite,
     CosiumSupplier,
     CosiumTag,
+    CosiumUser,
 )
 from app.services import cosium_reference_sync
 
@@ -245,3 +255,131 @@ def list_sites(
         .order_by(CosiumSite.name)
     ).all()
     return [SiteResponse.model_validate(i) for i in items]
+
+
+# --- Banks ---
+
+@router.get(
+    "/banks",
+    summary="Lister les banques",
+    description="Liste de toutes les banques synchronisees depuis Cosium.",
+)
+def list_banks(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> list[dict]:
+    items = db.scalars(
+        select(CosiumBank)
+        .where(CosiumBank.tenant_id == tenant_ctx.tenant_id)
+        .order_by(CosiumBank.name)
+    ).all()
+    return [
+        {"id": i.id, "name": i.name, "address": i.address, "city": i.city, "post_code": i.post_code}
+        for i in items
+    ]
+
+
+# --- Companies ---
+
+@router.get(
+    "/companies",
+    summary="Lister les societes",
+    description="Liste des societes synchronisees depuis Cosium.",
+)
+def list_companies(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> list[dict]:
+    items = db.scalars(
+        select(CosiumCompany)
+        .where(CosiumCompany.tenant_id == tenant_ctx.tenant_id)
+        .order_by(CosiumCompany.name)
+    ).all()
+    return [
+        {
+            "id": i.id, "name": i.name, "siret": i.siret, "ape_code": i.ape_code,
+            "address": i.address, "city": i.city, "post_code": i.post_code,
+            "phone": i.phone, "email": i.email,
+        }
+        for i in items
+    ]
+
+
+# --- Users/Employees ---
+
+@router.get(
+    "/users",
+    summary="Lister les employes Cosium",
+    description="Liste des employes/utilisateurs synchronises depuis Cosium.",
+)
+def list_cosium_users(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> list[dict]:
+    items = db.scalars(
+        select(CosiumUser)
+        .where(CosiumUser.tenant_id == tenant_ctx.tenant_id)
+        .order_by(CosiumUser.lastname, CosiumUser.firstname)
+    ).all()
+    return [
+        {
+            "id": i.id, "cosium_id": i.cosium_id, "alias": i.alias,
+            "firstname": i.firstname, "lastname": i.lastname,
+            "title": i.title, "bot": i.bot,
+        }
+        for i in items
+    ]
+
+
+# --- Equipment types ---
+
+@router.get(
+    "/equipment-types",
+    summary="Lister les types d'equipement",
+    description="Liste des types de famille d'equipement synchronises depuis Cosium.",
+)
+def list_equipment_types(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> list[dict]:
+    items = db.scalars(
+        select(CosiumEquipmentType)
+        .where(CosiumEquipmentType.tenant_id == tenant_ctx.tenant_id)
+        .order_by(CosiumEquipmentType.label)
+    ).all()
+    return [{"id": i.id, "label": i.label, "label_code": i.label_code} for i in items]
+
+
+# --- Frame materials ---
+
+@router.get(
+    "/frame-materials",
+    summary="Lister les materiaux de monture",
+    description="Liste des materiaux de monture synchronises depuis Cosium.",
+)
+def list_frame_materials(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> list[dict]:
+    items = db.scalars(
+        select(CosiumFrameMaterial)
+        .where(CosiumFrameMaterial.tenant_id == tenant_ctx.tenant_id)
+        .order_by(CosiumFrameMaterial.code)
+    ).all()
+    return [{"id": i.id, "code": i.code, "description": i.description} for i in items]
+
+
+# --- Sync customer tags (separate endpoint — slow operation) ---
+
+@router.post(
+    "/sync-customer-tags",
+    summary="Synchroniser les tags par client",
+    description="Itere tous les clients et recupere leurs tags depuis Cosium. Operation lente (~0.3s/client).",
+)
+def sync_customer_tags_endpoint(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
+) -> dict:
+    return cosium_reference_sync.sync_customer_tags(
+        db, tenant_id=tenant_ctx.tenant_id, user_id=tenant_ctx.user_id
+    )

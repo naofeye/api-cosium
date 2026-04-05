@@ -103,6 +103,7 @@ interface CosiumDataBundle {
   correction_actuelle: CorrectionActuelle | null;
   total_ca_cosium: number;
   last_visit_date: string | null;
+  customer_tags: string[];
 }
 
 interface Client360 {
@@ -326,7 +327,7 @@ export default function ClientDetailPage() {
         onUploaded={() => mutate()}
       />
 
-      {/* Cosium ID badge + correction actuelle */}
+      {/* Cosium ID badge + correction actuelle + tags */}
       {(data.cosium_id || correction) && (
         <div className="flex flex-wrap items-center gap-4 mb-4 text-sm">
           {data.cosium_id && (
@@ -353,6 +354,21 @@ export default function ClientDetailPage() {
               Derniere visite : {new Date(cd.last_visit_date).toLocaleDateString("fr-FR")}
             </span>
           )}
+        </div>
+      )}
+
+      {/* Customer tags */}
+      {cd?.customer_tags && cd.customer_tags.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <span className="text-xs font-medium text-text-secondary">Tags :</span>
+          {cd.customer_tags.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center rounded-full bg-purple-50 px-2.5 py-0.5 text-xs font-medium text-purple-700 border border-purple-200"
+            >
+              {tag}
+            </span>
+          ))}
         </div>
       )}
 

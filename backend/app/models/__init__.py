@@ -14,13 +14,23 @@ from app.models.cosium_data import (  # noqa: F401
     CosiumThirdPartyPayment,
 )
 from app.models.cosium_reference import (  # noqa: F401
+    CosiumBank,
     CosiumBrand,
+    CosiumCalendarCategory,
     CosiumCalendarEvent,
+    CosiumCompany,
+    CosiumCustomerTag,
     CosiumDoctor,
+    CosiumEquipmentType,
+    CosiumFrameMaterial,
+    CosiumLensFocusCategory,
+    CosiumLensFocusType,
+    CosiumLensMaterial,
     CosiumMutuelle,
     CosiumSite,
     CosiumSupplier,
     CosiumTag,
+    CosiumUser,
 )
 from app.models.devis import Devis, DevisLigne  # noqa: F401
 from app.models.document import Document, DocumentType  # noqa: F401

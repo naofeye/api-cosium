@@ -152,6 +152,7 @@ class CosiumDataBundle(BaseModel):
     correction_actuelle: CorrectionActuelle | None = None
     total_ca_cosium: float = 0
     last_visit_date: str | None = None
+    customer_tags: list[str] = []
 
 
 class Client360Response(BaseModel):

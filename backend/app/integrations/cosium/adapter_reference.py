@@ -155,3 +155,95 @@ def adapt_site(raw: dict) -> dict:
         "country": raw.get("country", "") or "",
         "phone": raw.get("phone", "") or "",
     }
+
+
+def adapt_bank(raw: dict) -> dict:
+    """Map raw Cosium bank to flat dict for CosiumBank model."""
+    cosium_id = _extract_id_from_href(raw) or raw.get("id")
+    return {
+        "cosium_id": int(cosium_id) if cosium_id else None,
+        "name": raw.get("name", "") or "",
+        "address": raw.get("address", "") or "",
+        "city": raw.get("city", "") or "",
+        "post_code": raw.get("postCode", raw.get("postcode", "")) or "",
+    }
+
+
+def adapt_company(raw: dict) -> dict:
+    """Map raw Cosium company to flat dict for CosiumCompany model."""
+    cosium_id = _extract_id_from_href(raw) or raw.get("id")
+    return {
+        "cosium_id": int(cosium_id) if cosium_id else None,
+        "name": raw.get("name", raw.get("companyName", "")) or "",
+        "siret": raw.get("siret", raw.get("siretNumber", "")) or "",
+        "ape_code": raw.get("apeCode", raw.get("activityCode", "")) or "",
+        "address": raw.get("address", "") or "",
+        "city": raw.get("city", "") or "",
+        "post_code": raw.get("postCode", raw.get("postcode", "")) or "",
+        "phone": raw.get("phone", raw.get("phoneNumber", "")) or "",
+        "email": raw.get("email", "") or "",
+    }
+
+
+def adapt_cosium_user(raw: dict) -> dict:
+    """Map raw Cosium user/employee to flat dict for CosiumUser model."""
+    cosium_id = _extract_id_from_href(raw) or raw.get("id")
+    return {
+        "cosium_id": int(cosium_id) if cosium_id else 0,
+        "alias": raw.get("alias", "") or "",
+        "firstname": raw.get("firstname", raw.get("firstName", "")) or "",
+        "lastname": raw.get("lastname", raw.get("lastName", "")) or "",
+        "title": raw.get("title", "") or "",
+        "bot": bool(raw.get("bot", False)),
+    }
+
+
+def adapt_equipment_type(raw: dict) -> dict:
+    """Map raw Cosium equipment family type to flat dict."""
+    return {
+        "label": raw.get("label", "") or "",
+        "label_code": raw.get("value", raw.get("name", raw.get("labelCode", ""))) or "",
+    }
+
+
+def adapt_frame_material(raw: dict) -> dict:
+    """Map raw Cosium eyewear frame material to flat dict."""
+    return {
+        "code": raw.get("code", "") or "",
+        "description": raw.get("description", raw.get("label", "")) or "",
+    }
+
+
+def adapt_calendar_category(raw: dict) -> dict:
+    """Map raw Cosium calendar event category to flat dict."""
+    cosium_id = _extract_id_from_href(raw) or raw.get("id")
+    return {
+        "cosium_id": int(cosium_id) if cosium_id else None,
+        "name": raw.get("name", raw.get("label", "")) or "",
+        "color": raw.get("color", "") or "",
+        "family_name": raw.get("familyName", raw.get("categoryFamilyName", "")) or "",
+    }
+
+
+def adapt_lens_focus_type(raw: dict) -> dict:
+    """Map raw Cosium lens focus type to flat dict."""
+    return {
+        "code": raw.get("value", raw.get("code", raw.get("labelCode", ""))) or "",
+        "label": raw.get("label", raw.get("name", "")) or "",
+    }
+
+
+def adapt_lens_focus_category(raw: dict) -> dict:
+    """Map raw Cosium lens focus category to flat dict."""
+    return {
+        "code": raw.get("value", raw.get("code", raw.get("labelCode", ""))) or "",
+        "label": raw.get("label", raw.get("name", "")) or "",
+    }
+
+
+def adapt_lens_material(raw: dict) -> dict:
+    """Map raw Cosium lens material to flat dict."""
+    return {
+        "code": raw.get("value", raw.get("code", raw.get("labelCode", ""))) or "",
+        "label": raw.get("label", raw.get("name", "")) or "",
+    }

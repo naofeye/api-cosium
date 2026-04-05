@@ -27,7 +27,7 @@ from app.models import (
     MarketingConsent,
 )
 from app.models.cosium_data import CosiumInvoice, CosiumPayment, CosiumPrescription
-from app.models.cosium_reference import CosiumCalendarEvent
+from app.models.cosium_reference import CosiumCalendarEvent, CosiumCustomerTag
 
 logger = get_logger("client_360_service")
 
@@ -211,6 +211,17 @@ def _build_cosium_data(
                 last_visit_date = str(ci.invoice_date)
                 break
 
+    # --- Customer tags ---
+    customer_tags: list[str] = []
+    if cosium_id:
+        tag_rows = db.scalars(
+            select(CosiumCustomerTag.tag_code).where(
+                CosiumCustomerTag.tenant_id == tenant_id,
+                CosiumCustomerTag.customer_cosium_id == str(cosium_id),
+            )
+        ).all()
+        customer_tags = list(tag_rows)
+
     return CosiumDataBundle(
         prescriptions=prescriptions,
         cosium_payments=cosium_payments,
@@ -219,6 +230,7 @@ def _build_cosium_data(
         correction_actuelle=correction_actuelle,
         total_ca_cosium=round(total_ca_cosium, 2),
         last_visit_date=last_visit_date,
+        customer_tags=customer_tags,
     )
 
 
