@@ -115,6 +115,43 @@ def metrics(
     }
 
 
+class CosiumConnectionTest(BaseModel):
+    connected: bool
+    error: str | None = None
+    tenant: str = ""
+    customers_total: int | None = None
+
+
+@router.get(
+    "/cosium-test",
+    response_model=CosiumConnectionTest,
+    summary="Tester la connexion Cosium",
+    description="Verifie si les cookies Cosium sont valides en faisant un appel API test.",
+)
+def test_cosium_connection(
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
+) -> CosiumConnectionTest:
+    """Test Cosium connection. Returns connected=False if cookie expired (401)."""
+    try:
+        from app.integrations.cosium.client import CosiumClient
+
+        client = CosiumClient()
+        client.authenticate()
+        data = client.get("/customers", {"page_size": 1, "page_number": 0})
+        total = data.get("page", {}).get("totalElements") or data.get("totalElements", 0)
+        return CosiumConnectionTest(
+            connected=True, tenant=client.tenant or "", customers_total=total
+        )
+    except Exception as e:
+        error_msg = str(e)
+        if "401" in error_msg:
+            return CosiumConnectionTest(
+                connected=False,
+                error="Cookie expire. Veuillez vous reconnecter a Cosium et copier le nouveau cookie access_token.",
+            )
+        return CosiumConnectionTest(connected=False, error=f"Erreur de connexion: {error_msg[:100]}")
+
+
 class CosiumCookiesPayload(BaseModel):
     access_token: str = Field(..., min_length=1, description="Cookie access_token depuis le navigateur Cosium")
     device_credential: str = Field(
