@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 style="color: #111827; margin: 0 0 16px; font-size: 22px; font-weight: 700;">Votre devis est pret</h2>
+
+<p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin: 0 0 16px;">
+  Bonjour {{ client_name }},
+</p>
+
+<p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
+  Nous avons le plaisir de vous transmettre votre devis. Vous trouverez ci-dessous le recapitulatif :
+</p>
+
+<!-- Quote summary card -->
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; overflow: hidden; margin-bottom: 16px;">
+  <tr>
+    <td style="padding: 20px 24px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td style="padding-bottom: 12px; border-bottom: 1px solid #bbf7d0;">
+            <p style="margin: 0; font-size: 13px; color: #166534; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Devis</p>
+            <p style="margin: 4px 0 0; font-size: 18px; color: #14532d; font-weight: 700;">{{ devis_numero }}</p>
+            {% if devis_date %}
+            <p style="margin: 4px 0 0; font-size: 13px; color: #166534;">Emis le {{ devis_date }}</p>
+            {% endif %}
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<!-- Line items -->
+{% if lignes %}
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-bottom: 16px;">
+  <tr style="background: #f9fafb;">
+    <td style="padding: 10px 16px; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; border-bottom: 1px solid #e5e7eb;">Designation</td>
+    <td style="padding: 10px 12px; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; border-bottom: 1px solid #e5e7eb; text-align: center;">Qte</td>
+    <td style="padding: 10px 16px; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; border-bottom: 1px solid #e5e7eb; text-align: right;">Montant TTC</td>
+  </tr>
+  {% for ligne in lignes %}
+  <tr>
+    <td style="padding: 10px 16px; font-size: 14px; color: #374151; border-bottom: 1px solid #f3f4f6;">{{ ligne.designation }}</td>
+    <td style="padding: 10px 12px; font-size: 14px; color: #374151; border-bottom: 1px solid #f3f4f6; text-align: center;">{{ ligne.quantite }}</td>
+    <td style="padding: 10px 16px; font-size: 14px; color: #374151; border-bottom: 1px solid #f3f4f6; text-align: right; font-weight: 600;">{{ ligne.montant_ttc }} EUR</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+
+<!-- Totals -->
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-bottom: 24px;">
+  <tr>
+    <td style="padding: 12px 16px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+        {% if montant_ht %}
+        <tr>
+          <td style="padding: 4px 0; font-size: 14px; color: #6b7280;">Total HT</td>
+          <td style="padding: 4px 0; font-size: 14px; color: #374151; text-align: right;">{{ montant_ht }} EUR</td>
+        </tr>
+        {% endif %}
+        {% if tva %}
+        <tr>
+          <td style="padding: 4px 0; font-size: 14px; color: #6b7280;">TVA</td>
+          <td style="padding: 4px 0; font-size: 14px; color: #374151; text-align: right;">{{ tva }} EUR</td>
+        </tr>
+        {% endif %}
+        <tr>
+          <td style="padding: 8px 0 4px; font-size: 16px; color: #111827; font-weight: 700; border-top: 1px solid #e5e7eb;">Total TTC</td>
+          <td style="padding: 8px 0 4px; font-size: 18px; color: #2563eb; font-weight: 700; text-align: right; border-top: 1px solid #e5e7eb;">{{ montant_ttc }} EUR</td>
+        </tr>
+        {% if reste_a_charge %}
+        <tr>
+          <td style="padding: 4px 0; font-size: 14px; color: #6b7280;">Reste a charge</td>
+          <td style="padding: 4px 0; font-size: 14px; color: #dc2626; font-weight: 600; text-align: right;">{{ reste_a_charge }} EUR</td>
+        </tr>
+        {% endif %}
+      </table>
+    </td>
+  </tr>
+</table>
+
+<!-- CTA Button -->
+{% if devis_url %}
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+  <tr>
+    <td align="center" style="padding: 0 0 24px;">
+      <a href="{{ devis_url }}" style="display: inline-block; background: #2563eb; color: #ffffff; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; box-shadow: 0 2px 4px rgba(37,99,235,0.3);">
+        Voir le devis complet
+      </a>
+    </td>
+  </tr>
+</table>
+{% endif %}
+
+<p style="color: #6b7280; font-size: 13px; line-height: 1.5; margin: 0 0 8px;">
+  Ce devis est valable 30 jours a compter de sa date d'emission.
+</p>
+
+<p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 16px 0 0;">
+  Cordialement,<br>
+  <strong>L'equipe OptiFlow</strong>
+</p>
+{% endblock %}

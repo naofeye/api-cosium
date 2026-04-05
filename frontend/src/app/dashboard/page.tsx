@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import useSWR from "swr";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -11,6 +11,8 @@ import { CosiumDataSection } from "./components/CosiumDataSection";
 import { DashboardSections } from "./components/DashboardSections";
 import { RenewalSection } from "./components/RenewalSection";
 import { PayersTable } from "./components/PayersTable";
+import { OnboardingGuide } from "@/components/ui/OnboardingGuide";
+import { FileDown } from "lucide-react";
 
 type PeriodKey = "today" | "7d" | "30d" | "90d";
 
@@ -82,9 +84,38 @@ interface RenewalData {
   estimated_revenue: number;
 }
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
+
 export default function DashboardPage() {
   const [period, setPeriod] = useState<PeriodKey>("30d");
+  const [exporting, setExporting] = useState(false);
   const { date_from, date_to } = useMemo(() => getDateRange(period), [period]);
+
+  const handleExportPDF = useCallback(async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (date_from) params.set("date_from", date_from);
+      if (date_to) params.set("date_to", date_to);
+      const resp = await fetch(`${API_BASE}/exports/dashboard-pdf?${params.toString()}`, {
+        credentials: "include",
+      });
+      if (!resp.ok) throw new Error("Erreur lors de l'export");
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `dashboard_optiflow_${date_from}_${date_to}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      // silent fail — user sees no download
+    } finally {
+      setExporting(false);
+    }
+  }, [date_from, date_to]);
 
   const { data, error, isLoading, mutate } = useSWR<DashboardData>(
     `/analytics/dashboard?date_from=${date_from}&date_to=${date_to}`,
@@ -114,6 +145,7 @@ export default function DashboardPage() {
 
   return (
     <PageLayout title="Dashboard" description="Tableau de pilotage OptiFlow" breadcrumb={[{ label: "Dashboard" }]}>
+      <OnboardingGuide />
       <div className="flex items-center gap-2 mb-6">
         {PERIODS.map((p) => (
           <button
@@ -128,6 +160,18 @@ export default function DashboardPage() {
             {p.label}
           </button>
         ))}
+        <div className="ml-auto">
+          <button
+            onClick={handleExportPDF}
+            disabled={exporting}
+            className="inline-flex items-center gap-2 rounded-lg bg-bg-card border border-border px-3 py-1.5 text-sm font-medium text-text-secondary hover:bg-gray-100 transition-colors disabled:opacity-50"
+            title="Exporter le dashboard en PDF"
+            aria-label="Exporter le dashboard en PDF"
+          >
+            <FileDown className="h-4 w-4" aria-hidden="true" />
+            {exporting ? "Export en cours..." : "Exporter PDF"}
+          </button>
+        </div>
       </div>
       <DashboardKPIs financial={financial} />
       <DashboardCharts caParMois={commercial.ca_par_mois} aging={aging} />

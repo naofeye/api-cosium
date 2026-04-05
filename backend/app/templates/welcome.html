@@ -1,9 +1,52 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 style="color: #111827; margin-top: 0;">Bienvenue sur OptiFlow AI !</h2>
-<p style="color: #4b5563;">Bonjour {{ first_name }},</p>
-<p style="color: #4b5563;">Votre compte a ete cree avec succes. Vous pouvez maintenant acceder a votre espace.</p>
-<div style="text-align: center; margin: 32px 0;">
-  <a href="{{ login_url }}" style="background: #2563eb; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">Acceder a OptiFlow</a>
-</div>
+<h2 style="color: #111827; margin: 0 0 16px; font-size: 22px; font-weight: 700;">Bienvenue sur OptiFlow AI !</h2>
+
+<p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin: 0 0 16px;">
+  Bonjour {{ client_name }},
+</p>
+
+<p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
+  Votre compte a ete cree avec succes. Vous faites desormais partie de la communaute OptiFlow !
+  Voici ce que vous pouvez faire des maintenant :
+</p>
+
+<!-- Steps -->
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px;">
+  <tr>
+    <td style="padding: 12px 16px; background: #eff6ff; border-radius: 8px; border-left: 4px solid #2563eb; margin-bottom: 8px;">
+      <p style="margin: 0; font-size: 14px; color: #1e40af; font-weight: 600;">1. Synchronisez vos donnees</p>
+      <p style="margin: 4px 0 0; font-size: 13px; color: #3b82f6;">Connectez votre ERP Cosium pour importer vos clients et factures.</p>
+    </td>
+  </tr>
+  <tr><td style="height: 8px;"></td></tr>
+  <tr>
+    <td style="padding: 12px 16px; background: #eff6ff; border-radius: 8px; border-left: 4px solid #2563eb;">
+      <p style="margin: 0; font-size: 14px; color: #1e40af; font-weight: 600;">2. Gerez vos dossiers</p>
+      <p style="margin: 4px 0 0; font-size: 13px; color: #3b82f6;">Creez des dossiers, suivez les devis et factures en temps reel.</p>
+    </td>
+  </tr>
+  <tr><td style="height: 8px;"></td></tr>
+  <tr>
+    <td style="padding: 12px 16px; background: #eff6ff; border-radius: 8px; border-left: 4px solid #2563eb;">
+      <p style="margin: 0; font-size: 14px; color: #1e40af; font-weight: 600;">3. Pilotez votre activite</p>
+      <p style="margin: 4px 0 0; font-size: 13px; color: #3b82f6;">Consultez votre tableau de bord pour suivre vos KPIs financiers.</p>
+    </td>
+  </tr>
+</table>
+
+<!-- CTA Button -->
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+  <tr>
+    <td align="center" style="padding: 8px 0 24px;">
+      <a href="{{ login_url }}" style="display: inline-block; background: #2563eb; color: #ffffff; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; box-shadow: 0 2px 4px rgba(37,99,235,0.3);">
+        Acceder a mon espace OptiFlow
+      </a>
+    </td>
+  </tr>
+</table>
+
+<p style="color: #9ca3af; font-size: 13px; line-height: 1.5; margin: 0;">
+  Si vous n'avez pas cree ce compte, vous pouvez ignorer cet email en toute securite.
+</p>
 {% endblock %}

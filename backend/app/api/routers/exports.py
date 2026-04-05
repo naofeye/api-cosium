@@ -12,6 +12,72 @@ router = APIRouter(prefix="/api/v1/exports", tags=["exports"])
 
 
 @router.get(
+    "/balance-clients",
+    summary="Export Balance Clients (Excel)",
+    description="Genere un rapport Excel des soldes clients impayes.",
+)
+def export_balance_clients(
+    date_from: date | None = Query(None, description="Date de debut (YYYY-MM-DD)"),
+    date_to: date | None = Query(None, description="Date de fin (YYYY-MM-DD)"),
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> StreamingResponse:
+    data = export_service.export_balance_clients_xlsx(
+        db, tenant_id=tenant_ctx.tenant_id, date_from=date_from, date_to=date_to,
+    )
+    filename = f"balance_clients_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    return StreamingResponse(
+        iter([data]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@router.get(
+    "/balance-clients-pdf",
+    summary="Export Balance Clients (PDF)",
+    description="Genere un rapport PDF des soldes clients impayes.",
+)
+def export_balance_clients_pdf(
+    date_from: date | None = Query(None, description="Date de debut (YYYY-MM-DD)"),
+    date_to: date | None = Query(None, description="Date de fin (YYYY-MM-DD)"),
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> StreamingResponse:
+    data = export_service.export_balance_clients_pdf(
+        db, tenant_id=tenant_ctx.tenant_id, date_from=date_from, date_to=date_to,
+    )
+    filename = f"balance_clients_{datetime.now().strftime('%Y%m%d')}.pdf"
+    return StreamingResponse(
+        iter([data]),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@router.get(
+    "/dashboard-pdf",
+    summary="Export Dashboard PDF",
+    description="Genere un rapport PDF du tableau de bord avec tous les KPIs.",
+)
+def export_dashboard_pdf(
+    date_from: datetime | None = Query(None, description="Date de debut"),
+    date_to: datetime | None = Query(None, description="Date de fin"),
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> StreamingResponse:
+    data = export_service.export_dashboard_pdf(
+        db, tenant_id=tenant_ctx.tenant_id, date_from=date_from, date_to=date_to,
+    )
+    filename = f"dashboard_optiflow_{datetime.now().strftime('%Y%m%d')}.pdf"
+    return StreamingResponse(
+        iter([data]),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@router.get(
     "/fec",
     summary="Export FEC (Fichier des Ecritures Comptables)",
     description="Genere un fichier FEC conforme a la reglementation fiscale francaise.",

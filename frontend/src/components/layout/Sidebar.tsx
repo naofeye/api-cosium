@@ -26,6 +26,7 @@ import {
   FileStack,
   Calendar,
   Stethoscope,
+  BarChart3,
   X,
 } from "lucide-react";
 import { useState } from "react";
@@ -35,6 +36,7 @@ import { useSidebar } from "@/lib/sidebar-context";
 const navItems = [
   { href: "/actions", label: "Actions", icon: Zap },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/statistiques", label: "Statistiques", icon: BarChart3 },
   { href: "/cases", label: "Dossiers", icon: FolderOpen },
   { href: "/clients", label: "Clients", icon: Users },
   { href: "/devis", label: "Devis", icon: FileText },
