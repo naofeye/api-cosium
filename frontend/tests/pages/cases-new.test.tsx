@@ -37,8 +37,12 @@ describe("NewCasePage", () => {
 
   it("affiche le select de source avec les options", () => {
     render(<NewCasePage />);
-    const select = screen.getByRole("combobox");
-    expect(select).toBeInTheDocument();
+    const selects = screen.getAllByRole("combobox");
+    // Find the source select (the one with "Saisie manuelle" option)
+    const sourceSelect = selects.find((s) =>
+      s.querySelector("option[value='manual']"),
+    );
+    expect(sourceSelect).toBeTruthy();
     expect(screen.getByRole("option", { name: "Saisie manuelle" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Telephone" })).toBeInTheDocument();
   });

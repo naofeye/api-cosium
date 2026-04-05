@@ -11,6 +11,7 @@ Les fonctions de synchronisation factures, paiements, produits et ordonnances
 sont dans erp_sync_invoices.py et erp_sync_extras.py.
 """
 
+import unicodedata
 from datetime import UTC, datetime
 
 from sqlalchemy import select
@@ -379,20 +380,44 @@ def _create_customer_from_erp(tenant_id: int, erp_c: ERPCustomer) -> Customer:
     )
 
 
+def _normalize_name(name: str) -> str:
+    """Normalize name for matching: remove accents, uppercase, strip extra spaces."""
+    # Remove accents
+    nfkd = unicodedata.normalize("NFKD", name)
+    ascii_only = "".join(c for c in nfkd if not unicodedata.combining(c))
+    # Uppercase, strip, normalize hyphens (double or single -> space)
+    result = ascii_only.upper().strip()
+    result = result.replace("--", "-").replace("-", " ")
+    # Collapse multiple spaces
+    result = " ".join(result.split())
+    return result
+
+
 def _match_customer_by_name(customer_name: str, name_map: dict[str, int]) -> int | None:
     """Try to match a Cosium customerName to an OptiFlow customer ID.
 
     Cosium format: "M. LASTNAME FIRSTNAME", "Mme. LASTNAME FIRSTNAME", "MME LASTNAME FIRSTNAME".
-    Strategies: exact match -> strip prefix -> reverse first/last -> partial.
+    Strategies: exact match -> strip prefix -> reverse first/last -> partial (2-word prefix).
+
+    Both the input name and map keys are normalized (accent-insensitive,
+    hyphen-normalised, uppercased) before comparison.
     """
     if not customer_name:
         return None
 
-    normalized = customer_name.upper().strip()
+    # Build a normalized version of the map for accent/hyphen-insensitive matching
+    normalized_map: dict[str, int] = {}
+    for key, cid in name_map.items():
+        norm_key = _normalize_name(key)
+        # Keep the first mapping (don't overwrite)
+        if norm_key not in normalized_map:
+            normalized_map[norm_key] = cid
 
-    # Direct match (with title prefix already in the map)
-    if normalized in name_map:
-        return name_map[normalized]
+    normalized = _normalize_name(customer_name)
+
+    # Direct match
+    if normalized in normalized_map:
+        return normalized_map[normalized]
 
     # Strip title prefixes (including with dot and without)
     stripped = normalized
@@ -401,20 +426,33 @@ def _match_customer_by_name(customer_name: str, name_map: dict[str, int]) -> int
             stripped = normalized[len(prefix):]
             break
 
-    if stripped in name_map:
-        return name_map[stripped]
+    if stripped in normalized_map:
+        return normalized_map[stripped]
 
     # Try "FIRSTNAME LASTNAME" -> "LASTNAME FIRSTNAME" (reverse words)
     parts = stripped.split()
     if len(parts) >= 2:
-        # Try LAST FIRST
+        # Try LAST FIRST (move last word to front)
         reversed_name = f"{parts[-1]} {' '.join(parts[:-1])}"
-        if reversed_name in name_map:
-            return name_map[reversed_name]
-        # Try just LAST FIRST (2 words)
+        if reversed_name in normalized_map:
+            return normalized_map[reversed_name]
+        # Try just first and last word swapped
         simple_reverse = f"{parts[0]} {parts[-1]}"
-        if simple_reverse in name_map:
-            return name_map[simple_reverse]
+        if simple_reverse in normalized_map:
+            return normalized_map[simple_reverse]
+
+    # Partial matching: try just the first 2 words (handles compound names
+    # like "RENGIG KULISKOVA LUBICA" matching "KULISKOVA LUBICA" or vice versa)
+    if len(parts) >= 2:
+        two_word = f"{parts[0]} {parts[1]}"
+        if two_word in normalized_map:
+            return normalized_map[two_word]
+
+    # Try matching the last 2 words (e.g. "RENGIG KULISKOVA LUBICA" -> "KULISKOVA LUBICA")
+    if len(parts) >= 3:
+        last_two = f"{parts[-2]} {parts[-1]}"
+        if last_two in normalized_map:
+            return normalized_map[last_two]
 
     return None
 

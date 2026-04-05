@@ -7,6 +7,7 @@ from app.db.session import get_db
 from app.domain.schemas.client_360 import Client360Response, CosiumDataBundle
 from app.domain.schemas.interactions import InteractionCreate, InteractionListResponse, InteractionResponse
 from app.services import client_360_service, interaction_service, pdf_service
+from app.services import export_pdf
 
 router = APIRouter(prefix="/api/v1", tags=["client-360"])
 
@@ -62,6 +63,26 @@ def download_client_360_pdf(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename=client_{client_id}_360.pdf"},
+    )
+
+
+@router.get(
+    "/clients/{client_id}/export-pdf",
+    summary="Telecharger la fiche client PDF",
+    description="Genere et telecharge un PDF complet de la fiche client avec toutes ses donnees.",
+)
+def export_client_pdf_endpoint(
+    client_id: int,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> Response:
+    from io import BytesIO
+
+    pdf_bytes = export_pdf.export_client_pdf(db, client_id, tenant_ctx.tenant_id)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=fiche_client_{client_id}.pdf"},
     )
 
 

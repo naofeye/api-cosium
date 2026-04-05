@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
-import { Search, X, User, FolderOpen, FileText, Receipt } from "lucide-react";
+import { Search, X, User, FolderOpen, FileText, Receipt, CreditCard, Stethoscope } from "lucide-react";
 
 interface SearchResultItem {
   id: number;
@@ -17,13 +17,17 @@ interface SearchResults {
   dossiers: SearchResultItem[];
   devis: SearchResultItem[];
   factures: SearchResultItem[];
+  cosium_factures: SearchResultItem[];
+  ordonnances: SearchResultItem[];
 }
 
 const TYPE_CONFIG = {
-  client: { icon: User, href: (id: number) => `/clients/${id}`, color: "text-blue-600" },
-  dossier: { icon: FolderOpen, href: (id: number) => `/cases/${id}`, color: "text-amber-600" },
-  devis: { icon: FileText, href: (id: number) => `/devis/${id}`, color: "text-purple-600" },
-  facture: { icon: Receipt, href: (id: number) => `/factures/${id}`, color: "text-emerald-600" },
+  client: { icon: User, href: (id: number) => `/clients/${id}`, color: "text-blue-600", label: "Client" },
+  dossier: { icon: FolderOpen, href: (id: number) => `/cases/${id}`, color: "text-amber-600", label: "Dossier" },
+  devis: { icon: FileText, href: (id: number) => `/devis/${id}`, color: "text-purple-600", label: "Devis" },
+  facture: { icon: Receipt, href: (id: number) => `/factures/${id}`, color: "text-emerald-600", label: "Facture" },
+  cosium_facture: { icon: CreditCard, href: () => `/cosium-factures`, color: "text-teal-600", label: "Facture Cosium" },
+  ordonnance: { icon: Stethoscope, href: (id: number) => `/ordonnances/${id}`, color: "text-rose-600", label: "Ordonnance" },
 } as const;
 
 export function GlobalSearch() {
@@ -70,6 +74,8 @@ export function GlobalSearch() {
         ...data.dossiers.map((r) => ({ ...r, type: "dossier" as const })),
         ...data.devis.map((r) => ({ ...r, type: "devis" as const })),
         ...data.factures.map((r) => ({ ...r, type: "facture" as const })),
+        ...(data.cosium_factures || []).map((r) => ({ ...r, type: "cosium_facture" as const })),
+        ...(data.ordonnances || []).map((r) => ({ ...r, type: "ordonnance" as const })),
       ]
     : [];
 
@@ -138,7 +144,7 @@ export function GlobalSearch() {
                         <p className="text-sm font-medium text-text-primary truncate">{item.label}</p>
                         {item.detail && <p className="text-xs text-text-secondary truncate">{item.detail}</p>}
                       </div>
-                      <span className="text-xs text-text-secondary capitalize">{item.type}</span>
+                      <span className="text-xs text-text-secondary">{config.label}</span>
                     </button>
                   </li>
                 );

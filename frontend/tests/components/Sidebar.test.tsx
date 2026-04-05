@@ -22,29 +22,40 @@ vi.mock("@/lib/tenant-context", () => ({
   }),
 }));
 
+vi.mock("@/lib/sidebar-context", () => ({
+  useSidebar: () => ({
+    mobileOpen: false,
+    openMobile: vi.fn(),
+    closeMobile: vi.fn(),
+    toggleMobile: vi.fn(),
+  }),
+}));
+
 import { Sidebar } from "@/components/layout/Sidebar";
 
 describe("Sidebar", () => {
   it("affiche les liens de navigation", () => {
     render(<Sidebar />);
-    expect(screen.getByText("Dashboard")).toBeInTheDocument();
-    expect(screen.getByText("Dossiers")).toBeInTheDocument();
-    expect(screen.getByText("Clients")).toBeInTheDocument();
-    expect(screen.getByText("Factures")).toBeInTheDocument();
-    expect(screen.getByText("Paiements")).toBeInTheDocument();
+    // Use getAllByText since labels appear in both desktop and mobile sidebars
+    expect(screen.getAllByText("Dashboard").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Dossiers").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Clients").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Factures").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Paiements").length).toBeGreaterThanOrEqual(1);
   });
 
   it("affiche le lien Aide", () => {
     render(<Sidebar />);
-    expect(screen.getByText("Aide")).toBeInTheDocument();
+    expect(screen.getAllByText("Aide").length).toBeGreaterThanOrEqual(1);
   });
 
   it("a un bouton pour reduire/agrandir la sidebar", async () => {
     const user = userEvent.setup();
     render(<Sidebar />);
-    const collapseBtn = screen.getByLabelText("Réduire le menu");
-    expect(collapseBtn).toBeInTheDocument();
-    await user.click(collapseBtn);
-    expect(screen.getByLabelText("Agrandir le menu")).toBeInTheDocument();
+    // The sidebar renders both desktop and mobile; find the collapse buttons
+    const collapseBtns = screen.getAllByLabelText("Reduire le menu");
+    expect(collapseBtns.length).toBeGreaterThanOrEqual(1);
+    await user.click(collapseBtns[0]);
+    expect(screen.getAllByLabelText("Agrandir le menu").length).toBeGreaterThanOrEqual(1);
   });
 });

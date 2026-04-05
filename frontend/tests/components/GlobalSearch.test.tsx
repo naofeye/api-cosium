@@ -15,7 +15,7 @@ import { GlobalSearch } from "@/components/layout/GlobalSearch";
 describe("GlobalSearch", () => {
   it("affiche le champ de recherche", () => {
     render(<GlobalSearch />);
-    expect(screen.getByRole("textbox")).toBeInTheDocument();
+    expect(screen.getByRole("combobox")).toBeInTheDocument();
   });
 
   it("affiche le placeholder", () => {
@@ -28,7 +28,7 @@ describe("GlobalSearch", () => {
   it("accepte la saisie de texte", async () => {
     const user = userEvent.setup();
     render(<GlobalSearch />);
-    const input = screen.getByRole("textbox");
+    const input = screen.getByRole("combobox");
     await user.type(input, "Dupont");
     expect(input).toHaveValue("Dupont");
   });
@@ -36,7 +36,7 @@ describe("GlobalSearch", () => {
   it("affiche le bouton effacer quand du texte est saisi", async () => {
     const user = userEvent.setup();
     render(<GlobalSearch />);
-    const input = screen.getByRole("textbox");
+    const input = screen.getByRole("combobox");
     await user.type(input, "test");
     expect(screen.getByLabelText("Effacer")).toBeInTheDocument();
   });

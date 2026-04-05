@@ -20,6 +20,7 @@ from app.services.erp_sync_service import (
     _authenticate_connector,
     _get_connector_for_tenant,
     _match_customer_by_name,
+    _normalize_name,
 )
 
 logger = get_logger("erp_sync_invoices")
@@ -55,20 +56,21 @@ def sync_invoices(db: Session, tenant_id: int, user_id: int = 0) -> dict:
 
     logger.info("sync_invoices_fetched", tenant_id=tenant_id, total=len(all_invoices))
 
-    # Build customer lookup maps for matching
+    # Build customer lookup maps for matching (normalized for accent/hyphen tolerance)
     all_customers = db.scalars(select(Customer).where(Customer.tenant_id == tenant_id)).all()
     customer_name_map: dict[str, int] = {}
     customer_cosium_id_map: dict[str, int] = {}
     for c in all_customers:
-        full_name = f"{c.last_name} {c.first_name}".upper().strip()
-        customer_name_map[full_name] = c.id
+        # Normalized keys (accent-insensitive, hyphen-normalised)
+        normalized_full = _normalize_name(f"{c.last_name} {c.first_name}")
+        customer_name_map[normalized_full] = c.id
         # Also index FIRSTNAME LASTNAME (some Cosium entries use this order)
-        reverse_name = f"{c.first_name} {c.last_name}".upper().strip()
-        customer_name_map[reverse_name] = c.id
+        normalized_reverse = _normalize_name(f"{c.first_name} {c.last_name}")
+        customer_name_map[normalized_reverse] = c.id
         # Index with ALL title prefix patterns (with and without dot)
         for prefix in ("M. ", "MME. ", "MLLE. ", "MME ", "MLLE ", "MR. ", "MRS. "):
-            customer_name_map[f"{prefix}{full_name}"] = c.id
-            customer_name_map[f"{prefix}{reverse_name}"] = c.id
+            customer_name_map[f"{prefix}{normalized_full}"] = c.id
+            customer_name_map[f"{prefix}{normalized_reverse}"] = c.id
         # Index by cosium_id for direct matching
         if c.cosium_id:
             customer_cosium_id_map[str(c.cosium_id)] = c.id

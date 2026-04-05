@@ -18,6 +18,269 @@ logger = get_logger("export_pdf")
 
 
 # ---------------------------------------------------------------------------
+# Styles helper
+# ---------------------------------------------------------------------------
+
+def _section_table_style() -> TableStyle:
+    """Reusable table style for data sections."""
+    return TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), rl_colors.HexColor("#2563EB")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), rl_colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8),
+        ("ALIGN", (1, 0), (-1, -1), "CENTER"),
+        ("ALIGN", (0, 0), (0, -1), "LEFT"),
+        ("GRID", (0, 0), (-1, -1), 0.5, rl_colors.grey),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [rl_colors.white, rl_colors.HexColor("#F9FAFB")]),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+    ])
+
+
+def _fmt_money(val: float) -> str:
+    return f"{val:,.2f} EUR".replace(",", " ").replace(".", ",").replace(" ", " ")
+
+
+def _fmt_diopter(val: float | None) -> str:
+    if val is None:
+        return "-"
+    sign = "+" if val >= 0 else ""
+    return f"{sign}{val:.2f}"
+
+
+# ---------------------------------------------------------------------------
+# Fiche Client Complete PDF
+# ---------------------------------------------------------------------------
+
+def export_client_pdf(db: Session, client_id: int, tenant_id: int) -> bytes:
+    """Generate a comprehensive PDF for a single client with all their data."""
+    from app.services.client_360_service import get_client_360
+
+    data = get_client_360(db, tenant_id=tenant_id, client_id=client_id)
+
+    output = io.BytesIO()
+    doc = SimpleDocTemplate(
+        output,
+        pagesize=A4,
+        topMargin=20 * mm,
+        bottomMargin=15 * mm,
+        leftMargin=15 * mm,
+        rightMargin=15 * mm,
+    )
+
+    styles = getSampleStyleSheet()
+    elements: list = []
+
+    title_style = ParagraphStyle(
+        "ClientTitle", parent=styles["Heading1"], fontSize=18, alignment=1, spaceAfter=6,
+    )
+    date_style = ParagraphStyle(
+        "ClientDate", parent=styles["Normal"], fontSize=10, alignment=1,
+        spaceAfter=20, textColor=rl_colors.grey,
+    )
+    section_style = ParagraphStyle(
+        "SectionTitle", parent=styles["Heading2"], fontSize=13, spaceAfter=8,
+        spaceBefore=14, textColor=rl_colors.HexColor("#1E40AF"),
+    )
+    normal = styles["Normal"]
+
+    # ── 1. Header ──
+    elements.append(Paragraph("Fiche Client — OptiFlow", title_style))
+    generated = datetime.now(UTC).strftime("%d/%m/%Y %H:%M")
+    elements.append(Paragraph(f"Generee le {generated}", date_style))
+
+    # ── 2. Informations personnelles ──
+    elements.append(Paragraph("Informations personnelles", section_style))
+    info_rows = [
+        ["Nom", f"{data.first_name} {data.last_name}"],
+    ]
+    if data.birth_date:
+        info_rows.append(["Date de naissance", data.birth_date])
+    if data.email:
+        info_rows.append(["Email", data.email])
+    if data.phone:
+        info_rows.append(["Telephone", data.phone])
+    if data.address:
+        addr = data.address
+        if data.postal_code or data.city:
+            addr += f", {data.postal_code or ''} {data.city or ''}".strip()
+        info_rows.append(["Adresse", addr])
+    if data.social_security_number:
+        info_rows.append(["N. Securite Sociale", data.social_security_number])
+    if data.cosium_id:
+        info_rows.append(["Cosium ID", data.cosium_id])
+
+    info_table = Table(info_rows, colWidths=[120, 360])
+    info_table.setStyle(TableStyle([
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ("GRID", (0, 0), (-1, -1), 0.5, rl_colors.HexColor("#E5E7EB")),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+    ]))
+    elements.append(info_table)
+    elements.append(Spacer(1, 8 * mm))
+
+    # ── 3. Correction actuelle ──
+    correction = data.cosium_data.correction_actuelle if data.cosium_data else None
+    if correction:
+        elements.append(Paragraph("Correction actuelle", section_style))
+        if correction.prescription_date:
+            elements.append(Paragraph(
+                f"Ordonnance du {correction.prescription_date}"
+                + (f" — {correction.prescriber_name}" if correction.prescriber_name else ""),
+                normal,
+            ))
+            elements.append(Spacer(1, 2 * mm))
+
+        corr_data = [
+            ["", "Sphere", "Cylindre", "Axe", "Addition"],
+            [
+                "OD",
+                _fmt_diopter(correction.sphere_right),
+                _fmt_diopter(correction.cylinder_right),
+                str(correction.axis_right) if correction.axis_right is not None else "-",
+                _fmt_diopter(correction.addition_right),
+            ],
+            [
+                "OG",
+                _fmt_diopter(correction.sphere_left),
+                _fmt_diopter(correction.cylinder_left),
+                str(correction.axis_left) if correction.axis_left is not None else "-",
+                _fmt_diopter(correction.addition_left),
+            ],
+        ]
+        corr_table = Table(corr_data, colWidths=[40, 80, 80, 60, 80])
+        corr_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), rl_colors.HexColor("#2563EB")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), rl_colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTNAME", (0, 1), (0, -1), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("GRID", (0, 0), (-1, -1), 0.5, rl_colors.grey),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [rl_colors.white, rl_colors.HexColor("#F9FAFB")]),
+        ]))
+        elements.append(corr_table)
+        elements.append(Spacer(1, 8 * mm))
+
+    # ── 4. Resume financier ──
+    elements.append(Paragraph("Resume financier", section_style))
+    fin = data.resume_financier
+    cosium_ca = data.cosium_data.total_ca_cosium if data.cosium_data else 0
+    fin_rows = [
+        ["CA Cosium", _fmt_money(cosium_ca)],
+        ["Total facture (OptiFlow)", _fmt_money(fin.total_facture)],
+        ["Montant paye", _fmt_money(fin.total_paye)],
+        ["Reste du", _fmt_money(fin.reste_du)],
+        ["Taux de recouvrement", f"{fin.taux_recouvrement:.1f} %"],
+    ]
+    fin_table = Table(fin_rows, colWidths=[200, 200])
+    fin_table.setStyle(TableStyle([
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+        ("GRID", (0, 0), (-1, -1), 0.5, rl_colors.HexColor("#E5E7EB")),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(fin_table)
+    elements.append(Spacer(1, 8 * mm))
+
+    # ── 5. Factures Cosium (20 dernieres) ──
+    cosium_invoices = data.cosium_invoices[:20] if data.cosium_invoices else []
+    if cosium_invoices:
+        elements.append(Paragraph(f"Factures Cosium ({len(data.cosium_invoices)} total)", section_style))
+        inv_data = [["Date", "Numero", "Type", "Montant TTC", "Impaye", "Solde"]]
+        for inv in cosium_invoices:
+            inv_data.append([
+                inv.invoice_date or "-",
+                inv.invoice_number,
+                inv.type,
+                _fmt_money(inv.total_ti),
+                _fmt_money(inv.outstanding_balance),
+                "Oui" if inv.settled else "Non",
+            ])
+        inv_table = Table(inv_data, colWidths=[65, 80, 60, 75, 75, 40])
+        inv_table.setStyle(_section_table_style())
+        elements.append(inv_table)
+        elements.append(Spacer(1, 8 * mm))
+
+    # ── 6. Paiements Cosium (20 derniers) ──
+    cosium_payments = (data.cosium_data.cosium_payments[:20]
+                       if data.cosium_data and data.cosium_data.cosium_payments else [])
+    if cosium_payments:
+        elements.append(Paragraph(f"Paiements ({len(data.cosium_data.cosium_payments)} total)", section_style))
+        pay_data = [["Date", "Montant", "Type", "Banque", "Emetteur"]]
+        for p in cosium_payments:
+            pay_data.append([
+                p.due_date or "-",
+                _fmt_money(p.amount),
+                p.type,
+                p.bank or "-",
+                p.issuer_name or "-",
+            ])
+        pay_table = Table(pay_data, colWidths=[65, 75, 80, 80, 95])
+        pay_table.setStyle(_section_table_style())
+        elements.append(pay_table)
+        elements.append(Spacer(1, 8 * mm))
+
+    # ── 7. Rendez-vous (10 derniers) ──
+    calendar = (data.cosium_data.calendar_events[:10]
+                if data.cosium_data and data.cosium_data.calendar_events else [])
+    if calendar:
+        elements.append(Paragraph(f"Rendez-vous ({len(data.cosium_data.calendar_events)} total)", section_style))
+        cal_data = [["Date debut", "Categorie", "Statut", "Annule", "Manque"]]
+        for ev in calendar:
+            status_txt = ev.status or "-"
+            cal_data.append([
+                ev.start_date or "-",
+                ev.category_name or "-",
+                status_txt,
+                "Oui" if ev.canceled else "Non",
+                "Oui" if ev.missed else "Non",
+            ])
+        cal_table = Table(cal_data, colWidths=[100, 100, 80, 50, 50])
+        cal_table.setStyle(_section_table_style())
+        elements.append(cal_table)
+        elements.append(Spacer(1, 8 * mm))
+
+    # ── 8. Equipements ──
+    equipments = (data.cosium_data.equipments[:20]
+                  if data.cosium_data and data.cosium_data.equipments else [])
+    if equipments:
+        elements.append(Paragraph(f"Equipements ({len(data.cosium_data.equipments)} total)", section_style))
+        eq_data = [["Date", "Designation", "Marque", "Type"]]
+        for eq in equipments:
+            eq_data.append([
+                eq.prescription_date or "-",
+                eq.label or "-",
+                eq.brand or "-",
+                eq.type or "-",
+            ])
+        eq_table = Table(eq_data, colWidths=[75, 150, 100, 80])
+        eq_table.setStyle(_section_table_style())
+        elements.append(eq_table)
+        elements.append(Spacer(1, 8 * mm))
+
+    # Footer
+    elements.append(Spacer(1, 10 * mm))
+    footer_style = ParagraphStyle(
+        "FooterStyle", parent=styles["Italic"], fontSize=8,
+        textColor=rl_colors.grey, alignment=1,
+    )
+    elements.append(Paragraph(
+        "Document genere automatiquement par OptiFlow AI. Confidentiel.",
+        footer_style,
+    ))
+
+    doc.build(elements)
+    output.seek(0)
+
+    logger.info("client_pdf_exported", tenant_id=tenant_id, client_id=client_id)
+    return output.getvalue()
+
+
+# ---------------------------------------------------------------------------
 # Balance Clients — shared data helper
 # ---------------------------------------------------------------------------
 

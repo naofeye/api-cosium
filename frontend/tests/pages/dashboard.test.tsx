@@ -79,7 +79,7 @@ describe("DashboardPage", () => {
     render(<DashboardPage />);
     expect(screen.getByText("CA total")).toBeInTheDocument();
     expect(screen.getByText("Encaisse")).toBeInTheDocument();
-    expect(screen.getByText("Reste a encaisser")).toBeInTheDocument();
+    expect(screen.getByText("Impayes")).toBeInTheDocument();
     expect(screen.getByText("Taux recouvrement")).toBeInTheDocument();
   });
 

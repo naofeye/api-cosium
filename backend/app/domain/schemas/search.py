@@ -15,3 +15,5 @@ class SearchResponse(BaseModel):
     dossiers: list[SearchResultItem] = []
     devis: list[SearchResultItem] = []
     factures: list[SearchResultItem] = []
+    cosium_factures: list[SearchResultItem] = []
+    ordonnances: list[SearchResultItem] = []

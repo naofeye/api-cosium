@@ -2,8 +2,11 @@
 
 import { KPICard } from "@/components/ui/KPICard";
 import { formatMoney, formatDate } from "@/lib/format";
-import { Euro, CheckCircle, Clock, FolderOpen, Eye, Calendar, AlertTriangle } from "lucide-react";
+import { Euro, CheckCircle, Clock, FolderOpen, Eye, Calendar, AlertTriangle, FileDown } from "lucide-react";
 import { AvatarUpload } from "./AvatarUpload";
+import { useState } from "react";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
 interface CorrectionActuelle {
   prescription_date: string | null;
@@ -75,18 +78,55 @@ export function ClientHeader({
     }
   })();
 
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  const handleDownloadPDF = async () => {
+    setPdfLoading(true);
+    try {
+      const resp = await fetch(`${API_BASE}/clients/${clientId}/export-pdf`, {
+        credentials: "include",
+      });
+      if (!resp.ok) throw new Error("Erreur lors du telechargement");
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `fiche_client_${clientId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      // silently fail — could add toast here
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
   return (
     <>
-      {/* Avatar + identity header */}
-      <AvatarUpload
-        clientId={clientId}
-        firstName={firstName}
-        lastName={lastName}
-        avatarUrl={avatarUrl}
-        email={email}
-        phone={phone}
-        onUploaded={onAvatarUploaded}
-      />
+      {/* Avatar + identity header + PDF download */}
+      <div className="flex items-start justify-between">
+        <AvatarUpload
+          clientId={clientId}
+          firstName={firstName}
+          lastName={lastName}
+          avatarUrl={avatarUrl}
+          email={email}
+          phone={phone}
+          onUploaded={onAvatarUploaded}
+        />
+        <button
+          onClick={handleDownloadPDF}
+          disabled={pdfLoading}
+          className="inline-flex items-center gap-2 rounded-lg border border-border bg-bg-card px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 transition-colors disabled:opacity-50 shrink-0"
+          title="Telecharger la fiche client en PDF"
+          aria-label="Telecharger la fiche client en PDF"
+        >
+          <FileDown className="h-4 w-4" aria-hidden="true" />
+          {pdfLoading ? "Export..." : "Telecharger PDF"}
+        </button>
+      </div>
 
       {/* Prescription expiry alert */}
       {correctionAge !== null && correctionAge > 24 && (

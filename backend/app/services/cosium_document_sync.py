@@ -12,7 +12,7 @@ import re
 import time
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
@@ -236,8 +236,23 @@ def sync_all_documents(
 
     storage_adapter = storage  # module-level singleton
 
+    # Pre-load already-processed customer IDs to skip them quickly (no API call)
+    already_processed: set[int] = set(
+        db.scalars(
+            select(func.distinct(CosiumDocument.customer_cosium_id)).where(
+                CosiumDocument.tenant_id == tenant_id,
+            )
+        ).all()
+    )
+    logger.info("cosium_docs_skip_already_processed", count=len(already_processed))
+
     for i, customer in enumerate(customers):
         cosium_id = int(customer.cosium_id)
+
+        # Skip customers already fully processed (have at least 1 doc in DB)
+        if cosium_id in already_processed:
+            customers_processed += 1
+            continue
 
         result = sync_customer_documents(
             db=db,

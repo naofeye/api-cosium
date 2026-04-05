@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
 from app.models import Case, Customer, Devis, Facture
-from app.models.cosium_data import CosiumInvoice
+from app.models.cosium_data import CosiumInvoice, CosiumPrescription
 
 logger = get_logger("search_service")
 
@@ -13,10 +13,10 @@ logger = get_logger("search_service")
 def global_search(db: Session, tenant_id: int, query: str, limit: int = 10) -> dict:
     """Recherche dans clients, dossiers, devis, factures, factures Cosium."""
     if not query or len(query) < 2:
-        return {"clients": [], "dossiers": [], "devis": [], "factures": [], "cosium_factures": []}
+        return {"clients": [], "dossiers": [], "devis": [], "factures": [], "cosium_factures": [], "ordonnances": []}
 
     pattern = f"%{query}%"
-    results: dict = {"clients": [], "dossiers": [], "devis": [], "factures": [], "cosium_factures": []}
+    results: dict = {"clients": [], "dossiers": [], "devis": [], "factures": [], "cosium_factures": [], "ordonnances": []}
 
     # Clients (nom, prenom, email, telephone)
     clients = db.scalars(
@@ -92,12 +92,15 @@ def global_search(db: Session, tenant_id: int, query: str, limit: int = 10) -> d
     ).all()
     results["factures"] = [{"id": f.id, "type": "facture", "label": f.numero, "detail": f.status} for f in factures]
 
-    # Factures Cosium (par numero de facture)
+    # Factures Cosium (par numero de facture ou nom client)
     cosium_invoices = db.scalars(
         select(CosiumInvoice)
         .where(
             CosiumInvoice.tenant_id == tenant_id,
-            CosiumInvoice.invoice_number.ilike(pattern),
+            or_(
+                CosiumInvoice.invoice_number.ilike(pattern),
+                CosiumInvoice.customer_name.ilike(pattern),
+            ),
         )
         .limit(limit)
     ).all()
@@ -109,6 +112,25 @@ def global_search(db: Session, tenant_id: int, query: str, limit: int = 10) -> d
             "detail": f"{ci.customer_name} — {ci.total_ti} EUR",
         }
         for ci in cosium_invoices
+    ]
+
+    # Ordonnances (par nom prescripteur)
+    ordonnances = db.scalars(
+        select(CosiumPrescription)
+        .where(
+            CosiumPrescription.tenant_id == tenant_id,
+            CosiumPrescription.prescriber_name.ilike(pattern),
+        )
+        .limit(limit)
+    ).all()
+    results["ordonnances"] = [
+        {
+            "id": o.id,
+            "type": "ordonnance",
+            "label": f"Ordonnance #{o.id}",
+            "detail": f"Dr. {o.prescriber_name}" if o.prescriber_name else "",
+        }
+        for o in ordonnances
     ]
 
     total = sum(len(v) for v in results.values())
