@@ -46,6 +46,7 @@ class CosiumInvoice(Base):
     __table_args__ = (
         Index("ix_cosium_invoices_tenant_cosium", "tenant_id", "cosium_id", unique=True),
         Index("ix_cosium_invoices_tenant_date", "tenant_id", "invoice_date"),
+        Index("ix_cosium_invoices_tenant_type", "tenant_id", "type"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

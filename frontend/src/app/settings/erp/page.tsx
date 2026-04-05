@@ -22,7 +22,7 @@ interface SyncStatus {
 
 export default function ERPSettingsPage() {
   const { data: erpTypes = [], error: erpError, isLoading: erpLoading, mutate } = useSWR<ERPType[]>("/sync/erp-types");
-  const { data: syncStatus, isLoading: syncLoading } = useSWR<SyncStatus>("/sync/status");
+  const { data: syncStatus, isLoading: syncLoading } = useSWR<SyncStatus>("/sync/status", { refreshInterval: 5000 });
 
   const loading = erpLoading || syncLoading;
 

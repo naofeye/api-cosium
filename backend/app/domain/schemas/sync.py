@@ -27,6 +27,17 @@ class ERPTypeItem(BaseModel):
     label: str
 
 
+class SyncAllResult(BaseModel):
+    """Result of a full sync across all ERP domains."""
+
+    customers: SyncResultResponse | dict | None = None
+    invoices: SyncResultResponse | dict | None = None
+    payments: SyncResultResponse | dict | None = None
+    prescriptions: SyncResultResponse | dict | None = None
+    reference: dict | None = None
+    has_errors: bool = False
+
+
 class SeedDemoResponse(BaseModel):
     status: str = ""
     reason: str = ""

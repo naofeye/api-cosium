@@ -98,9 +98,9 @@ export default function RapprochementPage() {
     setMutationError(null);
     try {
       const resp = await fetchJson<{ matched: number; unmatched: number }>("/banking/reconcile", { method: "POST" });
+      await mutate();
+      await mutatePayments();
       setReconcileResult(`${resp.matched} rapproche(s), ${resp.unmatched} non rapproche(s)`);
-      mutate();
-      mutatePayments();
     } catch {
       setMutationError("Erreur lors du rapprochement");
     } finally {
@@ -118,9 +118,9 @@ export default function RapprochementPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ transaction_id: transactionId, payment_id: paymentId }),
       });
+      await mutate();
+      await mutatePayments();
       setMatchResult("Transaction rapprochee avec succes");
-      mutate();
-      mutatePayments();
     } catch {
       setMutationError("Erreur lors du rapprochement manuel");
     } finally {

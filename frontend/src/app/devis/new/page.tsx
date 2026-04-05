@@ -51,16 +51,16 @@ export default function NewDevisPage() {
   const watchPartMutuelle = watch("part_mutuelle");
 
   const calcLigneHT = (l: { quantite: number; prix_unitaire_ht: number }) =>
-    Math.round(l.quantite * l.prix_unitaire_ht * 100) / 100;
+    Math.round((Number(l.quantite) || 0) * (Number(l.prix_unitaire_ht) || 0) * 100) / 100;
   const calcLigneTTC = (l: { quantite: number; prix_unitaire_ht: number; taux_tva: number }) => {
     const ht = calcLigneHT(l);
-    return Math.round(ht * (1 + l.taux_tva / 100) * 100) / 100;
+    return Math.round(ht * (1 + (Number(l.taux_tva) || 0) / 100) * 100) / 100;
   };
 
-  const totalHT = watchLignes.reduce((s, l) => s + calcLigneHT(l), 0);
-  const totalTTC = watchLignes.reduce((s, l) => s + calcLigneTTC(l), 0);
+  const totalHT = (watchLignes ?? []).reduce((s, l) => s + calcLigneHT(l), 0);
+  const totalTTC = (watchLignes ?? []).reduce((s, l) => s + calcLigneTTC(l), 0);
   const totalTVA = Math.round((totalTTC - totalHT) * 100) / 100;
-  const reste = Math.max(Math.round((totalTTC - watchPartSecu - watchPartMutuelle) * 100) / 100, 0);
+  const reste = Math.max(Math.round((totalTTC - (Number(watchPartSecu) || 0) - (Number(watchPartMutuelle) || 0)) * 100) / 100, 0);
 
   const onSubmit = async (data: DevisCreateFormData) => {
     setError(null);

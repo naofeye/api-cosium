@@ -6,7 +6,7 @@ from app.core.exceptions import BusinessError
 from app.core.redis_cache import acquire_lock, release_lock
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
-from app.domain.schemas.sync import ERPTypeItem, SeedDemoResponse, SyncResultResponse, SyncStatusResponse
+from app.domain.schemas.sync import ERPTypeItem, SeedDemoResponse, SyncAllResult, SyncResultResponse, SyncStatusResponse
 from app.services import erp_sync_service
 
 router = APIRouter(prefix="/api/v1/sync", tags=["sync"])
@@ -150,19 +150,20 @@ def sync_prescriptions(
 
 @router.post(
     "/all",
-    response_model=dict,
+    response_model=SyncAllResult,
     summary="Synchroniser tout",
     description="Lance une synchronisation complete de toutes les donnees ERP.",
 )
 def sync_all(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
-) -> dict:
+) -> SyncAllResult:
     lock_key = f"sync:all:{tenant_ctx.tenant_id}"
     if not acquire_lock(lock_key, ttl=1200):
         raise BusinessError("SYNC_IN_PROGRESS", "Une synchronisation complete est deja en cours. Veuillez patienter.")
     try:
         results: dict[str, object] = {}
+        has_errors = False
         for sync_name, sync_fn in [
             ("customers", erp_sync_service.sync_customers),
             ("invoices", erp_sync_service.sync_invoices),
@@ -175,6 +176,7 @@ def sync_all(
                 from app.core.logging import get_logger
                 get_logger("sync").error("sync_domain_failed", domain=sync_name, error=str(e))
                 results[sync_name] = {"error": "Echec de la synchronisation. Consultez les logs pour plus de details."}
+                has_errors = True
 
         # Sync reference data (calendar, mutuelles, doctors, etc.)
         try:
@@ -186,8 +188,9 @@ def sync_all(
             from app.core.logging import get_logger
             get_logger("sync").error("sync_reference_failed", error=str(e))
             results["reference"] = {"error": "Echec de la synchronisation des donnees de reference."}
+            has_errors = True
 
-        return results
+        return SyncAllResult(**results, has_errors=has_errors)
     finally:
         release_lock(lock_key)
 

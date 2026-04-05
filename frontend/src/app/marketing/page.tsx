@@ -60,11 +60,15 @@ export default function MarketingPage() {
   const createSegment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+    const rules: Record<string, unknown> = {};
+    if (segHasEmail) rules.has_email = true;
+    if (segCity.trim()) rules.city = segCity.trim();
+    if (Object.keys(rules).length === 0) {
+      setError("Le segment doit avoir au moins un filtre (email, ville, etc.)");
+      return;
+    }
     setSubmitting(true);
     try {
-      const rules: Record<string, unknown> = {};
-      if (segHasEmail) rules.has_email = true;
-      if (segCity) rules.city = segCity;
       await fetchJson("/marketing/segments", {
         method: "POST",
         body: JSON.stringify({ name: segName, description: segDesc || null, rules_json: rules }),
