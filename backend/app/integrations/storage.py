@@ -70,6 +70,18 @@ class StorageAdapter:
         )
         return url
 
+    def download_file(self, bucket: str, key: str) -> bytes:
+        """Download a file from S3/MinIO and return its raw bytes."""
+        try:
+            response = self._client.get_object(Bucket=bucket, Key=key)
+            return response["Body"].read()
+        except ClientError as exc:
+            logger.error("file_download_failed", bucket=bucket, key=key, error=str(exc))
+            raise BusinessError(
+                f"Impossible de telecharger le fichier : {exc}",
+                code="STORAGE_DOWNLOAD_ERROR",
+            ) from exc
+
     def delete_file(self, bucket: str, key: str) -> None:
         try:
             self._client.delete_object(Bucket=bucket, Key=key)

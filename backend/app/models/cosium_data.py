@@ -12,6 +12,33 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
 
 
+class CosiumDocument(Base):
+    """Document client telecharge depuis Cosium et stocke dans MinIO."""
+
+    __tablename__ = "cosium_documents"
+    __table_args__ = (
+        Index("ix_cosium_docs_tenant_cust", "tenant_id", "customer_cosium_id"),
+        Index(
+            "ix_cosium_docs_unique",
+            "tenant_id",
+            "customer_cosium_id",
+            "cosium_document_id",
+            unique=True,
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    customer_cosium_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id"), nullable=True)
+    cosium_document_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    name: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    content_type: Mapped[str] = mapped_column(String(100), default="application/pdf", nullable=False)
+    size_bytes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    minio_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    synced_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+
+
 class CosiumInvoice(Base):
     """Facture Cosium synchronisee — donnees brutes en lecture seule."""
 

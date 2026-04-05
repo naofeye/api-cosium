@@ -6,6 +6,7 @@ from app.models.audit import AuditLog  # noqa: F401
 from app.models.case import Case  # noqa: F401
 from app.models.client import Customer  # noqa: F401
 from app.models.cosium_data import (  # noqa: F401
+    CosiumDocument,
     CosiumInvoice,
     CosiumPayment,
     CosiumPrescription,

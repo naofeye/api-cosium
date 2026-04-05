@@ -13,6 +13,7 @@ import {
   Calendar,
   Shield,
   PlayCircle,
+  FolderDown,
 } from "lucide-react";
 
 interface SyncResult {
@@ -36,6 +37,10 @@ const SYNC_ITEMS = [
   { key: "payments", label: "Paiements", icon: CreditCard, desc: "Paiements de factures (25 448)" },
   { key: "prescriptions", label: "Ordonnances", icon: Stethoscope, desc: "Ordonnances optiques (6 785)" },
   { key: "products", label: "Produits", icon: Package, desc: "Catalogue produits (echantillon)" },
+] as const;
+
+const DOCUMENT_ITEMS = [
+  { key: "cosium-documents/sync-all", label: "Documents clients", icon: FolderDown, desc: "Telecharger tous les documents depuis Cosium (lent, ~1 doc/sec)" },
 ] as const;
 
 const REFERENCE_ITEMS = [
@@ -116,6 +121,21 @@ export function ManualSync() {
       <div className="space-y-3">
         <h4 className="text-sm font-medium text-text-secondary uppercase tracking-wide">Donnees principales</h4>
         {SYNC_ITEMS.map(({ key, label, icon: Icon, desc }) => (
+          <SyncRow
+            key={key}
+            syncKey={key}
+            label={label}
+            icon={Icon}
+            desc={desc}
+            result={results[key]}
+            syncing={syncing}
+            disabled={isDisabled}
+            onSync={runSync}
+          />
+        ))}
+
+        <h4 className="text-sm font-medium text-text-secondary uppercase tracking-wide mt-6">Documents</h4>
+        {DOCUMENT_ITEMS.map(({ key, label, icon: Icon, desc }) => (
           <SyncRow
             key={key}
             syncKey={key}

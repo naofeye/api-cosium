@@ -387,6 +387,26 @@ export interface CosiumDocument {
   download_url: string;
 }
 
+export interface LocalCosiumDocument {
+  id: number;
+  customer_cosium_id: number;
+  cosium_document_id: number;
+  name: string | null;
+  content_type: string;
+  size_bytes: number;
+  synced_at: string;
+  source: "local";
+}
+
+export interface DocumentSyncStatus {
+  total_documents: number;
+  customers_with_docs: number;
+  total_customers: number;
+  total_size_bytes: number;
+  total_size_mb: number;
+  last_sync_at: string | null;
+}
+
 // --- Generic API ---
 export interface PaginatedResponse<T> {
   items: T[];

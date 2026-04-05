@@ -305,9 +305,18 @@ class CosiumConnector(ERPConnector):
             docs = [docs] if docs else []
         result: list[dict] = []
         for doc in docs:
+            # Extract document ID from _links.self.href: .../documents/{id}
+            doc_id = doc.get("id", 0)
+            if not doc_id:
+                self_href = doc.get("_links", {}).get("self", {}).get("href", "")
+                if "/documents/" in self_href:
+                    try:
+                        doc_id = int(self_href.rsplit("/documents/", 1)[-1].split("?")[0].split("/")[0])
+                    except (ValueError, IndexError):
+                        pass
             result.append({
-                "document_id": doc.get("id", 0),
-                "label": doc.get("label", doc.get("name", "")),
+                "document_id": doc_id,
+                "label": doc.get("name", doc.get("label", "")),
                 "type": doc.get("type", doc.get("documentType", "")),
                 "date": doc.get("date", doc.get("creationDate")),
                 "size": doc.get("size"),

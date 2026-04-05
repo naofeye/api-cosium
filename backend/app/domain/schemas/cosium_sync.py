@@ -101,6 +101,42 @@ class CosiumDocumentList(BaseModel):
     total: int
 
 
+# --- Local documents (downloaded from Cosium, stored in MinIO) ---
+
+
+class LocalCosiumDocumentResponse(BaseModel):
+    id: int
+    customer_cosium_id: int
+    cosium_document_id: int
+    name: str | None = None
+    content_type: str = "application/pdf"
+    size_bytes: int = 0
+    synced_at: datetime
+    source: str = "local"  # always "local" for MinIO-stored docs
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LocalCosiumDocumentList(BaseModel):
+    items: list[LocalCosiumDocumentResponse]
+    total: int
+
+
+class DocumentSyncStatusResponse(BaseModel):
+    total_documents: int = 0
+    customers_with_docs: int = 0
+    total_customers: int = 0
+    total_size_bytes: int = 0
+    total_size_mb: float = 0
+    last_sync_at: str | None = None
+
+
+class BulkSyncRequest(BaseModel):
+    max_customers: int | None = None
+    delay_docs: float = 1.0
+    delay_customers: float = 2.0
+
+
 # --- Reusable sync result ---
 
 

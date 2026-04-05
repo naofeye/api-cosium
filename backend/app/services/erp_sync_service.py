@@ -234,9 +234,13 @@ def sync_invoices(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     for c in all_customers:
         full_name = f"{c.last_name} {c.first_name}".upper().strip()
         customer_name_map[full_name] = c.id
-        # Also index with title prefix patterns like "M. LASTNAME FIRSTNAME"
-        for prefix in ("M. ", "MME ", "MLLE "):
+        # Also index FIRSTNAME LASTNAME (some Cosium entries use this order)
+        reverse_name = f"{c.first_name} {c.last_name}".upper().strip()
+        customer_name_map[reverse_name] = c.id
+        # Index with ALL title prefix patterns (with and without dot)
+        for prefix in ("M. ", "MME. ", "MLLE. ", "MME ", "MLLE ", "MR. ", "MRS. "):
             customer_name_map[f"{prefix}{full_name}"] = c.id
+            customer_name_map[f"{prefix}{reverse_name}"] = c.id
         # Index by cosium_id for direct matching
         if c.cosium_id:
             customer_cosium_id_map[str(c.cosium_id)] = c.id
@@ -734,8 +738,8 @@ def _create_customer_from_erp(tenant_id: int, erp_c: ERPCustomer) -> Customer:
 def _match_customer_by_name(customer_name: str, name_map: dict[str, int]) -> int | None:
     """Try to match a Cosium customerName to an OptiFlow customer ID.
 
-    Cosium format is typically "M. LASTNAME FIRSTNAME" or "MME LASTNAME FIRSTNAME".
-    We do an exact upper-case lookup first, then try stripping common title prefixes.
+    Cosium format: "M. LASTNAME FIRSTNAME", "Mme. LASTNAME FIRSTNAME", "MME LASTNAME FIRSTNAME".
+    Strategies: exact match → strip prefix → reverse first/last → partial.
     """
     if not customer_name:
         return None
@@ -746,11 +750,26 @@ def _match_customer_by_name(customer_name: str, name_map: dict[str, int]) -> int
     if normalized in name_map:
         return name_map[normalized]
 
-    # Strip title prefixes and try again
-    for prefix in ("M. ", "MME ", "MLLE ", "MR ", "MRS "):
+    # Strip title prefixes (including with dot and without)
+    stripped = normalized
+    for prefix in ("M. ", "MME. ", "MLLE. ", "MME ", "MLLE ", "MR. ", "MR ", "MRS. ", "MRS ", "DR. ", "DR "):
         if normalized.startswith(prefix):
-            stripped = normalized[len(prefix) :]
-            if stripped in name_map:
-                return name_map[stripped]
+            stripped = normalized[len(prefix):]
+            break
+
+    if stripped in name_map:
+        return name_map[stripped]
+
+    # Try "FIRSTNAME LASTNAME" → "LASTNAME FIRSTNAME" (reverse words)
+    parts = stripped.split()
+    if len(parts) >= 2:
+        # Try LAST FIRST
+        reversed_name = f"{parts[-1]} {' '.join(parts[:-1])}"
+        if reversed_name in name_map:
+            return name_map[reversed_name]
+        # Try just LAST FIRST (2 words)
+        simple_reverse = f"{parts[0]} {parts[-1]}"
+        if simple_reverse in name_map:
+            return name_map[simple_reverse]
 
     return None
