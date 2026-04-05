@@ -1,9 +1,8 @@
 """Tests du moteur de detection et scoring des renouvellements."""
 
-from datetime import datetime, timedelta
 
 from app.domain.schemas.renewals import RenewalConfig
-from app.services.renewal_engine import _score_opportunity, _suggest_action, _build_reason
+from app.services.renewal_engine import _build_reason, _score_opportunity, _suggest_action
 
 
 def test_score_minimum_age():

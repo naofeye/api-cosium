@@ -5,6 +5,7 @@ from app.models.ai import AiUsageLog  # noqa: F401
 from app.models.audit import AuditLog  # noqa: F401
 from app.models.case import Case  # noqa: F401
 from app.models.client import Customer  # noqa: F401
+from app.models.cosium_data import CosiumInvoice, CosiumProduct  # noqa: F401
 from app.models.devis import Devis, DevisLigne  # noqa: F401
 from app.models.document import Document, DocumentType  # noqa: F401
 from app.models.facture import Facture, FactureLigne  # noqa: F401

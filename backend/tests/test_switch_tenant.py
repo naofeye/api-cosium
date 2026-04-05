@@ -1,5 +1,6 @@
 """Tests pour le switch de tenant."""
 import pytest
+
 from app.models import Case, Customer, Organization, Tenant, TenantUser, User
 from app.security import hash_password
 

@@ -1,4 +1,5 @@
 """Tests de securite : auth 401/403, rate limiting, security headers."""
+from datetime import UTC
 
 
 def test_protected_endpoint_returns_401_without_token(client):
@@ -80,15 +81,17 @@ def test_login_rate_limiting(client, seed_user):
 
 def test_expired_token_returns_401(client, seed_user):
     """Un token expire doit retourner 401."""
+    from datetime import datetime, timedelta
+
     import jwt as pyjwt
-    from datetime import datetime, timedelta, timezone
+
     from app.core.config import settings
 
     expired_token = pyjwt.encode(
         {
             "sub": "test@optiflow.local",
             "role": "admin",
-            "exp": datetime.now(timezone.utc) - timedelta(hours=1),
+            "exp": datetime.now(UTC) - timedelta(hours=1),
         },
         settings.jwt_secret,
         algorithm="HS256",

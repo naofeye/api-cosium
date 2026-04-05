@@ -1,6 +1,5 @@
 """Tests for core/deps.py — authentication & role-based access."""
 
-import pytest
 from app.models import Tenant, TenantUser, User
 from app.security import hash_password
 
@@ -27,6 +26,7 @@ class TestGetCurrentUser:
 
     def test_expired_token_returns_401(self, client, seed_user):
         import jwt as pyjwt
+
         from app.core.config import settings
 
         expired = pyjwt.encode(
@@ -41,9 +41,11 @@ class TestGetCurrentUser:
         assert resp.status_code == 401
 
     def test_token_with_no_sub_returns_401(self, client, seed_user):
-        import jwt as pyjwt
-        from app.core.config import settings
         import time
+
+        import jwt as pyjwt
+
+        from app.core.config import settings
 
         token = pyjwt.encode(
             {"exp": int(time.time()) + 3600},
@@ -57,9 +59,11 @@ class TestGetCurrentUser:
         assert resp.status_code == 401
 
     def test_token_for_nonexistent_user_returns_401(self, client, seed_user):
-        import jwt as pyjwt
-        from app.core.config import settings
         import time
+
+        import jwt as pyjwt
+
+        from app.core.config import settings
 
         token = pyjwt.encode(
             {"sub": "ghost@optiflow.local", "exp": int(time.time()) + 3600},
@@ -82,9 +86,11 @@ class TestGetCurrentUser:
         db.add(user)
         db.commit()
 
-        import jwt as pyjwt
-        from app.core.config import settings
         import time
+
+        import jwt as pyjwt
+
+        from app.core.config import settings
 
         token = pyjwt.encode(
             {"sub": "inactive@optiflow.local", "exp": int(time.time()) + 3600},

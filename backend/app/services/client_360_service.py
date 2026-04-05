@@ -1,11 +1,12 @@
 """Service vue client 360 — agregation complete."""
 
+from sqlalchemy import func as sa_func
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
-from app.domain.schemas.client_360 import Client360Response, FinancialSummary
+from app.domain.schemas.client_360 import Client360Response, CosiumInvoiceSummary, FinancialSummary
 from app.domain.schemas.interactions import InteractionResponse
 from app.models import (
     Case,
@@ -18,6 +19,7 @@ from app.models import (
     Payment,
     PecRequest,
 )
+from app.models.cosium_data import CosiumInvoice
 
 logger = get_logger("client_360_service")
 
@@ -107,6 +109,36 @@ def get_client_360(db: Session, tenant_id: int, client_id: int) -> Client360Resp
         .limit(50)
     ).all()
 
+    # Cosium invoices: match by customer_id or by customer_name (ILIKE)
+    client_full_name = f"{customer.last_name} {customer.first_name}".strip()
+    cosium_inv_query = select(CosiumInvoice).where(
+        CosiumInvoice.tenant_id == tenant_id,
+    )
+    # Match by FK or by name pattern
+    cosium_invoices_raw = db.scalars(
+        cosium_inv_query.where(
+            (CosiumInvoice.customer_id == client_id)
+            | (sa_func.upper(CosiumInvoice.customer_name).contains(client_full_name.upper()))
+        )
+        .order_by(CosiumInvoice.invoice_date.desc())
+        .limit(100)
+    ).all()
+
+    cosium_invoices_list = [
+        CosiumInvoiceSummary(
+            cosium_id=ci.cosium_id,
+            invoice_number=ci.invoice_number,
+            invoice_date=str(ci.invoice_date) if ci.invoice_date else None,
+            type=ci.type,
+            total_ti=ci.total_ti,
+            outstanding_balance=ci.outstanding_balance,
+            share_social_security=ci.share_social_security,
+            share_private_insurance=ci.share_private_insurance,
+            settled=ci.settled,
+        )
+        for ci in cosium_invoices_raw
+    ]
+
     reste_du = round(max(total_facture - total_paye, 0), 2)
     taux = round(total_paye / total_facture * 100, 1) if total_facture > 0 else 0
 
@@ -131,6 +163,7 @@ def get_client_360(db: Session, tenant_id: int, client_id: int) -> Client360Resp
         pec=pec_list,
         consentements=consentements,
         interactions=[InteractionResponse.model_validate(i) for i in interactions],
+        cosium_invoices=cosium_invoices_list,
         resume_financier=FinancialSummary(
             total_facture=round(total_facture, 2),
             total_paye=round(total_paye, 2),

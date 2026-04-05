@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.core.encryption import encrypt, decrypt
+from app.core.encryption import decrypt, encrypt
 
 
 def test_encrypt_returns_different_value():

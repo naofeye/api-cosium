@@ -52,7 +52,8 @@ class CosiumConnector(ERPConnector):
 
     def get_customers(self, page: int = 0, page_size: int = 50) -> list[ERPCustomer]:
         # Cosium API has a hard offset limit of ~50 items per listing.
-        # Strategy: filter by loose_last_name letter-by-letter to bypass the limit.
+        # Strategy: filter by loose_last_name letter-by-letter to bypass the limit,
+        # then sweep non-alpha prefixes (digits, accents, special chars) to catch all.
         import string
 
         seen_ids: set[str] = set()
@@ -74,12 +75,16 @@ class CosiumConnector(ERPConnector):
                 continue
 
             if total <= 50:
-                batch = self._client.get_paginated("/customers", params={"loose_last_name": letter}, page_size=50, max_pages=1)
+                batch = self._client.get_paginated(
+                    "/customers", params={"loose_last_name": letter}, page_size=50, max_pages=1
+                )
             else:
                 # Sub-filter with 2-char prefix for letters with > 50 results
                 batch = []
                 for second in string.ascii_uppercase:
-                    sub = self._client.get_paginated("/customers", params={"loose_last_name": f"{letter}{second}"}, page_size=50, max_pages=1)
+                    sub = self._client.get_paginated(
+                        "/customers", params={"loose_last_name": f"{letter}{second}"}, page_size=50, max_pages=1
+                    )
                     batch.extend(sub)
 
             for raw in batch:
@@ -87,6 +92,66 @@ class CosiumConnector(ERPConnector):
                 if cid and cid not in seen_ids:
                     seen_ids.add(cid)
                     items.append(raw)
+
+        # --- Recover missing clients: digits, special chars, accented letters ---
+        non_alpha_prefixes = (
+            list("0123456789") + ["-", "'", ".", " "] + list("ÀÂÄÉÈÊËÏÎÔÙÛÜÇŒÆ") + list("àâäéèêëïîôùûüçœæ")
+        )
+        for prefix in non_alpha_prefixes:
+            try:
+                data = self._client.get(
+                    "/customers",
+                    {"loose_last_name": prefix, "page_number": 0, "page_size": 1},
+                )
+                total = data.get("page", {}).get("totalElements", 0)
+                if total == 0:
+                    continue
+                batch = self._client.get_paginated(
+                    "/customers",
+                    params={"loose_last_name": prefix},
+                    page_size=50,
+                    max_pages=20,
+                )
+                for raw in batch:
+                    cid = str(raw.get("id", ""))
+                    if cid and cid not in seen_ids:
+                        seen_ids.add(cid)
+                        items.append(raw)
+            except Exception:
+                logger.warning("cosium_customer_prefix_failed", prefix=prefix)
+
+        # --- Catch-all: multiple sort orders without filter to find remaining ---
+        for sort_param in ["lastName", "firstName", "id"]:
+            try:
+                batch = self._client.get_paginated(
+                    "/customers",
+                    params={"sort": sort_param},
+                    page_size=50,
+                    max_pages=5,
+                )
+                for raw in batch:
+                    cid = str(raw.get("id", ""))
+                    if cid and cid not in seen_ids:
+                        seen_ids.add(cid)
+                        items.append(raw)
+            except Exception:
+                logger.warning("cosium_customer_sort_failed", sort=sort_param)
+
+        # --- Try fetching with include_hidden to get hidden/inactive clients ---
+        try:
+            batch = self._client.get_paginated(
+                "/customers",
+                params={"include_hidden": "true"},
+                page_size=50,
+                max_pages=5,
+            )
+            for raw in batch:
+                cid = str(raw.get("id", ""))
+                if cid and cid not in seen_ids:
+                    seen_ids.add(cid)
+                    items.append(raw)
+        except Exception:
+            logger.warning("cosium_customer_hidden_failed")
 
         logger.info("cosium_customers_fetched", total_unique=len(items))
         customers: list[ERPCustomer] = []
@@ -112,6 +177,23 @@ class CosiumConnector(ERPConnector):
 
     def get_invoices(self, page: int = 0, page_size: int = 50) -> list[ERPInvoice]:
         items = self._client.get_paginated("/invoices", page_size=page_size, max_pages=600)
+        return self._map_invoices(items)
+
+    def get_invoices_by_date_range(self, date_from: str, date_to: str, page_size: int = 50) -> list[ERPInvoice]:
+        """Fetch invoices within a date range (ISO format strings).
+
+        Used for month-by-month pagination to bypass the 50-item offset limit.
+        """
+        items = self._client.get_paginated(
+            "/invoices",
+            params={"invoiceDateFrom": date_from, "invoiceDateTo": date_to},
+            page_size=page_size,
+            max_pages=100,
+        )
+        return self._map_invoices(items)
+
+    def _map_invoices(self, items: list[dict]) -> list[ERPInvoice]:
+        """Map raw Cosium invoice dicts to ERPInvoice models."""
         invoices: list[ERPInvoice] = []
         for raw in items:
             mapped = cosium_invoice_to_optiflow(raw)
@@ -126,6 +208,12 @@ class CosiumConnector(ERPConnector):
                     total_tax=mapped.get("tva", 0),
                     settled=mapped.get("settled", False),
                     customer_erp_id=mapped.get("customer_cosium_id", ""),
+                    customer_name=mapped.get("customer_name", ""),
+                    outstanding_balance=mapped.get("outstanding_balance", 0),
+                    share_social_security=mapped.get("share_social_security", 0),
+                    share_private_insurance=mapped.get("share_private_insurance", 0),
+                    archived=raw.get("archived", False),
+                    site_id=raw.get("siteId"),
                 )
             )
         return invoices

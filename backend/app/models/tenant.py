@@ -31,6 +31,7 @@ class Tenant(Base):
     cosium_password_enc: Mapped[str | None] = mapped_column(String(500), nullable=True)
     cosium_connected: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     first_sync_done: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    last_cosium_sync_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     stripe_customer_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     stripe_subscription_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     subscription_status: Mapped[str] = mapped_column(String(30), nullable=False, default="trial")

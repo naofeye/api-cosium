@@ -1,6 +1,6 @@
 """Tests de gestion du trial : expiration, jours restants."""
-import pytest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+
 from app.models import Organization, Tenant, TenantUser, User
 from app.security import hash_password
 
@@ -39,7 +39,7 @@ def test_trial_expired_shows_zero_days(client, db):
     # Force trial to be expired
     tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
     org = db.query(Organization).filter(Organization.id == tenant.organization_id).first()
-    org.trial_ends_at = datetime.now(timezone.utc) - timedelta(days=1)
+    org.trial_ends_at = datetime.now(UTC) - timedelta(days=1)
     db.commit()
 
     status = client.get(
@@ -57,8 +57,6 @@ def test_no_trial_for_solo_plan(client, db):
     assert org.trial_ends_at is None  # Solo plan has no trial
 
     # Login as existing test user
-    from tests.conftest import seed_user_fixture
-    from app.security import hash_password
     user = User(email="solo@test.local", password_hash=hash_password("Test1234"), role="admin", is_active=True)
     db.add(user)
     db.flush()

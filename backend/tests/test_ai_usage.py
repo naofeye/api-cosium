@@ -1,6 +1,6 @@
 """Tests de suivi de consommation IA."""
-import pytest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from app.models import AiUsageLog
 
 
@@ -48,7 +48,7 @@ def test_ai_usage_daily(client, auth_headers, db, default_tenant):
     ))
     db.commit()
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     resp = client.get(
         f"/api/v1/ai/usage/daily?year={now.year}&month={now.month}",
         headers=auth_headers,

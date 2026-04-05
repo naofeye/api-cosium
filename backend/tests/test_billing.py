@@ -1,8 +1,7 @@
 """Tests de facturation Stripe (mock) et billing status."""
-import pytest
-from unittest.mock import patch, MagicMock
-from app.models import Organization, Tenant, TenantUser, User
-from app.security import hash_password
+from unittest.mock import MagicMock, patch
+
+from app.models import Tenant
 
 
 def _signup_and_get_token(client):

@@ -8,7 +8,6 @@ from app.services.collection_prioritizer import (
     prioritize_overdue,
 )
 
-
 # --- _estimate_recovery_probability tests ---
 
 def test_recovery_probability_low_days():

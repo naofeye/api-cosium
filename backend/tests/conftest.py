@@ -4,13 +4,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.core.rate_limiter import _global_attempts
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
-from app.core.rate_limiter import _global_attempts
 from app.models import DocumentType, Organization, ReminderTemplate, Tenant, TenantUser, User
-from app.seed import DOCUMENT_TYPES
 from app.security import hash_password
+from app.seed import DOCUMENT_TYPES
 
 
 @pytest.fixture(name="db")

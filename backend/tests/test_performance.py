@@ -3,7 +3,6 @@
 import time
 
 from app.models import Case, Customer
-from app.security import hash_password
 
 
 def _seed_bulk_data(db, count: int = 200, tenant_id: int = 1):

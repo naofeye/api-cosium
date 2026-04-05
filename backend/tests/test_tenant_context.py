@@ -1,6 +1,5 @@
 """Tests pour le tenant context : extraction du tenant depuis le JWT, validation d'accès."""
-import pytest
-from app.models import Organization, Tenant, TenantUser, User
+from app.models import User
 from app.security import hash_password
 
 

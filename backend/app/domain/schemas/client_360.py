@@ -63,6 +63,18 @@ class ConsentementSummary(BaseModel):
     consenti: bool
 
 
+class CosiumInvoiceSummary(BaseModel):
+    cosium_id: int
+    invoice_number: str
+    invoice_date: str | None = None
+    type: str = "INVOICE"
+    total_ti: float = 0
+    outstanding_balance: float = 0
+    share_social_security: float = 0
+    share_private_insurance: float = 0
+    settled: bool = False
+
+
 class Client360Response(BaseModel):
     id: int
     first_name: str
@@ -84,4 +96,5 @@ class Client360Response(BaseModel):
     pec: list[PecSummary] = []
     consentements: list[ConsentementSummary] = []
     interactions: list[InteractionResponse] = []
+    cosium_invoices: list[CosiumInvoiceSummary] = []
     resume_financier: FinancialSummary = FinancialSummary()

@@ -4,7 +4,7 @@ import os
 import tempfile
 from unittest.mock import patch
 
-from app.integrations.ai.rag import search_docs, _load_docs, _cache, DOCS_DIR
+from app.integrations.ai.rag import _cache, search_docs
 
 
 def _clear_cache():

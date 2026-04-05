@@ -1,0 +1,3107 @@
+equest URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=webstore-site-reward
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:00 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=webstore-site-reward
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=webstart-preferences
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:00 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=webstart-preferences
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=webstart-configuration
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:03 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=webstart-configuration
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=webstart-configuration
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:03 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=webstart-configuration
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=webstart-configuration
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:01 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=webstart-configuration
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+equest URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=webstart-configuration
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:00 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=webstart-configuration
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=webstart-configuration
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:38:59 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=webstart-configuration
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=webstart-access-tokens
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:00 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=webstart-access-tokens
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=user-preferences
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:00 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=user-preferences
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=seller-bonus&included_relation=seller-assistant-ui
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:00 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=seller-bonus&included_relation=seller-assistant-ui
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=online-booking-leads-abandoned-count
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:38:59 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=online-booking-leads-abandoned-count
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=oidc-ui-configuration
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:38:59 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=oidc-ui-configuration
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=notifications-feed
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:38:59 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=notifications-feed
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=notifications
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:01 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=notifications
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=nf525-compliance-information
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:38:59 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=nf525-compliance-information
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=nf-525-fiscal-archives
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:00 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=nf-525-fiscal-archives
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=help-chat-configuration
+Referrer Policy
+strict-origin-when-cross-origin
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=help-chat-configuration
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=help-chat-configuration
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:38:59 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=help-chat-configuration
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=egos-claims&included_relation=sv140-statistics
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:01 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=egos-claims&included_relation=sv140-statistics
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=current-user
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:00 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=current-user
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=current-user
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:38:59 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=current-user
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=current-site
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:01 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=current-site
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+equest URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=current-site
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:01 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=current-site
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=current-site
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:00 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=current-site
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=current-site
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:00 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=current-site
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=current-site
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:00 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=current-site
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=current-site
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:38:59 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=current-site
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=current-site
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:38:59 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=current-site
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=application
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:03 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=application
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=application
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:01 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=application
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=application
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:00 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=application
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/?included_relation=application
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:38:59 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/?included_relation=application
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/public/settings/all
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-encoding
+gzip
+content-type
+application/json
+date
+Sun, 05 Apr 2026 01:38:59 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+origin,access-control-request-method,access-control-request-headers,cookie,authorization,prefer,accept-encoding
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/public/settings/all
+:scheme
+https
+accept
+application/json, text/plain, */*
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/v4.88.95/jsp/Cles.js.jsp?id=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1
+Request Method
+GET
+Status Code
+200 OK (from memory cache)
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+max-age=36000
+content-encoding
+gzip
+content-type
+text/javascript;charset=UTF-8
+date
+Sun, 05 Apr 2026 01:14:40 GMT
+vary
+accept-encoding
+x-proxy-id
+athena
+referer
+https://c1.cosium.biz/01CONE06488/jsp/COS_accueil.jsp
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/v4.88.95/js/WEBSTART.js
+Request Method
+GET
+Status Code
+200 OK (from memory cache)
+Remote Address
+[2a03:a240::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+accept-ranges
+bytes
+content-encoding
+gzip
+content-type
+text/javascript
+date
+Sun, 05 Apr 2026 00:21:52 GMT
+etag
+W/"1064-1775069480000"
+last-modified
+Wed, 01 Apr 2026 18:51:20 GMT
+vary
+accept-encoding
+x-proxy-id
+apollon
+referer
+https://c1.cosium.biz/01CONE06488/jsp/COS_accueil.jsp
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/webstart-access-tokens
+Request Method
+POST
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:01 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+POST
+:path
+/01CONE06488/api/webstart-access-tokens
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-length
+2
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+origin
+https://c1.cosium.biz
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/webstart-access-tokens
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:01 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/webstart-access-tokens
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/webstart/configuration
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:03 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/webstart/configuration
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/webstart/configuration
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:03 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/webstart/configuration
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/webstart/configuration
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:01 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/webstart/configuration
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/webstart/configuration
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:01 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/webstart/configuration
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/webstart/configuration
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:39:00 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/webstart/configuration
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/oidc/ui/configuration
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:38:59 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/oidc/ui/configuration
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+
+Request URL
+https://c1.cosium.biz/01CONE06488/api/help-chat/configuration
+Request Method
+GET
+Status Code
+200 OK
+Remote Address
+[2a03:a240:1::44]:443
+Referrer Policy
+strict-origin-when-cross-origin
+cache-control
+no-cache, no-store, max-age=0, must-revalidate
+content-type
+application/prs.hal-forms+json
+date
+Sun, 05 Apr 2026 01:38:59 GMT
+expires
+0
+pragma
+no-cache
+strict-transport-security
+max-age=31536000; preload
+vary
+Origin
+vary
+Access-Control-Request-Method
+vary
+Access-Control-Request-Headers
+vary
+Cookie
+vary
+Authorization
+vary
+Prefer
+x-proxy-id
+athena
+:authority
+c1.cosium.biz
+:method
+GET
+:path
+/01CONE06488/api/help-chat/configuration
+:scheme
+https
+accept
+application/prs.hal-forms+json;q=1.0, application/hal+json;q=0.9, application/vnd.api+json;q=0.8, application/vnd.siren+json;q=0.8, application/vnd.collection+json;q=0.8, application/json;q=0.7, text/html;q=0.6
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+content-type
+application/json
+cookie
+ui_application=classic; device-credential=G-GREX-__jHvXwYmd6Zgu-n30A0/3; hwStatsHistory=%7B%22afaoussi%22%3A%222026-04-03T15%3A04%3A23.555Z%22%7D; main-frame-name=CosiumOptic255_8fdc542de4fbde2b34cebda36bc533d1; access_token=LhKR-nL3iIT1z0iZqr3qOle6tJk; KC_ROUTE=kc1
+priority
+u=1, i
+referer
+https://c1.cosium.biz/01CONE06488/classic/
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Microsoft Edge";v="146"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0
+
+

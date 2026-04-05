@@ -4,34 +4,38 @@ Ces tests nécessitent des credentials Cosium valides.
 Ils sont skippés par défaut. Lancer avec : pytest -m cosium_live
 """
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-from app.integrations.cosium.client import CosiumClient
+import pytest
+
 from app.integrations.cosium.adapter import (
     cosium_customer_to_optiflow,
     cosium_invoice_to_optiflow,
     cosium_product_to_optiflow,
 )
-
+from app.integrations.cosium.client import CosiumClient
 
 # === Adapter tests (always run — no Cosium connection needed) ===
 
 def test_customer_adapter_full() -> None:
+    # Real Cosium structure: email and mobilePhone are directly on the object
     raw = {
         "id": 42,
         "firstName": "Jean",
         "lastName": "Dupont",
         "birthDate": "1985-03-15",
         "socialSecurityNumber": "185031512345678",
-        "contact": {"email": "jean@test.com", "mobilePhoneNumber": "0612345678", "phoneNumber": "0112345678"},
-        "address": {"street": "12 rue des Lilas", "city": "Paris", "zipCode": "75001"},
+        "email": "jean@test.com",
+        "mobilePhone": "+33612345678",
+        "_embedded": {
+            "address": {"streetName": "12 rue des Lilas", "town": "Paris", "postCode": "75001"},
+        },
     }
     result = cosium_customer_to_optiflow(raw)
     assert result["first_name"] == "Jean"
     assert result["last_name"] == "Dupont"
     assert result["email"] == "jean@test.com"
-    assert result["phone"] == "0612345678"
+    assert result["phone"] == "+33612345678"
     assert result["birth_date"] == "1985-03-15"
     assert result["city"] == "Paris"
     assert result["postal_code"] == "75001"

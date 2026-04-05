@@ -2,9 +2,9 @@
 
 import pytest
 
-from app.integrations.erp_factory import get_connector, list_erp_types, SUPPORTED_ERP_TYPES, PLANNED_ERP_TYPES
-from app.integrations.erp_connector import ERPConnector
 from app.integrations.cosium.cosium_connector import CosiumConnector
+from app.integrations.erp_connector import ERPConnector
+from app.integrations.erp_factory import PLANNED_ERP_TYPES, SUPPORTED_ERP_TYPES, get_connector, list_erp_types
 
 
 def test_get_cosium_connector():

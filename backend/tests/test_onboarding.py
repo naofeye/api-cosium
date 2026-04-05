@@ -1,6 +1,6 @@
 """Tests du workflow complet d'onboarding : signup → connect cosium (mock) → status."""
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from app.models import Organization, Tenant, TenantUser, User
 
 

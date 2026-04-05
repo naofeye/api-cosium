@@ -1,6 +1,7 @@
 """Tests d'intégrité de synchronisation ERP → OptiFlow."""
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from fastapi.testclient import TestClient
 
 from app.integrations.erp_models import ERPCustomer

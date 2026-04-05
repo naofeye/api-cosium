@@ -1,5 +1,6 @@
 """Tests d'isolation multi-tenant : un user ne voit PAS les données d'un autre tenant."""
 import pytest
+
 from app.models import Case, Customer, Organization, Tenant, TenantUser, User
 from app.security import hash_password
 

@@ -1,7 +1,7 @@
 """Tests du connecteur ERP — CosiumConnector implemente toutes les methodes."""
 
-from app.integrations.erp_connector import ERPConnector
 from app.integrations.cosium.cosium_connector import CosiumConnector
+from app.integrations.erp_connector import ERPConnector
 
 
 def test_cosium_connector_is_erp_connector():
