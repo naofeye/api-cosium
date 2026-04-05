@@ -69,12 +69,14 @@ def test_cannot_create_facture_from_draft(client: TestClient, auth_headers: dict
     assert resp.status_code == 400
 
 
-def test_cannot_create_duplicate_facture(client: TestClient, auth_headers: dict) -> None:
+def test_duplicate_facture_is_idempotent(client: TestClient, auth_headers: dict) -> None:
     devis_id = _create_signed_devis(client, auth_headers)
-    resp = client.post("/api/v1/factures", json={"devis_id": devis_id}, headers=auth_headers)
-    assert resp.status_code == 201
-    resp = client.post("/api/v1/factures", json={"devis_id": devis_id}, headers=auth_headers)
-    assert resp.status_code == 400
+    resp1 = client.post("/api/v1/factures", json={"devis_id": devis_id}, headers=auth_headers)
+    assert resp1.status_code == 201
+    resp2 = client.post("/api/v1/factures", json={"devis_id": devis_id}, headers=auth_headers)
+    assert resp2.status_code == 201
+    assert resp1.json()["id"] == resp2.json()["id"]
+    assert resp1.json()["numero"] == resp2.json()["numero"]
 
 
 def test_list_factures(client: TestClient, auth_headers: dict) -> None:

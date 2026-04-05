@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useSWRConfig } from "swr";
 import { logger } from "@/lib/logger";
 import { paymentCreateSchema, type PaymentCreateFormData } from "@/lib/schemas/payment";
 import { PageLayout } from "@/components/layout/PageLayout";
@@ -19,6 +20,7 @@ interface CaseOption {
 }
 
 export default function PaiementsPage() {
+  const { mutate: globalMutate } = useSWRConfig();
   const [cases, setCases] = useState<CaseOption[]>([]);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +66,8 @@ export default function PaiementsPage() {
       });
       setSuccess(`Paiement #${resp.id} enregistre (${resp.status})`);
       reset();
+      // Invalidate case detail payment caches so TabFinances stays in sync
+      globalMutate((key: string) => typeof key === "string" && key.includes("/payments"), undefined, { revalidate: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur");
     }

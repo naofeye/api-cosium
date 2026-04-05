@@ -1,3 +1,4 @@
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessError, NotFoundError
@@ -13,6 +14,7 @@ from app.domain.schemas.pec import (
     RelanceCreate,
     RelanceResponse,
 )
+from app.models.facture import Facture
 from app.repositories import pec_repo
 from app.services import audit_service, event_service
 
@@ -57,6 +59,17 @@ def create_pec(db: Session, tenant_id: int, payload: PecCreate, user_id: int) ->
     org = pec_repo.get_organization(db, org_id=payload.organization_id, tenant_id=tenant_id)
     if not org:
         raise NotFoundError("organization", payload.organization_id)
+
+    # Validate facture_id exists and belongs to the tenant
+    if payload.facture_id:
+        facture = db.scalars(
+            select(Facture).where(
+                Facture.id == payload.facture_id,
+                Facture.tenant_id == tenant_id,
+            )
+        ).first()
+        if not facture:
+            raise BusinessError("FACTURE_NOT_FOUND", "La facture associee n'existe pas")
 
     pec = pec_repo.create_pec(
         db,
@@ -142,6 +155,15 @@ def change_status(db: Session, tenant_id: int, pec_id: int, payload: PecStatusUp
             f"Transition '{pec.status}' -> '{payload.status}' non autorisee. "
             f"Transitions possibles : {', '.join(allowed) or 'aucune'}",
         )
+
+    if payload.montant_accorde is not None:
+        if payload.montant_accorde < 0:
+            raise BusinessError("MONTANT_NEGATIF", "Le montant accorde ne peut pas etre negatif")
+        if pec.montant_demande and payload.montant_accorde > float(pec.montant_demande):
+            raise BusinessError(
+                "MONTANT_DEPASSE",
+                "Le montant accorde ne peut pas depasser le montant demande",
+            )
 
     old_status = pec.status
     pec_repo.update_status(db, pec, payload.status, payload.montant_accorde)

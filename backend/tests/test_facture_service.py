@@ -68,14 +68,15 @@ class TestCreateFromDevis:
         with pytest.raises(BusinessError):
             facture_service.create_from_devis(db, tenant.id, devis.id, seed_user.id)
 
-    def test_duplicate_facture_raises(self, db, seed_user):
-        """On ne peut pas creer deux factures pour le meme devis."""
+    def test_duplicate_facture_is_idempotent(self, db, seed_user):
+        """Appeler deux fois create_from_devis retourne la meme facture (idempotent)."""
         tenant = db.query(Tenant).filter(Tenant.slug == "test-magasin").first()
         devis_id = _create_signed_devis(db, tenant.id, seed_user.id)
 
-        facture_service.create_from_devis(db, tenant.id, devis_id, seed_user.id)
-        with pytest.raises(BusinessError):
-            facture_service.create_from_devis(db, tenant.id, devis_id, seed_user.id)
+        first = facture_service.create_from_devis(db, tenant.id, devis_id, seed_user.id)
+        second = facture_service.create_from_devis(db, tenant.id, devis_id, seed_user.id)
+        assert first.id == second.id
+        assert first.numero == second.numero
 
     def test_create_facture_devis_not_found(self, db, seed_user):
         """Un devis inexistant doit lever NotFoundError."""

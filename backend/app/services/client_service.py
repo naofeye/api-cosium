@@ -4,7 +4,7 @@ import io
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import BusinessError, NotFoundError
 from app.core.logging import get_logger
 from app.domain.schemas.clients import (
     ClientCreate,
@@ -93,6 +93,23 @@ def restore_client(db: Session, tenant_id: int, client_id: int, user_id: int) ->
         raise NotFoundError("client", client_id)
     if customer.deleted_at is None:
         raise NotFoundError("client", client_id)
+
+    # Check for duplicate email before restoring
+    if customer.email:
+        conflict = db.scalars(
+            select(Customer).where(
+                Customer.tenant_id == tenant_id,
+                Customer.email == customer.email,
+                Customer.deleted_at.is_(None),
+                Customer.id != customer.id,
+            )
+        ).first()
+        if conflict:
+            raise BusinessError(
+                "DUPLICATE_EMAIL",
+                f"Un client actif avec l'email {customer.email} existe deja",
+            )
+
     restored = client_repo.restore(db, customer)
     audit_service.log_action(db, tenant_id, user_id, "restore", "client", client_id)
     logger.info("client_restored", tenant_id=tenant_id, client_id=client_id, user_id=user_id)

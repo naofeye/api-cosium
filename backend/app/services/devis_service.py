@@ -130,6 +130,15 @@ def update_devis(db: Session, tenant_id: int, devis_id: int, payload: DevisUpdat
     part_mutuelle = payload.part_mutuelle if payload.part_mutuelle is not None else float(devis.part_mutuelle)
 
     if payload.lignes is not None:
+        # Calculate new totals BEFORE modifying anything to ensure atomicity
+        new_total_ht = 0.0
+        new_total_ttc = 0.0
+        for ligne in payload.lignes:
+            montant_ht, montant_ttc = _compute_ligne(ligne)
+            new_total_ht += montant_ht
+            new_total_ttc += montant_ttc
+
+        # All-or-nothing: delete old + insert new in same flush
         devis_repo.clear_lignes(db, devis_id=devis_id, tenant_id=tenant_id)
         _add_lignes(db, tenant_id, devis_id, payload.lignes)
 
@@ -144,7 +153,12 @@ def update_devis(db: Session, tenant_id: int, devis_id: int, payload: DevisUpdat
         part_mutuelle,
         reste,
     )
-    db.commit()
+
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     db.refresh(devis)
 
     if user_id:

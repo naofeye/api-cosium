@@ -80,8 +80,12 @@ def get_financial_kpis(
     cosium_outstanding = float(db.scalar(q_cosium_outstanding) or 0)
     cosium_paid = round(cosium_ca - cosium_outstanding, 2)
 
-    # --- Merge: use Cosium if it has data, otherwise OptiFlow ---
-    if cosium_ca > 0:
+    # --- Merge: use Cosium if it has meaningful data, otherwise OptiFlow ---
+    # If Cosium has CA but outstanding == ca_total, payments likely not synced yet —
+    # fall back to OptiFlow to avoid showing 0 paid / 0% recouvrement
+    cosium_payments_synced = not (cosium_ca > 0 and cosium_outstanding >= cosium_ca)
+
+    if cosium_ca > 0 and cosium_payments_synced:
         ca_total = round(cosium_ca, 2)
         montant_encaisse = round(max(cosium_paid, 0), 2)
         reste_a_encaisser = round(cosium_outstanding, 2)

@@ -18,17 +18,17 @@ def create_from_devis(db: Session, tenant_id: int, devis_id: int, user_id: int) 
     if not devis:
         raise NotFoundError("devis", devis_id)
 
-    if devis.status not in ("signe", "facture"):
+    if devis.status == "facture":
+        # Idempotent: if already converted, return existing facture
+        existing = facture_repo.get_by_devis_id(db, devis_id=devis_id, tenant_id=tenant_id)
+        if existing:
+            logger.info("facture_already_exists", tenant_id=tenant_id, devis_id=devis_id, facture_id=existing.id)
+            return FactureResponse.model_validate(existing)
+        # Partial failure recovery: devis marked as "facture" but no facture exists — allow creation
+    elif devis.status != "signe":
         raise BusinessError(
             "DEVIS_NOT_SIGNED",
             "Le devis doit etre signe avant de pouvoir generer une facture",
-        )
-
-    existing = facture_repo.get_by_devis_id(db, devis_id=devis_id, tenant_id=tenant_id)
-    if existing:
-        raise BusinessError(
-            "FACTURE_ALREADY_EXISTS",
-            f"Une facture existe deja pour ce devis ({existing.numero})",
         )
 
     numero = facture_repo.generate_numero(db, tenant_id)
