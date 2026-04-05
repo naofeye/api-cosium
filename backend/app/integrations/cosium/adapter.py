@@ -30,8 +30,8 @@ def cosium_customer_to_optiflow(data: dict) -> dict:
     address = data.get("_embedded", {}).get("address", {})
 
     return {
-        "first_name": data.get("firstName", ""),
-        "last_name": data.get("lastName", ""),
+        "first_name": data.get("firstName") or "",
+        "last_name": data.get("lastName") or "",
         "birth_date": data.get("birthDate"),
         "phone": data.get("mobilePhone") or contact.get("mobilePhoneNumber") or contact.get("phoneNumber"),
         "email": data.get("email") or contact.get("email"),
