@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import useSWR from "swr";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { KPICard } from "@/components/ui/KPICard";
 import { LoadingState } from "@/components/ui/LoadingState";
-import { Users, FileText, Activity, FolderOpen } from "lucide-react";
+import { Users, FileText, Activity, FolderOpen, Shield } from "lucide-react";
 import { ActivityChart } from "./components/ActivityChart";
 import { HealthStatus } from "./components/HealthStatus";
 import { CosiumConnection } from "./components/CosiumConnection";
@@ -100,6 +101,16 @@ export default function AdminPage() {
 
       {activity && <ActivityChart activity={activity} />}
       <RecentActivity activity={activity} />
+
+      <div className="mt-6">
+        <Link
+          href="/admin/audit"
+          className="inline-flex items-center gap-2 rounded-lg border border-border bg-bg-card px-4 py-3 text-sm font-medium text-text-primary shadow-sm hover:bg-gray-50 transition-colors"
+        >
+          <Shield className="h-4 w-4 text-text-secondary" aria-hidden="true" />
+          Consulter le journal d&apos;audit complet
+        </Link>
+      </div>
     </PageLayout>
   );
 }

@@ -96,7 +96,7 @@ export function DataTable<T extends { id: number | string }>({
       <div className="overflow-x-auto rounded-xl border border-border bg-bg-card">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border bg-gray-50">
+            <tr className="border-b border-border bg-gray-50 dark:bg-gray-800/50">
               {columns.map((col) => (
                 <th
                   key={col.key}
@@ -134,7 +134,7 @@ export function DataTable<T extends { id: number | string }>({
                 key={row.id}
                 className={cn(
                   "border-b border-border last:border-0 transition-colors",
-                  onRowClick && "cursor-pointer hover:bg-gray-50",
+                  onRowClick && "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50",
                 )}
                 onClick={() => onRowClick?.(row)}
               >

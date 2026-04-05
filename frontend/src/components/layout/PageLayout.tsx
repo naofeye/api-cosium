@@ -15,10 +15,10 @@ export function PageLayout({ title, description, breadcrumb, actions, children }
   return (
     <>
       <Header breadcrumb={breadcrumb} />
-      <div className="px-6 py-8 max-w-[1440px] mx-auto">
-        <div className="flex items-start justify-between mb-8">
+      <div className="px-3 sm:px-6 py-4 sm:py-8 max-w-[1440px] mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-text-primary">{title}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-text-primary">{title}</h1>
             {description && <p className="mt-1 text-sm text-text-secondary">{description}</p>}
           </div>
           {actions && <div className="flex gap-2">{actions}</div>}

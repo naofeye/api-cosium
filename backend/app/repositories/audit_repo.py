@@ -41,8 +41,11 @@ def search(
     date_to: datetime | None,
     page: int,
     size: int,
+    action: str | None = None,
 ) -> tuple[list[AuditLog], int]:
     stmt = select(AuditLog).where(AuditLog.tenant_id == tenant_id)
+    if action:
+        stmt = stmt.where(AuditLog.action == action)
     if entity_type:
         stmt = stmt.where(AuditLog.entity_type == entity_type)
     if entity_id:

@@ -16,6 +16,7 @@ from app.models import (
     Payment,
     PecRequest,
 )
+from app.models.cosium_data import CosiumInvoice, CosiumPayment, CosiumPrescription
 
 logger = get_logger("ai_service")
 
@@ -43,6 +44,145 @@ SYSTEM_PROMPTS = {
         "adaptees aux opticiens. Sois creatif mais realiste."
     ),
 }
+
+
+def get_client_cosium_context(db: Session, customer_id: int, tenant_id: int) -> str:
+    """Build a concise Cosium data context string for a given customer.
+
+    Queries CosiumInvoice, CosiumPrescription, and CosiumPayment tables
+    for data linked to this customer, and formats it as a readable summary.
+    """
+    parts: list[str] = []
+
+    # Cosium invoices
+    invoices = db.execute(
+        select(
+            CosiumInvoice.invoice_number,
+            CosiumInvoice.invoice_date,
+            CosiumInvoice.total_ti,
+            CosiumInvoice.outstanding_balance,
+            CosiumInvoice.type,
+            CosiumInvoice.settled,
+        )
+        .where(
+            CosiumInvoice.customer_id == customer_id,
+            CosiumInvoice.tenant_id == tenant_id,
+        )
+        .order_by(CosiumInvoice.invoice_date.desc())
+        .limit(20)
+    ).all()
+
+    if invoices:
+        total_amount = sum(float(inv.total_ti) for inv in invoices)
+        total_outstanding = sum(float(inv.outstanding_balance) for inv in invoices)
+        settled_count = sum(1 for inv in invoices if inv.settled)
+        last_date = invoices[0].invoice_date if invoices[0].invoice_date else None
+        parts.append(
+            f"FACTURES COSIUM ({len(invoices)}): "
+            f"total {total_amount:.2f} EUR, "
+            f"solde restant {total_outstanding:.2f} EUR, "
+            f"{settled_count} soldees"
+        )
+        if last_date:
+            parts.append(f"  Derniere facture: {last_date.strftime('%d/%m/%Y') if hasattr(last_date, 'strftime') else last_date}")
+        for inv in invoices[:5]:
+            date_str = inv.invoice_date.strftime('%d/%m/%Y') if inv.invoice_date and hasattr(inv.invoice_date, 'strftime') else 'N/A'
+            parts.append(
+                f"  - {inv.invoice_number} ({inv.type}) {date_str}: "
+                f"{inv.total_ti:.2f} EUR {'(solde)' if inv.settled else f'reste {inv.outstanding_balance:.2f} EUR'}"
+            )
+
+    # Cosium prescriptions
+    prescriptions = db.execute(
+        select(
+            CosiumPrescription.prescription_date,
+            CosiumPrescription.sphere_right,
+            CosiumPrescription.cylinder_right,
+            CosiumPrescription.axis_right,
+            CosiumPrescription.addition_right,
+            CosiumPrescription.sphere_left,
+            CosiumPrescription.cylinder_left,
+            CosiumPrescription.axis_left,
+            CosiumPrescription.addition_left,
+            CosiumPrescription.prescriber_name,
+        )
+        .where(
+            CosiumPrescription.customer_id == customer_id,
+            CosiumPrescription.tenant_id == tenant_id,
+        )
+        .order_by(CosiumPrescription.file_date.desc())
+        .limit(5)
+    ).all()
+
+    if prescriptions:
+        parts.append(f"\nORDONNANCES COSIUM ({len(prescriptions)}):")
+        for rx in prescriptions:
+            od_parts = []
+            if rx.sphere_right is not None:
+                od_parts.append(f"sph {rx.sphere_right:+.2f}")
+            if rx.cylinder_right is not None:
+                od_parts.append(f"cyl {rx.cylinder_right:+.2f}")
+            if rx.axis_right is not None:
+                od_parts.append(f"axe {int(rx.axis_right)}")
+            if rx.addition_right is not None:
+                od_parts.append(f"add {rx.addition_right:+.2f}")
+
+            og_parts = []
+            if rx.sphere_left is not None:
+                og_parts.append(f"sph {rx.sphere_left:+.2f}")
+            if rx.cylinder_left is not None:
+                og_parts.append(f"cyl {rx.cylinder_left:+.2f}")
+            if rx.axis_left is not None:
+                og_parts.append(f"axe {int(rx.axis_left)}")
+            if rx.addition_left is not None:
+                og_parts.append(f"add {rx.addition_left:+.2f}")
+
+            od_str = " ".join(od_parts) if od_parts else "N/A"
+            og_str = " ".join(og_parts) if og_parts else "N/A"
+            date_str = rx.prescription_date or "N/A"
+            prescriber = rx.prescriber_name or "N/A"
+            parts.append(f"  - {date_str} (Dr {prescriber}): OD [{od_str}] OG [{og_str}]")
+
+    # Cosium payments — linked to customer via invoice_cosium_id
+    # CosiumPayment doesn't have a direct customer_id, so we go through invoices.
+    if invoices:
+        customer_invoice_ids = db.scalars(
+            select(CosiumInvoice.cosium_id).where(
+                CosiumInvoice.customer_id == customer_id,
+                CosiumInvoice.tenant_id == tenant_id,
+            )
+        ).all()
+
+        if customer_invoice_ids:
+            cosium_payments = db.execute(
+                select(
+                    CosiumPayment.amount,
+                    CosiumPayment.type,
+                    CosiumPayment.due_date,
+                    CosiumPayment.payment_number,
+                )
+                .where(
+                    CosiumPayment.tenant_id == tenant_id,
+                    CosiumPayment.invoice_cosium_id.in_(customer_invoice_ids),
+                )
+                .order_by(CosiumPayment.due_date.desc())
+                .limit(10)
+            ).all()
+
+            if cosium_payments:
+                total_paid = sum(float(p.amount) for p in cosium_payments)
+                parts.append(
+                    f"\nPAIEMENTS COSIUM ({len(cosium_payments)}): "
+                    f"total encaisse {total_paid:.2f} EUR"
+                )
+                for p in cosium_payments[:5]:
+                    date_str = p.due_date.strftime('%d/%m/%Y') if p.due_date and hasattr(p.due_date, 'strftime') else 'N/A'
+                    parts.append(f"  - {p.payment_number} ({p.type}) {date_str}: {p.amount:.2f} EUR")
+
+    if not parts:
+        return ""
+
+    return "\n".join(parts)
 
 
 def _build_case_context(db: Session, tenant_id: int, case_id: int) -> str:
@@ -131,6 +271,15 @@ def _build_case_context(db: Session, tenant_id: int, case_id: int) -> str:
             parts.append(
                 f"  - {p.name}: {p.status} | demande={p.montant_demande} EUR | accorde={p.montant_accorde or 'N/A'} EUR"
             )
+
+    # Enrich with Cosium data if customer is linked
+    customer_row = db.execute(
+        select(Case.customer_id).where(Case.id == case_id, Case.tenant_id == tenant_id)
+    ).first()
+    if customer_row and customer_row.customer_id:
+        cosium_ctx = get_client_cosium_context(db, customer_row.customer_id, tenant_id)
+        if cosium_ctx:
+            parts.append(f"\n--- DONNEES COSIUM (ERP) ---\n{cosium_ctx}")
 
     return "\n".join(parts)
 

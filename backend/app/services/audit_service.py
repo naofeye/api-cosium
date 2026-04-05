@@ -1,9 +1,11 @@
 import json
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
 from app.domain.schemas.audit import AuditLogListResponse, AuditLogResponse
+from app.models.user import User
 from app.repositories import audit_repo
 
 logger = get_logger("audit_service")
@@ -48,14 +50,30 @@ def search_logs(
     date_to: str | None,
     page: int,
     page_size: int,
+    action: str | None = None,
 ) -> AuditLogListResponse:
     from datetime import datetime
 
     df = datetime.fromisoformat(date_from) if date_from else None
     dt = datetime.fromisoformat(date_to) if date_to else None
-    items, total = audit_repo.search(db, tenant_id, entity_type, entity_id, user_id, df, dt, page, page_size)
+    items, total = audit_repo.search(
+        db, tenant_id, entity_type, entity_id, user_id, df, dt, page, page_size, action=action,
+    )
+    # Enrich with user emails
+    user_ids = list({i.user_id for i in items})
+    email_map: dict[int, str] = {}
+    if user_ids:
+        rows = db.execute(select(User.id, User.email).where(User.id.in_(user_ids))).all()
+        email_map = {r.id: r.email for r in rows}
+
+    enriched = []
+    for i in items:
+        resp = AuditLogResponse.model_validate(i)
+        resp.user_email = email_map.get(i.user_id)
+        enriched.append(resp)
+
     return AuditLogListResponse(
-        items=[AuditLogResponse.model_validate(i) for i in items],
+        items=enriched,
         total=total,
         page=page,
         page_size=page_size,

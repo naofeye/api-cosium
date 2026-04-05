@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, LogOut, User, X, Clock, Moon, Sun } from "lucide-react";
+import { Bell, LogOut, User, X, Clock, Moon, Sun, Menu } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { logout } from "@/lib/auth";
 import { useEffect, useRef, useState } from "react";
@@ -9,6 +9,7 @@ import { fetchJson } from "@/lib/api";
 import { toggleDarkMode } from "@/lib/theme";
 import { GlobalSearch } from "./GlobalSearch";
 import { TenantSelector } from "./TenantSelector";
+import { useSidebar } from "@/lib/sidebar-context";
 
 interface HeaderProps {
   breadcrumb?: { label: string; href?: string }[];
@@ -40,6 +41,7 @@ export function Header({ breadcrumb }: HeaderProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { toggleMobile } = useSidebar();
 
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
@@ -111,25 +113,46 @@ export function Header({ breadcrumb }: HeaderProps) {
       )}
       <header
         role="banner"
-        className={`sticky ${trialDays !== null ? "top-[36px]" : "top-0"} z-30 flex h-16 items-center justify-between border-b border-border bg-bg-card px-6 shadow-sm`}
+        className={`sticky ${trialDays !== null ? "top-[36px]" : "top-0"} z-30 flex h-16 items-center justify-between border-b border-border bg-bg-card px-3 sm:px-6 shadow-sm`}
       >
-        <div className="flex items-center gap-2 text-sm text-text-secondary">
-          {breadcrumb?.map((item, i) => (
-            <span key={i} className="flex items-center gap-2">
-              {i > 0 && <span>/</span>}
-              {item.href ? (
-                <a href={item.href} className="text-primary hover:underline">
-                  {item.label}
-                </a>
-              ) : (
-                <span className="text-text-primary font-medium">{item.label}</span>
-              )}
-            </span>
-          ))}
+        {/* Left side: hamburger (mobile) + breadcrumb */}
+        <div className="flex items-center gap-2 text-sm text-text-secondary min-w-0">
+          {/* Hamburger button - visible only on mobile */}
+          <button
+            onClick={toggleMobile}
+            className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-700 lg:hidden"
+            aria-label="Ouvrir le menu"
+            title="Ouvrir le menu"
+          >
+            <Menu className="h-5 w-5 text-text-primary" aria-hidden="true" />
+          </button>
+
+          {/* Logo on mobile (when sidebar is hidden) */}
+          <span className="font-bold text-text-primary lg:hidden text-sm">OptiFlow</span>
+
+          {/* Breadcrumb - hidden on mobile */}
+          <div className="hidden sm:flex items-center gap-2">
+            {breadcrumb?.map((item, i) => (
+              <span key={i} className="flex items-center gap-2">
+                {i > 0 && <span>/</span>}
+                {item.href ? (
+                  <a href={item.href} className="text-primary hover:underline">
+                    {item.label}
+                  </a>
+                ) : (
+                  <span className="text-text-primary font-medium">{item.label}</span>
+                )}
+              </span>
+            ))}
+          </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <GlobalSearch />
+        {/* Right side: search + actions */}
+        <div className="flex items-center gap-2 sm:gap-4">
+          {/* Global search - hidden on small mobile, visible from sm */}
+          <div className="hidden sm:block">
+            <GlobalSearch />
+          </div>
           <TenantSelector />
           <button
             onClick={() => setIsDark(toggleDarkMode())}
@@ -142,7 +165,7 @@ export function Header({ breadcrumb }: HeaderProps) {
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={toggleDropdown}
-              className="relative rounded-lg p-2 hover:bg-gray-100"
+              className="relative rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
               aria-label="Notifications"
               title="Notifications"
             >
@@ -155,7 +178,7 @@ export function Header({ breadcrumb }: HeaderProps) {
             </button>
 
             {showDropdown && (
-              <div className="absolute right-0 top-12 w-80 rounded-xl border border-border bg-bg-card shadow-xl">
+              <div className="absolute right-0 top-12 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-bg-card shadow-xl">
                 <div className="flex items-center justify-between border-b border-border px-4 py-3">
                   <h3 className="text-sm font-semibold text-text-primary">Notifications</h3>
                   <div className="flex items-center gap-2">
@@ -166,7 +189,7 @@ export function Header({ breadcrumb }: HeaderProps) {
                     )}
                     <button
                       onClick={() => setShowDropdown(false)}
-                      className="rounded p-1 hover:bg-gray-100"
+                      className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
                       aria-label="Fermer"
                       title="Fermer"
                     >
@@ -183,7 +206,7 @@ export function Header({ breadcrumb }: HeaderProps) {
                       <div
                         key={n.id}
                         className={`flex gap-3 border-b border-border px-4 py-3 last:border-0 ${
-                          !n.is_read ? "bg-blue-50/50" : ""
+                          !n.is_read ? "bg-blue-50/50 dark:bg-blue-900/20" : ""
                         }`}
                       >
                         <div className={`mt-1 h-2 w-2 shrink-0 rounded-full ${typeColor(n.type)}`} />
@@ -199,7 +222,8 @@ export function Header({ breadcrumb }: HeaderProps) {
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* User avatar + logout - hide logout text on mobile */}
+          <div className="flex items-center gap-1 sm:gap-2">
             <div
               className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white"
               aria-label="Profil utilisateur"
@@ -209,7 +233,7 @@ export function Header({ breadcrumb }: HeaderProps) {
             </div>
             <button
               onClick={handleLogout}
-              className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-danger"
+              className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-danger"
               aria-label="Se deconnecter"
               title="Se deconnecter"
             >

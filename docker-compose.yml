@@ -61,7 +61,17 @@ services:
     volumes: ["./frontend:/app", "/app/node_modules"]
   worker:
     build: { context: ./backend }
-    command: celery -A app.tasks worker --loglevel=info -B
+    command: celery -A app.tasks worker --loglevel=info
+    env_file: [.env]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes: ["./backend:/app"]
+  beat:
+    build: { context: ./backend }
+    command: celery -A app.tasks beat --loglevel=info
     env_file: [.env]
     depends_on:
       postgres:

@@ -17,12 +17,13 @@
 }
 
 .dark {
-  --color-bg-page: #111827;
-  --color-bg-card: #1f2937;
-  --color-text-primary: #f9fafb;
-  --color-text-secondary: #9ca3af;
-  --color-border: #374151;
+  --color-bg-page: #0f172a;
+  --color-bg-card: #1e293b;
   --color-bg-sidebar: #0f172a;
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-on-dark: #ffffff;
+  --color-border: #334155;
 }
 
 body {
@@ -41,4 +42,77 @@ textarea:focus-visible,
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* Dark mode adjustments for elements using hardcoded colors */
+.dark .bg-gray-50 {
+  background-color: #1e293b;
+}
+
+.dark .bg-white {
+  background-color: #1e293b;
+}
+
+.dark .hover\:bg-gray-50:hover {
+  background-color: #334155;
+}
+
+.dark .hover\:bg-gray-100:hover {
+  background-color: #334155;
+}
+
+.dark .bg-blue-50\/50 {
+  background-color: rgb(30 58 138 / 0.2);
+}
+
+.dark .border-gray-200 {
+  border-color: #334155;
+}
+
+.dark .text-gray-900 {
+  color: #f1f5f9;
+}
+
+.dark .text-gray-700 {
+  color: #cbd5e1;
+}
+
+.dark .text-gray-500 {
+  color: #94a3b8;
+}
+
+.dark .text-gray-400 {
+  color: #64748b;
+}
+
+/* Dark mode for input fields */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #0f172a;
+  color: #f1f5f9;
+  border-color: #334155;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b;
+}
+
+/* Dark mode for search dropdown */
+.dark .bg-gray-50 input {
+  background-color: #1e293b;
+}
+
+/* Responsive table wrapper - ensure tables scroll on mobile */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure smooth scrolling on mobile sidebar */
+@media (max-width: 1023px) {
+  .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+  }
 }

@@ -5,12 +5,17 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 
+import uuid
+
+
 def _create_client(client: TestClient, headers: dict) -> int:
+    uid = uuid.uuid4().hex[:8]
     resp = client.post(
         "/api/v1/clients",
-        json={"first_name": "Renewal", "last_name": "Test", "email": "renewal@test.com"},
+        json={"first_name": "Renewal", "last_name": f"Test{uid}", "email": f"renewal{uid}@test.com"},
         headers=headers,
     )
+    assert resp.status_code == 201, f"Client creation failed: {resp.status_code} {resp.text[:200]}"
     return resp.json()["id"]
 
 

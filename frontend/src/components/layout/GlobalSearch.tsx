@@ -94,7 +94,7 @@ export function GlobalSearch() {
           }}
           onFocus={() => setOpen(true)}
           placeholder="Rechercher un client, dossier, devis, facture..."
-          className="w-full rounded-lg border border-border bg-gray-50 py-2 pl-10 pr-8 text-sm outline-none focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary"
+          className="w-full rounded-lg border border-border bg-gray-50 dark:bg-gray-800 py-2 pl-10 pr-8 text-sm outline-none focus:border-primary focus:bg-white dark:focus:bg-gray-900 focus:ring-1 focus:ring-primary"
         />
         {query && (
           <button
@@ -111,7 +111,7 @@ export function GlobalSearch() {
       </div>
 
       {showDropdown && (
-        <div className="absolute top-full left-0 right-0 mt-1 max-h-80 overflow-y-auto rounded-xl border border-border bg-white shadow-xl z-50">
+        <div className="absolute top-full left-0 right-0 mt-1 max-h-80 overflow-y-auto rounded-xl border border-border bg-bg-card shadow-xl z-50">
           {allResults.length === 0 && (
             <div className="px-4 py-6 text-center text-sm text-text-secondary">
               Aucun resultat pour &quot;{debouncedQuery}&quot;
@@ -126,7 +126,7 @@ export function GlobalSearch() {
                   <li key={`${item.type}-${item.id}-${i}`}>
                     <button
                       onClick={() => handleSelect(item as SearchResultItem & { type: keyof typeof TYPE_CONFIG })}
-                      className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 transition-colors"
+                      className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
                       <Icon className={`h-4 w-4 shrink-0 ${config.color}`} />
                       <div className="min-w-0 flex-1">

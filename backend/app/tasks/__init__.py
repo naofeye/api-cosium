@@ -11,9 +11,13 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.reminder_tasks.auto_generate_reminders",
         "schedule": crontab(hour=8, minute=0),  # Every day at 8am
     },
-    "sync-cosium-hourly": {
+    "sync-cosium-daily": {
         "task": "app.tasks.sync_tasks.sync_all_tenants",
-        "schedule": crontab(minute=0),  # Every hour
+        "schedule": crontab(hour=6, minute=0),  # Every day at 6 AM
+    },
+    "test-cosium-connection": {
+        "task": "app.tasks.sync_tasks.test_cosium_connection",
+        "schedule": crontab(minute=0, hour="*/4"),  # Every 4 hours
     },
 }
 celery_app.conf.timezone = "Europe/Paris"

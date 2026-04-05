@@ -19,6 +19,7 @@ router = APIRouter(prefix="/api/v1/audit-logs", tags=["audit"])
     description="Retourne la liste paginee et filtrable des logs d'audit (admin uniquement).",
 )
 def list_audit_logs(
+    action: str | None = Query(None),
     entity_type: str | None = Query(None),
     entity_id: int | None = Query(None),
     user_id: int | None = Query(None),
@@ -32,6 +33,7 @@ def list_audit_logs(
     return audit_service.search_logs(
         db,
         tenant_id=tenant_ctx.tenant_id,
+        action=action,
         entity_type=entity_type,
         entity_id=entity_id,
         user_id=user_id,

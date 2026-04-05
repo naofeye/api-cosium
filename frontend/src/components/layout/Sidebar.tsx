@@ -26,9 +26,11 @@ import {
   FileStack,
   Calendar,
   Stethoscope,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 import { useTenant } from "@/lib/tenant-context";
+import { useSidebar } from "@/lib/sidebar-context";
 
 const navItems = [
   { href: "/actions", label: "Actions", icon: Zap },
@@ -67,105 +69,159 @@ export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const { isMultiTenant } = useTenant();
+  const { mobileOpen, closeMobile } = useSidebar();
 
-  return (
-    <aside
-      role="navigation"
-      aria-label="Menu principal"
-      className={cn(
-        "fixed inset-y-0 left-0 z-40 flex flex-col bg-bg-sidebar text-text-on-dark transition-all duration-200",
-        collapsed ? "w-16" : "w-64",
-      )}
-    >
+  const handleLinkClick = () => {
+    // Close mobile sidebar when navigating
+    closeMobile();
+  };
+
+  const sidebarContent = (
+    <>
       <div className="flex h-16 items-center justify-between px-4">
         {!collapsed && (
-          <Link href="/actions" className="text-lg font-bold">
+          <Link href="/actions" className="text-lg font-bold" onClick={handleLinkClick}>
             OptiFlow AI
           </Link>
         )}
+        {/* Desktop: collapse toggle. Mobile: close button */}
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={() => {
+            if (mobileOpen) {
+              closeMobile();
+            } else {
+              setCollapsed(!collapsed);
+            }
+          }}
           className="rounded-lg p-1.5 hover:bg-gray-800"
-          aria-label={collapsed ? "Agrandir le menu" : "Réduire le menu"}
-          title={collapsed ? "Agrandir le menu" : "Reduire le menu"}
+          aria-label={mobileOpen ? "Fermer le menu" : collapsed ? "Agrandir le menu" : "Reduire le menu"}
+          title={mobileOpen ? "Fermer le menu" : collapsed ? "Agrandir le menu" : "Reduire le menu"}
         >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          {mobileOpen ? (
+            <X className="h-5 w-5" />
+          ) : collapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
         </button>
       </div>
 
-      <nav className="mt-4 flex-1 space-y-1 px-2">
+      <nav className="mt-4 flex-1 space-y-1 overflow-y-auto px-2">
         {navItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
+          const showLabel = mobileOpen || !collapsed;
           return (
             <Link
               key={item.href}
               href={item.href}
+              onClick={handleLinkClick}
               aria-current={active ? "page" : undefined}
-              aria-label={collapsed ? item.label : undefined}
+              aria-label={!showLabel ? item.label : undefined}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none",
                 active
                   ? "bg-primary text-white border-l-2 border-white"
                   : "text-gray-400 hover:bg-gray-800 hover:text-white",
               )}
-              title={collapsed ? item.label : undefined}
+              title={!showLabel ? item.label : undefined}
             >
               <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-              {!collapsed && <span>{item.label}</span>}
+              {showLabel && <span>{item.label}</span>}
             </Link>
           );
         })}
 
-        {/* Section Paramètres */}
-        {!collapsed && <div className="mx-3 my-3 border-t border-gray-700" />}
+        {/* Section Parametres */}
+        {(mobileOpen || !collapsed) && <div className="mx-3 my-3 border-t border-gray-700" />}
         {settingsItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
+          const showLabel = mobileOpen || !collapsed;
           return (
             <Link
               key={item.href}
               href={item.href}
+              onClick={handleLinkClick}
               aria-current={active ? "page" : undefined}
-              aria-label={collapsed ? item.label : undefined}
+              aria-label={!showLabel ? item.label : undefined}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none",
                 active
                   ? "bg-primary text-white border-l-2 border-white"
                   : "text-gray-400 hover:bg-gray-800 hover:text-white",
               )}
-              title={collapsed ? item.label : undefined}
+              title={!showLabel ? item.label : undefined}
             >
               <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-              {!collapsed && <span>{item.label}</span>}
+              {showLabel && <span>{item.label}</span>}
             </Link>
           );
         })}
 
-        {/* Administration Reseau : visible uniquement si l'utilisateur a acces a plusieurs magasins */}
+        {/* Administration Reseau : visible uniquement si multi-tenant */}
         {isMultiTenant && (
           <>
-            {!collapsed && <div className="mx-3 my-3 border-t border-gray-700" />}
+            {(mobileOpen || !collapsed) && <div className="mx-3 my-3 border-t border-gray-700" />}
             <Link
               href={networkAdminItem.href}
+              onClick={handleLinkClick}
               aria-current={
                 pathname === networkAdminItem.href || pathname.startsWith(networkAdminItem.href + "/")
                   ? "page"
                   : undefined
               }
-              aria-label={collapsed ? networkAdminItem.label : undefined}
+              aria-label={!mobileOpen && collapsed ? networkAdminItem.label : undefined}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none",
                 pathname === networkAdminItem.href || pathname.startsWith(networkAdminItem.href + "/")
                   ? "bg-primary text-white border-l-2 border-white"
                   : "text-gray-400 hover:bg-gray-800 hover:text-white",
               )}
-              title={collapsed ? networkAdminItem.label : undefined}
+              title={!mobileOpen && collapsed ? networkAdminItem.label : undefined}
             >
               <networkAdminItem.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-              {!collapsed && <span>{networkAdminItem.label}</span>}
+              {(mobileOpen || !collapsed) && <span>{networkAdminItem.label}</span>}
             </Link>
           </>
         )}
       </nav>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside
+        role="navigation"
+        aria-label="Menu principal"
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 hidden lg:flex flex-col bg-bg-sidebar text-text-on-dark transition-all duration-200",
+          collapsed ? "w-16" : "w-64",
+        )}
+      >
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile overlay backdrop */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={closeMobile}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Mobile sidebar (slide-in overlay) */}
+      <aside
+        role="navigation"
+        aria-label="Menu principal"
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-bg-sidebar text-text-on-dark transition-transform duration-300 lg:hidden",
+          mobileOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
+        {sidebarContent}
+      </aside>
+    </>
   );
 }

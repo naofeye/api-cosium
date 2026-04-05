@@ -12,6 +12,7 @@ class AuditLogResponse(BaseModel):
     old_value: str | None = None
     new_value: str | None = None
     created_at: datetime
+    user_email: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
