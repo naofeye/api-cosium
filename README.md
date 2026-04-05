@@ -29,6 +29,25 @@ docker compose up --build
 - **Lint** : ruff (backend), prettier + tsc (frontend)
 - **CI** : GitHub Actions
 
+## Fonctionnalites principales
+
+- **CRM Client** : CRUD, recherche paginee, vue 360, import/export CSV, detection doublons
+- **GED** : upload MinIO, categorisation, completude documentaire
+- **Devis & Factures** : creation avec lignes, calculs automatiques, workflow statut, generation PDF
+- **PEC (tiers payant)** : soumission, workflow, historique, relances automatiques
+- **Paiements** : enregistrement, idempotence, ventilation multi-factures
+- **Rapprochement bancaire** : import CSV, matching auto/manuel, drag & drop
+- **Relances** : plans parametrables, templates email HTML Jinja2, priorisation intelligente
+- **Marketing CRM** : segments, campagnes email/SMS, consentements RGPD
+- **Dashboard** : KPIs financiers, balance agee, graphiques Recharts
+- **IA Copilote** : 4 modes (dossier, financier, documentaire, marketing)
+- **Multi-tenant** : isolation par magasin, switch tenant, dashboard reseau
+- **Onboarding** : wizard 5 etapes, connexion Cosium (OIDC/basic)
+- **Facturation SaaS** : integration Stripe, quotas IA
+- **Aide** : centre d'aide avec FAQ, raccourcis clavier, contact support
+- **Dark mode** : theme sombre avec bascule persistante
+- **SSE** : notifications temps reel
+
 ## Structure du projet
 
 ```
@@ -40,37 +59,39 @@ docker compose up --build
 │   │   ├── repositories/      # 18 acces BDD
 │   │   ├── domain/schemas/    # 20 schemas Pydantic (validation)
 │   │   ├── models/            # 15 fichiers SQLAlchemy (25 tables)
-│   │   ├── integrations/      # Cosium, MinIO, Stripe, Email, IA
+│   │   ├── integrations/      # Cosium, MinIO, Stripe, Email, IA, templates Jinja2
 │   │   ├── core/              # Config, auth, logging, exceptions, middleware
+│   │   ├── templates/         # Templates email HTML (base, reset, welcome, relance)
 │   │   ├── db/                # Engine, session
 │   │   └── main.py            # Point d'entree FastAPI
 │   ├── alembic/               # 18 migrations
-│   ├── tests/                 # 44 fichiers de tests (279 tests)
+│   ├── tests/                 # 44 fichiers de tests (306+ tests)
 │   └── requirements.txt
 ├── frontend/
 │   ├── src/
-│   │   ├── app/               # 30 pages Next.js
+│   │   ├── app/               # 31 pages Next.js (dont aide)
 │   │   ├── components/        # UI (Button, DataTable, Toast, etc.)
 │   │   ├── lib/               # API client, auth, types, hooks SWR, schemas Zod
 │   │   └── middleware.ts      # Protection routes
-│   ├── tests/                 # 6 fichiers de tests (36 tests)
+│   ├── tests/                 # 10 fichiers de tests (70+ tests)
 │   └── package.json
 ├── docs/
 │   ├── specs/                 # 23 specs fonctionnelles et techniques
 │   ├── cosium/                # Documentation Cosium + PDFs API
-│   └── directives/            # Chartes de developpement
+│   ├── directives/            # Chartes de developpement
+│   └── HISTORIQUE_TODO.md     # Archive des 11 iterations
 ├── .github/workflows/         # CI GitHub Actions
 ├── docker-compose.yml
 ├── docker-compose.prod.yml
 ├── CLAUDE.md                  # Directive maitre pour Claude CLI
 ├── TODO.md                    # Backlog original (30 etapes completees)
-└── TODO_V2.md                 # Backlog qualite/production (22 etapes)
+└── TODO_V11.md                # Backlog actif (dernier mile)
 ```
 
 ## Tests
 
 ```bash
-# Backend (279 tests, couverture 88%)
+# Backend (306+ tests, couverture 88%)
 docker compose exec api pytest -v
 
 # Frontend (70+ tests)

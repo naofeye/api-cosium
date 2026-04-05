@@ -15,20 +15,15 @@ import {
   CheckCircle,
   AlertCircle,
   Wifi,
-  Heart,
-  Database,
-  Server,
-  HardDrive,
   Activity,
   FolderOpen,
-  Euro,
   Plus,
   Pencil,
   Trash2,
   Clock,
-  BarChart3,
 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { ActivityChart } from "./components/ActivityChart";
+import { HealthStatus } from "./components/HealthStatus";
 
 interface AuditLogEntry {
   id: number;
@@ -78,39 +73,6 @@ interface HealthData {
 interface MetricsData {
   totals: { users: number; clients: number; dossiers: number; factures: number; paiements: number };
   activity: { actions_last_hour: number; active_users_last_hour: number };
-}
-
-const SERVICE_ICONS: Record<string, typeof Database> = { postgres: Database, redis: Server, minio: HardDrive };
-
-interface ActivityChartData {
-  date: string;
-  create: number;
-  update: number;
-  delete: number;
-}
-
-function buildActivityChart(entries: AuditLogEntry[]): ActivityChartData[] {
-  const now = new Date();
-  const days: ActivityChartData[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    const label = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short" }).format(d);
-    const dateKey = d.toISOString().slice(0, 10);
-    days.push({ date: label, create: 0, update: 0, delete: 0, _key: dateKey } as ActivityChartData & {
-      _key: string;
-    });
-  }
-  for (const entry of entries) {
-    const entryDate = entry.created_at.slice(0, 10);
-    const day = (days as (ActivityChartData & { _key: string })[]).find((d) => d._key === entryDate);
-    if (day) {
-      if (entry.action === "create") day.create++;
-      else if (entry.action === "update") day.update++;
-      else if (entry.action === "delete") day.delete++;
-    }
-  }
-  return days;
 }
 
 export default function AdminPage() {
@@ -166,53 +128,7 @@ export default function AdminPage() {
       breadcrumb={[{ label: "Admin" }]}
     >
       {/* Sante systeme */}
-      <div className="rounded-xl border border-border bg-bg-card p-6 shadow-sm mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
-            <Heart className="h-5 w-5" /> Sante du systeme
-          </h3>
-          {health && (
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
-                health.status === "healthy" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
-              }`}
-            >
-              {health.status === "healthy" ? (
-                <CheckCircle className="h-3.5 w-3.5" />
-              ) : (
-                <AlertCircle className="h-3.5 w-3.5" />
-              )}
-              {health.status === "healthy" ? "Tous les services operationnels" : "Service(s) degrade(s)"}
-            </span>
-          )}
-        </div>
-        {health ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {Object.entries(health.services).map(([name, svc]) => {
-              const Icon = SERVICE_ICONS[name] || Server;
-              return (
-                <div
-                  key={name}
-                  className={`flex items-center gap-3 rounded-lg border p-4 ${
-                    svc.status === "ok" ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"
-                  }`}
-                >
-                  <Icon className={`h-5 w-5 ${svc.status === "ok" ? "text-emerald-600" : "text-red-600"}`} />
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold capitalize">{name}</p>
-                    <p className="text-xs text-text-secondary">
-                      {svc.status === "ok" ? `${svc.response_ms}ms` : svc.error || "Erreur"}
-                    </p>
-                  </div>
-                  <div className={`h-3 w-3 rounded-full ${svc.status === "ok" ? "bg-emerald-500" : "bg-red-500"}`} />
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-sm text-text-secondary">Impossible de charger l&apos;etat des services.</p>
-        )}
-      </div>
+      <HealthStatus health={health} />
 
       {/* Metriques */}
       {metrics && (
@@ -285,27 +201,7 @@ export default function AdminPage() {
       </div>
 
       {/* Activity graph */}
-      {activity && activity.length > 0 && (
-        <div className="rounded-xl border border-border bg-bg-card p-6 shadow-sm mt-6">
-          <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" /> Activite des 7 derniers jours
-          </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={buildActivityChart(activity)} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="create" name="Creations" fill="#10b981" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="update" name="Modifications" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="delete" name="Suppressions" fill="#ef4444" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
+      {activity && <ActivityChart activity={activity} />}
 
       {/* Activite recente */}
       <div className="rounded-xl border border-border bg-bg-card p-6 shadow-sm mt-6">

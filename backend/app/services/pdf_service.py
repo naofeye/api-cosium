@@ -14,6 +14,7 @@ from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
 from app.domain.schemas.client_360 import Client360Response
 from app.models import Case, Customer, Devis, DevisLigne, Facture, FactureLigne, Tenant
+from app.services.pdf_helpers import build_customer_block, build_header, build_lines_table, build_totals, format_money
 
 logger = get_logger("pdf_service")
 
@@ -30,102 +31,12 @@ def _get_customer_for_case(db: Session, case_id: int, tenant_id: int) -> Custome
     return db.get(Customer, case.customer_id)
 
 
-def _format_money(amount: float) -> str:
-    return f"{amount:,.2f} EUR".replace(",", " ").replace(".", ",").replace(" ", " ")
-
-
-def _build_header(elements: list, styles: dict, doc_type: str, numero: str, date: str, tenant_info: dict) -> None:
-    elements.append(Paragraph(tenant_info["name"], styles["title"]))
-    elements.append(Spacer(1, 4 * mm))
-    elements.append(Paragraph(f"{doc_type} N° {numero}", styles["heading"]))
-    elements.append(Paragraph(f"Date : {date}", styles["normal"]))
-    elements.append(Spacer(1, 8 * mm))
-
-
-def _build_customer_block(elements: list, styles: dict, customer: Customer | None) -> None:
-    if not customer:
-        return
-    name = f"{customer.first_name} {customer.last_name}"
-    lines = [f"<b>Client :</b> {name}"]
-    if customer.email:
-        lines.append(f"Email : {customer.email}")
-    if customer.phone:
-        lines.append(f"Tel : {customer.phone}")
-    if customer.address:
-        addr = customer.address
-        if customer.postal_code or customer.city:
-            addr += f", {customer.postal_code or ''} {customer.city or ''}".strip()
-        lines.append(f"Adresse : {addr}")
-    for line in lines:
-        elements.append(Paragraph(line, styles["normal"]))
-    elements.append(Spacer(1, 8 * mm))
-
-
-def _build_lines_table(elements: list, lignes: list) -> None:
-    header = ["Designation", "Qte", "PU HT", "TVA %", "Total HT", "Total TTC"]
-    data = [header]
-    for l in lignes:
-        data.append(
-            [
-                l.designation,
-                str(l.quantite),
-                _format_money(float(l.prix_unitaire_ht)),
-                f"{float(l.taux_tva):.1f}%",
-                _format_money(float(l.montant_ht)),
-                _format_money(float(l.montant_ttc)),
-            ]
-        )
-
-    table = Table(data, colWidths=[65 * mm, 15 * mm, 25 * mm, 18 * mm, 25 * mm, 25 * mm])
-    table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2563eb")),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                ("FONTSIZE", (0, 0), (-1, 0), 9),
-                ("FONTSIZE", (0, 1), (-1, -1), 8),
-                ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
-                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e5e7eb")),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f9fafb")]),
-                ("TOPPADDING", (0, 0), (-1, -1), 4),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-            ]
-        )
-    )
-    elements.append(table)
-    elements.append(Spacer(1, 6 * mm))
-
-
-def _build_totals(
-    elements: list, styles: dict, montant_ht: float, tva: float, montant_ttc: float, extras: dict | None = None
-) -> None:
-    totals_data = [
-        ["Total HT", _format_money(montant_ht)],
-        ["TVA", _format_money(tva)],
-        ["Total TTC", _format_money(montant_ttc)],
-    ]
-    if extras:
-        if extras.get("part_secu"):
-            totals_data.append(["Part Securite sociale", f"- {_format_money(extras['part_secu'])}"])
-        if extras.get("part_mutuelle"):
-            totals_data.append(["Part Mutuelle", f"- {_format_money(extras['part_mutuelle'])}"])
-        if extras.get("reste_a_charge") is not None:
-            totals_data.append(["Reste a charge", _format_money(extras["reste_a_charge"])])
-
-    table = Table(totals_data, colWidths=[120 * mm, 50 * mm])
-    table.setStyle(
-        TableStyle(
-            [
-                ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-                ("FONTSIZE", (0, 0), (-1, -1), 9),
-                ("LINEABOVE", (0, -1), (-1, -1), 1, colors.HexColor("#2563eb")),
-                ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
-                ("TOPPADDING", (0, 0), (-1, -1), 3),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-            ]
-        )
-    )
-    elements.append(table)
+# Aliases for backward compatibility within this module
+_format_money = format_money
+_build_header = build_header
+_build_customer_block = build_customer_block
+_build_lines_table = build_lines_table
+_build_totals = build_totals
 
 
 def generate_devis_pdf(db: Session, devis_id: int, tenant_id: int) -> bytes:

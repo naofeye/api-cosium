@@ -54,6 +54,8 @@ class Settings(BaseSettings):
     cosium_tenant: str = ""
     cosium_login: str = ""
     cosium_password: str = ""
+    cosium_oidc_token_url: str = ""
+    cosium_oidc_client_id: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

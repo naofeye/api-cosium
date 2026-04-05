@@ -184,20 +184,16 @@ def request_password_reset(db: Session, email: str) -> None:
     db.add(reset)
     db.commit()
 
+    from app.integrations.email_templates import render_email
     from app.tasks.email_tasks import send_email_async
 
     frontend_origin = settings.cors_origins.split(",")[0].strip()
     reset_url = f"{frontend_origin}/reset-password?token={raw_token}"
+    body_html = render_email("password_reset.html", reset_url=reset_url)
     send_email_async.delay(
         to=user.email,
         subject="OptiFlow — Reinitialisation de votre mot de passe",
-        body_html=(
-            "<p>Bonjour,</p>"
-            "<p>Cliquez sur le lien ci-dessous pour reinitialiser votre mot de passe :</p>"
-            f"<p><a href='{reset_url}'>{reset_url}</a></p>"
-            "<p>Ce lien expire dans 1 heure.</p>"
-            "<p>Si vous n'avez pas demande cette reinitialisation, ignorez cet email.</p>"
-        ),
+        body_html=body_html,
     )
     logger.info("password_reset_requested", user_id=user.id)
 

@@ -36,6 +36,7 @@ class CosiumClient:
         self.base_url = settings.cosium_base_url
         self.tenant = settings.cosium_tenant
         self.token: str | None = None
+        self._token_type: str = "AccessToken"
         self._authenticated_at: float | None = None
         self._auth_tenant: str | None = None
         self._auth_login: str | None = None
@@ -53,7 +54,7 @@ class CosiumClient:
             )
 
     def authenticate(self, tenant: str | None = None, login: str | None = None, password: str | None = None) -> str:
-        """POST /authenticate/basic — SEUL POST autorise vers Cosium."""
+        """Authenticate to Cosium via OIDC or basic, depending on config."""
         t = tenant or self.tenant
         l = login or settings.cosium_login
         p = password or settings.cosium_password
@@ -66,21 +67,61 @@ class CosiumClient:
         self._auth_login = l
         self._auth_password = p
 
-        url = f"{self.base_url}/{t}/api/authenticate/basic"
+        if settings.cosium_oidc_token_url:
+            return self._authenticate_oidc(l, p)
+        return self._authenticate_basic(t, l, p)
+
+    def _authenticate_oidc(self, login: str, password: str) -> str:
+        """OIDC password grant via Keycloak."""
+        url = settings.cosium_oidc_token_url
 
         for attempt in range(MAX_RETRIES):
             try:
                 response = self._client.post(
                     url,
-                    json={"login": l, "password": p, "site": t},
+                    data={
+                        "grant_type": "password",
+                        "client_id": settings.cosium_oidc_client_id,
+                        "username": login,
+                        "password": password,
+                    },
+                )
+                response.raise_for_status()
+                data = response.json()
+                self.token = data["access_token"]
+                self._token_type = "Bearer"
+                self._authenticated_at = time.time()
+                logger.info("cosium_oidc_authenticated")
+                return self.token
+            except Exception as e:
+                if attempt < MAX_RETRIES - 1:
+                    delay = RETRY_DELAYS[attempt]
+                    logger.warning("cosium_oidc_retry", attempt=attempt + 1, delay=delay, error=str(e))
+                    time.sleep(delay)
+                else:
+                    logger.error("cosium_oidc_failed", attempts=MAX_RETRIES, error=str(e))
+                    raise
+
+        raise RuntimeError("OIDC auth failed after retries")
+
+    def _authenticate_basic(self, tenant: str, login: str, password: str) -> str:
+        """Legacy /authenticate/basic endpoint — SEUL POST autorise vers Cosium."""
+        url = f"{self.base_url}/{tenant}/api/authenticate/basic"
+
+        for attempt in range(MAX_RETRIES):
+            try:
+                response = self._client.post(
+                    url,
+                    json={"login": login, "password": password, "site": tenant},
                     headers={"Accept": "application/json", "Content-Type": "application/json"},
                 )
                 response.raise_for_status()
                 data = response.json()
                 self.token = data.get("token") or data.get("access_token") or data.get("accessToken", "")
-                self.tenant = t
+                self._token_type = "AccessToken"
+                self.tenant = tenant
                 self._authenticated_at = time.time()
-                logger.info("cosium_authenticated", tenant=t)
+                logger.info("cosium_authenticated", tenant=tenant)
                 return self.token
             except Exception as e:
                 if attempt < MAX_RETRIES - 1:
@@ -91,7 +132,6 @@ class CosiumClient:
                     logger.error("cosium_auth_failed", attempts=MAX_RETRIES, error=str(e))
                     raise
 
-        # Unreachable, but satisfies type checker
         raise RuntimeError("Authentication failed after retries")
 
     def get(self, endpoint: str, params: dict | None = None) -> dict:
@@ -111,7 +151,7 @@ class CosiumClient:
 
         url = f"{self.base_url}/{self.tenant}/api{endpoint}"
         headers = {
-            "Authorization": f"AccessToken {self.token}",
+            "Authorization": f"{self._token_type} {self.token}",
             "Accept": "application/hal+json",
         }
 

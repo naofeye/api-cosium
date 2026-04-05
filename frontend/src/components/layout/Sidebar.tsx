@@ -22,6 +22,7 @@ import {
   Database,
   ChevronLeft,
   ChevronRight,
+  HelpCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { useTenant } from "@/lib/tenant-context";
@@ -40,6 +41,7 @@ const navItems = [
   { href: "/marketing", label: "Marketing", icon: Megaphone },
   { href: "/renewals", label: "Renouvellements", icon: RefreshCw },
   { href: "/admin", label: "Admin", icon: Settings },
+  { href: "/aide", label: "Aide", icon: HelpCircle },
 ];
 
 // Items settings

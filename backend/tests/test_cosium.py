@@ -52,13 +52,14 @@ def test_cosium_client_only_allowed_methods() -> None:
 
 
 def test_cosium_client_authenticate_uses_only_post() -> None:
-    """Verify that authenticate uses httpx.post (the only allowed POST)."""
-    source = inspect.getsource(CosiumClient.authenticate)
-    assert "self._client.post" in source, "authenticate must use self._client.post"
-    # Must NOT contain other HTTP methods
-    assert "self._client.put" not in source
-    assert "self._client.delete" not in source
-    assert "self._client.patch" not in source
+    """Verify that authenticate sub-methods use httpx.post (the only allowed POST)."""
+    basic_source = inspect.getsource(CosiumClient._authenticate_basic)
+    oidc_source = inspect.getsource(CosiumClient._authenticate_oidc)
+    for label, source in [("basic", basic_source), ("oidc", oidc_source)]:
+        assert "self._client.post" in source, f"{label} auth must use self._client.post"
+        assert "self._client.put" not in source, f"{label} auth must not use put"
+        assert "self._client.delete" not in source, f"{label} auth must not use delete"
+        assert "self._client.patch" not in source, f"{label} auth must not use patch"
 
 
 def test_cosium_client_get_uses_only_get() -> None:

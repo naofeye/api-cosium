@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.3.0 — Templates, Aide & Consolidation (2026-04-04)
+
+### Nouvelles fonctionnalites
+- **Templates email HTML Jinja2** : base.html, password_reset.html, welcome.html, relance.html avec design professionnel OptiFlow (en-tete bleu, boutons CTA, footer)
+- **Page Aide** : centre d'aide avec FAQ accordeons (6 questions), raccourcis clavier, contact support — accessible depuis la sidebar
+- **Utilitaire render_email** : `integrations/email_templates.py` pour rendre les templates avec contexte Jinja2
+
+### Securite
+- **Deps vulnerables mises a jour** : cryptography 44.0.3 → 46.0.6 (CVE-2026-26007, CVE-2026-34073), PyJWT 2.10.1 → 2.12.0 (CVE-2026-32597), python-multipart 0.0.20 → 0.0.22 (CVE-2024-24486)
+
+### Documentation
+- **HISTORIQUE_TODO.md** : synthese des 11 iterations de developpement (V1 a V11)
+- **CHANGELOG v1.3.0** ajoutee
+- **README.md** mis a jour (306+ tests, 126 endpoints, templates email, page aide)
+- Nettoyage TODO_V2 a V10 (archives dans HISTORIQUE_TODO.md, V11 reste active)
+
+### Qualite
+- Auth service refactore : utilise le template Jinja2 pour l'email de reinitialisation au lieu de HTML inline
+- Sidebar enrichie : lien "Aide" avec icone HelpCircle
+
+---
+
 ## v1.2.0 — Securite & Robustesse (2026-04-04)
 
 ### Securite

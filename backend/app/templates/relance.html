@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 style="color: #111827; margin-top: 0;">Rappel de paiement</h2>
+<p style="color: #4b5563;">Bonjour {{ client_name }},</p>
+<p style="color: #4b5563;">Nous vous rappelons que la facture <strong>{{ facture_numero }}</strong> d'un montant de <strong>{{ montant }} EUR</strong> est en attente de paiement depuis {{ jours_retard }} jours.</p>
+<p style="color: #4b5563;">Merci de proceder au reglement dans les meilleurs delais.</p>
+<p style="color: #6b7280; margin-top: 24px;">Cordialement,<br>L'equipe OptiFlow</p>
+{% endblock %}

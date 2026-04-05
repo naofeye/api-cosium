@@ -11,9 +11,8 @@ import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
 import { DateDisplay } from "@/components/ui/DateDisplay";
 import { KPICard } from "@/components/ui/KPICard";
 import { fetchJson } from "@/lib/api";
-import { DraggableTransaction } from "./components/DraggableTransaction";
-import { DroppablePayment } from "./components/DroppablePayment";
-import { Upload, RefreshCw, Link2, CheckCircle, AlertCircle, FileText, GripVertical } from "lucide-react";
+import { ManualReconciliation } from "./components/ManualReconciliation";
+import { Upload, RefreshCw, Link2, CheckCircle, AlertCircle, FileText } from "lucide-react";
 
 interface BankTx {
   id: number;
@@ -212,87 +211,7 @@ export default function RapprochementPage() {
       ) : (
         <>
           {/* Drag-and-drop zone for unmatched items */}
-          {(unmatchedTx.length > 0 || payments.length > 0) && (
-            <div className="mb-8">
-              <div className="flex items-center gap-2 mb-3">
-                <GripVertical className="h-4 w-4 text-gray-400" aria-hidden="true" />
-                <h2 className="text-lg font-semibold text-gray-800">Rapprochement manuel</h2>
-              </div>
-              <p className="text-sm text-gray-500 mb-4">Glissez une transaction sur un paiement pour les rapprocher.</p>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Left column: Unmatched transactions */}
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 text-amber-500" />
-                    Transactions non rapprochees ({unmatchedTx.length})
-                  </h3>
-                  {unmatchedTx.length === 0 ? (
-                    <div className="border border-dashed border-border rounded-lg p-6 text-center text-sm text-gray-400">
-                      Toutes les transactions sont rapprochees
-                    </div>
-                  ) : (
-                    <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
-                      {unmatchedTx.map((tx) => (
-                        <DraggableTransaction key={tx.id} id={tx.id}>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <GripVertical
-                                className="h-4 w-4 text-gray-300 flex-shrink-0"
-                                aria-label="Glisser pour rapprocher"
-                              />
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium truncate">{tx.libelle}</p>
-                                <p className="text-xs text-gray-500">
-                                  <DateDisplay date={tx.date} />
-                                  {tx.reference && <span className="ml-2 font-mono">{tx.reference}</span>}
-                                </p>
-                              </div>
-                            </div>
-                            <MoneyDisplay amount={tx.montant} colored />
-                          </div>
-                        </DraggableTransaction>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Right column: Unreconciled payments */}
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-                    <Link2 className="h-4 w-4 text-blue-500" />
-                    Paiements a rapprocher ({payments.length})
-                  </h3>
-                  {payments.length === 0 ? (
-                    <div className="border border-dashed border-border rounded-lg p-6 text-center text-sm text-gray-400">
-                      Aucun paiement en attente de rapprochement
-                    </div>
-                  ) : (
-                    <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
-                      {payments.map((p) => (
-                        <DroppablePayment key={p.id} id={p.id} onMatch={handleManualMatch}>
-                          <div className="flex items-center justify-between">
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium">
-                                Paiement #{p.id}
-                                <span className="ml-2 text-xs text-gray-500">{p.payer_type}</span>
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {p.date_paiement && <DateDisplay date={p.date_paiement} />}
-                                {p.mode_paiement && <span className="ml-2">{p.mode_paiement}</span>}
-                                {p.reference_externe && <span className="ml-2 font-mono">{p.reference_externe}</span>}
-                              </p>
-                            </div>
-                            <MoneyDisplay amount={p.amount_paid} colored />
-                          </div>
-                        </DroppablePayment>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+          <ManualReconciliation unmatchedTx={unmatchedTx} payments={payments} onMatch={handleManualMatch} />
 
           {/* Full transaction table */}
           <div>

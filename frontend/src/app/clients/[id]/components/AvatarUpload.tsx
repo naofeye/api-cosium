@@ -1,0 +1,103 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { Camera } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
+
+interface AvatarUploadProps {
+  clientId: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string | null;
+  email: string | null;
+  phone: string | null;
+  onUploaded: () => void;
+}
+
+export function AvatarUpload({
+  clientId,
+  firstName,
+  lastName,
+  avatarUrl,
+  email,
+  phone,
+  onUploaded,
+}: AvatarUploadProps) {
+  const { toast } = useToast();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const allowed = ["image/jpeg", "image/png", "image/jpg"];
+    if (!allowed.includes(file.type)) {
+      toast("Le fichier doit etre une image (JPG ou PNG).", "error");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast("L'image ne doit pas depasser 5 Mo.", "error");
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      await fetch(`${API_BASE}/clients/${clientId}/avatar`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      toast("Avatar mis a jour", "success");
+      onUploaded();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Erreur", "error");
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-4 mb-6">
+      <div className="relative group">
+        {avatarUrl ? (
+          <img
+            src={`${API_BASE}/clients/${clientId}/avatar`}
+            alt={`${firstName} ${lastName}`}
+            className="h-16 w-16 rounded-full object-cover border-2 border-border"
+          />
+        ) : (
+          <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center text-xl font-bold text-blue-700 border-2 border-border">
+            {(firstName?.[0] || "").toUpperCase()}
+            {(lastName?.[0] || "").toUpperCase()}
+          </div>
+        )}
+        <button
+          onClick={() => avatarInputRef.current?.click()}
+          disabled={uploadingAvatar}
+          className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+          aria-label="Changer l'avatar"
+        >
+          <Camera className="h-5 w-5 text-white" />
+        </button>
+        <input
+          ref={avatarInputRef}
+          type="file"
+          accept="image/jpeg,image/png"
+          className="hidden"
+          onChange={handleAvatarUpload}
+        />
+      </div>
+      <div>
+        <h2 className="text-lg font-semibold text-text-primary">
+          {firstName} {lastName}
+        </h2>
+        {email && <p className="text-sm text-text-secondary">{email}</p>}
+        {phone && <p className="text-sm text-text-secondary">{phone}</p>}
+      </div>
+    </div>
+  );
+}

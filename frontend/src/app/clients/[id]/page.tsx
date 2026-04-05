@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import useSWR from "swr";
 import { PageLayout } from "@/components/layout/PageLayout";
@@ -12,12 +12,11 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { fetchJson } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
-import { Euro, CheckCircle, Clock, FolderOpen, Plus, Trash2, Download, Camera } from "lucide-react";
+import { Euro, CheckCircle, Clock, FolderOpen, Plus, Trash2, Download } from "lucide-react";
 import { downloadPdf } from "@/lib/download";
 import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
+import { AvatarUpload } from "./components/AvatarUpload";
 
 import { TabResume } from "./tabs/TabResume";
 import { TabDossiers } from "./tabs/TabDossiers";
@@ -77,8 +76,6 @@ export default function ClientDetailPage() {
   const [activeTab, setActiveTab] = useState<Tab>("resume");
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [showForm, setShowForm] = useState(false);
   const [intType, setIntType] = useState("note");
   const [intDir, setIntDir] = useState("interne");
@@ -131,37 +128,6 @@ export default function ClientDetailPage() {
       toast(e instanceof Error ? e.message : "Erreur", "error");
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const allowed = ["image/jpeg", "image/png", "image/jpg"];
-    if (!allowed.includes(file.type)) {
-      toast("Le fichier doit etre une image (JPG ou PNG).", "error");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast("L'image ne doit pas depasser 5 Mo.", "error");
-      return;
-    }
-    setUploadingAvatar(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      await fetch(`${API_BASE}/clients/${id}/avatar`, {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-      toast("Avatar mis a jour", "success");
-      mutate();
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Erreur", "error");
-    } finally {
-      setUploadingAvatar(false);
-      if (avatarInputRef.current) avatarInputRef.current.value = "";
     }
   };
 
@@ -232,44 +198,15 @@ export default function ClientDetailPage() {
       }
     >
       {/* Avatar section */}
-      <div className="flex items-center gap-4 mb-6">
-        <div className="relative group">
-          {data.avatar_url ? (
-            <img
-              src={`${API_BASE}/clients/${id}/avatar`}
-              alt={`${data.first_name} ${data.last_name}`}
-              className="h-16 w-16 rounded-full object-cover border-2 border-border"
-            />
-          ) : (
-            <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center text-xl font-bold text-blue-700 border-2 border-border">
-              {(data.first_name?.[0] || "").toUpperCase()}
-              {(data.last_name?.[0] || "").toUpperCase()}
-            </div>
-          )}
-          <button
-            onClick={() => avatarInputRef.current?.click()}
-            disabled={uploadingAvatar}
-            className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-            aria-label="Changer l'avatar"
-          >
-            <Camera className="h-5 w-5 text-white" />
-          </button>
-          <input
-            ref={avatarInputRef}
-            type="file"
-            accept="image/jpeg,image/png"
-            className="hidden"
-            onChange={handleAvatarUpload}
-          />
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold text-text-primary">
-            {data.first_name} {data.last_name}
-          </h2>
-          {data.email && <p className="text-sm text-text-secondary">{data.email}</p>}
-          {data.phone && <p className="text-sm text-text-secondary">{data.phone}</p>}
-        </div>
-      </div>
+      <AvatarUpload
+        clientId={id}
+        firstName={data.first_name}
+        lastName={data.last_name}
+        avatarUrl={data.avatar_url}
+        email={data.email}
+        phone={data.phone}
+        onUploaded={() => mutate()}
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <KPICard icon={Euro} label="Total facture" value={formatMoney(fin.total_facture)} color="primary" />
