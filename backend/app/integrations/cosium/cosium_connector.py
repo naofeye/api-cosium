@@ -50,8 +50,9 @@ class CosiumConnector(ERPConnector):
         logger.info("cosium_connector_authenticated", tenant=tenant)
         return token
 
-    def get_customers(self, page: int = 0, page_size: int = 100) -> list[ERPCustomer]:
-        items = self._client.get_paginated("/customers", page_size=page_size, max_pages=50)
+    def get_customers(self, page: int = 0, page_size: int = 50) -> list[ERPCustomer]:
+        # Cosium API has a hard offset limit of ~50 items per listing
+        items = self._client.get_paginated("/customers", page_size=page_size, max_pages=1)
         customers: list[ERPCustomer] = []
         for raw in items:
             mapped = cosium_customer_to_optiflow(raw)
@@ -73,8 +74,8 @@ class CosiumConnector(ERPConnector):
             )
         return customers
 
-    def get_invoices(self, page: int = 0, page_size: int = 100) -> list[ERPInvoice]:
-        items = self._client.get_paginated("/invoices", page_size=page_size, max_pages=50)
+    def get_invoices(self, page: int = 0, page_size: int = 50) -> list[ERPInvoice]:
+        items = self._client.get_paginated("/invoices", page_size=page_size, max_pages=600)
         invoices: list[ERPInvoice] = []
         for raw in items:
             mapped = cosium_invoice_to_optiflow(raw)
@@ -99,8 +100,8 @@ class CosiumConnector(ERPConnector):
         items = embedded.get("invoicedItems", [])
         return items if isinstance(items, list) else [items]
 
-    def get_products(self, page: int = 0, page_size: int = 100) -> list[ERPProduct]:
-        items = self._client.get_paginated("/products", page_size=page_size, max_pages=50)
+    def get_products(self, page: int = 0, page_size: int = 50) -> list[ERPProduct]:
+        items = self._client.get_paginated("/products", page_size=page_size, max_pages=100)
         products: list[ERPProduct] = []
         for raw in items:
             mapped = cosium_product_to_optiflow(raw)

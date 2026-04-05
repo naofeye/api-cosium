@@ -56,6 +56,8 @@ class Settings(BaseSettings):
     cosium_password: str = ""
     cosium_oidc_token_url: str = ""
     cosium_oidc_client_id: str = ""
+    cosium_access_token: str = ""  # Cookie access_token from browser
+    cosium_device_credential: str = ""  # Cookie device-credential from browser
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

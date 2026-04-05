@@ -25,9 +25,10 @@ RETRY_DELAYS = [1, 2, 4]  # seconds
 class CosiumClient:
     """Client API Cosium — LECTURE SEULE.
 
-    Ce client n'expose que deux methodes :
-    - authenticate() : POST /authenticate/basic (seul POST autorise)
-    - get() : GET generique pour la lecture de donnees
+    Supporte 3 modes d'authentification :
+    1. Cookie mode : access_token + device-credential cookies (navigateur)
+    2. OIDC mode : Keycloak password grant → Bearer token
+    3. Basic mode : POST /authenticate/basic → AccessToken header
 
     Aucune methode put/post/delete/patch n'existe ni ne sera ajoutee.
     """
@@ -37,6 +38,8 @@ class CosiumClient:
         self.tenant = settings.cosium_tenant
         self.token: str | None = None
         self._token_type: str = "AccessToken"
+        self._auth_mode: str = "none"  # "cookie", "oidc", "basic"
+        self._cookies: dict[str, str] = {}
         self._authenticated_at: float | None = None
         self._auth_tenant: str | None = None
         self._auth_login: str | None = None
@@ -44,7 +47,9 @@ class CosiumClient:
         self._client = httpx.Client(timeout=30.0)
 
     def _ensure_token_valid(self) -> None:
-        """Re-authenticate if token is older than 25 minutes."""
+        """Re-authenticate if token is older than 25 minutes (not for cookie mode)."""
+        if self._auth_mode == "cookie":
+            return  # Cookie tokens are long-lived
         if self._authenticated_at and (time.time() - self._authenticated_at > 25 * 60):
             logger.info("cosium_token_refresh", reason="expired")
             self.authenticate(
@@ -54,27 +59,45 @@ class CosiumClient:
             )
 
     def authenticate(self, tenant: str | None = None, login: str | None = None, password: str | None = None) -> str:
-        """Authenticate to Cosium via OIDC or basic, depending on config."""
+        """Authenticate to Cosium. Auto-detects the best mode."""
         t = tenant or self.tenant
         l = login or settings.cosium_login
         p = password or settings.cosium_password
-
-        if not t or not l or not p:
-            raise ValueError("Cosium credentials not configured (COSIUM_TENANT, COSIUM_LOGIN, COSIUM_PASSWORD)")
 
         # Store credentials for token refresh
         self._auth_tenant = t
         self._auth_login = l
         self._auth_password = p
 
+        # Mode 1: Cookie-based auth (device-credential + access_token from .env)
+        if settings.cosium_access_token and settings.cosium_device_credential:
+            return self._authenticate_cookie()
+
+        if not t or not l or not p:
+            raise ValueError("Cosium credentials not configured (COSIUM_TENANT, COSIUM_LOGIN, COSIUM_PASSWORD)")
+
+        # Mode 2: OIDC (Keycloak)
         if settings.cosium_oidc_token_url:
             return self._authenticate_oidc(l, p)
+
+        # Mode 3: Basic auth (legacy)
         return self._authenticate_basic(t, l, p)
+
+    def _authenticate_cookie(self) -> str:
+        """Cookie-based auth using device-credential + access_token from settings."""
+        self.token = settings.cosium_access_token
+        self._cookies = {
+            "access_token": settings.cosium_access_token,
+            "device-credential": settings.cosium_device_credential,
+        }
+        self._auth_mode = "cookie"
+        self._authenticated_at = time.time()
+        logger.info("cosium_cookie_authenticated", tenant=self.tenant)
+        return self.token
 
     def _authenticate_oidc(self, login: str, password: str) -> str:
         """OIDC password grant via Keycloak."""
         url = settings.cosium_oidc_token_url
-
         for attempt in range(MAX_RETRIES):
             try:
                 response = self._client.post(
@@ -90,6 +113,7 @@ class CosiumClient:
                 data = response.json()
                 self.token = data["access_token"]
                 self._token_type = "Bearer"
+                self._auth_mode = "oidc"
                 self._authenticated_at = time.time()
                 logger.info("cosium_oidc_authenticated")
                 return self.token
@@ -101,13 +125,11 @@ class CosiumClient:
                 else:
                     logger.error("cosium_oidc_failed", attempts=MAX_RETRIES, error=str(e))
                     raise
-
         raise RuntimeError("OIDC auth failed after retries")
 
     def _authenticate_basic(self, tenant: str, login: str, password: str) -> str:
         """Legacy /authenticate/basic endpoint — SEUL POST autorise vers Cosium."""
         url = f"{self.base_url}/{tenant}/api/authenticate/basic"
-
         for attempt in range(MAX_RETRIES):
             try:
                 response = self._client.post(
@@ -119,6 +141,7 @@ class CosiumClient:
                 data = response.json()
                 self.token = data.get("token") or data.get("access_token") or data.get("accessToken", "")
                 self._token_type = "AccessToken"
+                self._auth_mode = "basic"
                 self.tenant = tenant
                 self._authenticated_at = time.time()
                 logger.info("cosium_authenticated", tenant=tenant)
@@ -131,33 +154,29 @@ class CosiumClient:
                 else:
                     logger.error("cosium_auth_failed", attempts=MAX_RETRIES, error=str(e))
                     raise
-
         raise RuntimeError("Authentication failed after retries")
 
     def get(self, endpoint: str, params: dict | None = None) -> dict:
-        """GET generique — SEULE methode de lecture vers Cosium.
-
-        Args:
-            endpoint: chemin relatif (ex: "/customers", "/invoices")
-            params: parametres de requete (pagination, filtres)
-
-        Returns:
-            Reponse JSON (format HAL)
-        """
-        if not self.token:
+        """GET generique — SEULE methode de lecture vers Cosium."""
+        if not self.token and self._auth_mode != "cookie":
             raise RuntimeError("Not authenticated. Call authenticate() first.")
 
         self._ensure_token_valid()
 
         url = f"{self.base_url}/{self.tenant}/api{endpoint}"
-        headers = {
-            "Authorization": f"{self._token_type} {self.token}",
-            "Accept": "application/hal+json",
-        }
+
+        # Build headers based on auth mode
+        headers: dict[str, str] = {"Accept": "application/hal+json"}
+        cookies: dict[str, str] = {}
+
+        if self._auth_mode == "cookie":
+            cookies = self._cookies.copy()
+        else:
+            headers["Authorization"] = f"{self._token_type} {self.token}"
 
         for attempt in range(2):
             try:
-                response = self._client.get(url, params=params, headers=headers, timeout=30)
+                response = self._client.get(url, params=params, headers=headers, cookies=cookies, timeout=30)
                 response.raise_for_status()
                 return response.json()
             except Exception as e:
@@ -168,7 +187,6 @@ class CosiumClient:
                     logger.error("cosium_get_failed", endpoint=endpoint, error=str(e))
                     raise
 
-        # Unreachable, but satisfies type checker
         raise RuntimeError("GET request failed after retries")
 
     def get_paginated(
@@ -183,26 +201,44 @@ class CosiumClient:
             p["page_number"] = page
             data = self.get(endpoint, p)
 
-            # HAL format: items can be in _embedded or directly
-            embedded = data.get("_embedded", data)
+            # Extract items — handles both HAL and Spring Data formats:
+            # HAL: { "_embedded": { "customers": [...] } }
+            # Spring+HAL: { "_embedded": { "content": [...] } }
+            # Spring: { "content": [...] }
+            items: list[dict] = []
+            embedded = data.get("_embedded", {})
             if isinstance(embedded, dict):
-                # Try common HAL collection keys
-                for key in ("customers", "invoices", "invoicedItems", "products", "paymentTypes", "items", "content"):
-                    if key in embedded:
-                        items = embedded[key]
-                        all_items.extend(items if isinstance(items, list) else [items])
-                        break
+                # Try _embedded.content first (Spring Data + HAL)
+                if "content" in embedded:
+                    items = embedded["content"]
                 else:
-                    all_items.append(data)
-                    break
-            elif isinstance(embedded, list):
-                all_items.extend(embedded)
+                    # Try specific collection keys (pure HAL)
+                    for key in ("customers", "invoices", "invoicedItems", "products", "paymentTypes", "items"):
+                        if key in embedded:
+                            raw = embedded[key]
+                            items = raw if isinstance(raw, list) else [raw]
+                            break
+            # Fallback: top-level content (Spring Data without HAL)
+            if not items and "content" in data:
+                items = data["content"]
 
-            # Check if there are more pages
+            if not items:
+                break
+
+            all_items.extend(items)
+
+            # Check pagination
             page_info = data.get("page", {})
             total_pages = page_info.get("totalPages", 1)
             if page + 1 >= total_pages:
                 break
+
+            logger.debug(
+                "cosium_paginate", endpoint=endpoint, page=page + 1, total_pages=total_pages, fetched=len(all_items)
+            )
+
+            # Rate limit: pause between pages to avoid Cosium throttling
+            time.sleep(0.3)
 
         return all_items
 
