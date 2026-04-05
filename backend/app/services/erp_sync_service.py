@@ -4,6 +4,11 @@ Service de synchronisation ERP -> OptiFlow (agnostique).
 SYNCHRONISATION UNIDIRECTIONNELLE : ERP -> OptiFlow uniquement.
 Aucune ecriture vers l'ERP.
 Remplace sync_service.py avec une couche d'abstraction multi-ERP.
+
+Ce module contient les fonctions de synchronisation client et les helpers
+partages (_get_connector_for_tenant, _authenticate_connector, etc.).
+Les fonctions de synchronisation factures, paiements, produits et ordonnances
+sont dans erp_sync_invoices.py et erp_sync_extras.py.
 """
 
 from datetime import UTC, datetime
@@ -15,15 +20,8 @@ from app.core.encryption import decrypt
 from app.core.logging import get_logger
 from app.integrations.erp_connector import ERPConnector
 from app.integrations.erp_factory import get_connector
-from app.integrations.erp_models import ERPCustomer, ERPInvoice
+from app.integrations.erp_models import ERPCustomer
 from app.models import Customer, Tenant
-from app.models.cosium_data import (
-    CosiumInvoice,
-    CosiumPayment,
-    CosiumPrescription,
-    CosiumProduct,
-    CosiumThirdPartyPayment,
-)
 from app.services import audit_service
 
 logger = get_logger("erp_sync_service")
@@ -216,523 +214,6 @@ def sync_customers(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     return result
 
 
-def sync_invoices(db: Session, tenant_id: int, user_id: int = 0) -> dict:
-    """Synchronise les factures depuis l'ERP vers cosium_invoices (lecture seule).
-
-    Uses date-range pagination (month by month, 24 months back) to bypass
-    the Cosium 50-item offset limit.
-    """
-    if not user_id:
-        logger.warning("operation_without_user_id", action="sync_invoices", entity="invoice")
-    connector, tenant = _get_connector_for_tenant(db, tenant_id)
-    _authenticate_connector(connector, tenant)
-
-    # Collect all invoices via direct pagination (no offset limit on invoices)
-    all_invoices: list[ERPInvoice] = []
-    seen_ids: set[str] = set()
-
-    try:
-        # Invoices endpoint supports full pagination (unlike customers)
-        # Use max_pages=600 to cover ~30000 invoices at 50/page
-        batch = connector.get_invoices(page=0, page_size=50)
-        for inv in batch:
-            if inv.erp_id not in seen_ids:
-                seen_ids.add(inv.erp_id)
-                all_invoices.append(inv)
-    except Exception as e:
-        logger.error("sync_invoices_failed", error=str(e), exc_info=True)
-        if "auth" in str(e).lower() or "connect" in str(e).lower() or "timeout" in str(e).lower():
-            raise ValueError(f"Erreur critique lors de la synchronisation des factures: {e}") from e
-
-    logger.info("sync_invoices_fetched", tenant_id=tenant_id, total=len(all_invoices))
-
-    # Build customer lookup maps for matching
-    all_customers = db.scalars(select(Customer).where(Customer.tenant_id == tenant_id)).all()
-    customer_name_map: dict[str, int] = {}
-    customer_cosium_id_map: dict[str, int] = {}
-    for c in all_customers:
-        full_name = f"{c.last_name} {c.first_name}".upper().strip()
-        customer_name_map[full_name] = c.id
-        # Also index FIRSTNAME LASTNAME (some Cosium entries use this order)
-        reverse_name = f"{c.first_name} {c.last_name}".upper().strip()
-        customer_name_map[reverse_name] = c.id
-        # Index with ALL title prefix patterns (with and without dot)
-        for prefix in ("M. ", "MME. ", "MLLE. ", "MME ", "MLLE ", "MR. ", "MRS. "):
-            customer_name_map[f"{prefix}{full_name}"] = c.id
-            customer_name_map[f"{prefix}{reverse_name}"] = c.id
-        # Index by cosium_id for direct matching
-        if c.cosium_id:
-            customer_cosium_id_map[str(c.cosium_id)] = c.id
-
-    # Upsert into cosium_invoices
-    existing_map: dict[int, CosiumInvoice] = {}
-    existing_rows = db.scalars(select(CosiumInvoice).where(CosiumInvoice.tenant_id == tenant_id)).all()
-    for row in existing_rows:
-        existing_map[row.cosium_id] = row
-
-    created = 0
-    updated = 0
-    processed = 0
-    batch_errors = 0
-
-    for inv in all_invoices:
-        cosium_id = int(inv.erp_id) if inv.erp_id.isdigit() else 0
-        if not cosium_id:
-            continue
-
-        # Try to match customer: cosium_id first, then name fallback
-        customer_erp_id_str = str(inv.customer_erp_id) if inv.customer_erp_id else ""
-        customer_id = customer_cosium_id_map.get(customer_erp_id_str) if customer_erp_id_str else None
-        if not customer_id:
-            customer_id = _match_customer_by_name(inv.customer_name, customer_name_map)
-
-        # Parse date (Cosium returns ISO strings like "2026-03-20T23:00:00.000Z")
-        invoice_date = None
-        if inv.date:
-            if isinstance(inv.date, datetime):
-                invoice_date = inv.date
-            elif isinstance(inv.date, str):
-                try:
-                    invoice_date = datetime.fromisoformat(inv.date.replace("Z", "+00:00"))
-                except (ValueError, TypeError):
-                    pass
-
-        if cosium_id in existing_map:
-            row = existing_map[cosium_id]
-            row.invoice_number = inv.number
-            row.invoice_date = invoice_date
-            row.customer_name = inv.customer_name
-            row.customer_cosium_id = customer_erp_id_str or row.customer_cosium_id
-            row.customer_id = customer_id or row.customer_id
-            row.type = inv.type
-            row.total_ti = inv.total_ttc
-            row.outstanding_balance = inv.outstanding_balance
-            row.share_social_security = inv.share_social_security or 0.0
-            row.share_private_insurance = inv.share_private_insurance or 0.0
-            row.settled = inv.settled
-            row.archived = inv.archived
-            row.site_id = inv.site_id
-            row.synced_at = datetime.now(UTC)
-            updated += 1
-        else:
-            new_row = CosiumInvoice(
-                tenant_id=tenant_id,
-                cosium_id=cosium_id,
-                invoice_number=inv.number,
-                invoice_date=invoice_date,
-                customer_name=inv.customer_name,
-                customer_cosium_id=customer_erp_id_str or None,
-                customer_id=customer_id,
-                type=inv.type,
-                total_ti=inv.total_ttc,
-                outstanding_balance=inv.outstanding_balance,
-                share_social_security=inv.share_social_security or 0.0,
-                share_private_insurance=inv.share_private_insurance or 0.0,
-                settled=inv.settled,
-                archived=inv.archived,
-                site_id=inv.site_id,
-            )
-            db.add(new_row)
-            created += 1
-
-        processed += 1
-        if processed % BATCH_SIZE == 0:
-            try:
-                db.flush()
-            except Exception as e:
-                db.rollback()
-                batch_errors += 1
-                logger.error("sync_invoices_batch_error", batch=processed // BATCH_SIZE, error=str(e))
-
-    try:
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        logger.error("sync_invoices_commit_failed", tenant_id=tenant_id, error=str(e))
-        raise
-
-    result = {
-        "created": created,
-        "updated": updated,
-        "batch_errors": batch_errors,
-        "total": len(all_invoices),
-    }
-    if user_id:
-        audit_service.log_action(db, tenant_id, user_id, "create", "sync_invoices", 0, new_value=result)
-    logger.info("sync_invoices_done", tenant_id=tenant_id, erp=connector.erp_type, **result)
-    return result
-
-
-def sync_products(db: Session, tenant_id: int, user_id: int = 0) -> dict:
-    """Synchronise un echantillon de produits depuis l'ERP vers cosium_products.
-
-    Products catalog is huge (398k+). We fetch only the first page (50 items)
-    as a catalog sample for reference.
-    """
-    if not user_id:
-        logger.warning("operation_without_user_id", action="sync_products", entity="product")
-    connector, tenant = _get_connector_for_tenant(db, tenant_id)
-    _authenticate_connector(connector, tenant)
-
-    # Only fetch first page (50 items) — catalog is too large for full sync
-    erp_products = connector.get_products(page_size=50)
-
-    # Upsert into cosium_products
-    existing_map: dict[str, CosiumProduct] = {}
-    existing_rows = db.scalars(select(CosiumProduct).where(CosiumProduct.tenant_id == tenant_id)).all()
-    for row in existing_rows:
-        existing_map[row.cosium_id] = row
-
-    created = 0
-    updated = 0
-    processed = 0
-    batch_errors = 0
-
-    for prod in erp_products:
-        if not prod.erp_id:
-            continue
-
-        if prod.erp_id in existing_map:
-            row = existing_map[prod.erp_id]
-            row.label = prod.label
-            row.code = prod.code
-            row.ean_code = prod.ean
-            row.price = prod.price
-            row.family_type = prod.family
-            row.synced_at = datetime.now(UTC)
-            updated += 1
-        else:
-            new_row = CosiumProduct(
-                tenant_id=tenant_id,
-                cosium_id=prod.erp_id,
-                label=prod.label,
-                code=prod.code,
-                ean_code=prod.ean,
-                price=prod.price,
-                family_type=prod.family,
-            )
-            db.add(new_row)
-            created += 1
-
-        processed += 1
-        if processed % BATCH_SIZE == 0:
-            try:
-                db.flush()
-            except Exception as e:
-                db.rollback()
-                batch_errors += 1
-                logger.error("sync_products_batch_error", batch=processed // BATCH_SIZE, error=str(e))
-
-    try:
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        logger.error("sync_products_commit_failed", tenant_id=tenant_id, error=str(e))
-        raise
-
-    result = {
-        "created": created,
-        "updated": updated,
-        "batch_errors": batch_errors,
-        "total": len(erp_products),
-    }
-    if user_id:
-        audit_service.log_action(db, tenant_id, user_id, "create", "sync_products", 0, new_value=result)
-    logger.info("sync_products_done", tenant_id=tenant_id, erp=connector.erp_type, **result)
-    return result
-
-
-def sync_payments(db: Session, tenant_id: int, user_id: int = 0) -> dict:
-    """Synchronise les paiements de factures depuis l'ERP vers cosium_payments (lecture seule)."""
-    if not user_id:
-        logger.warning("operation_without_user_id", action="sync_payments", entity="payment")
-    connector, tenant = _get_connector_for_tenant(db, tenant_id)
-    _authenticate_connector(connector, tenant)
-
-    from app.integrations.cosium.cosium_connector import CosiumConnector
-
-    if not isinstance(connector, CosiumConnector):
-        return {"created": 0, "updated": 0, "total": 0, "note": "Connector does not support invoice-payments"}
-
-    all_payments = connector.get_invoice_payments()
-
-    # Build existing map for upsert
-    existing_map: dict[int, CosiumPayment] = {}
-    existing_rows = db.scalars(select(CosiumPayment).where(CosiumPayment.tenant_id == tenant_id)).all()
-    for row in existing_rows:
-        existing_map[row.cosium_id] = row
-
-    created = 0
-    updated = 0
-    processed = 0
-    batch_errors = 0
-
-    for pmt in all_payments:
-        cosium_id = pmt.get("cosium_id")
-        if not cosium_id:
-            continue
-        cosium_id = int(cosium_id)
-
-        # Parse due_date
-        due_date = None
-        if pmt.get("due_date"):
-            try:
-                due_date = datetime.fromisoformat(str(pmt["due_date"]).replace("Z", "+00:00"))
-            except (ValueError, TypeError):
-                pass
-
-        if cosium_id in existing_map:
-            row = existing_map[cosium_id]
-            row.payment_type_id = pmt.get("payment_type_id")
-            row.amount = pmt.get("amount", 0)
-            row.original_amount = pmt.get("original_amount")
-            row.type = pmt.get("type", "")
-            row.due_date = due_date
-            row.issuer_name = pmt.get("issuer_name", "")
-            row.bank = pmt.get("bank", "")
-            row.site_name = pmt.get("site_name", "")
-            row.comment = pmt.get("comment")
-            row.payment_number = pmt.get("payment_number", "")
-            row.invoice_cosium_id = pmt.get("invoice_cosium_id")
-            row.synced_at = datetime.now(UTC)
-            updated += 1
-        else:
-            new_row = CosiumPayment(
-                tenant_id=tenant_id,
-                cosium_id=cosium_id,
-                payment_type_id=pmt.get("payment_type_id"),
-                amount=pmt.get("amount", 0),
-                original_amount=pmt.get("original_amount"),
-                type=pmt.get("type", ""),
-                due_date=due_date,
-                issuer_name=pmt.get("issuer_name", ""),
-                bank=pmt.get("bank", ""),
-                site_name=pmt.get("site_name", ""),
-                comment=pmt.get("comment"),
-                payment_number=pmt.get("payment_number", ""),
-                invoice_cosium_id=pmt.get("invoice_cosium_id"),
-            )
-            db.add(new_row)
-            created += 1
-
-        processed += 1
-        if processed % BATCH_SIZE == 0:
-            try:
-                db.flush()
-            except Exception as e:
-                db.rollback()
-                batch_errors += 1
-                logger.error("sync_payments_batch_error", batch=processed // BATCH_SIZE, error=str(e))
-
-    try:
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        logger.error("sync_payments_commit_failed", tenant_id=tenant_id, error=str(e))
-        raise
-
-    result = {"created": created, "updated": updated, "batch_errors": batch_errors, "total": len(all_payments)}
-    if user_id:
-        audit_service.log_action(db, tenant_id, user_id, "create", "sync_payments", 0, new_value=result)
-    logger.info("sync_payments_done", tenant_id=tenant_id, **result)
-    return result
-
-
-def sync_third_party_payments(db: Session, tenant_id: int, user_id: int = 0) -> dict:
-    """Synchronise les tiers payants depuis l'ERP vers cosium_third_party_payments (lecture seule)."""
-    if not user_id:
-        logger.warning("operation_without_user_id", action="sync_tpp", entity="third_party_payment")
-    connector, tenant = _get_connector_for_tenant(db, tenant_id)
-    _authenticate_connector(connector, tenant)
-
-    from app.integrations.cosium.cosium_connector import CosiumConnector
-
-    if not isinstance(connector, CosiumConnector):
-        return {"created": 0, "updated": 0, "total": 0, "note": "Connector does not support third-party-payments"}
-
-    all_tpp = connector.get_third_party_payments()
-
-    existing_map: dict[int, CosiumThirdPartyPayment] = {}
-    existing_rows = db.scalars(
-        select(CosiumThirdPartyPayment).where(CosiumThirdPartyPayment.tenant_id == tenant_id)
-    ).all()
-    for row in existing_rows:
-        existing_map[row.cosium_id] = row
-
-    created = 0
-    updated = 0
-    processed = 0
-    batch_errors = 0
-
-    for tpp in all_tpp:
-        cosium_id = tpp.get("cosium_id")
-        if not cosium_id:
-            continue
-        cosium_id = int(cosium_id)
-
-        if cosium_id in existing_map:
-            row = existing_map[cosium_id]
-            row.social_security_amount = tpp.get("social_security_amount", 0)
-            row.social_security_tpp = tpp.get("social_security_tpp", False)
-            row.additional_health_care_amount = tpp.get("additional_health_care_amount", 0)
-            row.additional_health_care_tpp = tpp.get("additional_health_care_tpp", False)
-            row.invoice_cosium_id = tpp.get("invoice_cosium_id")
-            row.synced_at = datetime.now(UTC)
-            updated += 1
-        else:
-            new_row = CosiumThirdPartyPayment(
-                tenant_id=tenant_id,
-                cosium_id=cosium_id,
-                social_security_amount=tpp.get("social_security_amount", 0),
-                social_security_tpp=tpp.get("social_security_tpp", False),
-                additional_health_care_amount=tpp.get("additional_health_care_amount", 0),
-                additional_health_care_tpp=tpp.get("additional_health_care_tpp", False),
-                invoice_cosium_id=tpp.get("invoice_cosium_id"),
-            )
-            db.add(new_row)
-            created += 1
-
-        processed += 1
-        if processed % BATCH_SIZE == 0:
-            try:
-                db.flush()
-            except Exception as e:
-                db.rollback()
-                batch_errors += 1
-                logger.error("sync_tpp_batch_error", batch=processed // BATCH_SIZE, error=str(e))
-
-    try:
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        logger.error("sync_tpp_commit_failed", tenant_id=tenant_id, error=str(e))
-        raise
-
-    result = {"created": created, "updated": updated, "batch_errors": batch_errors, "total": len(all_tpp)}
-    if user_id:
-        audit_service.log_action(db, tenant_id, user_id, "create", "sync_tpp", 0, new_value=result)
-    logger.info("sync_tpp_done", tenant_id=tenant_id, **result)
-    return result
-
-
-def sync_prescriptions(db: Session, tenant_id: int, user_id: int = 0) -> dict:
-    """Synchronise les ordonnances optiques depuis l'ERP vers cosium_prescriptions (lecture seule)."""
-    if not user_id:
-        logger.warning("operation_without_user_id", action="sync_prescriptions", entity="prescription")
-    connector, tenant = _get_connector_for_tenant(db, tenant_id)
-    _authenticate_connector(connector, tenant)
-
-    from app.integrations.cosium.cosium_connector import CosiumConnector
-
-    if not isinstance(connector, CosiumConnector):
-        return {"created": 0, "updated": 0, "total": 0, "note": "Connector does not support optical-prescriptions"}
-
-    all_prescriptions = connector.get_optical_prescriptions()
-
-    # Build customer cosium_id -> OptiFlow customer.id map
-    all_customers = db.scalars(select(Customer).where(Customer.tenant_id == tenant_id)).all()
-    cosium_to_customer: dict[int, int] = {}
-    for c in all_customers:
-        erp_id = getattr(c, "cosium_id", None) or getattr(c, "erp_id", None)
-        if erp_id:
-            try:
-                cosium_to_customer[int(erp_id)] = c.id
-            except (ValueError, TypeError):
-                pass
-
-    existing_map: dict[int, CosiumPrescription] = {}
-    existing_rows = db.scalars(
-        select(CosiumPrescription).where(CosiumPrescription.tenant_id == tenant_id)
-    ).all()
-    for row in existing_rows:
-        existing_map[row.cosium_id] = row
-
-    created = 0
-    updated = 0
-    processed = 0
-    batch_errors = 0
-
-    for presc in all_prescriptions:
-        cosium_id = presc.get("cosium_id")
-        if not cosium_id:
-            continue
-        cosium_id = int(cosium_id)
-
-        # Resolve customer_id
-        customer_cosium_id = presc.get("customer_cosium_id")
-        customer_id = cosium_to_customer.get(customer_cosium_id) if customer_cosium_id else None
-
-        # Parse file_date
-        file_date = None
-        if presc.get("file_date"):
-            try:
-                file_date = datetime.fromisoformat(str(presc["file_date"]).replace("Z", "+00:00"))
-            except (ValueError, TypeError):
-                pass
-
-        if cosium_id in existing_map:
-            row = existing_map[cosium_id]
-            row.prescription_date = presc.get("prescription_date")
-            row.file_date = file_date
-            row.customer_cosium_id = customer_cosium_id
-            row.customer_id = customer_id or row.customer_id
-            row.sphere_right = presc.get("sphere_right")
-            row.cylinder_right = presc.get("cylinder_right")
-            row.axis_right = presc.get("axis_right")
-            row.addition_right = presc.get("addition_right")
-            row.sphere_left = presc.get("sphere_left")
-            row.cylinder_left = presc.get("cylinder_left")
-            row.axis_left = presc.get("axis_left")
-            row.addition_left = presc.get("addition_left")
-            row.spectacles_json = presc.get("spectacles_json")
-            row.prescriber_name = presc.get("prescriber_name")
-            row.synced_at = datetime.now(UTC)
-            updated += 1
-        else:
-            new_row = CosiumPrescription(
-                tenant_id=tenant_id,
-                cosium_id=cosium_id,
-                prescription_date=presc.get("prescription_date"),
-                file_date=file_date,
-                customer_cosium_id=customer_cosium_id,
-                customer_id=customer_id,
-                sphere_right=presc.get("sphere_right"),
-                cylinder_right=presc.get("cylinder_right"),
-                axis_right=presc.get("axis_right"),
-                addition_right=presc.get("addition_right"),
-                sphere_left=presc.get("sphere_left"),
-                cylinder_left=presc.get("cylinder_left"),
-                axis_left=presc.get("axis_left"),
-                addition_left=presc.get("addition_left"),
-                spectacles_json=presc.get("spectacles_json"),
-                prescriber_name=presc.get("prescriber_name"),
-            )
-            db.add(new_row)
-            created += 1
-
-        processed += 1
-        if processed % BATCH_SIZE == 0:
-            try:
-                db.flush()
-            except Exception as e:
-                db.rollback()
-                batch_errors += 1
-                logger.error("sync_prescriptions_batch_error", batch=processed // BATCH_SIZE, error=str(e))
-
-    try:
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        logger.error("sync_prescriptions_commit_failed", tenant_id=tenant_id, error=str(e))
-        raise
-
-    result = {"created": created, "updated": updated, "batch_errors": batch_errors, "total": len(all_prescriptions)}
-    if user_id:
-        audit_service.log_action(db, tenant_id, user_id, "create", "sync_prescriptions", 0, new_value=result)
-    logger.info("sync_prescriptions_done", tenant_id=tenant_id, **result)
-    return result
-
-
 def get_sync_status(db: Session, tenant_id: int) -> dict:
     """Retourne l'etat de la connexion ERP pour un tenant."""
     tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
@@ -851,7 +332,7 @@ def _validate_erp_customer_data(erp_c: ERPCustomer) -> list[str]:
             elif erp_c.birth_date < min_date:
                 warnings.append(f"Date de naissance avant 1900 ({erp_c.birth_date}) pour {erp_label}")
 
-    # Social security number length check (French SSN: 13-15 digits)
+    # Social security number length check (French JSN: 13-15 digits)
     if erp_c.social_security_number:
         digits_only = "".join(c for c in erp_c.social_security_number if c.isdigit())
         if digits_only and (len(digits_only) < 13 or len(digits_only) > 15):
@@ -902,7 +383,7 @@ def _match_customer_by_name(customer_name: str, name_map: dict[str, int]) -> int
     """Try to match a Cosium customerName to an OptiFlow customer ID.
 
     Cosium format: "M. LASTNAME FIRSTNAME", "Mme. LASTNAME FIRSTNAME", "MME LASTNAME FIRSTNAME".
-    Strategies: exact match → strip prefix → reverse first/last → partial.
+    Strategies: exact match -> strip prefix -> reverse first/last -> partial.
     """
     if not customer_name:
         return None
@@ -923,7 +404,7 @@ def _match_customer_by_name(customer_name: str, name_map: dict[str, int]) -> int
     if stripped in name_map:
         return name_map[stripped]
 
-    # Try "FIRSTNAME LASTNAME" → "LASTNAME FIRSTNAME" (reverse words)
+    # Try "FIRSTNAME LASTNAME" -> "LASTNAME FIRSTNAME" (reverse words)
     parts = stripped.split()
     if len(parts) >= 2:
         # Try LAST FIRST
@@ -936,3 +417,18 @@ def _match_customer_by_name(customer_name: str, name_map: dict[str, int]) -> int
             return name_map[simple_reverse]
 
     return None
+
+
+# ---------------------------------------------------------------------------
+# Re-exports for backward compatibility.
+# Code was moved to erp_sync_invoices.py and erp_sync_extras.py but callers
+# that do `from app.services import erp_sync_service; erp_sync_service.sync_invoices()`
+# or `@patch("app.services.erp_sync_service.sync_invoices")` still work.
+# ---------------------------------------------------------------------------
+from app.services.erp_sync_invoices import sync_invoices  # noqa: E402, F401
+from app.services.erp_sync_extras import (  # noqa: E402, F401
+    sync_payments,
+    sync_prescriptions,
+    sync_products,
+    sync_third_party_payments,
+)

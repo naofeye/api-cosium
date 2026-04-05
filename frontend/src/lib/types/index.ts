@@ -1,0 +1,20 @@
+// Barrel re-export — all types accessible via "@/lib/types"
+export * from "./client";
+export * from "./cosium";
+export * from "./financial";
+
+// --- Generic API ---
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface ApiError {
+  error: {
+    code: string;
+    message: string;
+    field?: string;
+  };
+}

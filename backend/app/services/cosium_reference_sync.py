@@ -9,6 +9,7 @@ Gere : calendrier, mutuelles, medecins, marques, fournisseurs, tags, sites,
 
 import time
 from datetime import UTC, datetime
+from typing import Any, Callable
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -69,719 +70,252 @@ def _get_cosium_client(db: Session, tenant_id: int) -> CosiumClient:
     return connector._client
 
 
-def sync_calendar_events(db: Session, tenant_id: int, user_id: int = 0) -> dict:
-    """Synchronise les evenements calendrier depuis Cosium."""
-    logger.info("sync_calendar_events_start", tenant_id=tenant_id)
-    client = _get_cosium_client(db, tenant_id)
+# ---------------------------------------------------------------------------
+# Generic sync helper — handles the repeated fetch/upsert pattern
+# ---------------------------------------------------------------------------
 
-    items = client.get_paginated("/calendar-events", page_size=100, max_pages=200)
-    logger.info("sync_calendar_events_fetched", tenant_id=tenant_id, count=len(items))
+def _sync_entity(
+    db: Session,
+    tenant_id: int,
+    user_id: int,
+    client: CosiumClient,
+    endpoint: str,
+    adapter_fn: Callable[[dict], dict],
+    model_class: Any,
+    entity_name: str,
+    id_field: str = "cosium_id",
+    page_size: int = 100,
+    max_pages: int = 20,
+) -> dict:
+    """Generic sync for simple reference entities.
 
-    existing_map: dict[int, CosiumCalendarEvent] = {}
+    Fetches paginated data from Cosium, adapts each raw item via adapter_fn,
+    then upserts into the DB using id_field as the dedup key.
+    """
+    logger.info(f"sync_{entity_name}_start", tenant_id=tenant_id)
+
+    items = client.get_paginated(endpoint, page_size=page_size, max_pages=max_pages)
+    logger.info(f"sync_{entity_name}_fetched", tenant_id=tenant_id, count=len(items))
+
+    # Build existing map keyed by id_field
+    existing_map: dict[Any, Any] = {}
     existing_rows = db.scalars(
-        select(CosiumCalendarEvent).where(CosiumCalendarEvent.tenant_id == tenant_id)
+        select(model_class).where(model_class.tenant_id == tenant_id)
     ).all()
     for row in existing_rows:
-        existing_map[row.cosium_id] = row
+        existing_map[getattr(row, id_field)] = row
 
     created = 0
     updated = 0
-    seen_ids: set[int] = set()
+    seen: set = set()
 
     for raw in items:
-        adapted = adapt_calendar_event(raw)
-        cosium_id = adapted["cosium_id"]
-        if not cosium_id or cosium_id in seen_ids:
+        adapted = adapter_fn(raw)
+        eid = adapted.get(id_field)
+        if not eid or eid in seen:
             continue
-        seen_ids.add(cosium_id)
+        seen.add(eid)
 
-        if cosium_id in existing_map:
-            row = existing_map[cosium_id]
+        if eid in existing_map:
+            row = existing_map[eid]
             for key, val in adapted.items():
                 setattr(row, key, val)
-            row.synced_at = datetime.now(UTC)
+            if hasattr(row, "synced_at"):
+                row.synced_at = datetime.now(UTC)
             updated += 1
         else:
-            new_row = CosiumCalendarEvent(tenant_id=tenant_id, **adapted)
+            new_row = model_class(tenant_id=tenant_id, **adapted)
             db.add(new_row)
+            existing_map[eid] = new_row
             created += 1
 
     db.commit()
 
-    result = {"entity": "calendar_events", "created": created, "updated": updated, "total_fetched": len(items)}
+    result = {"entity": entity_name, "created": created, "updated": updated, "total_fetched": len(items)}
     if user_id:
-        audit_service.log_action(db, tenant_id, user_id, "create", "sync_calendar_events", 0, new_value=result)
-    logger.info("sync_calendar_events_done", tenant_id=tenant_id, **result)
+        audit_service.log_action(db, tenant_id, user_id, "create", f"sync_{entity_name}", 0, new_value=result)
+    logger.info(f"sync_{entity_name}_done", tenant_id=tenant_id, **result)
     return result
+
+
+# ---------------------------------------------------------------------------
+# Individual sync functions (thin wrappers around _sync_entity)
+# ---------------------------------------------------------------------------
+
+def sync_calendar_events(db: Session, tenant_id: int, user_id: int = 0) -> dict:
+    """Synchronise les evenements calendrier depuis Cosium."""
+    client = _get_cosium_client(db, tenant_id)
+    return _sync_entity(
+        db, tenant_id, user_id, client,
+        endpoint="/calendar-events", adapter_fn=adapt_calendar_event,
+        model_class=CosiumCalendarEvent, entity_name="calendar_events",
+        id_field="cosium_id", page_size=100, max_pages=200,
+    )
 
 
 def sync_mutuelles(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     """Synchronise les mutuelles depuis Cosium."""
-    logger.info("sync_mutuelles_start", tenant_id=tenant_id)
     client = _get_cosium_client(db, tenant_id)
-
-    items = client.get_paginated("/additional-health-cares", page_size=100, max_pages=50)
-    logger.info("sync_mutuelles_fetched", tenant_id=tenant_id, count=len(items))
-
-    existing_map: dict[int, CosiumMutuelle] = {}
-    existing_rows = db.scalars(
-        select(CosiumMutuelle).where(CosiumMutuelle.tenant_id == tenant_id)
-    ).all()
-    for row in existing_rows:
-        existing_map[row.cosium_id] = row
-
-    created = 0
-    updated = 0
-
-    for raw in items:
-        adapted = adapt_mutuelle(raw)
-        cosium_id = adapted["cosium_id"]
-        if not cosium_id:
-            continue
-
-        if cosium_id in existing_map:
-            row = existing_map[cosium_id]
-            for key, val in adapted.items():
-                setattr(row, key, val)
-            row.synced_at = datetime.now(UTC)
-            updated += 1
-        else:
-            new_row = CosiumMutuelle(tenant_id=tenant_id, **adapted)
-            db.add(new_row)
-            created += 1
-
-    db.commit()
-
-    result = {"entity": "mutuelles", "created": created, "updated": updated, "total_fetched": len(items)}
-    if user_id:
-        audit_service.log_action(db, tenant_id, user_id, "create", "sync_mutuelles", 0, new_value=result)
-    logger.info("sync_mutuelles_done", tenant_id=tenant_id, **result)
-    return result
+    return _sync_entity(
+        db, tenant_id, user_id, client,
+        endpoint="/additional-health-cares", adapter_fn=adapt_mutuelle,
+        model_class=CosiumMutuelle, entity_name="mutuelles",
+        id_field="cosium_id", max_pages=50,
+    )
 
 
 def sync_doctors(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     """Synchronise les medecins/prescripteurs depuis Cosium."""
-    logger.info("sync_doctors_start", tenant_id=tenant_id)
     client = _get_cosium_client(db, tenant_id)
-
-    items = client.get_paginated("/doctors", page_size=100, max_pages=20)
-    logger.info("sync_doctors_fetched", tenant_id=tenant_id, count=len(items))
-
-    existing_map: dict[str, CosiumDoctor] = {}
-    existing_rows = db.scalars(
-        select(CosiumDoctor).where(CosiumDoctor.tenant_id == tenant_id)
-    ).all()
-    for row in existing_rows:
-        existing_map[row.cosium_id] = row
-
-    created = 0
-    updated = 0
-    seen_ids: set[str] = set()
-
-    for raw in items:
-        adapted = adapt_doctor(raw)
-        cosium_id = adapted["cosium_id"]
-        if not cosium_id or cosium_id in seen_ids:
-            continue
-        seen_ids.add(cosium_id)
-
-        if cosium_id in existing_map:
-            row = existing_map[cosium_id]
-            for key, val in adapted.items():
-                setattr(row, key, val)
-            row.synced_at = datetime.now(UTC)
-            updated += 1
-        else:
-            new_row = CosiumDoctor(tenant_id=tenant_id, **adapted)
-            db.add(new_row)
-            created += 1
-
-    db.commit()
-
-    result = {"entity": "doctors", "created": created, "updated": updated, "total_fetched": len(items)}
-    if user_id:
-        audit_service.log_action(db, tenant_id, user_id, "create", "sync_doctors", 0, new_value=result)
-    logger.info("sync_doctors_done", tenant_id=tenant_id, **result)
-    return result
+    return _sync_entity(
+        db, tenant_id, user_id, client,
+        endpoint="/doctors", adapter_fn=adapt_doctor,
+        model_class=CosiumDoctor, entity_name="doctors",
+        id_field="cosium_id",
+    )
 
 
 def sync_brands(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     """Synchronise les marques depuis Cosium."""
-    logger.info("sync_brands_start", tenant_id=tenant_id)
     client = _get_cosium_client(db, tenant_id)
-
-    items = client.get_paginated("/brands", page_size=100, max_pages=20)
-    logger.info("sync_brands_fetched", tenant_id=tenant_id, count=len(items))
-
-    existing_map: dict[str, CosiumBrand] = {}
-    existing_rows = db.scalars(
-        select(CosiumBrand).where(CosiumBrand.tenant_id == tenant_id)
-    ).all()
-    for row in existing_rows:
-        existing_map[row.name] = row
-
-    created = 0
-    updated = 0
-
-    for raw in items:
-        adapted = adapt_brand(raw)
-        name = adapted["name"]
-        if not name:
-            continue
-
-        if name in existing_map:
-            row = existing_map[name]
-            row.synced_at = datetime.now(UTC)
-            updated += 1
-        else:
-            new_row = CosiumBrand(tenant_id=tenant_id, **adapted)
-            db.add(new_row)
-            existing_map[name] = new_row
-            created += 1
-
-    db.commit()
-
-    result = {"entity": "brands", "created": created, "updated": updated, "total_fetched": len(items)}
-    if user_id:
-        audit_service.log_action(db, tenant_id, user_id, "create", "sync_brands", 0, new_value=result)
-    logger.info("sync_brands_done", tenant_id=tenant_id, **result)
-    return result
+    return _sync_entity(
+        db, tenant_id, user_id, client,
+        endpoint="/brands", adapter_fn=adapt_brand,
+        model_class=CosiumBrand, entity_name="brands",
+        id_field="name",
+    )
 
 
 def sync_suppliers(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     """Synchronise les fournisseurs depuis Cosium."""
-    logger.info("sync_suppliers_start", tenant_id=tenant_id)
     client = _get_cosium_client(db, tenant_id)
-
-    items = client.get_paginated("/suppliers", page_size=100, max_pages=10)
-    logger.info("sync_suppliers_fetched", tenant_id=tenant_id, count=len(items))
-
-    existing_map: dict[str, CosiumSupplier] = {}
-    existing_rows = db.scalars(
-        select(CosiumSupplier).where(CosiumSupplier.tenant_id == tenant_id)
-    ).all()
-    for row in existing_rows:
-        existing_map[row.name] = row
-
-    created = 0
-    updated = 0
-
-    for raw in items:
-        adapted = adapt_supplier(raw)
-        name = adapted["name"]
-        if not name:
-            continue
-
-        if name in existing_map:
-            row = existing_map[name]
-            row.synced_at = datetime.now(UTC)
-            updated += 1
-        else:
-            new_row = CosiumSupplier(tenant_id=tenant_id, **adapted)
-            db.add(new_row)
-            existing_map[name] = new_row
-            created += 1
-
-    db.commit()
-
-    result = {"entity": "suppliers", "created": created, "updated": updated, "total_fetched": len(items)}
-    if user_id:
-        audit_service.log_action(db, tenant_id, user_id, "create", "sync_suppliers", 0, new_value=result)
-    logger.info("sync_suppliers_done", tenant_id=tenant_id, **result)
-    return result
+    return _sync_entity(
+        db, tenant_id, user_id, client,
+        endpoint="/suppliers", adapter_fn=adapt_supplier,
+        model_class=CosiumSupplier, entity_name="suppliers",
+        id_field="name", max_pages=10,
+    )
 
 
 def sync_tags(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     """Synchronise les tags depuis Cosium."""
-    logger.info("sync_tags_start", tenant_id=tenant_id)
     client = _get_cosium_client(db, tenant_id)
-
-    items = client.get_paginated("/tags", page_size=100, max_pages=5)
-    logger.info("sync_tags_fetched", tenant_id=tenant_id, count=len(items))
-
-    existing_map: dict[int, CosiumTag] = {}
-    existing_rows = db.scalars(
-        select(CosiumTag).where(CosiumTag.tenant_id == tenant_id)
-    ).all()
-    for row in existing_rows:
-        existing_map[row.cosium_id] = row
-
-    created = 0
-    updated = 0
-
-    for raw in items:
-        adapted = adapt_tag(raw)
-        cosium_id = adapted["cosium_id"]
-        if not cosium_id:
-            continue
-
-        if cosium_id in existing_map:
-            row = existing_map[cosium_id]
-            for key, val in adapted.items():
-                setattr(row, key, val)
-            row.synced_at = datetime.now(UTC)
-            updated += 1
-        else:
-            new_row = CosiumTag(tenant_id=tenant_id, **adapted)
-            db.add(new_row)
-            created += 1
-
-    db.commit()
-
-    result = {"entity": "tags", "created": created, "updated": updated, "total_fetched": len(items)}
-    if user_id:
-        audit_service.log_action(db, tenant_id, user_id, "create", "sync_tags", 0, new_value=result)
-    logger.info("sync_tags_done", tenant_id=tenant_id, **result)
-    return result
+    return _sync_entity(
+        db, tenant_id, user_id, client,
+        endpoint="/tags", adapter_fn=adapt_tag,
+        model_class=CosiumTag, entity_name="tags",
+        id_field="cosium_id", max_pages=5,
+    )
 
 
 def sync_sites(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     """Synchronise les sites/magasins depuis Cosium."""
-    logger.info("sync_sites_start", tenant_id=tenant_id)
     client = _get_cosium_client(db, tenant_id)
-
-    # Sites may use top-level content instead of HAL _embedded
-    items = client.get_paginated("/sites", page_size=100, max_pages=5)
-    logger.info("sync_sites_fetched", tenant_id=tenant_id, count=len(items))
-
-    existing_map: dict[int, CosiumSite] = {}
-    existing_rows = db.scalars(
-        select(CosiumSite).where(CosiumSite.tenant_id == tenant_id)
-    ).all()
-    for row in existing_rows:
-        existing_map[row.cosium_id] = row
-
-    created = 0
-    updated = 0
-
-    for raw in items:
-        adapted = adapt_site(raw)
-        cosium_id = adapted["cosium_id"]
-        if not cosium_id:
-            continue
-
-        if cosium_id in existing_map:
-            row = existing_map[cosium_id]
-            for key, val in adapted.items():
-                setattr(row, key, val)
-            row.synced_at = datetime.now(UTC)
-            updated += 1
-        else:
-            new_row = CosiumSite(tenant_id=tenant_id, **adapted)
-            db.add(new_row)
-            created += 1
-
-    db.commit()
-
-    result = {"entity": "sites", "created": created, "updated": updated, "total_fetched": len(items)}
-    if user_id:
-        audit_service.log_action(db, tenant_id, user_id, "create", "sync_sites", 0, new_value=result)
-    logger.info("sync_sites_done", tenant_id=tenant_id, **result)
-    return result
+    return _sync_entity(
+        db, tenant_id, user_id, client,
+        endpoint="/sites", adapter_fn=adapt_site,
+        model_class=CosiumSite, entity_name="sites",
+        id_field="cosium_id", max_pages=5,
+    )
 
 
 def sync_banks(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     """Synchronise les banques depuis Cosium."""
-    logger.info("sync_banks_start", tenant_id=tenant_id)
     client = _get_cosium_client(db, tenant_id)
-
-    items = client.get_paginated("/banks", page_size=100, max_pages=5)
-    logger.info("sync_banks_fetched", tenant_id=tenant_id, count=len(items))
-
-    existing_map: dict[str, CosiumBank] = {}
-    existing_rows = db.scalars(
-        select(CosiumBank).where(CosiumBank.tenant_id == tenant_id)
-    ).all()
-    for row in existing_rows:
-        existing_map[row.name] = row
-
-    created = 0
-    updated = 0
-
-    for raw in items:
-        adapted = adapt_bank(raw)
-        name = adapted["name"]
-        if not name:
-            continue
-
-        if name in existing_map:
-            row = existing_map[name]
-            for key, val in adapted.items():
-                setattr(row, key, val)
-            row.synced_at = datetime.now(UTC)
-            updated += 1
-        else:
-            new_row = CosiumBank(tenant_id=tenant_id, **adapted)
-            db.add(new_row)
-            existing_map[name] = new_row
-            created += 1
-
-    db.commit()
-
-    result = {"entity": "banks", "created": created, "updated": updated, "total_fetched": len(items)}
-    if user_id:
-        audit_service.log_action(db, tenant_id, user_id, "create", "sync_banks", 0, new_value=result)
-    logger.info("sync_banks_done", tenant_id=tenant_id, **result)
-    return result
+    return _sync_entity(
+        db, tenant_id, user_id, client,
+        endpoint="/banks", adapter_fn=adapt_bank,
+        model_class=CosiumBank, entity_name="banks",
+        id_field="name", max_pages=5,
+    )
 
 
 def sync_companies(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     """Synchronise les societes depuis Cosium."""
-    logger.info("sync_companies_start", tenant_id=tenant_id)
     client = _get_cosium_client(db, tenant_id)
-
-    items = client.get_paginated("/companies", page_size=100, max_pages=5)
-    logger.info("sync_companies_fetched", tenant_id=tenant_id, count=len(items))
-
-    existing_map: dict[str, CosiumCompany] = {}
-    existing_rows = db.scalars(
-        select(CosiumCompany).where(CosiumCompany.tenant_id == tenant_id)
-    ).all()
-    for row in existing_rows:
-        existing_map[row.name] = row
-
-    created = 0
-    updated = 0
-
-    for raw in items:
-        adapted = adapt_company(raw)
-        name = adapted["name"]
-        if not name:
-            continue
-
-        if name in existing_map:
-            row = existing_map[name]
-            for key, val in adapted.items():
-                setattr(row, key, val)
-            row.synced_at = datetime.now(UTC)
-            updated += 1
-        else:
-            new_row = CosiumCompany(tenant_id=tenant_id, **adapted)
-            db.add(new_row)
-            existing_map[name] = new_row
-            created += 1
-
-    db.commit()
-
-    result = {"entity": "companies", "created": created, "updated": updated, "total_fetched": len(items)}
-    if user_id:
-        audit_service.log_action(db, tenant_id, user_id, "create", "sync_companies", 0, new_value=result)
-    logger.info("sync_companies_done", tenant_id=tenant_id, **result)
-    return result
+    return _sync_entity(
+        db, tenant_id, user_id, client,
+        endpoint="/companies", adapter_fn=adapt_company,
+        model_class=CosiumCompany, entity_name="companies",
+        id_field="name", max_pages=5,
+    )
 
 
 def sync_users(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     """Synchronise les utilisateurs/employes depuis Cosium."""
-    logger.info("sync_users_start", tenant_id=tenant_id)
     client = _get_cosium_client(db, tenant_id)
-
-    items = client.get_paginated("/users", page_size=100, max_pages=5)
-    logger.info("sync_users_fetched", tenant_id=tenant_id, count=len(items))
-
-    existing_map: dict[int, CosiumUser] = {}
-    existing_rows = db.scalars(
-        select(CosiumUser).where(CosiumUser.tenant_id == tenant_id)
-    ).all()
-    for row in existing_rows:
-        existing_map[row.cosium_id] = row
-
-    created = 0
-    updated = 0
-
-    for raw in items:
-        adapted = adapt_cosium_user(raw)
-        cosium_id = adapted["cosium_id"]
-        if not cosium_id:
-            continue
-
-        if cosium_id in existing_map:
-            row = existing_map[cosium_id]
-            for key, val in adapted.items():
-                setattr(row, key, val)
-            row.synced_at = datetime.now(UTC)
-            updated += 1
-        else:
-            new_row = CosiumUser(tenant_id=tenant_id, **adapted)
-            db.add(new_row)
-            created += 1
-
-    db.commit()
-
-    result = {"entity": "users", "created": created, "updated": updated, "total_fetched": len(items)}
-    if user_id:
-        audit_service.log_action(db, tenant_id, user_id, "create", "sync_users", 0, new_value=result)
-    logger.info("sync_users_done", tenant_id=tenant_id, **result)
-    return result
+    return _sync_entity(
+        db, tenant_id, user_id, client,
+        endpoint="/users", adapter_fn=adapt_cosium_user,
+        model_class=CosiumUser, entity_name="users",
+        id_field="cosium_id", max_pages=5,
+    )
 
 
 def sync_equipment_types(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     """Synchronise les types de famille d'equipement depuis Cosium."""
-    logger.info("sync_equipment_types_start", tenant_id=tenant_id)
     client = _get_cosium_client(db, tenant_id)
-
-    items = client.get_paginated("/equipment-family-types", page_size=100, max_pages=5)
-    logger.info("sync_equipment_types_fetched", tenant_id=tenant_id, count=len(items))
-
-    existing_map: dict[str, CosiumEquipmentType] = {}
-    existing_rows = db.scalars(
-        select(CosiumEquipmentType).where(CosiumEquipmentType.tenant_id == tenant_id)
-    ).all()
-    for row in existing_rows:
-        existing_map[row.label_code] = row
-
-    created = 0
-    updated = 0
-
-    for raw in items:
-        adapted = adapt_equipment_type(raw)
-        code = adapted["label_code"]
-        if not code:
-            continue
-
-        if code in existing_map:
-            row = existing_map[code]
-            for key, val in adapted.items():
-                setattr(row, key, val)
-            row.synced_at = datetime.now(UTC)
-            updated += 1
-        else:
-            new_row = CosiumEquipmentType(tenant_id=tenant_id, **adapted)
-            db.add(new_row)
-            existing_map[code] = new_row
-            created += 1
-
-    db.commit()
-
-    result = {"entity": "equipment_types", "created": created, "updated": updated, "total_fetched": len(items)}
-    if user_id:
-        audit_service.log_action(db, tenant_id, user_id, "create", "sync_equipment_types", 0, new_value=result)
-    logger.info("sync_equipment_types_done", tenant_id=tenant_id, **result)
-    return result
+    return _sync_entity(
+        db, tenant_id, user_id, client,
+        endpoint="/equipment-family-types", adapter_fn=adapt_equipment_type,
+        model_class=CosiumEquipmentType, entity_name="equipment_types",
+        id_field="label_code", max_pages=5,
+    )
 
 
 def sync_frame_materials(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     """Synchronise les materiaux de monture depuis Cosium."""
-    logger.info("sync_frame_materials_start", tenant_id=tenant_id)
     client = _get_cosium_client(db, tenant_id)
-
-    items = client.get_paginated("/eyewear-frame-materials", page_size=100, max_pages=5)
-    logger.info("sync_frame_materials_fetched", tenant_id=tenant_id, count=len(items))
-
-    existing_map: dict[str, CosiumFrameMaterial] = {}
-    existing_rows = db.scalars(
-        select(CosiumFrameMaterial).where(CosiumFrameMaterial.tenant_id == tenant_id)
-    ).all()
-    for row in existing_rows:
-        existing_map[row.code] = row
-
-    created = 0
-    updated = 0
-
-    for raw in items:
-        adapted = adapt_frame_material(raw)
-        code = adapted["code"]
-        if not code:
-            continue
-
-        if code in existing_map:
-            row = existing_map[code]
-            for key, val in adapted.items():
-                setattr(row, key, val)
-            row.synced_at = datetime.now(UTC)
-            updated += 1
-        else:
-            new_row = CosiumFrameMaterial(tenant_id=tenant_id, **adapted)
-            db.add(new_row)
-            existing_map[code] = new_row
-            created += 1
-
-    db.commit()
-
-    result = {"entity": "frame_materials", "created": created, "updated": updated, "total_fetched": len(items)}
-    if user_id:
-        audit_service.log_action(db, tenant_id, user_id, "create", "sync_frame_materials", 0, new_value=result)
-    logger.info("sync_frame_materials_done", tenant_id=tenant_id, **result)
-    return result
+    return _sync_entity(
+        db, tenant_id, user_id, client,
+        endpoint="/eyewear-frame-materials", adapter_fn=adapt_frame_material,
+        model_class=CosiumFrameMaterial, entity_name="frame_materials",
+        id_field="code", max_pages=5,
+    )
 
 
 def sync_calendar_categories(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     """Synchronise les categories d'evenements calendrier depuis Cosium."""
-    logger.info("sync_calendar_categories_start", tenant_id=tenant_id)
     client = _get_cosium_client(db, tenant_id)
-
-    items = client.get_paginated("/calendar-event-categories", page_size=100, max_pages=5)
-    logger.info("sync_calendar_categories_fetched", tenant_id=tenant_id, count=len(items))
-
-    existing_map: dict[str, CosiumCalendarCategory] = {}
-    existing_rows = db.scalars(
-        select(CosiumCalendarCategory).where(CosiumCalendarCategory.tenant_id == tenant_id)
-    ).all()
-    for row in existing_rows:
-        existing_map[row.name] = row
-
-    created = 0
-    updated = 0
-
-    for raw in items:
-        adapted = adapt_calendar_category(raw)
-        name = adapted["name"]
-        if not name:
-            continue
-
-        if name in existing_map:
-            row = existing_map[name]
-            for key, val in adapted.items():
-                setattr(row, key, val)
-            row.synced_at = datetime.now(UTC)
-            updated += 1
-        else:
-            new_row = CosiumCalendarCategory(tenant_id=tenant_id, **adapted)
-            db.add(new_row)
-            existing_map[name] = new_row
-            created += 1
-
-    db.commit()
-
-    result = {"entity": "calendar_categories", "created": created, "updated": updated, "total_fetched": len(items)}
-    if user_id:
-        audit_service.log_action(db, tenant_id, user_id, "create", "sync_calendar_categories", 0, new_value=result)
-    logger.info("sync_calendar_categories_done", tenant_id=tenant_id, **result)
-    return result
+    return _sync_entity(
+        db, tenant_id, user_id, client,
+        endpoint="/calendar-event-categories", adapter_fn=adapt_calendar_category,
+        model_class=CosiumCalendarCategory, entity_name="calendar_categories",
+        id_field="name", max_pages=5,
+    )
 
 
 def sync_lens_focus_types(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     """Synchronise les types de foyer de verre depuis Cosium."""
-    logger.info("sync_lens_focus_types_start", tenant_id=tenant_id)
     client = _get_cosium_client(db, tenant_id)
-
-    items = client.get_paginated("/lens-focus-types", page_size=100, max_pages=5)
-    logger.info("sync_lens_focus_types_fetched", tenant_id=tenant_id, count=len(items))
-
-    existing_map: dict[str, CosiumLensFocusType] = {}
-    existing_rows = db.scalars(
-        select(CosiumLensFocusType).where(CosiumLensFocusType.tenant_id == tenant_id)
-    ).all()
-    for row in existing_rows:
-        existing_map[row.code] = row
-
-    created = 0
-    updated = 0
-
-    for raw in items:
-        adapted = adapt_lens_focus_type(raw)
-        code = adapted["code"]
-        if not code:
-            continue
-
-        if code in existing_map:
-            row = existing_map[code]
-            for key, val in adapted.items():
-                setattr(row, key, val)
-            row.synced_at = datetime.now(UTC)
-            updated += 1
-        else:
-            new_row = CosiumLensFocusType(tenant_id=tenant_id, **adapted)
-            db.add(new_row)
-            existing_map[code] = new_row
-            created += 1
-
-    db.commit()
-
-    result = {"entity": "lens_focus_types", "created": created, "updated": updated, "total_fetched": len(items)}
-    if user_id:
-        audit_service.log_action(db, tenant_id, user_id, "create", "sync_lens_focus_types", 0, new_value=result)
-    logger.info("sync_lens_focus_types_done", tenant_id=tenant_id, **result)
-    return result
+    return _sync_entity(
+        db, tenant_id, user_id, client,
+        endpoint="/lens-focus-types", adapter_fn=adapt_lens_focus_type,
+        model_class=CosiumLensFocusType, entity_name="lens_focus_types",
+        id_field="code", max_pages=5,
+    )
 
 
 def sync_lens_focus_categories(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     """Synchronise les categories de foyer de verre depuis Cosium."""
-    logger.info("sync_lens_focus_categories_start", tenant_id=tenant_id)
     client = _get_cosium_client(db, tenant_id)
-
-    items = client.get_paginated("/lens-focus-categories", page_size=100, max_pages=5)
-    logger.info("sync_lens_focus_categories_fetched", tenant_id=tenant_id, count=len(items))
-
-    existing_map: dict[str, CosiumLensFocusCategory] = {}
-    existing_rows = db.scalars(
-        select(CosiumLensFocusCategory).where(CosiumLensFocusCategory.tenant_id == tenant_id)
-    ).all()
-    for row in existing_rows:
-        existing_map[row.code] = row
-
-    created = 0
-    updated = 0
-
-    for raw in items:
-        adapted = adapt_lens_focus_category(raw)
-        code = adapted["code"]
-        if not code:
-            continue
-
-        if code in existing_map:
-            row = existing_map[code]
-            for key, val in adapted.items():
-                setattr(row, key, val)
-            row.synced_at = datetime.now(UTC)
-            updated += 1
-        else:
-            new_row = CosiumLensFocusCategory(tenant_id=tenant_id, **adapted)
-            db.add(new_row)
-            existing_map[code] = new_row
-            created += 1
-
-    db.commit()
-
-    result = {"entity": "lens_focus_categories", "created": created, "updated": updated, "total_fetched": len(items)}
-    if user_id:
-        audit_service.log_action(db, tenant_id, user_id, "create", "sync_lens_focus_categories", 0, new_value=result)
-    logger.info("sync_lens_focus_categories_done", tenant_id=tenant_id, **result)
-    return result
+    return _sync_entity(
+        db, tenant_id, user_id, client,
+        endpoint="/lens-focus-categories", adapter_fn=adapt_lens_focus_category,
+        model_class=CosiumLensFocusCategory, entity_name="lens_focus_categories",
+        id_field="code", max_pages=5,
+    )
 
 
 def sync_lens_materials(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     """Synchronise les materiaux de verre depuis Cosium."""
-    logger.info("sync_lens_materials_start", tenant_id=tenant_id)
     client = _get_cosium_client(db, tenant_id)
-
-    items = client.get_paginated("/lens-materials", page_size=100, max_pages=5)
-    logger.info("sync_lens_materials_fetched", tenant_id=tenant_id, count=len(items))
-
-    existing_map: dict[str, CosiumLensMaterial] = {}
-    existing_rows = db.scalars(
-        select(CosiumLensMaterial).where(CosiumLensMaterial.tenant_id == tenant_id)
-    ).all()
-    for row in existing_rows:
-        existing_map[row.code] = row
-
-    created = 0
-    updated = 0
-
-    for raw in items:
-        adapted = adapt_lens_material(raw)
-        code = adapted["code"]
-        if not code:
-            continue
-
-        if code in existing_map:
-            row = existing_map[code]
-            for key, val in adapted.items():
-                setattr(row, key, val)
-            row.synced_at = datetime.now(UTC)
-            updated += 1
-        else:
-            new_row = CosiumLensMaterial(tenant_id=tenant_id, **adapted)
-            db.add(new_row)
-            existing_map[code] = new_row
-            created += 1
-
-    db.commit()
-
-    result = {"entity": "lens_materials", "created": created, "updated": updated, "total_fetched": len(items)}
-    if user_id:
-        audit_service.log_action(db, tenant_id, user_id, "create", "sync_lens_materials", 0, new_value=result)
-    logger.info("sync_lens_materials_done", tenant_id=tenant_id, **result)
-    return result
+    return _sync_entity(
+        db, tenant_id, user_id, client,
+        endpoint="/lens-materials", adapter_fn=adapt_lens_material,
+        model_class=CosiumLensMaterial, entity_name="lens_materials",
+        id_field="code", max_pages=5,
+    )
 
 
 def sync_customer_tags(db: Session, tenant_id: int, user_id: int = 0) -> dict:
