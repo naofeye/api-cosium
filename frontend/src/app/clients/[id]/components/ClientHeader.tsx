@@ -2,7 +2,7 @@
 
 import { KPICard } from "@/components/ui/KPICard";
 import { formatMoney, formatDate } from "@/lib/format";
-import { Euro, CheckCircle, Clock, FolderOpen, Eye, Calendar } from "lucide-react";
+import { Euro, CheckCircle, Clock, FolderOpen, Eye, Calendar, AlertTriangle } from "lucide-react";
 import { AvatarUpload } from "./AvatarUpload";
 
 interface CorrectionActuelle {
@@ -62,6 +62,19 @@ export function ClientHeader({
   dossiersCount,
   onAvatarUploaded,
 }: ClientHeaderProps) {
+  // Calculate prescription age in months
+  const correctionAge: number | null = (() => {
+    if (!correction?.prescription_date) return null;
+    try {
+      const prescDate = new Date(correction.prescription_date);
+      if (isNaN(prescDate.getTime())) return null;
+      const now = new Date();
+      return (now.getFullYear() - prescDate.getFullYear()) * 12 + (now.getMonth() - prescDate.getMonth());
+    } catch {
+      return null;
+    }
+  })();
+
   return (
     <>
       {/* Avatar + identity header */}
@@ -74,6 +87,14 @@ export function ClientHeader({
         phone={phone}
         onUploaded={onAvatarUploaded}
       />
+
+      {/* Prescription expiry alert */}
+      {correctionAge !== null && correctionAge > 24 && (
+        <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800 mb-4">
+          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+          Ordonnance de plus de {Math.floor(correctionAge / 12)} an{Math.floor(correctionAge / 12) > 1 ? "s" : ""} — Renouvellement recommande
+        </div>
+      )}
 
       {/* Cosium ID badge + correction actuelle */}
       {(cosiumId || correction) && (

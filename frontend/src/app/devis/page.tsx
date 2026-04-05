@@ -11,6 +11,7 @@ import { DateDisplay } from "@/components/ui/DateDisplay";
 import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
 import { useDevisList } from "@/lib/hooks/use-api";
 import Link from "next/link";
+import { FileText } from "lucide-react";
 import type { Devis } from "@/lib/types";
 
 export default function DevisListPage() {
@@ -61,7 +62,8 @@ export default function DevisListPage() {
         onRetry={() => mutate()}
         onRowClick={(row) => router.push(`/devis/${row.id}`)}
         emptyTitle="Aucun devis"
-        emptyDescription="Commencez par creer votre premier devis."
+        emptyDescription="Creez votre premier devis pour un client."
+        emptyIcon={FileText}
         emptyAction={
           <Link href="/devis/new">
             <Button>Creer un devis</Button>

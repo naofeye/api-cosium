@@ -6,6 +6,7 @@ import { DataTable, type Column } from "@/components/ui/DataTable";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { DateDisplay } from "@/components/ui/DateDisplay";
 import { useCosiumPrescriptions } from "@/lib/hooks/use-api";
+import { ClipboardList } from "lucide-react";
 import type { CosiumPrescription } from "@/lib/types";
 
 function formatDiopter(value: number | null): string {
@@ -123,7 +124,8 @@ export default function OrdonnancesPage() {
         total={data?.total}
         onPageChange={setPage}
         emptyTitle="Aucune ordonnance"
-        emptyDescription="Aucune ordonnance trouvee dans Cosium. Les ordonnances apparaitront ici apres synchronisation."
+        emptyDescription="Les ordonnances sont importees depuis Cosium. Lancez une synchronisation."
+        emptyIcon={ClipboardList}
       />
     </PageLayout>
   );

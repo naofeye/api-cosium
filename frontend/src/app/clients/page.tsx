@@ -12,7 +12,7 @@ import { useClients } from "@/lib/hooks/use-api";
 import { exportToCsv } from "@/lib/export-csv";
 import { fetchJson } from "@/lib/api";
 import Link from "next/link";
-import { Download, Upload, AlertTriangle } from "lucide-react";
+import { Download, Upload, AlertTriangle, Users } from "lucide-react";
 import type { Customer } from "@/lib/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
@@ -205,6 +205,16 @@ export default function ClientsPage() {
         </div>
       )}
 
+      {data && data.items.length > 0 && (
+        <div className="flex items-center gap-6 mb-4 text-sm text-text-secondary">
+          <span>{data.total ?? data.items.length} client{(data.total ?? data.items.length) > 1 ? "s" : ""}</span>
+          <span className="text-gray-300">|</span>
+          <span>{data.items.filter((c) => c.email).length} avec email</span>
+          <span className="text-gray-300">|</span>
+          <span>{data.items.filter((c) => c.phone).length} avec telephone</span>
+        </div>
+      )}
+
       <div className="mb-6">
         <SearchInput placeholder="Rechercher un client (nom, email, telephone, ville)..." onSearch={handleSearch} />
       </div>
@@ -217,11 +227,17 @@ export default function ClientsPage() {
         onRetry={() => mutate()}
         onRowClick={(row) => router.push(`/clients/${row.id}`)}
         emptyTitle="Aucun client"
-        emptyDescription="Commencez par creer votre premier client."
+        emptyDescription="Importez vos clients depuis Cosium ou creez-en un manuellement."
+        emptyIcon={Users}
         emptyAction={
-          <Link href="/clients/new">
-            <Button>Creer un client</Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/admin">
+              <Button variant="outline">Synchroniser Cosium</Button>
+            </Link>
+            <Link href="/clients/new">
+              <Button>Creer un client</Button>
+            </Link>
+          </div>
         }
         page={page}
         pageSize={25}

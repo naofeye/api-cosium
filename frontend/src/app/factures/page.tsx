@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { useFactures } from "@/lib/hooks/use-api";
 import { exportToCsv } from "@/lib/export-csv";
 import { formatMoney } from "@/lib/format";
-import { Download } from "lucide-react";
+import { Download, Receipt } from "lucide-react";
 import type { Facture } from "@/lib/types";
 
 export default function FacturesPage() {
@@ -76,7 +76,8 @@ export default function FacturesPage() {
         onRetry={() => mutate()}
         onRowClick={(row) => router.push(`/factures/${row.id}`)}
         emptyTitle="Aucune facture"
-        emptyDescription="Les factures sont generees depuis les devis signes."
+        emptyDescription="Aucune facture. Les factures sont generees a partir des devis signes."
+        emptyIcon={Receipt}
       />
     </PageLayout>
   );

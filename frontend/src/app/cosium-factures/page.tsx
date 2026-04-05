@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { useCosiumInvoices } from "@/lib/hooks/use-api";
 import { exportToCsv } from "@/lib/export-csv";
 import { formatMoney, formatDate } from "@/lib/format";
-import { Download } from "lucide-react";
+import { Download, Receipt } from "lucide-react";
 import type { CosiumInvoice } from "@/lib/types";
 
 const TYPE_OPTIONS = [
@@ -60,6 +60,17 @@ export default function CosiumFacturesPage() {
     setSearch(q);
     setPage(1);
   }, []);
+
+  const stats = useMemo(() => {
+    const items = data?.items ?? [];
+    if (items.length === 0) return null;
+    const totalTTC = items.reduce((sum, inv) => sum + inv.total_ti, 0);
+    const totalImpaye = items.reduce((sum, inv) => sum + inv.outstanding_balance, 0);
+    const invoiceCount = items.filter((inv) => inv.type === "INVOICE").length;
+    const quoteCount = items.filter((inv) => inv.type === "QUOTE").length;
+    const creditCount = items.filter((inv) => inv.type === "CREDIT_NOTE").length;
+    return { totalTTC, totalImpaye, invoiceCount, quoteCount, creditCount };
+  }, [data]);
 
   const handleExportCsv = () => {
     if (!data?.items?.length) return;
@@ -144,6 +155,24 @@ export default function CosiumFacturesPage() {
         </Button>
       }
     >
+      {stats && (
+        <div className="flex items-center gap-6 mb-4 text-sm text-text-secondary">
+          <span>Total TTC : <span className="font-semibold text-text-primary">{formatMoney(stats.totalTTC)}</span></span>
+          <span className="text-gray-300">|</span>
+          <span>Impaye : <span className="font-semibold text-red-600">{formatMoney(stats.totalImpaye)}</span></span>
+          <span className="text-gray-300">|</span>
+          <span>{stats.invoiceCount} facture{stats.invoiceCount > 1 ? "s" : ""}</span>
+          <span className="text-gray-300">|</span>
+          <span>{stats.quoteCount} devis</span>
+          {stats.creditCount > 0 && (
+            <>
+              <span className="text-gray-300">|</span>
+              <span>{stats.creditCount} avoir{stats.creditCount > 1 ? "s" : ""}</span>
+            </>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-4 mb-6">
         <SearchInput placeholder="Rechercher par numero ou client..." onSearch={handleSearch} />
         <select
@@ -190,6 +219,7 @@ export default function CosiumFacturesPage() {
         onPageChange={setPage}
         emptyTitle="Aucune facture Cosium"
         emptyDescription="Lancez une synchronisation depuis Parametres > Connexion ERP pour importer vos factures."
+        emptyIcon={Receipt}
       />
     </PageLayout>
   );

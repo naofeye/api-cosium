@@ -37,6 +37,22 @@ interface NotificationList {
   unread_count: number;
 }
 
+function getNotificationLink(notif: NotificationItem): string | null {
+  if (!notif.entity_type || !notif.entity_id) return null;
+  const routes: Record<string, string> = {
+    case: `/cases/${notif.entity_id}`,
+    customer: `/clients/${notif.entity_id}`,
+    client: `/clients/${notif.entity_id}`,
+    devis: `/devis/${notif.entity_id}`,
+    facture: `/factures/${notif.entity_id}`,
+    payment: `/paiements`,
+    pec: `/pec/${notif.entity_id}`,
+    sync_customers: `/admin`,
+    sync_invoices: `/admin`,
+  };
+  return routes[notif.entity_type] || null;
+}
+
 export function Header({ breadcrumb }: HeaderProps) {
   const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -211,20 +227,36 @@ export function Header({ breadcrumb }: HeaderProps) {
                   {notifications.length === 0 ? (
                     <div className="py-8 text-center text-sm text-text-secondary">Aucune notification</div>
                   ) : (
-                    notifications.map((n) => (
-                      <div
-                        key={n.id}
-                        className={`flex gap-3 border-b border-border px-4 py-3 last:border-0 ${
-                          !n.is_read ? "bg-blue-50/50 dark:bg-blue-900/20" : ""
-                        }`}
-                      >
-                        <div className={`mt-1 h-2 w-2 shrink-0 rounded-full ${typeColor(n.type)}`} />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-text-primary truncate">{n.title}</p>
-                          <p className="text-xs text-text-secondary mt-0.5 line-clamp-2">{n.message}</p>
-                        </div>
-                      </div>
-                    ))
+                    notifications.map((n) => {
+                      const link = getNotificationLink(n);
+                      const handleClick = () => {
+                        if (!n.is_read) {
+                          fetchJson(`/notifications/${n.id}/read`, { method: "PATCH" })
+                            .then(() => mutateNotifs())
+                            .catch(() => {});
+                        }
+                        if (link) {
+                          setShowDropdown(false);
+                          router.push(link);
+                        }
+                      };
+                      return (
+                        <button
+                          key={n.id}
+                          type="button"
+                          onClick={handleClick}
+                          className={`flex w-full gap-3 border-b border-border px-4 py-3 text-left last:border-0 transition-colors ${
+                            link ? "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800" : ""
+                          } ${!n.is_read ? "bg-blue-50/50 dark:bg-blue-900/20" : ""}`}
+                        >
+                          <div className={`mt-1 h-2 w-2 shrink-0 rounded-full ${typeColor(n.type)}`} />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-text-primary truncate">{n.title}</p>
+                            <p className="text-xs text-text-secondary mt-0.5 line-clamp-2">{n.message}</p>
+                          </div>
+                        </button>
+                      );
+                    })
                   )}
                 </div>
               </div>

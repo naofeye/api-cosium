@@ -232,11 +232,11 @@ export default function StatistiquesPage() {
           {commercial.ca_par_mois.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={commercial.ca_par_mois}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="mois" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip formatter={(value) => formatMoney(Number(value))} />
-                <Bar dataKey="ca" name="CA" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                <XAxis dataKey="mois" tick={{ fontSize: 12 }} label={{ value: "Mois", position: "insideBottomRight", offset: -5, fontSize: 11, fill: "#6b7280" }} />
+                <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} label={{ value: "Montant (EUR)", angle: -90, position: "insideLeft", offset: 10, fontSize: 11, fill: "#6b7280" }} />
+                <Tooltip formatter={(value) => [formatMoney(Number(value)), "Chiffre d'affaires"]} />
+                <Bar dataKey="ca" name="Chiffre d'affaires" fill="#2563eb" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -250,13 +250,13 @@ export default function StatistiquesPage() {
           {pieData.length > 0 && pieData.some((d) => d.value > 0) ? (
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ""} ${((percent ?? 0) * 100).toFixed(0)}%`}>
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={100} paddingAngle={3} dataKey="value" label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ""} ${((percent ?? 0) * 100).toFixed(0)}%`}>
                   {pieData.map((_, idx) => (
                     <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
-                <Legend />
+                <Tooltip formatter={(value) => [Number(value).toLocaleString("fr-FR"), "Documents"]} />
+                <Legend verticalAlign="bottom" height={36} />
               </PieChart>
             </ResponsiveContainer>
           ) : (

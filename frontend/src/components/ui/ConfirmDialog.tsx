@@ -63,13 +63,13 @@ export function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-in fade-in-0 duration-200"
       onClick={onCancel}
       role="presentation"
     >
       <div
         ref={dialogRef}
-        className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
+        className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl animate-in fade-in-0 zoom-in-95 duration-200"
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"

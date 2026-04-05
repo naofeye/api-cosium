@@ -6,6 +6,7 @@ import { DataTable, type Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { useCosiumDoctors } from "@/lib/hooks/use-api";
+import { Stethoscope } from "lucide-react";
 import type { CosiumDoctor } from "@/lib/types";
 
 export default function PrescripteursPage() {
@@ -106,7 +107,8 @@ export default function PrescripteursPage() {
         total={data?.total}
         onPageChange={setPage}
         emptyTitle="Aucun prescripteur"
-        emptyDescription="Aucun medecin prescripteur trouve dans Cosium. Synchronisez vos donnees depuis les parametres."
+        emptyDescription="Les medecins prescripteurs sont importes depuis Cosium. Lancez une synchronisation."
+        emptyIcon={Stethoscope}
       />
     </PageLayout>
   );

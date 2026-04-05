@@ -7,6 +7,9 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { DateDisplay } from "@/components/ui/DateDisplay";
 import { useCosiumCalendarEvents } from "@/lib/hooks/use-api";
+import { Calendar } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import Link from "next/link";
 import type { CosiumCalendarEvent } from "@/lib/types";
 
 function eventStatusBadge(event: CosiumCalendarEvent) {
@@ -143,7 +146,13 @@ export default function AgendaPage() {
         total={data?.total}
         onPageChange={setPage}
         emptyTitle="Aucun rendez-vous"
-        emptyDescription="Aucun evenement de calendrier trouve dans Cosium pour les criteres selectionnes."
+        emptyDescription="Synchronisez votre agenda Cosium depuis la page Admin."
+        emptyIcon={Calendar}
+        emptyAction={
+          <Link href="/admin">
+            <Button variant="outline">Synchroniser Cosium</Button>
+          </Link>
+        }
       />
     </PageLayout>
   );

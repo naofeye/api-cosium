@@ -6,6 +6,7 @@ import { DataTable, type Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { useCosiumMutuelles } from "@/lib/hooks/use-api";
+import { ShieldCheck } from "lucide-react";
 import type { CosiumMutuelle } from "@/lib/types";
 
 export default function MutuellesPage() {
@@ -101,7 +102,8 @@ export default function MutuellesPage() {
         total={data?.total}
         onPageChange={setPage}
         emptyTitle="Aucune mutuelle"
-        emptyDescription="Aucune mutuelle trouvee dans Cosium. Synchronisez vos donnees depuis les parametres."
+        emptyDescription="Aucune mutuelle. Lancez une synchronisation Cosium depuis les parametres."
+        emptyIcon={ShieldCheck}
       />
     </PageLayout>
   );

@@ -210,7 +210,20 @@ export default function RapprochementPage() {
           }}
         />
       ) : transactions.length === 0 && payments.length === 0 ? (
-        <EmptyState title="Aucune transaction" description="Importez un releve CSV pour commencer le rapprochement." />
+        <EmptyState
+          title="Aucune transaction bancaire"
+          description="Importez un releve CSV depuis votre banque pour commencer le rapprochement."
+          icon={FileText}
+          action={
+            <label className="cursor-pointer">
+              <input type="file" accept=".csv" onChange={handleUpload} className="hidden" />
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover transition-colors">
+                <Upload className="h-4 w-4" />
+                Importer un releve CSV
+              </span>
+            </label>
+          }
+        />
       ) : (
         <>
           {/* Drag-and-drop zone for unmatched items */}

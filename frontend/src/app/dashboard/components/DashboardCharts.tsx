@@ -70,11 +70,11 @@ export function DashboardCharts({ caParMois, cosiumCaParMois, aging, cosium }: D
           <>
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={chartData} aria-hidden="true">
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="mois" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(value) => formatMoney(Number(value))} />
-                <Bar dataKey="ca" name="CA" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.3} />
+                <XAxis dataKey="mois" tick={{ fontSize: 11 }} label={{ value: "Mois", position: "insideBottomRight", offset: -5, fontSize: 10, fill: "#6b7280" }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} label={{ value: "EUR", angle: -90, position: "insideLeft", offset: 10, fontSize: 10, fill: "#6b7280" }} />
+                <Tooltip formatter={(value) => [formatMoney(Number(value)), "Chiffre d'affaires"]} />
+                <Bar dataKey="ca" name="Chiffre d'affaires" fill="#2563eb" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
             <table className="sr-only">
@@ -157,10 +157,10 @@ export function DashboardCharts({ caParMois, cosiumCaParMois, aging, cosium }: D
             <>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={aging.buckets} aria-hidden="true">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="tranche" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip formatter={(value) => formatMoney(Number(value))} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.3} />
+                  <XAxis dataKey="tranche" tick={{ fontSize: 12 }} label={{ value: "Tranche", position: "insideBottomRight", offset: -5, fontSize: 10, fill: "#6b7280" }} />
+                  <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} label={{ value: "EUR", angle: -90, position: "insideLeft", offset: 10, fontSize: 10, fill: "#6b7280" }} />
+                  <Tooltip formatter={(value) => [formatMoney(Number(value)), ""]} />
                   <Legend />
                   <Bar dataKey="client" name="Client" fill="#3b82f6" stackId="a" />
                   <Bar dataKey="mutuelle" name="Mutuelle" fill="#8b5cf6" stackId="a" />

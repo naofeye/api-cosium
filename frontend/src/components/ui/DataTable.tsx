@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsUpDown, type LucideIcon } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import { LoadingState } from "./LoadingState";
 import { ErrorState } from "./ErrorState";
@@ -27,6 +27,7 @@ interface DataTableProps<T> {
   onRowClick?: (row: T) => void;
   emptyTitle?: string;
   emptyDescription?: string;
+  emptyIcon?: LucideIcon;
   emptyAction?: ReactNode;
   page?: number;
   pageSize?: number;
@@ -43,6 +44,7 @@ export function DataTable<T extends { id: number | string }>({
   onRowClick,
   emptyTitle = "Aucune donnée",
   emptyDescription = "Aucun élément à afficher pour le moment.",
+  emptyIcon,
   emptyAction,
   page = 1,
   pageSize = 25,
@@ -89,7 +91,7 @@ export function DataTable<T extends { id: number | string }>({
 
   if (loading) return <LoadingState text="Chargement des données..." />;
   if (error) return <ErrorState message={error} onRetry={onRetry} />;
-  if (safeData.length === 0) return <EmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />;
+  if (safeData.length === 0) return <EmptyState title={emptyTitle} description={emptyDescription} icon={emptyIcon} action={emptyAction} />;
 
   const totalPages = total ? Math.ceil(total / pageSize) : 1;
 
@@ -139,7 +141,7 @@ export function DataTable<T extends { id: number | string }>({
               <tr
                 key={row.id}
                 className={cn(
-                  "border-b border-border last:border-0 transition-colors",
+                  "border-b border-border last:border-0 transition-colors duration-150",
                   onRowClick && "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50",
                 )}
                 onClick={() => onRowClick?.(row)}

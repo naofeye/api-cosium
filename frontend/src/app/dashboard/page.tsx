@@ -14,7 +14,7 @@ import { OnboardingGuide } from "@/components/ui/OnboardingGuide";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { SkeletonCard } from "@/components/ui/SkeletonCard";
 import { useToast } from "@/components/ui/Toast";
-import { FileDown, Calendar, Eye, RefreshCw as RefreshIcon } from "lucide-react";
+import { FileDown, Calendar, Eye, RefreshCw as RefreshIcon, Clock } from "lucide-react";
 import Link from "next/link";
 
 type PeriodKey = "today" | "7d" | "30d" | "90d" | "all";
@@ -104,13 +104,58 @@ interface RenewalData {
   estimated_revenue: number;
 }
 
+interface CalendarEvent {
+  id: number | string;
+  start_date: string;
+  end_date?: string;
+  customer_fullname: string;
+  category_name: string;
+  category_color: string;
+}
+
+interface CalendarEventsResponse {
+  events: CalendarEvent[];
+  total: number;
+}
+
+function formatTime(dateStr: string): string {
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "--:--";
+  }
+}
+
+function formatRelativeTime(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 10) return "a l'instant";
+  if (seconds < 60) return `il y a ${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `il y a ${minutes}min`;
+  const hours = Math.floor(minutes / 60);
+  return `il y a ${hours}h`;
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
 export default function DashboardPage() {
   const [period, setPeriod] = useState<PeriodKey>("all");
   const [exporting, setExporting] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const { toast } = useToast();
   const { date_from, date_to } = useMemo(() => getDateRange(period), [period]);
+
+  // Today's date for calendar events
+  const todayStr = useMemo(() => formatDate(new Date()), []);
+  const { data: calendarData } = useSWR<CalendarEventsResponse>(
+    `/cosium/calendar-events?date_from=${todayStr}&date_to=${todayStr}&page_size=10`,
+    {
+      refreshInterval: 120000,
+      onError: () => { /* ignore calendar errors silently */ },
+    },
+  );
+  const todayEvents = calendarData?.events ?? [];
 
   const handleExportPDF = useCallback(async () => {
     setExporting(true);
@@ -144,7 +189,10 @@ export default function DashboardPage() {
 
   const { data, error, isLoading, mutate } = useSWR<DashboardData>(
     `/analytics/dashboard${queryParams}`,
-    { refreshInterval: 60000 },
+    {
+      refreshInterval: 60000,
+      onSuccess: () => setLastUpdated(new Date()),
+    },
   );
   const { data: renewalData } = useSWR<RenewalData>("/renewals/dashboard", {
     refreshInterval: 60000,
@@ -187,13 +235,40 @@ export default function DashboardPage() {
     <PageLayout title="Dashboard" description="Tableau de pilotage OptiFlow" breadcrumb={[{ label: "Dashboard" }]}>
       <OnboardingGuide />
 
+      {/* Today's appointments */}
+      <div className="rounded-xl border border-border bg-bg-card p-4 mb-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <Clock className="h-4 w-4 text-primary" aria-hidden="true" />
+          <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide">
+            Rendez-vous du jour
+          </h3>
+        </div>
+        {todayEvents.length === 0 ? (
+          <p className="text-sm text-text-secondary">Aucun rendez-vous aujourd&apos;hui</p>
+        ) : (
+          <div className="space-y-2">
+            {todayEvents.map((ev) => (
+              <div key={ev.id} className="flex items-center gap-3 text-sm">
+                <span className="w-12 font-mono text-text-secondary">{formatTime(ev.start_date)}</span>
+                <span
+                  className="h-2 w-2 rounded-full shrink-0"
+                  style={{ backgroundColor: ev.category_color || "#6b7280" }}
+                />
+                <span className="font-medium text-text-primary">{ev.customer_fullname}</span>
+                <span className="text-text-secondary">{ev.category_name}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Period selector + actions */}
       <div className="flex items-center gap-2 mb-6 flex-wrap">
         {PERIODS.map((p) => (
           <button
             key={p.key}
             onClick={() => setPeriod(p.key)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-150 ${
               period === p.key
                 ? "bg-primary text-white"
                 : "bg-bg-card text-text-secondary border border-border hover:bg-gray-100"
@@ -202,6 +277,11 @@ export default function DashboardPage() {
             {p.label}
           </button>
         ))}
+        {lastUpdated && (
+          <span className="text-xs text-text-secondary ml-2">
+            Mis a jour {formatRelativeTime(lastUpdated)}
+          </span>
+        )}
         <div className="ml-auto flex items-center gap-2">
           <button
             onClick={handleExportPDF}

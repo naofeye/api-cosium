@@ -157,7 +157,8 @@ export default function CosiumPaiementsPage() {
         total={data?.total}
         onPageChange={setPage}
         emptyTitle="Aucun paiement"
-        emptyDescription="Aucun paiement trouve dans Cosium pour les criteres selectionnes."
+        emptyDescription="Les paiements sont synchronises depuis Cosium. Lancez une synchronisation."
+        emptyIcon={Euro}
       />
     </PageLayout>
   );

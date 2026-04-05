@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Plus, Users } from "lucide-react";
+import { Plus, Users, Target } from "lucide-react";
 
 export interface Segment {
   id: number;
@@ -101,7 +101,12 @@ export function SegmentPanel({
         </form>
       )}
       {segments.length === 0 ? (
-        <EmptyState title="Aucun segment" description="Creez votre premier segment de clients." />
+        <EmptyState
+          title="Aucun segment"
+          description="Creez un segment pour cibler vos campagnes marketing."
+          icon={Target}
+          action={<Button onClick={onToggleForm}><Plus className="h-4 w-4 mr-1" /> Creer un segment</Button>}
+        />
       ) : (
         <div className="space-y-3">
           {segments.map((s) => (
