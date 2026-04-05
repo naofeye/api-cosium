@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class PaymentCreate(BaseModel):
@@ -11,7 +11,18 @@ class PaymentCreate(BaseModel):
     reference_externe: str | None = None
     date_paiement: datetime | None = None
     amount_due: float = Field(0, ge=0)
-    amount_paid: float = Field(..., ge=0)
+    amount_paid: float = Field(..., gt=0, description="Montant paye, doit etre strictement positif")
+
+    @model_validator(mode="after")
+    def validate_amounts(self) -> "PaymentCreate":
+        """Validate that amount_paid does not exceed amount_due when amount_due is set."""
+        if self.amount_due > 0 and self.amount_paid > self.amount_due:
+            msg = (
+                f"Le montant paye ({self.amount_paid}) ne peut pas depasser "
+                f"le montant du ({self.amount_due})"
+            )
+            raise ValueError(msg)
+        return self
 
 
 class PaymentResponse(BaseModel):

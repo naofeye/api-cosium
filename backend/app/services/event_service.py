@@ -128,9 +128,21 @@ def emit_event(
     if not config:
         return
 
-    query = select(User).where(User.role == "admin", User.is_active.is_(True))
-    if tenant_id:
-        query = query.join(TenantUser, TenantUser.user_id == User.id).where(TenantUser.tenant_id == tenant_id)
+    # TENANT ISOLATION: Always filter admins by tenant_id via the tenant_users
+    # join table. Without this, notifications would leak to admins of other tenants.
+    # tenant_id is required; if somehow missing, return early to avoid global broadcast.
+    if not tenant_id:
+        logger.warning("emit_event_no_tenant", event_type=event_type, entity_id=entity_id)
+        return
+    query = (
+        select(User)
+        .join(TenantUser, TenantUser.user_id == User.id)
+        .where(
+            User.role.in_(["admin", "owner"]),
+            User.is_active.is_(True),
+            TenantUser.tenant_id == tenant_id,
+        )
+    )
     admin_users = db.scalars(query).all()
 
     message = config["message_tpl"].format(entity_id=entity_id)

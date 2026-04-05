@@ -44,9 +44,19 @@ export async function fetchJson<T = unknown>(path: string, options?: RequestInit
     }
 
     if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      const msg = data?.error?.message || data?.message || `Erreur API ${response.status}`;
-      throw new Error(msg);
+      // Try to parse JSON error body; fallback gracefully for non-JSON responses (HTML error pages, gateway errors)
+      let errorBody: Record<string, unknown> = {};
+      try {
+        errorBody = await response.json();
+      } catch {
+        // Non-JSON response (HTML error page, proxy error, etc.)
+      }
+      const msg =
+        (errorBody?.error as Record<string, unknown>)?.message ||
+        errorBody?.message ||
+        errorBody?.detail ||
+        `Erreur API ${response.status}`;
+      throw new Error(String(msg));
     }
 
     if (response.status === 204) return undefined as T;

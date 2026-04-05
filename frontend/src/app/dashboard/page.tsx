@@ -11,6 +11,7 @@ import { DashboardSections } from "./components/DashboardSections";
 import { RenewalSection } from "./components/RenewalSection";
 import { PayersTable } from "./components/PayersTable";
 import { OnboardingGuide } from "@/components/ui/OnboardingGuide";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { useToast } from "@/components/ui/Toast";
 import { FileDown, Calendar, Eye, RefreshCw as RefreshIcon } from "lucide-react";
 import Link from "next/link";
@@ -201,15 +202,19 @@ export default function DashboardPage() {
       </div>
 
       {/* Main KPIs (financial + volume) */}
-      <DashboardKPIs financial={financial} cosiumCounts={cosium_counts} cosium={cosium} />
+      <ErrorBoundary name="DashboardKPIs">
+        <DashboardKPIs financial={financial} cosiumCounts={cosium_counts} cosium={cosium} />
+      </ErrorBoundary>
 
       {/* Charts: CA par mois + document distribution */}
-      <DashboardCharts
-        caParMois={commercial.ca_par_mois}
-        cosiumCaParMois={cosium_ca_par_mois || []}
-        aging={aging}
-        cosium={cosium}
-      />
+      <ErrorBoundary name="DashboardCharts">
+        <DashboardCharts
+          caParMois={commercial.ca_par_mois}
+          cosiumCaParMois={cosium_ca_par_mois || []}
+          aging={aging}
+          cosium={cosium}
+        />
+      </ErrorBoundary>
 
       {/* Quick links */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
@@ -256,13 +261,19 @@ export default function DashboardPage() {
       </div>
 
       {/* Operational / Commercial / Marketing */}
-      <DashboardSections operational={operational} commercial={commercial} marketing={marketing} />
+      <ErrorBoundary name="DashboardSections">
+        <DashboardSections operational={operational} commercial={commercial} marketing={marketing} />
+      </ErrorBoundary>
 
       {/* Renewals */}
-      <RenewalSection renewalData={renewalData} />
+      <ErrorBoundary name="RenewalSection">
+        <RenewalSection renewalData={renewalData} />
+      </ErrorBoundary>
 
       {/* Payers performance */}
-      <PayersTable payers={payers.payers} />
+      <ErrorBoundary name="PayersTable">
+        <PayersTable payers={payers.payers} />
+      </ErrorBoundary>
     </PageLayout>
   );
 }

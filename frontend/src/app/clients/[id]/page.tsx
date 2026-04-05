@@ -17,6 +17,7 @@ import { downloadPdf } from "@/lib/download";
 import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
 import { AvatarUpload } from "./components/AvatarUpload";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 import { TabResume } from "./tabs/TabResume";
 import { TabDossiers } from "./tabs/TabDossiers";
@@ -408,66 +409,96 @@ export default function ClientDetailPage() {
         </div>
       </div>
 
-      {/* Tab panels */}
+      {/* Tab panels — each wrapped in ErrorBoundary for isolation */}
       {activeTab === "resume" && (
-        <TabResume
-          firstName={data.first_name}
-          lastName={data.last_name}
-          phone={data.phone}
-          email={data.email}
-          socialSecurityNumber={data.social_security_number}
-          postalCode={data.postal_code}
-          city={data.city}
-          renewalEligible={renewalEligible}
-          renewalMonths={renewalMonths}
-          interactions={data.interactions}
-          correction={cd?.correction_actuelle ?? null}
-          totalCaCosium={cd?.total_ca_cosium ?? 0}
-          lastVisitDate={cd?.last_visit_date ?? null}
-          nextRdv={cd?.calendar_events?.find((ev) => !ev.canceled && ev.start_date && new Date(ev.start_date) > new Date()) ?? null}
-          cosiumInvoices={data.cosium_invoices}
-        />
+        <ErrorBoundary name="TabResume">
+          <TabResume
+            firstName={data.first_name}
+            lastName={data.last_name}
+            phone={data.phone}
+            email={data.email}
+            socialSecurityNumber={data.social_security_number}
+            postalCode={data.postal_code}
+            city={data.city}
+            renewalEligible={renewalEligible}
+            renewalMonths={renewalMonths}
+            interactions={data.interactions}
+            correction={cd?.correction_actuelle ?? null}
+            totalCaCosium={cd?.total_ca_cosium ?? 0}
+            lastVisitDate={cd?.last_visit_date ?? null}
+            nextRdv={cd?.calendar_events?.find((ev) => !ev.canceled && ev.start_date && new Date(ev.start_date) > new Date()) ?? null}
+            cosiumInvoices={data.cosium_invoices}
+          />
+        </ErrorBoundary>
       )}
-      {activeTab === "dossiers" && <TabDossiers dossiers={data.dossiers} />}
+      {activeTab === "dossiers" && (
+        <ErrorBoundary name="TabDossiers">
+          <TabDossiers dossiers={data.dossiers} />
+        </ErrorBoundary>
+      )}
       {activeTab === "finances" && (
-        <TabFinances
-          devis={data.devis}
-          factures={data.factures}
-          paiements={data.paiements}
-          cosiumInvoices={data.cosium_invoices}
-        />
+        <ErrorBoundary name="TabFinances">
+          <TabFinances
+            devis={data.devis}
+            factures={data.factures}
+            paiements={data.paiements}
+            cosiumInvoices={data.cosium_invoices}
+          />
+        </ErrorBoundary>
       )}
-      {activeTab === "documents" && <TabDocuments documents={data.documents} />}
-      {activeTab === "marketing" && <TabMarketing consentements={data.consentements} />}
-      {activeTab === "cosium-docs" && <TabCosiumDocuments cosiumId={data.cosium_id} />}
+      {activeTab === "documents" && (
+        <ErrorBoundary name="TabDocuments">
+          <TabDocuments documents={data.documents} />
+        </ErrorBoundary>
+      )}
+      {activeTab === "marketing" && (
+        <ErrorBoundary name="TabMarketing">
+          <TabMarketing consentements={data.consentements} />
+        </ErrorBoundary>
+      )}
+      {activeTab === "cosium-docs" && (
+        <ErrorBoundary name="TabCosiumDocuments">
+          <TabCosiumDocuments cosiumId={data.cosium_id} />
+        </ErrorBoundary>
+      )}
       {activeTab === "ordonnances" && (
-        <TabOrdonnances prescriptions={cd?.prescriptions ?? []} />
+        <ErrorBoundary name="TabOrdonnances">
+          <TabOrdonnances prescriptions={cd?.prescriptions ?? []} />
+        </ErrorBoundary>
       )}
       {activeTab === "cosium-paiements" && (
-        <TabCosiumPaiements payments={cd?.cosium_payments ?? []} />
+        <ErrorBoundary name="TabCosiumPaiements">
+          <TabCosiumPaiements payments={cd?.cosium_payments ?? []} />
+        </ErrorBoundary>
       )}
       {activeTab === "rendez-vous" && (
-        <TabRendezVous events={cd?.calendar_events ?? []} />
+        <ErrorBoundary name="TabRendezVous">
+          <TabRendezVous events={cd?.calendar_events ?? []} />
+        </ErrorBoundary>
       )}
       {activeTab === "equipements" && (
-        <TabEquipements equipments={cd?.equipments ?? []} />
+        <ErrorBoundary name="TabEquipements">
+          <TabEquipements equipments={cd?.equipments ?? []} />
+        </ErrorBoundary>
       )}
       {activeTab === "historique" && (
-        <TabHistorique
-          interactions={data.interactions}
-          showForm={showForm}
-          onShowForm={setShowForm}
-          intType={intType}
-          onIntTypeChange={setIntType}
-          intDir={intDir}
-          onIntDirChange={setIntDir}
-          intSubj={intSubj}
-          onIntSubjChange={setIntSubj}
-          intBody={intBody}
-          onIntBodyChange={setIntBody}
-          submitting={submitting}
-          onSubmit={addInteraction}
-        />
+        <ErrorBoundary name="TabHistorique">
+          <TabHistorique
+            interactions={data.interactions}
+            showForm={showForm}
+            onShowForm={setShowForm}
+            intType={intType}
+            onIntTypeChange={setIntType}
+            intDir={intDir}
+            onIntDirChange={setIntDir}
+            intSubj={intSubj}
+            onIntSubjChange={setIntSubj}
+            intBody={intBody}
+            onIntBodyChange={setIntBody}
+            submitting={submitting}
+            onSubmit={addInteraction}
+          />
+        </ErrorBoundary>
       )}
 
       <ConfirmDialog

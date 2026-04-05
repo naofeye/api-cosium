@@ -11,6 +11,9 @@ def get_completeness(db: Session, tenant_id: int, case_id: int) -> CompletenessR
     if not case or case.tenant_id != tenant_id:
         raise NotFoundError("case", case_id)
 
+    # NOTE: DocumentType is a global reference table (no tenant_id column).
+    # All tenants share the same document type definitions. This is by design:
+    # document types are a fixed catalog, not tenant-specific data.
     doc_types = db.scalars(select(DocumentType)).all()
     docs = db.scalars(select(Document).where(Document.case_id == case_id)).all()
     present_types = {d.type for d in docs}

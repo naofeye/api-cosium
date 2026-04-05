@@ -28,6 +28,8 @@ from app.services import audit_service
 
 logger = get_logger("erp_sync_service")
 
+BATCH_SIZE = 500
+
 
 def _get_connector_for_tenant(db: Session, tenant_id: int) -> tuple[ERPConnector, Tenant]:
     """Retourne le connecteur ERP configure pour un tenant."""
@@ -135,6 +137,9 @@ def sync_customers(db: Session, tenant_id: int, user_id: int = 0) -> dict:
         if erp_id:
             existing_by_erp_id[str(erp_id)] = c
 
+    processed = 0
+    batch_errors = 0
+
     for erp_c in erp_customers:
         if not erp_c.last_name:
             skipped += 1
@@ -175,12 +180,25 @@ def sync_customers(db: Session, tenant_id: int, user_id: int = 0) -> dict:
             if erp_c.erp_id:
                 existing_by_erp_id[str(erp_c.erp_id)] = customer
 
-    # Update tenant sync timestamp
-    tenant.last_cosium_sync_at = datetime.now(UTC).replace(tzinfo=None)
-    if not tenant.first_sync_done:
-        tenant.first_sync_done = True
+        processed += 1
+        if processed % BATCH_SIZE == 0:
+            try:
+                db.flush()
+            except Exception as e:
+                db.rollback()
+                batch_errors += 1
+                logger.error("sync_customers_batch_error", batch=processed // BATCH_SIZE, error=str(e))
 
-    db.commit()
+    # Final commit for remaining records + tenant sync timestamp
+    try:
+        tenant.last_cosium_sync_at = datetime.now(UTC).replace(tzinfo=None)
+        if not tenant.first_sync_done:
+            tenant.first_sync_done = True
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error("sync_customers_commit_failed", tenant_id=tenant_id, error=str(e))
+        raise
 
     result = {
         "mode": sync_mode,
@@ -188,6 +206,7 @@ def sync_customers(db: Session, tenant_id: int, user_id: int = 0) -> dict:
         "updated": updated,
         "unchanged": unchanged,
         "skipped": skipped,
+        "batch_errors": batch_errors,
         "warnings": warnings,
         "total": len(erp_customers),
     }
@@ -253,6 +272,8 @@ def sync_invoices(db: Session, tenant_id: int, user_id: int = 0) -> dict:
 
     created = 0
     updated = 0
+    processed = 0
+    batch_errors = 0
 
     for inv in all_invoices:
         cosium_id = int(inv.erp_id) if inv.erp_id.isdigit() else 0
@@ -314,11 +335,26 @@ def sync_invoices(db: Session, tenant_id: int, user_id: int = 0) -> dict:
             db.add(new_row)
             created += 1
 
-    db.commit()
+        processed += 1
+        if processed % BATCH_SIZE == 0:
+            try:
+                db.flush()
+            except Exception as e:
+                db.rollback()
+                batch_errors += 1
+                logger.error("sync_invoices_batch_error", batch=processed // BATCH_SIZE, error=str(e))
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error("sync_invoices_commit_failed", tenant_id=tenant_id, error=str(e))
+        raise
 
     result = {
         "created": created,
         "updated": updated,
+        "batch_errors": batch_errors,
         "total": len(all_invoices),
     }
     if user_id:
@@ -349,6 +385,8 @@ def sync_products(db: Session, tenant_id: int, user_id: int = 0) -> dict:
 
     created = 0
     updated = 0
+    processed = 0
+    batch_errors = 0
 
     for prod in erp_products:
         if not prod.erp_id:
@@ -376,11 +414,26 @@ def sync_products(db: Session, tenant_id: int, user_id: int = 0) -> dict:
             db.add(new_row)
             created += 1
 
-    db.commit()
+        processed += 1
+        if processed % BATCH_SIZE == 0:
+            try:
+                db.flush()
+            except Exception as e:
+                db.rollback()
+                batch_errors += 1
+                logger.error("sync_products_batch_error", batch=processed // BATCH_SIZE, error=str(e))
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error("sync_products_commit_failed", tenant_id=tenant_id, error=str(e))
+        raise
 
     result = {
         "created": created,
         "updated": updated,
+        "batch_errors": batch_errors,
         "total": len(erp_products),
     }
     if user_id:
@@ -411,6 +464,8 @@ def sync_payments(db: Session, tenant_id: int, user_id: int = 0) -> dict:
 
     created = 0
     updated = 0
+    processed = 0
+    batch_errors = 0
 
     for pmt in all_payments:
         cosium_id = pmt.get("cosium_id")
@@ -460,9 +515,23 @@ def sync_payments(db: Session, tenant_id: int, user_id: int = 0) -> dict:
             db.add(new_row)
             created += 1
 
-    db.commit()
+        processed += 1
+        if processed % BATCH_SIZE == 0:
+            try:
+                db.flush()
+            except Exception as e:
+                db.rollback()
+                batch_errors += 1
+                logger.error("sync_payments_batch_error", batch=processed // BATCH_SIZE, error=str(e))
 
-    result = {"created": created, "updated": updated, "total": len(all_payments)}
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error("sync_payments_commit_failed", tenant_id=tenant_id, error=str(e))
+        raise
+
+    result = {"created": created, "updated": updated, "batch_errors": batch_errors, "total": len(all_payments)}
     if user_id:
         audit_service.log_action(db, tenant_id, user_id, "create", "sync_payments", 0, new_value=result)
     logger.info("sync_payments_done", tenant_id=tenant_id, **result)
@@ -492,6 +561,8 @@ def sync_third_party_payments(db: Session, tenant_id: int, user_id: int = 0) -> 
 
     created = 0
     updated = 0
+    processed = 0
+    batch_errors = 0
 
     for tpp in all_tpp:
         cosium_id = tpp.get("cosium_id")
@@ -521,9 +592,23 @@ def sync_third_party_payments(db: Session, tenant_id: int, user_id: int = 0) -> 
             db.add(new_row)
             created += 1
 
-    db.commit()
+        processed += 1
+        if processed % BATCH_SIZE == 0:
+            try:
+                db.flush()
+            except Exception as e:
+                db.rollback()
+                batch_errors += 1
+                logger.error("sync_tpp_batch_error", batch=processed // BATCH_SIZE, error=str(e))
 
-    result = {"created": created, "updated": updated, "total": len(all_tpp)}
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error("sync_tpp_commit_failed", tenant_id=tenant_id, error=str(e))
+        raise
+
+    result = {"created": created, "updated": updated, "batch_errors": batch_errors, "total": len(all_tpp)}
     if user_id:
         audit_service.log_action(db, tenant_id, user_id, "create", "sync_tpp", 0, new_value=result)
     logger.info("sync_tpp_done", tenant_id=tenant_id, **result)
@@ -564,6 +649,8 @@ def sync_prescriptions(db: Session, tenant_id: int, user_id: int = 0) -> dict:
 
     created = 0
     updated = 0
+    processed = 0
+    batch_errors = 0
 
     for presc in all_prescriptions:
         cosium_id = presc.get("cosium_id")
@@ -623,9 +710,23 @@ def sync_prescriptions(db: Session, tenant_id: int, user_id: int = 0) -> dict:
             db.add(new_row)
             created += 1
 
-    db.commit()
+        processed += 1
+        if processed % BATCH_SIZE == 0:
+            try:
+                db.flush()
+            except Exception as e:
+                db.rollback()
+                batch_errors += 1
+                logger.error("sync_prescriptions_batch_error", batch=processed // BATCH_SIZE, error=str(e))
 
-    result = {"created": created, "updated": updated, "total": len(all_prescriptions)}
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error("sync_prescriptions_commit_failed", tenant_id=tenant_id, error=str(e))
+        raise
+
+    result = {"created": created, "updated": updated, "batch_errors": batch_errors, "total": len(all_prescriptions)}
     if user_id:
         audit_service.log_action(db, tenant_id, user_id, "create", "sync_prescriptions", 0, new_value=result)
     logger.info("sync_prescriptions_done", tenant_id=tenant_id, **result)

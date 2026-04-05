@@ -2,6 +2,7 @@
 
 import { type ReactNode } from "react";
 import { Header } from "./Header";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 interface PageLayoutProps {
   title: string;
@@ -23,7 +24,7 @@ export function PageLayout({ title, description, breadcrumb, actions, children }
           </div>
           {actions && <div className="flex gap-2">{actions}</div>}
         </div>
-        {children}
+        <ErrorBoundary name="PageLayout-children">{children}</ErrorBoundary>
       </div>
     </>
   );

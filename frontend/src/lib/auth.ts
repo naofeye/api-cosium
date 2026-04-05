@@ -108,16 +108,28 @@ export async function switchTenant(tenantId: number): Promise<LoginResult> {
   };
 }
 
+// Shared promise to prevent concurrent refresh attempts (race condition fix)
+let refreshPromise: Promise<boolean> | null = null;
+
 export async function refreshAccessToken(): Promise<boolean> {
-  try {
-    const res = await fetch(`${API_BASE}/auth/refresh`, {
-      method: "POST",
-      credentials: "include",
-    });
-    return res.ok || res.status === 204;
-  } catch {
-    return false;
-  }
+  // If a refresh is already in progress, wait for its result instead of firing another
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+      });
+      return res.ok || res.status === 204;
+    } catch {
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
 }
 
 export function logout() {

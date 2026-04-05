@@ -45,11 +45,21 @@ export function AvatarUpload({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      await fetch(`${API_BASE}/clients/${clientId}/avatar`, {
+      const response = await fetch(`${API_BASE}/clients/${clientId}/avatar`, {
         method: "POST",
         body: formData,
         credentials: "include",
       });
+      if (!response.ok) {
+        let msg = "Impossible de mettre a jour l'avatar.";
+        try {
+          const body = await response.json();
+          msg = body?.message || body?.detail || msg;
+        } catch {
+          // Non-JSON response
+        }
+        throw new Error(msg);
+      }
       toast("Avatar mis a jour", "success");
       onUploaded();
     } catch (err) {
