@@ -73,6 +73,18 @@ class CosiumKPIs(BaseModel):
     credit_note_count: int = 0
 
 
+class CosiumCounts(BaseModel):
+    total_clients: int = 0
+    total_rdv: int = 0
+    total_prescriptions: int = 0
+    total_payments: int = 0
+
+
+class CosiumMonthlyCa(BaseModel):
+    mois: str
+    ca: float = 0
+
+
 class DashboardFull(BaseModel):
     financial: FinancialKPIs
     aging: AgingBalance
@@ -81,3 +93,5 @@ class DashboardFull(BaseModel):
     commercial: CommercialKPIs
     marketing: MarketingKPIs
     cosium: CosiumKPIs | None = None
+    cosium_counts: CosiumCounts | None = None
+    cosium_ca_par_mois: list[CosiumMonthlyCa] = []

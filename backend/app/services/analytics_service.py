@@ -8,7 +8,9 @@ from app.domain.schemas.analytics import (
     AgingBalance,
     AgingBucket,
     CommercialKPIs,
+    CosiumCounts,
     CosiumKPIs,
+    CosiumMonthlyCa,
     DashboardFull,
     FinancialKPIs,
     MarketingKPIs,
@@ -19,6 +21,10 @@ from app.domain.schemas.analytics import (
 from app.models import (
     Campaign,
     Case,
+    CosiumCalendarEvent,
+    CosiumPayment,
+    CosiumPrescription,
+    Customer,
     Devis,
     Document,
     DocumentType,
@@ -36,6 +42,7 @@ logger = get_logger("analytics_service")
 def get_financial_kpis(
     db: Session, tenant_id: int, date_from: datetime | None = None, date_to: datetime | None = None
 ) -> FinancialKPIs:
+    # --- OptiFlow internal data ---
     q_facture = select(func.coalesce(func.sum(Facture.montant_ttc), 0)).where(Facture.tenant_id == tenant_id)
     q_paid = select(func.coalesce(func.sum(Payment.amount_paid), 0)).where(Payment.tenant_id == tenant_id)
     q_due = select(func.coalesce(func.sum(Payment.amount_due), 0)).where(Payment.tenant_id == tenant_id)
@@ -49,17 +56,48 @@ def get_financial_kpis(
         q_paid = q_paid.where(Payment.created_at <= date_to)
         q_due = q_due.where(Payment.created_at <= date_to)
 
-    montant_facture = float(db.scalar(q_facture) or 0)
-    montant_encaisse = float(db.scalar(q_paid) or 0)
-    montant_du = float(db.scalar(q_due) or 0)
-    reste = round(montant_du - montant_encaisse, 2)
-    taux = round(montant_encaisse / montant_du * 100, 1) if montant_du > 0 else 0
+    of_montant_facture = float(db.scalar(q_facture) or 0)
+    of_montant_encaisse = float(db.scalar(q_paid) or 0)
+    of_montant_du = float(db.scalar(q_due) or 0)
+
+    # --- Cosium data (real ERP data) ---
+    q_cosium_ca = select(func.coalesce(func.sum(CosiumInvoice.total_ti), 0)).where(
+        CosiumInvoice.tenant_id == tenant_id, CosiumInvoice.type == "INVOICE"
+    )
+    q_cosium_outstanding = select(func.coalesce(func.sum(CosiumInvoice.outstanding_balance), 0)).where(
+        CosiumInvoice.tenant_id == tenant_id,
+        CosiumInvoice.type == "INVOICE",
+        CosiumInvoice.outstanding_balance > 0,
+    )
+    if date_from:
+        q_cosium_ca = q_cosium_ca.where(CosiumInvoice.invoice_date >= date_from)
+        q_cosium_outstanding = q_cosium_outstanding.where(CosiumInvoice.invoice_date >= date_from)
+    if date_to:
+        q_cosium_ca = q_cosium_ca.where(CosiumInvoice.invoice_date <= date_to)
+        q_cosium_outstanding = q_cosium_outstanding.where(CosiumInvoice.invoice_date <= date_to)
+
+    cosium_ca = float(db.scalar(q_cosium_ca) or 0)
+    cosium_outstanding = float(db.scalar(q_cosium_outstanding) or 0)
+    cosium_paid = round(cosium_ca - cosium_outstanding, 2)
+
+    # --- Merge: use Cosium if it has data, otherwise OptiFlow ---
+    if cosium_ca > 0:
+        ca_total = round(cosium_ca, 2)
+        montant_encaisse = round(max(cosium_paid, 0), 2)
+        reste_a_encaisser = round(cosium_outstanding, 2)
+    else:
+        ca_total = of_montant_facture
+        montant_encaisse = of_montant_encaisse
+        reste_du = round(of_montant_du - of_montant_encaisse, 2)
+        reste_a_encaisser = max(reste_du, 0)
+
+    taux = round(montant_encaisse / ca_total * 100, 1) if ca_total > 0 else 0
 
     return FinancialKPIs(
-        ca_total=montant_facture,
-        montant_facture=montant_facture,
+        ca_total=ca_total,
+        montant_facture=ca_total,
         montant_encaisse=montant_encaisse,
-        reste_a_encaisser=max(reste, 0),
+        reste_a_encaisser=reste_a_encaisser,
         taux_recouvrement=taux,
     )
 
@@ -334,6 +372,75 @@ def get_cosium_kpis(db: Session, tenant_id: int) -> CosiumKPIs:
     )
 
 
+def get_cosium_counts(db: Session, tenant_id: int) -> CosiumCounts:
+    """Count key Cosium entities for dashboard summary cards."""
+    total_clients = (
+        db.scalar(select(func.count()).select_from(Customer).where(Customer.tenant_id == tenant_id)) or 0
+    )
+    total_rdv = (
+        db.scalar(
+            select(func.count())
+            .select_from(CosiumCalendarEvent)
+            .where(CosiumCalendarEvent.tenant_id == tenant_id)
+        )
+        or 0
+    )
+    total_prescriptions = (
+        db.scalar(
+            select(func.count())
+            .select_from(CosiumPrescription)
+            .where(CosiumPrescription.tenant_id == tenant_id)
+        )
+        or 0
+    )
+    total_payments = (
+        db.scalar(
+            select(func.count())
+            .select_from(CosiumPayment)
+            .where(CosiumPayment.tenant_id == tenant_id)
+        )
+        or 0
+    )
+    return CosiumCounts(
+        total_clients=total_clients,
+        total_rdv=total_rdv,
+        total_prescriptions=total_prescriptions,
+        total_payments=total_payments,
+    )
+
+
+def get_cosium_ca_par_mois(db: Session, tenant_id: int) -> list[CosiumMonthlyCa]:
+    """Monthly CA from Cosium invoices (last 12 months)."""
+    now = datetime.now(UTC).replace(tzinfo=None)
+    result: list[CosiumMonthlyCa] = []
+
+    for i in range(11, -1, -1):
+        target_month = now.month - i
+        target_year = now.year
+        while target_month <= 0:
+            target_month += 12
+            target_year -= 1
+        month_start = datetime(target_year, target_month, 1)
+        if i > 0:
+            next_month = (month_start + timedelta(days=32)).replace(day=1)
+        else:
+            next_month = now
+
+        ca = float(
+            db.scalar(
+                select(func.coalesce(func.sum(CosiumInvoice.total_ti), 0))
+                .where(CosiumInvoice.tenant_id == tenant_id)
+                .where(CosiumInvoice.type == "INVOICE")
+                .where(CosiumInvoice.invoice_date >= month_start)
+                .where(CosiumInvoice.invoice_date < next_month)
+            )
+            or 0
+        )
+        result.append(CosiumMonthlyCa(mois=month_start.strftime("%Y-%m"), ca=round(ca, 2)))
+
+    return result
+
+
 def get_dashboard_full(
     db: Session, tenant_id: int, date_from: datetime | None = None, date_to: datetime | None = None
 ) -> DashboardFull:
@@ -355,6 +462,8 @@ def get_dashboard_full(
         commercial=get_commercial_kpis(db, tenant_id),
         marketing=get_marketing_kpis(db, tenant_id),
         cosium=get_cosium_kpis(db, tenant_id),
+        cosium_counts=get_cosium_counts(db, tenant_id),
+        cosium_ca_par_mois=get_cosium_ca_par_mois(db, tenant_id),
     )
 
     if not date_from and not date_to:

@@ -5,7 +5,13 @@ from app.models.ai import AiUsageLog  # noqa: F401
 from app.models.audit import AuditLog  # noqa: F401
 from app.models.case import Case  # noqa: F401
 from app.models.client import Customer  # noqa: F401
-from app.models.cosium_data import CosiumInvoice, CosiumProduct  # noqa: F401
+from app.models.cosium_data import (  # noqa: F401
+    CosiumInvoice,
+    CosiumPayment,
+    CosiumPrescription,
+    CosiumProduct,
+    CosiumThirdPartyPayment,
+)
 from app.models.cosium_reference import (  # noqa: F401
     CosiumBrand,
     CosiumCalendarEvent,

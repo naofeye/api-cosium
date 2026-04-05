@@ -7,21 +7,22 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { DashboardKPIs } from "./components/DashboardKPIs";
 import { DashboardCharts } from "./components/DashboardCharts";
-import { CosiumDataSection } from "./components/CosiumDataSection";
 import { DashboardSections } from "./components/DashboardSections";
 import { RenewalSection } from "./components/RenewalSection";
 import { PayersTable } from "./components/PayersTable";
 import { OnboardingGuide } from "@/components/ui/OnboardingGuide";
 import { useToast } from "@/components/ui/Toast";
-import { FileDown } from "lucide-react";
+import { FileDown, Calendar, Eye, RefreshCw as RefreshIcon } from "lucide-react";
+import Link from "next/link";
 
-type PeriodKey = "today" | "7d" | "30d" | "90d";
+type PeriodKey = "today" | "7d" | "30d" | "90d" | "all";
 
 const PERIODS: { key: PeriodKey; label: string; days: number }[] = [
   { key: "today", label: "Aujourd'hui", days: 0 },
   { key: "7d", label: "7 jours", days: 7 },
   { key: "30d", label: "30 jours", days: 30 },
   { key: "90d", label: "90 jours", days: 90 },
+  { key: "all", label: "Tout", days: -1 },
 ];
 
 function formatDate(d: Date): string {
@@ -31,6 +32,9 @@ function formatDate(d: Date): string {
 function getDateRange(period: PeriodKey): { date_from: string; date_to: string } {
   const now = new Date();
   const date_to = formatDate(now);
+  if (period === "all") {
+    return { date_from: "", date_to: "" };
+  }
   if (period === "today") {
     return { date_from: date_to, date_to };
   }
@@ -53,7 +57,13 @@ interface DashboardData {
     total: number;
   };
   payers: {
-    payers: { name: string; type: string; acceptance_rate: number; total_requested: number; total_accepted: number }[];
+    payers: {
+      name: string;
+      type: string;
+      acceptance_rate: number;
+      total_requested: number;
+      total_accepted: number;
+    }[];
   };
   operational: {
     dossiers_en_cours: number;
@@ -77,6 +87,13 @@ interface DashboardData {
     quote_count: number;
     credit_note_count: number;
   } | null;
+  cosium_counts: {
+    total_clients: number;
+    total_rdv: number;
+    total_prescriptions: number;
+    total_payments: number;
+  } | null;
+  cosium_ca_par_mois: { mois: string; ca: number }[];
 }
 
 interface RenewalData {
@@ -88,7 +105,7 @@ interface RenewalData {
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
 export default function DashboardPage() {
-  const [period, setPeriod] = useState<PeriodKey>("30d");
+  const [period, setPeriod] = useState<PeriodKey>("all");
   const [exporting, setExporting] = useState(false);
   const { toast } = useToast();
   const { date_from, date_to } = useMemo(() => getDateRange(period), [period]);
@@ -107,7 +124,7 @@ export default function DashboardPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `dashboard_optiflow_${date_from}_${date_to}.pdf`;
+      a.download = `dashboard_optiflow_${date_from || "all"}_${date_to || "all"}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -117,10 +134,14 @@ export default function DashboardPage() {
     } finally {
       setExporting(false);
     }
-  }, [date_from, date_to]);
+  }, [date_from, date_to, toast]);
+
+  const queryParams = date_from
+    ? `?date_from=${date_from}&date_to=${date_to}`
+    : "";
 
   const { data, error, isLoading, mutate } = useSWR<DashboardData>(
-    `/analytics/dashboard?date_from=${date_from}&date_to=${date_to}`,
+    `/analytics/dashboard${queryParams}`,
     { refreshInterval: 60000 },
   );
   const { data: renewalData } = useSWR<RenewalData>("/renewals/dashboard", {
@@ -143,12 +164,15 @@ export default function DashboardPage() {
       </PageLayout>
     );
 
-  const { financial, aging, payers, operational, commercial, marketing, cosium } = data;
+  const { financial, aging, payers, operational, commercial, marketing, cosium, cosium_counts, cosium_ca_par_mois } =
+    data;
 
   return (
     <PageLayout title="Dashboard" description="Tableau de pilotage OptiFlow" breadcrumb={[{ label: "Dashboard" }]}>
       <OnboardingGuide />
-      <div className="flex items-center gap-2 mb-6">
+
+      {/* Period selector + actions */}
+      <div className="flex items-center gap-2 mb-6 flex-wrap">
         {PERIODS.map((p) => (
           <button
             key={p.key}
@@ -162,7 +186,7 @@ export default function DashboardPage() {
             {p.label}
           </button>
         ))}
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
           <button
             onClick={handleExportPDF}
             disabled={exporting}
@@ -175,11 +199,69 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
-      <DashboardKPIs financial={financial} />
-      <DashboardCharts caParMois={commercial.ca_par_mois} aging={aging} />
-      <CosiumDataSection cosium={cosium} />
+
+      {/* Main KPIs (financial + volume) */}
+      <DashboardKPIs financial={financial} cosiumCounts={cosium_counts} cosium={cosium} />
+
+      {/* Charts: CA par mois + document distribution */}
+      <DashboardCharts
+        caParMois={commercial.ca_par_mois}
+        cosiumCaParMois={cosium_ca_par_mois || []}
+        aging={aging}
+        cosium={cosium}
+      />
+
+      {/* Quick links */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <Link
+          href="/agenda"
+          className="flex items-center gap-3 rounded-xl border border-border bg-bg-card p-4 shadow-sm hover:border-primary transition-colors"
+        >
+          <Calendar className="h-5 w-5 text-primary" />
+          <div>
+            <p className="text-sm font-semibold text-text-primary">Agenda</p>
+            <p className="text-xs text-text-secondary">
+              {cosium_counts ? `${cosium_counts.total_rdv.toLocaleString("fr-FR")} rendez-vous` : "Voir le planning"}
+            </p>
+          </div>
+        </Link>
+        <Link
+          href="/ordonnances"
+          className="flex items-center gap-3 rounded-xl border border-border bg-bg-card p-4 shadow-sm hover:border-primary transition-colors"
+        >
+          <Eye className="h-5 w-5 text-primary" />
+          <div>
+            <p className="text-sm font-semibold text-text-primary">Ordonnances</p>
+            <p className="text-xs text-text-secondary">
+              {cosium_counts
+                ? `${cosium_counts.total_prescriptions.toLocaleString("fr-FR")} prescriptions`
+                : "Voir les ordonnances"}
+            </p>
+          </div>
+        </Link>
+        <Link
+          href="/cosium-factures"
+          className="flex items-center gap-3 rounded-xl border border-border bg-bg-card p-4 shadow-sm hover:border-primary transition-colors"
+        >
+          <RefreshIcon className="h-5 w-5 text-primary" />
+          <div>
+            <p className="text-sm font-semibold text-text-primary">Facturation Cosium</p>
+            <p className="text-xs text-text-secondary">
+              {cosium
+                ? `${(cosium.invoice_count + cosium.quote_count + cosium.credit_note_count).toLocaleString("fr-FR")} documents`
+                : "Voir les factures"}
+            </p>
+          </div>
+        </Link>
+      </div>
+
+      {/* Operational / Commercial / Marketing */}
       <DashboardSections operational={operational} commercial={commercial} marketing={marketing} />
+
+      {/* Renewals */}
       <RenewalSection renewalData={renewalData} />
+
+      {/* Payers performance */}
       <PayersTable payers={payers.payers} />
     </PageLayout>
   );
