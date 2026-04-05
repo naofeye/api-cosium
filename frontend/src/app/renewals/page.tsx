@@ -133,10 +133,10 @@ export default function RenewalsPage() {
       actions={
         <div className="flex gap-2">
           <Button variant="outline" onClick={mutateAll}>
-            <RefreshCw className="mr-2 h-4 w-4" /> Actualiser
+            <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" /> Actualiser
           </Button>
           <Button onClick={handleAiAnalysis} disabled={aiPending}>
-            <Sparkles className="mr-2 h-4 w-4" />
+            <Sparkles className="mr-2 h-4 w-4" aria-hidden="true" />
             {aiPending ? "Analyse en cours..." : "Analyse IA"}
           </Button>
         </div>
@@ -147,7 +147,7 @@ export default function RenewalsPage() {
       {aiAnalysis && (
         <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-6">
           <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="h-5 w-5 text-blue-600" />
+            <Sparkles className="h-5 w-5 text-blue-600" aria-hidden="true" />
             <h3 className="font-semibold text-blue-900">Analyse IA du potentiel</h3>
           </div>
           <p className="text-sm text-blue-800 whitespace-pre-line">{aiAnalysis}</p>
@@ -203,8 +203,9 @@ export default function RenewalsPage() {
                 <h3 className="text-lg font-semibold mb-4">Nouvelle campagne de renouvellement</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-text-primary mb-1">Nom de la campagne *</label>
+                    <label htmlFor="renewal-campaign-name" className="block text-sm font-medium text-text-primary mb-1">Nom de la campagne *</label>
                     <input
+                      id="renewal-campaign-name"
                       type="text"
                       value={campaignName}
                       onChange={(e) => setCampaignName(e.target.value)}
@@ -213,8 +214,9 @@ export default function RenewalsPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-text-primary mb-1">Canal</label>
+                    <label htmlFor="renewal-campaign-channel" className="block text-sm font-medium text-text-primary mb-1">Canal</label>
                     <select
+                      id="renewal-campaign-channel"
                       value={campaignChannel}
                       onChange={(e) => setCampaignChannel(e.target.value)}
                       className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
@@ -226,12 +228,12 @@ export default function RenewalsPage() {
                   <div className="flex items-center gap-2">
                     <input type="checkbox" id="useAi" checked={useAi} onChange={(e) => setUseAi(e.target.checked)} />
                     <label htmlFor="useAi" className="text-sm text-text-primary">
-                      <Sparkles className="inline h-4 w-4 mr-1 text-blue-500" />
+                      <Sparkles className="inline h-4 w-4 mr-1 text-blue-500" aria-hidden="true" />
                       Generer le message avec l&apos;IA
                     </label>
                   </div>
                   <div className="rounded-lg bg-gray-50 p-4 text-sm text-text-secondary">
-                    <Users className="inline h-4 w-4 mr-1" />
+                    <Users className="inline h-4 w-4 mr-1" aria-hidden="true" />
                     {selected.size} client{selected.size > 1 ? "s" : ""} selectionne{selected.size > 1 ? "s" : ""}
                   </div>
                 </div>

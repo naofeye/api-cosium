@@ -94,20 +94,34 @@ export default function SettingsPage() {
             Changer le mot de passe
           </h3>
           <div className="space-y-3">
-            <input
-              type="password"
-              placeholder="Mot de passe actuel"
-              value={oldPassword}
-              onChange={(e) => setOldPassword(e.target.value)}
-              className="w-full rounded-lg border border-border px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-blue-100"
-            />
-            <input
-              type="password"
-              placeholder="Nouveau mot de passe (8 caracteres min.)"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full rounded-lg border border-border px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-blue-100"
-            />
+            <div>
+              <label htmlFor="old-password" className="block text-sm font-medium text-text-secondary mb-1">
+                Mot de passe actuel
+              </label>
+              <input
+                id="old-password"
+                type="password"
+                placeholder="Mot de passe actuel"
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+                autoComplete="current-password"
+                className="w-full rounded-lg border border-border px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+            <div>
+              <label htmlFor="new-password" className="block text-sm font-medium text-text-secondary mb-1">
+                Nouveau mot de passe
+              </label>
+              <input
+                id="new-password"
+                type="password"
+                placeholder="8 caracteres minimum"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+                className="w-full rounded-lg border border-border px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
             <Button type="submit" size="sm" disabled={!oldPassword || !newPassword} loading={changing}>
               Modifier le mot de passe
             </Button>

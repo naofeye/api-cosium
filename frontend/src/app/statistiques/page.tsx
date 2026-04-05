@@ -6,6 +6,7 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { KPICard } from "@/components/ui/KPICard";
+import { useToast } from "@/components/ui/Toast";
 import { formatMoney } from "@/lib/format";
 import {
   Euro,
@@ -92,6 +93,7 @@ export default function StatistiquesPage() {
   const [period, setPeriod] = useState<PeriodKey>("30d");
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportingXlsx, setExportingXlsx] = useState(false);
+  const { toast } = useToast();
   const { date_from, date_to } = useMemo(() => getRange(period), [period]);
 
   const { data, error, isLoading, mutate } = useSWR<DashboardData>(
@@ -120,7 +122,7 @@ export default function StatistiquesPage() {
         a.remove();
         URL.revokeObjectURL(url);
       } catch {
-        // silent
+        toast("Impossible de telecharger le fichier. Reessayez.", "error");
       } finally {
         setLoading(false);
       }

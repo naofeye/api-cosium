@@ -55,26 +55,26 @@ docker compose up --build
 .
 ├── backend/
 │   ├── app/
-│   │   ├── api/routers/       # 29 routes FastAPI (slim, pas de logique)
-│   │   ├── services/          # 34 services metier
-│   │   ├── repositories/      # 18 acces BDD
-│   │   ├── domain/schemas/    # 20 schemas Pydantic (validation)
-│   │   ├── models/            # 15 fichiers SQLAlchemy (25 tables)
+│   │   ├── api/routers/       # 32 routes FastAPI (slim, pas de logique)
+│   │   ├── services/          # 37 services metier
+│   │   ├── repositories/      # 19 acces BDD
+│   │   ├── domain/schemas/    # 27 schemas Pydantic (validation)
+│   │   ├── models/            # 17 fichiers SQLAlchemy
 │   │   ├── integrations/      # Cosium, MinIO, Stripe, Email, IA, templates Jinja2
 │   │   ├── core/              # Config, auth, logging, exceptions, middleware
 │   │   ├── templates/         # Templates email HTML (base, reset, welcome, relance)
 │   │   ├── db/                # Engine, session
 │   │   └── main.py            # Point d'entree FastAPI
-│   ├── alembic/               # 18 migrations
-│   ├── tests/                 # 44 fichiers de tests (338+ tests)
+│   ├── alembic/               # 24 migrations
+│   ├── tests/                 # 71 fichiers de tests (488+ tests)
 │   └── requirements.txt
 ├── frontend/
 │   ├── src/
-│   │   ├── app/               # 31 pages Next.js (dont aide)
+│   │   ├── app/               # 43 pages Next.js
 │   │   ├── components/        # UI (Button, DataTable, Toast, etc.)
 │   │   ├── lib/               # API client, auth, types, hooks SWR, schemas Zod
 │   │   └── middleware.ts      # Protection routes
-│   ├── tests/                 # 10 fichiers de tests (70+ tests)
+│   ├── tests/                 # 26 fichiers de tests
 │   └── package.json
 ├── docs/
 │   ├── specs/                 # 23 specs fonctionnelles et techniques
@@ -92,10 +92,10 @@ docker compose up --build
 ## Tests
 
 ```bash
-# Backend (338+ tests, couverture 88%)
+# Backend (488+ tests)
 docker compose exec api pytest -v
 
-# Frontend (70+ tests)
+# Frontend
 docker compose exec web npx vitest run
 ```
 
@@ -119,4 +119,4 @@ Separation en couches stricte :
 - **Repositories** : SQL pur, pas de logique metier
 - **Schemas** : validation Pydantic stricte sur toutes les entrees/sorties
 
-Voir `CONTRIBUTING.md` pour les conventions detaillees.
+Voir `CLAUDE.md` pour les conventions detaillees.

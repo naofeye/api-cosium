@@ -22,12 +22,13 @@ export function SearchInput({ placeholder = "Rechercher...", onSearch, className
 
   return (
     <div className={cn("relative", className)}>
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
       <input
         type="text"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={placeholder}
+        aria-label={placeholder}
         className="w-full rounded-lg border border-border bg-white py-2 pl-10 pr-8 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
       />
       {value && (

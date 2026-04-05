@@ -147,7 +147,7 @@ export default function MarketingPage() {
     >
       {sendResult && (
         <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 flex items-center gap-2">
-          <Send className="h-4 w-4" /> {sendResult}
+          <Send className="h-4 w-4" aria-hidden="true" /> {sendResult}
         </div>
       )}
 
@@ -166,7 +166,7 @@ export default function MarketingPage() {
                   : "border-transparent text-text-secondary hover:text-text-primary"
               }`}
             >
-              <tab.icon className="h-4 w-4" /> {tab.label}
+              <tab.icon className="h-4 w-4" aria-hidden="true" /> {tab.label}
             </button>
           ))}
         </div>

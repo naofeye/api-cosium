@@ -163,10 +163,13 @@ export default function RapprochementPage() {
           <RefreshCw className={`h-4 w-4 mr-1.5 ${reconciling ? "animate-spin" : ""}`} />
           {reconciling ? "Rapprochement..." : "Rapprochement auto"}
         </Button>
+        <label htmlFor="filter-reconciled" className="sr-only">Filtrer par statut de rapprochement</label>
         <select
+          id="filter-reconciled"
           value={showReconciled === undefined ? "" : String(showReconciled)}
           onChange={(e) => setShowReconciled(e.target.value === "" ? undefined : e.target.value === "true")}
           className="rounded-lg border border-border px-3 py-2 text-sm"
+          aria-label="Filtrer par statut de rapprochement"
         >
           <option value="">Toutes</option>
           <option value="false">Non rapprochees</option>
@@ -176,23 +179,23 @@ export default function RapprochementPage() {
 
       {importResult && (
         <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 flex items-center gap-2">
-          <CheckCircle className="h-4 w-4" /> {importResult}
+          <CheckCircle className="h-4 w-4" aria-hidden="true" /> {importResult}
         </div>
       )}
       {reconcileResult && (
         <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700 flex items-center gap-2">
-          <Link2 className="h-4 w-4" /> {reconcileResult}
+          <Link2 className="h-4 w-4" aria-hidden="true" /> {reconcileResult}
         </div>
       )}
       {matchResult && (
         <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 flex items-center gap-2">
-          <CheckCircle className="h-4 w-4" /> {matchResult}
+          <CheckCircle className="h-4 w-4" aria-hidden="true" /> {matchResult}
         </div>
       )}
 
       {matching && (
         <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700 flex items-center gap-2">
-          <RefreshCw className="h-4 w-4 animate-spin" /> Rapprochement en cours...
+          <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" /> Rapprochement en cours...
         </div>
       )}
 
@@ -241,11 +244,11 @@ export default function RapprochementPage() {
                       <td className="px-4 py-3 text-center">
                         {tx.reconciled ? (
                           <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
-                            <CheckCircle className="h-3.5 w-3.5" /> Rapprochee
+                            <CheckCircle className="h-3.5 w-3.5" aria-hidden="true" /> Rapprochee
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700">
-                            <AlertCircle className="h-3.5 w-3.5" /> Non rapprochee
+                            <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" /> Non rapprochee
                           </span>
                         )}
                       </td>

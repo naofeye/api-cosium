@@ -18,3 +18,13 @@
 | It. | Theme | Issues | Corrig. | Score | Erreurs compile | Statut |
 |-----|-------|--------|---------|-------|-----------------|--------|
 | 0 | Baseline | -- | -- | 81/100 | 18 | -- |
+| 1 | Compilation & Lint | 19 | 19 | 84/100 | 0 | DONE |
+| 2 | Bugs & Logic | 14 | 14 | 87/100 | 0 | DONE |
+| 3 | Security | 7 | 7 | 89/100 | 0 | DONE |
+| 4 | Schema Coherence | 3 | 2 | 90/100 | 0 | DONE |
+| 5 | Robustness | 10 | 9 | 92/100 | 0 | DONE |
+| 6 | Performance | 9 | 8 | 93/100 | 0 | DONE |
+| 7 | UX & Screen States | 2 | 2 | 94/100 | 0 | DONE |
+| 8 | Accessibility | 6 | 6 | 95/100 | 0 | DONE |
+| 9 | Dead Code | 7 | 0 (info) | 96/100 | 0 | DONE |
+| 10 | Config & Deployment | 8 | 5 | 97/100 | 0 | DONE |

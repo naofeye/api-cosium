@@ -12,6 +12,7 @@ import { DashboardSections } from "./components/DashboardSections";
 import { RenewalSection } from "./components/RenewalSection";
 import { PayersTable } from "./components/PayersTable";
 import { OnboardingGuide } from "@/components/ui/OnboardingGuide";
+import { useToast } from "@/components/ui/Toast";
 import { FileDown } from "lucide-react";
 
 type PeriodKey = "today" | "7d" | "30d" | "90d";
@@ -89,6 +90,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/
 export default function DashboardPage() {
   const [period, setPeriod] = useState<PeriodKey>("30d");
   const [exporting, setExporting] = useState(false);
+  const { toast } = useToast();
   const { date_from, date_to } = useMemo(() => getDateRange(period), [period]);
 
   const handleExportPDF = useCallback(async () => {
@@ -111,7 +113,7 @@ export default function DashboardPage() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch {
-      // silent fail — user sees no download
+      toast("Impossible de telecharger le PDF. Reessayez.", "error");
     } finally {
       setExporting(false);
     }
