@@ -1,16 +1,25 @@
 "use client";
 
-import useSWR from "swr";
-import { LoadingState } from "@/components/ui/LoadingState";
-import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { DateDisplay } from "@/components/ui/DateDisplay";
 import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import type { CosiumPaymentItem } from "@/lib/types";
+
+interface CosiumPaymentSummary {
+  id: number;
+  cosium_id: number;
+  amount: number;
+  type: string;
+  due_date: string | null;
+  issuer_name: string;
+  bank: string;
+  site_name: string;
+  payment_number: string;
+  invoice_cosium_id: number | null;
+}
 
 interface TabCosiumPaiementsProps {
-  cosiumId: string | number | null;
+  payments: CosiumPaymentSummary[];
 }
 
 function paymentTypeLabel(type: string): string {
@@ -19,33 +28,18 @@ function paymentTypeLabel(type: string): string {
     case "CB": return "Carte bancaire";
     case "ESP": return "Especes";
     case "VIR": return "Virement";
+    case "PRÉLÈVEMENT":
+    case "PRELEVEMENT": return "Prelevement";
     default: return type || "-";
   }
 }
 
-export function TabCosiumPaiements({ cosiumId }: TabCosiumPaiementsProps) {
-  const { data, error, isLoading, mutate } = useSWR<{ items: CosiumPaymentItem[] }>(
-    cosiumId ? `/cosium/payments?customer_id=${cosiumId}&page_size=50` : null,
-  );
-
-  if (!cosiumId) {
-    return (
-      <EmptyState
-        title="Client non lie a Cosium"
-        description="Ce client n'a pas d'identifiant Cosium. L'historique de paiements ne peut pas etre recupere."
-      />
-    );
-  }
-
-  if (isLoading) return <LoadingState text="Chargement des paiements Cosium..." />;
-  if (error) return <ErrorState message={error.message ?? "Erreur de chargement"} onRetry={() => mutate()} />;
-
-  const items = data?.items ?? [];
-  if (items.length === 0) {
+export function TabCosiumPaiements({ payments }: TabCosiumPaiementsProps) {
+  if (payments.length === 0) {
     return (
       <EmptyState
         title="Aucun paiement Cosium"
-        description="Aucun paiement trouve pour ce client dans Cosium."
+        description="Aucun paiement trouve pour ce client."
       />
     );
   }
@@ -58,13 +52,14 @@ export function TabCosiumPaiements({ cosiumId }: TabCosiumPaiementsProps) {
             <th scope="col" className="py-2 px-3 font-medium">Date</th>
             <th scope="col" className="py-2 px-3 font-medium">Type</th>
             <th scope="col" className="py-2 px-3 font-medium text-right">Montant</th>
+            <th scope="col" className="py-2 px-3 font-medium">Emetteur</th>
             <th scope="col" className="py-2 px-3 font-medium">Banque</th>
             <th scope="col" className="py-2 px-3 font-medium">Reference</th>
             <th scope="col" className="py-2 px-3 font-medium">Site</th>
           </tr>
         </thead>
         <tbody>
-          {items.map((pay) => (
+          {payments.map((pay) => (
             <tr key={pay.id} className="border-b border-border hover:bg-gray-50">
               <td className="py-2 px-3">
                 {pay.due_date ? <DateDisplay date={pay.due_date} /> : "-"}
@@ -82,6 +77,7 @@ export function TabCosiumPaiements({ cosiumId }: TabCosiumPaiementsProps) {
                   className={pay.amount >= 0 ? "text-emerald-600" : "text-red-600"}
                 />
               </td>
+              <td className="py-2 px-3">{pay.issuer_name || "-"}</td>
               <td className="py-2 px-3">{pay.bank || "-"}</td>
               <td className="py-2 px-3 font-mono">{pay.payment_number || "-"}</td>
               <td className="py-2 px-3">{pay.site_name || "-"}</td>

@@ -75,6 +75,85 @@ class CosiumInvoiceSummary(BaseModel):
     settled: bool = False
 
 
+class CosiumPrescriptionSummary(BaseModel):
+    id: int
+    cosium_id: int
+    prescription_date: str | None = None
+    prescriber_name: str | None = None
+    sphere_right: float | None = None
+    cylinder_right: float | None = None
+    axis_right: float | None = None
+    addition_right: float | None = None
+    sphere_left: float | None = None
+    cylinder_left: float | None = None
+    axis_left: float | None = None
+    addition_left: float | None = None
+    spectacles_json: str | None = None
+
+
+class CosiumPaymentSummary(BaseModel):
+    id: int
+    cosium_id: int
+    amount: float = 0
+    type: str = ""
+    due_date: str | None = None
+    issuer_name: str = ""
+    bank: str = ""
+    site_name: str = ""
+    payment_number: str = ""
+    invoice_cosium_id: int | None = None
+
+
+class CosiumCalendarSummary(BaseModel):
+    id: int
+    cosium_id: int
+    start_date: str | None = None
+    end_date: str | None = None
+    subject: str = ""
+    category_name: str = ""
+    category_color: str = ""
+    status: str = ""
+    canceled: bool = False
+    missed: bool = False
+    observation: str | None = None
+    site_name: str | None = None
+
+
+class EquipmentItem(BaseModel):
+    prescription_id: int
+    prescription_date: str | None = None
+    label: str = ""
+    brand: str = ""
+    type: str = ""
+
+
+class CorrectionActuelle(BaseModel):
+    """Derniere correction optique connue (OD/OG)."""
+
+    prescription_date: str | None = None
+    prescriber_name: str | None = None
+    sphere_right: float | None = None
+    cylinder_right: float | None = None
+    axis_right: float | None = None
+    addition_right: float | None = None
+    sphere_left: float | None = None
+    cylinder_left: float | None = None
+    axis_left: float | None = None
+    addition_left: float | None = None
+
+
+class CosiumDataBundle(BaseModel):
+    """All Cosium data for a client in one response."""
+
+    prescriptions: list[CosiumPrescriptionSummary] = []
+    cosium_payments: list[CosiumPaymentSummary] = []
+    calendar_events: list[CosiumCalendarSummary] = []
+    equipments: list[EquipmentItem] = []
+    correction_actuelle: CorrectionActuelle | None = None
+    total_ca_cosium: float = 0
+    last_visit_date: str | None = None
+
+
 class Client360Response(BaseModel):
     id: int
     first_name: str
@@ -87,6 +166,7 @@ class Client360Response(BaseModel):
     postal_code: str | None = None
     social_security_number: str | None = None
     avatar_url: str | None = None
+    cosium_id: str | None = None
     created_at: datetime | None = None
     dossiers: list[DossierSummary] = []
     devis: list[DevisSummary] = []
@@ -97,4 +177,5 @@ class Client360Response(BaseModel):
     consentements: list[ConsentementSummary] = []
     interactions: list[InteractionResponse] = []
     cosium_invoices: list[CosiumInvoiceSummary] = []
+    cosium_data: CosiumDataBundle = CosiumDataBundle()
     resume_financier: FinancialSummary = FinancialSummary()

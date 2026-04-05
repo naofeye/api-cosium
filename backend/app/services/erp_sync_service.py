@@ -227,15 +227,19 @@ def sync_invoices(db: Session, tenant_id: int, user_id: int = 0) -> dict:
 
     logger.info("sync_invoices_fetched", tenant_id=tenant_id, total=len(all_invoices))
 
-    # Build customer name lookup for fuzzy matching
+    # Build customer lookup maps for matching
     all_customers = db.scalars(select(Customer).where(Customer.tenant_id == tenant_id)).all()
     customer_name_map: dict[str, int] = {}
+    customer_cosium_id_map: dict[str, int] = {}
     for c in all_customers:
         full_name = f"{c.last_name} {c.first_name}".upper().strip()
         customer_name_map[full_name] = c.id
         # Also index with title prefix patterns like "M. LASTNAME FIRSTNAME"
         for prefix in ("M. ", "MME ", "MLLE "):
             customer_name_map[f"{prefix}{full_name}"] = c.id
+        # Index by cosium_id for direct matching
+        if c.cosium_id:
+            customer_cosium_id_map[str(c.cosium_id)] = c.id
 
     # Upsert into cosium_invoices
     existing_map: dict[int, CosiumInvoice] = {}
@@ -251,8 +255,11 @@ def sync_invoices(db: Session, tenant_id: int, user_id: int = 0) -> dict:
         if not cosium_id:
             continue
 
-        # Try to match customer
-        customer_id = _match_customer_by_name(inv.customer_name, customer_name_map)
+        # Try to match customer: cosium_id first, then name fallback
+        customer_erp_id_str = str(inv.customer_erp_id) if inv.customer_erp_id else ""
+        customer_id = customer_cosium_id_map.get(customer_erp_id_str) if customer_erp_id_str else None
+        if not customer_id:
+            customer_id = _match_customer_by_name(inv.customer_name, customer_name_map)
 
         # Parse date (Cosium returns ISO strings like "2026-03-20T23:00:00.000Z")
         invoice_date = None
@@ -270,6 +277,7 @@ def sync_invoices(db: Session, tenant_id: int, user_id: int = 0) -> dict:
             row.invoice_number = inv.number
             row.invoice_date = invoice_date
             row.customer_name = inv.customer_name
+            row.customer_cosium_id = customer_erp_id_str or row.customer_cosium_id
             row.customer_id = customer_id or row.customer_id
             row.type = inv.type
             row.total_ti = inv.total_ttc
@@ -288,6 +296,7 @@ def sync_invoices(db: Session, tenant_id: int, user_id: int = 0) -> dict:
                 invoice_number=inv.number,
                 invoice_date=invoice_date,
                 customer_name=inv.customer_name,
+                customer_cosium_id=customer_erp_id_str or None,
                 customer_id=customer_id,
                 type=inv.type,
                 total_ti=inv.total_ttc,
@@ -668,6 +677,9 @@ def _customer_has_changes(existing: Customer, erp_c: ERPCustomer) -> bool:
     field on the existing customer, meaning an update is needed.
     Used during incremental sync to skip unchanged records.
     """
+    # cosium_id missing = always needs update
+    if erp_c.erp_id and not getattr(existing, "cosium_id", None):
+        return True
     for field in ("phone", "address", "city", "postal_code", "social_security_number"):
         erp_val = getattr(erp_c, field, None)
         if erp_val and not getattr(existing, field, None):
@@ -687,6 +699,10 @@ def _customer_has_changes(existing: Customer, erp_c: ERPCustomer) -> bool:
 def _update_customer_fields(existing: Customer, erp_c: ERPCustomer) -> bool:
     """Met a jour les champs vides d'un client existant."""
     changed = False
+    # Always set cosium_id if missing
+    if erp_c.erp_id and not getattr(existing, "cosium_id", None):
+        existing.cosium_id = str(erp_c.erp_id)
+        changed = True
     for field in ("phone", "address", "city", "postal_code", "social_security_number"):
         erp_val = getattr(erp_c, field, None)
         if erp_val and not getattr(existing, field, None):
@@ -702,6 +718,7 @@ def _create_customer_from_erp(tenant_id: int, erp_c: ERPCustomer) -> Customer:
     """Cree un nouveau client a partir des donnees ERP."""
     return Customer(
         tenant_id=tenant_id,
+        cosium_id=str(erp_c.erp_id) if erp_c.erp_id else None,
         first_name=erp_c.first_name,
         last_name=erp_c.last_name,
         phone=erp_c.phone,

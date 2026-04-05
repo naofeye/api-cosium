@@ -12,7 +12,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { fetchJson } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
-import { Euro, CheckCircle, Clock, FolderOpen, Plus, Trash2, Download } from "lucide-react";
+import { Euro, CheckCircle, Clock, FolderOpen, Plus, Trash2, Download, Eye, Calendar } from "lucide-react";
 import { downloadPdf } from "@/lib/download";
 import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
@@ -27,6 +27,83 @@ import { TabHistorique } from "./tabs/TabHistorique";
 import { TabCosiumDocuments } from "./tabs/TabCosiumDocuments";
 import { TabOrdonnances } from "./tabs/TabOrdonnances";
 import { TabCosiumPaiements } from "./tabs/TabCosiumPaiements";
+import { TabRendezVous } from "./tabs/TabRendezVous";
+import { TabEquipements } from "./tabs/TabEquipements";
+
+interface CorrectionActuelle {
+  prescription_date: string | null;
+  prescriber_name: string | null;
+  sphere_right: number | null;
+  cylinder_right: number | null;
+  axis_right: number | null;
+  addition_right: number | null;
+  sphere_left: number | null;
+  cylinder_left: number | null;
+  axis_left: number | null;
+  addition_left: number | null;
+}
+
+interface CosiumPrescriptionSummary {
+  id: number;
+  cosium_id: number;
+  prescription_date: string | null;
+  prescriber_name: string | null;
+  sphere_right: number | null;
+  cylinder_right: number | null;
+  axis_right: number | null;
+  addition_right: number | null;
+  sphere_left: number | null;
+  cylinder_left: number | null;
+  axis_left: number | null;
+  addition_left: number | null;
+  spectacles_json: string | null;
+}
+
+interface CosiumPaymentSummary {
+  id: number;
+  cosium_id: number;
+  amount: number;
+  type: string;
+  due_date: string | null;
+  issuer_name: string;
+  bank: string;
+  site_name: string;
+  payment_number: string;
+  invoice_cosium_id: number | null;
+}
+
+interface CosiumCalendarSummary {
+  id: number;
+  cosium_id: number;
+  start_date: string | null;
+  end_date: string | null;
+  subject: string;
+  category_name: string;
+  category_color: string;
+  status: string;
+  canceled: boolean;
+  missed: boolean;
+  observation: string | null;
+  site_name: string | null;
+}
+
+interface EquipmentItem {
+  prescription_id: number;
+  prescription_date: string | null;
+  label: string;
+  brand: string;
+  type: string;
+}
+
+interface CosiumDataBundle {
+  prescriptions: CosiumPrescriptionSummary[];
+  cosium_payments: CosiumPaymentSummary[];
+  calendar_events: CosiumCalendarSummary[];
+  equipments: EquipmentItem[];
+  correction_actuelle: CorrectionActuelle | null;
+  total_ca_cosium: number;
+  last_visit_date: string | null;
+}
 
 interface Client360 {
   id: number;
@@ -64,10 +141,39 @@ interface Client360 {
     content: string | null;
     created_at: string;
   }[];
+  cosium_invoices: {
+    cosium_id: number;
+    invoice_number: string;
+    invoice_date: string | null;
+    type: string;
+    total_ti: number;
+    outstanding_balance: number;
+    share_social_security: number;
+    share_private_insurance: number;
+    settled: boolean;
+  }[];
+  cosium_data: CosiumDataBundle;
   resume_financier: { total_facture: number; total_paye: number; reste_du: number; taux_recouvrement: number };
 }
 
-type Tab = "resume" | "dossiers" | "finances" | "documents" | "marketing" | "historique" | "cosium-docs" | "ordonnances" | "cosium-paiements";
+type Tab =
+  | "resume"
+  | "dossiers"
+  | "finances"
+  | "documents"
+  | "marketing"
+  | "historique"
+  | "cosium-docs"
+  | "ordonnances"
+  | "cosium-paiements"
+  | "rendez-vous"
+  | "equipements";
+
+function formatDiopter(value: number | null): string {
+  if (value === null || value === undefined) return "-";
+  const sign = value >= 0 ? "+" : "";
+  return `${sign}${value.toFixed(2)}`;
+}
 
 export default function ClientDetailPage() {
   const params = useParams();
@@ -164,20 +270,21 @@ export default function ClientDetailPage() {
     );
 
   const fin = data.resume_financier;
+  const cd = data.cosium_data;
+  const correction = cd?.correction_actuelle;
+
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: "resume", label: "Resume" },
     { key: "dossiers", label: "Dossiers", count: data.dossiers.length },
     { key: "finances", label: "Finances", count: data.factures.length },
     { key: "documents", label: "Documents", count: data.documents.length },
+    { key: "ordonnances", label: "Ordonnances", count: cd?.prescriptions?.length ?? 0 },
+    { key: "cosium-paiements", label: "Paiements Cosium", count: cd?.cosium_payments?.length ?? 0 },
+    { key: "rendez-vous", label: "Rendez-vous", count: cd?.calendar_events?.length ?? 0 },
+    { key: "equipements", label: "Equipements", count: cd?.equipments?.length ?? 0 },
+    ...(data.cosium_id ? [{ key: "cosium-docs" as Tab, label: "Docs Cosium" }] : []),
     { key: "marketing", label: "Marketing" },
     { key: "historique", label: "Historique", count: data.interactions.length },
-    ...(data.cosium_id
-      ? [
-          { key: "cosium-docs" as Tab, label: "Docs Cosium" },
-          { key: "ordonnances" as Tab, label: "Ordonnances" },
-          { key: "cosium-paiements" as Tab, label: "Paiements Cosium" },
-        ]
-      : []),
   ];
 
   return (
@@ -208,7 +315,7 @@ export default function ClientDetailPage() {
         </div>
       }
     >
-      {/* Avatar section */}
+      {/* Avatar + identity header */}
       <AvatarUpload
         clientId={id}
         firstName={data.first_name}
@@ -219,7 +326,39 @@ export default function ClientDetailPage() {
         onUploaded={() => mutate()}
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {/* Cosium ID badge + correction actuelle */}
+      {(data.cosium_id || correction) && (
+        <div className="flex flex-wrap items-center gap-4 mb-4 text-sm">
+          {data.cosium_id && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 border border-blue-200">
+              Cosium #{data.cosium_id}
+            </span>
+          )}
+          {correction && (
+            <span className="inline-flex items-center gap-2 text-text-secondary">
+              <Eye className="h-4 w-4" aria-hidden="true" />
+              <span className="font-medium text-text-primary">Correction :</span>
+              OD {formatDiopter(correction.sphere_right)}
+              {correction.cylinder_right !== null && ` (${formatDiopter(correction.cylinder_right)})`}
+              {correction.addition_right !== null && ` Add ${formatDiopter(correction.addition_right)}`}
+              {" | "}
+              OG {formatDiopter(correction.sphere_left)}
+              {correction.cylinder_left !== null && ` (${formatDiopter(correction.cylinder_left)})`}
+              {correction.addition_left !== null && ` Add ${formatDiopter(correction.addition_left)}`}
+            </span>
+          )}
+          {cd?.last_visit_date && (
+            <span className="inline-flex items-center gap-1 text-text-secondary">
+              <Calendar className="h-4 w-4" aria-hidden="true" />
+              Derniere visite : {new Date(cd.last_visit_date).toLocaleDateString("fr-FR")}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <KPICard icon={Euro} label="CA Cosium" value={formatMoney(cd?.total_ca_cosium ?? 0)} color="primary" />
         <KPICard icon={Euro} label="Total facture" value={formatMoney(fin.total_facture)} color="primary" />
         <KPICard icon={CheckCircle} label="Total paye" value={formatMoney(fin.total_paye)} color="success" />
         <KPICard
@@ -231,6 +370,7 @@ export default function ClientDetailPage() {
         <KPICard icon={FolderOpen} label="Dossiers" value={data.dossiers.length} color="info" />
       </div>
 
+      {/* Tabs navigation */}
       <div className="border-b border-border mb-6">
         <div className="flex gap-0 overflow-x-auto" role="tablist" aria-label="Sections du client">
           {tabs.map((t) => (
@@ -244,7 +384,7 @@ export default function ClientDetailPage() {
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${activeTab === t.key ? "border-primary text-primary" : "border-transparent text-text-secondary hover:text-text-primary"}`}
             >
               {t.label}
-              {t.count !== undefined && (
+              {t.count !== undefined && t.count > 0 && (
                 <span className="ml-1.5 rounded-full bg-gray-100 px-2 py-0.5 text-xs">{t.count}</span>
               )}
             </button>
@@ -252,6 +392,7 @@ export default function ClientDetailPage() {
         </div>
       </div>
 
+      {/* Tab panels */}
       {activeTab === "resume" && (
         <TabResume
           firstName={data.first_name}
@@ -264,17 +405,37 @@ export default function ClientDetailPage() {
           renewalEligible={renewalEligible}
           renewalMonths={renewalMonths}
           interactions={data.interactions}
+          correction={cd?.correction_actuelle ?? null}
+          totalCaCosium={cd?.total_ca_cosium ?? 0}
+          lastVisitDate={cd?.last_visit_date ?? null}
+          nextRdv={cd?.calendar_events?.find((ev) => !ev.canceled && ev.start_date && new Date(ev.start_date) > new Date()) ?? null}
+          cosiumInvoices={data.cosium_invoices}
         />
       )}
       {activeTab === "dossiers" && <TabDossiers dossiers={data.dossiers} />}
       {activeTab === "finances" && (
-        <TabFinances devis={data.devis} factures={data.factures} paiements={data.paiements} />
+        <TabFinances
+          devis={data.devis}
+          factures={data.factures}
+          paiements={data.paiements}
+          cosiumInvoices={data.cosium_invoices}
+        />
       )}
       {activeTab === "documents" && <TabDocuments documents={data.documents} />}
       {activeTab === "marketing" && <TabMarketing consentements={data.consentements} />}
       {activeTab === "cosium-docs" && <TabCosiumDocuments cosiumId={data.cosium_id} />}
-      {activeTab === "ordonnances" && <TabOrdonnances cosiumId={data.cosium_id} />}
-      {activeTab === "cosium-paiements" && <TabCosiumPaiements cosiumId={data.cosium_id} />}
+      {activeTab === "ordonnances" && (
+        <TabOrdonnances prescriptions={cd?.prescriptions ?? []} />
+      )}
+      {activeTab === "cosium-paiements" && (
+        <TabCosiumPaiements payments={cd?.cosium_payments ?? []} />
+      )}
+      {activeTab === "rendez-vous" && (
+        <TabRendezVous events={cd?.calendar_events ?? []} />
+      )}
+      {activeTab === "equipements" && (
+        <TabEquipements equipments={cd?.equipments ?? []} />
+      )}
       {activeTab === "historique" && (
         <TabHistorique
           interactions={data.interactions}

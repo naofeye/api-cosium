@@ -31,6 +31,7 @@ class ClientUpdate(BaseModel):
 
 class ClientResponse(BaseModel):
     id: int
+    cosium_id: str | None = None
     first_name: str
     last_name: str
     birth_date: date | None = None

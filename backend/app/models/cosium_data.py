@@ -27,6 +27,7 @@ class CosiumInvoice(Base):
     invoice_number: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     invoice_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     customer_name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    customer_cosium_id: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
     customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id"), nullable=True, index=True)
     type: Mapped[str] = mapped_column(String(30), nullable=False, default="INVOICE")
     total_ti: Mapped[float] = mapped_column(Float, nullable=False, default=0)
