@@ -2,6 +2,11 @@ import useSWR, { type SWRConfiguration } from "swr";
 import type {
   Case,
   CosiumInvoice,
+  CosiumCalendarEvent,
+  CosiumPrescription,
+  CosiumPaymentItem,
+  CosiumMutuelle,
+  CosiumDoctor,
   Customer,
   Devis,
   DevisDetail,
@@ -116,6 +121,79 @@ export function useCosiumInvoices(params?: {
   if (params?.settled !== undefined && params?.settled !== null) sp.set("settled", String(params.settled));
   if (params?.search) sp.set("search", params.search);
   return useSWR<PaginatedResponse<CosiumInvoice>>(`/cosium-invoices?${sp}`);
+}
+
+// --- Cosium Calendar Events ---
+export function useCosiumCalendarEvents(params?: {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  date_from?: string;
+  date_to?: string;
+}) {
+  const sp = new URLSearchParams();
+  if (params?.page) sp.set("page", String(params.page));
+  sp.set("page_size", String(params?.page_size ?? 25));
+  if (params?.search) sp.set("search", params.search);
+  if (params?.date_from) sp.set("date_from", params.date_from);
+  if (params?.date_to) sp.set("date_to", params.date_to);
+  return useSWR<PaginatedResponse<CosiumCalendarEvent>>(`/cosium/calendar-events?${sp}`);
+}
+
+// --- Cosium Prescriptions ---
+export function useCosiumPrescriptions(params?: {
+  page?: number;
+  page_size?: number;
+  search?: string;
+}) {
+  const sp = new URLSearchParams();
+  if (params?.page) sp.set("page", String(params.page));
+  sp.set("page_size", String(params?.page_size ?? 25));
+  if (params?.search) sp.set("search", params.search);
+  return useSWR<PaginatedResponse<CosiumPrescription>>(`/cosium/prescriptions?${sp}`);
+}
+
+// --- Cosium Payments ---
+export function useCosiumPayments(params?: {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  date_from?: string;
+  date_to?: string;
+}) {
+  const sp = new URLSearchParams();
+  if (params?.page) sp.set("page", String(params.page));
+  sp.set("page_size", String(params?.page_size ?? 25));
+  if (params?.search) sp.set("search", params.search);
+  if (params?.date_from) sp.set("date_from", params.date_from);
+  if (params?.date_to) sp.set("date_to", params.date_to);
+  return useSWR<PaginatedResponse<CosiumPaymentItem>>(`/cosium/payments?${sp}`);
+}
+
+// --- Cosium Mutuelles ---
+export function useCosiumMutuelles(params?: {
+  page?: number;
+  page_size?: number;
+  search?: string;
+}) {
+  const sp = new URLSearchParams();
+  if (params?.page) sp.set("page", String(params.page));
+  sp.set("page_size", String(params?.page_size ?? 50));
+  if (params?.search) sp.set("search", params.search);
+  return useSWR<PaginatedResponse<CosiumMutuelle>>(`/cosium/mutuelles?${sp}`);
+}
+
+// --- Cosium Doctors ---
+export function useCosiumDoctors(params?: {
+  page?: number;
+  page_size?: number;
+  search?: string;
+}) {
+  const sp = new URLSearchParams();
+  if (params?.page) sp.set("page", String(params.page));
+  sp.set("page_size", String(params?.page_size ?? 50));
+  if (params?.search) sp.set("search", params.search);
+  return useSWR<PaginatedResponse<CosiumDoctor>>(`/cosium/doctors?${sp}`);
 }
 
 // --- Client 360 ---

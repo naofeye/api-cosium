@@ -89,6 +89,82 @@ def sync_products(
     )
 
 
+@router.post(
+    "/payments",
+    response_model=SyncResultResponse,
+    summary="Synchroniser les paiements",
+    description="Lance une synchronisation des paiements de factures depuis l'ERP.",
+)
+def sync_payments(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
+) -> SyncResultResponse:
+    return erp_sync_service.sync_payments(
+        db,
+        tenant_id=tenant_ctx.tenant_id,
+        user_id=tenant_ctx.user_id,
+    )
+
+
+@router.post(
+    "/third-party-payments",
+    response_model=SyncResultResponse,
+    summary="Synchroniser les tiers payants",
+    description="Lance une synchronisation des tiers payants (secu + mutuelle) depuis l'ERP.",
+)
+def sync_third_party_payments(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
+) -> SyncResultResponse:
+    return erp_sync_service.sync_third_party_payments(
+        db,
+        tenant_id=tenant_ctx.tenant_id,
+        user_id=tenant_ctx.user_id,
+    )
+
+
+@router.post(
+    "/prescriptions",
+    response_model=SyncResultResponse,
+    summary="Synchroniser les ordonnances",
+    description="Lance une synchronisation des ordonnances optiques depuis l'ERP.",
+)
+def sync_prescriptions(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
+) -> SyncResultResponse:
+    return erp_sync_service.sync_prescriptions(
+        db,
+        tenant_id=tenant_ctx.tenant_id,
+        user_id=tenant_ctx.user_id,
+    )
+
+
+@router.post(
+    "/all",
+    response_model=dict,
+    summary="Synchroniser tout",
+    description="Lance une synchronisation complete de toutes les donnees ERP.",
+)
+def sync_all(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
+) -> dict:
+    results = {}
+    for sync_name, sync_fn in [
+        ("customers", erp_sync_service.sync_customers),
+        ("invoices", erp_sync_service.sync_invoices),
+        ("payments", erp_sync_service.sync_payments),
+        ("third_party_payments", erp_sync_service.sync_third_party_payments),
+        ("prescriptions", erp_sync_service.sync_prescriptions),
+    ]:
+        try:
+            results[sync_name] = sync_fn(db, tenant_id=tenant_ctx.tenant_id, user_id=tenant_ctx.user_id)
+        except Exception as e:
+            results[sync_name] = {"error": str(e)}
+    return results
+
+
 @router.get(
     "/erp-types",
     response_model=list[ERPTypeItem],

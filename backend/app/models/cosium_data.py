@@ -6,7 +6,7 @@ Synchronization is UNIDIRECTIONAL: Cosium -> OptiFlow only.
 
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -53,4 +53,70 @@ class CosiumProduct(Base):
     ean_code: Mapped[str] = mapped_column(String(50), nullable=False, default="")
     price: Mapped[float] = mapped_column(Float, nullable=False, default=0)
     family_type: Mapped[str] = mapped_column(String(100), nullable=False, default="")
+    synced_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+
+
+class CosiumPayment(Base):
+    """Paiement de facture Cosium."""
+
+    __tablename__ = "cosium_payments"
+    __table_args__ = (Index("ix_cosium_payments_tenant_cosium", "tenant_id", "cosium_id", unique=True),)
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    cosium_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    payment_type_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    amount: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    original_amount: Mapped[float | None] = mapped_column(Float, nullable=True)
+    type: Mapped[str] = mapped_column(String(50), nullable=False, default="")
+    due_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    issuer_name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    bank: Mapped[str] = mapped_column(String(100), nullable=False, default="")
+    site_name: Mapped[str] = mapped_column(String(100), nullable=False, default="")
+    comment: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    payment_number: Mapped[str] = mapped_column(String(100), nullable=False, default="")
+    invoice_cosium_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    synced_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+
+
+class CosiumThirdPartyPayment(Base):
+    """Tiers payant (secu + mutuelle)."""
+
+    __tablename__ = "cosium_third_party_payments"
+    __table_args__ = (Index("ix_cosium_tpp_tenant_cosium", "tenant_id", "cosium_id", unique=True),)
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    cosium_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    social_security_amount: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    social_security_tpp: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    additional_health_care_amount: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    additional_health_care_tpp: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    invoice_cosium_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    synced_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+
+
+class CosiumPrescription(Base):
+    """Ordonnance optique."""
+
+    __tablename__ = "cosium_prescriptions"
+    __table_args__ = (Index("ix_cosium_prescriptions_tenant_cosium", "tenant_id", "cosium_id", unique=True),)
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    cosium_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    prescription_date: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    file_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    customer_cosium_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id"), nullable=True, index=True)
+    sphere_right: Mapped[float | None] = mapped_column(Float, nullable=True)
+    cylinder_right: Mapped[float | None] = mapped_column(Float, nullable=True)
+    axis_right: Mapped[float | None] = mapped_column(Float, nullable=True)
+    addition_right: Mapped[float | None] = mapped_column(Float, nullable=True)
+    sphere_left: Mapped[float | None] = mapped_column(Float, nullable=True)
+    cylinder_left: Mapped[float | None] = mapped_column(Float, nullable=True)
+    axis_left: Mapped[float | None] = mapped_column(Float, nullable=True)
+    addition_left: Mapped[float | None] = mapped_column(Float, nullable=True)
+    spectacles_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    prescriber_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     synced_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)

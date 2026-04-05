@@ -44,7 +44,7 @@ class CosiumClient:
         self._auth_tenant: str | None = None
         self._auth_login: str | None = None
         self._auth_password: str | None = None
-        self._client = httpx.Client(timeout=30.0)
+        self._client = httpx.Client(timeout=60.0)
 
     def _ensure_token_valid(self) -> None:
         """Re-authenticate if token is older than 25 minutes (not for cookie mode)."""
@@ -250,6 +250,38 @@ class CosiumClient:
                 time.sleep(0.1)
 
         return all_items
+
+    def get_raw(self, endpoint: str, params: dict | None = None) -> bytes:
+        """GET qui retourne le contenu brut (bytes) — pour telechargement de documents."""
+        if not self.token and self._auth_mode != "cookie":
+            raise RuntimeError("Not authenticated. Call authenticate() first.")
+
+        self._ensure_token_valid()
+
+        url = f"{self.base_url}/{self.tenant}/api{endpoint}"
+
+        headers: dict[str, str] = {"Accept": "*/*"}
+        cookies: dict[str, str] = {}
+
+        if self._auth_mode == "cookie":
+            cookies = self._cookies.copy()
+        else:
+            headers["Authorization"] = f"{self._token_type} {self.token}"
+
+        for attempt in range(2):
+            try:
+                response = self._client.get(url, params=params, headers=headers, cookies=cookies, timeout=60)
+                response.raise_for_status()
+                return response.content
+            except Exception as e:
+                if attempt == 0:
+                    logger.warning("cosium_get_raw_retry", endpoint=endpoint, error=str(e))
+                    time.sleep(1)
+                else:
+                    logger.error("cosium_get_raw_failed", endpoint=endpoint, error=str(e))
+                    raise
+
+        raise RuntimeError("GET raw request failed after retries")
 
     # ⛔ INTERDIT : Aucune methode ci-dessous ne sera implementee
     # def put(...) -> INTERDIT

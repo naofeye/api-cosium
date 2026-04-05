@@ -18,7 +18,13 @@ from app.integrations.erp_connector import ERPConnector
 from app.integrations.erp_factory import get_connector
 from app.integrations.erp_models import ERPCustomer, ERPInvoice
 from app.models import Customer, Tenant
-from app.models.cosium_data import CosiumInvoice, CosiumProduct
+from app.models.cosium_data import (
+    CosiumInvoice,
+    CosiumPayment,
+    CosiumPrescription,
+    CosiumProduct,
+    CosiumThirdPartyPayment,
+)
 from app.services import audit_service
 
 logger = get_logger("erp_sync_service")
@@ -368,6 +374,249 @@ def sync_products(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     if user_id:
         audit_service.log_action(db, tenant_id, user_id, "create", "sync_products", 0, new_value=result)
     logger.info("sync_products_done", tenant_id=tenant_id, erp=connector.erp_type, **result)
+    return result
+
+
+def sync_payments(db: Session, tenant_id: int, user_id: int = 0) -> dict:
+    """Synchronise les paiements de factures depuis l'ERP vers cosium_payments (lecture seule)."""
+    if not user_id:
+        logger.warning("operation_without_user_id", action="sync_payments", entity="payment")
+    connector, tenant = _get_connector_for_tenant(db, tenant_id)
+    _authenticate_connector(connector, tenant)
+
+    from app.integrations.cosium.cosium_connector import CosiumConnector
+
+    if not isinstance(connector, CosiumConnector):
+        return {"created": 0, "updated": 0, "total": 0, "note": "Connector does not support invoice-payments"}
+
+    all_payments = connector.get_invoice_payments()
+
+    # Build existing map for upsert
+    existing_map: dict[int, CosiumPayment] = {}
+    existing_rows = db.scalars(select(CosiumPayment).where(CosiumPayment.tenant_id == tenant_id)).all()
+    for row in existing_rows:
+        existing_map[row.cosium_id] = row
+
+    created = 0
+    updated = 0
+
+    for pmt in all_payments:
+        cosium_id = pmt.get("cosium_id")
+        if not cosium_id:
+            continue
+        cosium_id = int(cosium_id)
+
+        # Parse due_date
+        due_date = None
+        if pmt.get("due_date"):
+            try:
+                due_date = datetime.fromisoformat(str(pmt["due_date"]).replace("Z", "+00:00"))
+            except (ValueError, TypeError):
+                pass
+
+        if cosium_id in existing_map:
+            row = existing_map[cosium_id]
+            row.payment_type_id = pmt.get("payment_type_id")
+            row.amount = pmt.get("amount", 0)
+            row.original_amount = pmt.get("original_amount")
+            row.type = pmt.get("type", "")
+            row.due_date = due_date
+            row.issuer_name = pmt.get("issuer_name", "")
+            row.bank = pmt.get("bank", "")
+            row.site_name = pmt.get("site_name", "")
+            row.comment = pmt.get("comment")
+            row.payment_number = pmt.get("payment_number", "")
+            row.invoice_cosium_id = pmt.get("invoice_cosium_id")
+            row.synced_at = datetime.now(UTC)
+            updated += 1
+        else:
+            new_row = CosiumPayment(
+                tenant_id=tenant_id,
+                cosium_id=cosium_id,
+                payment_type_id=pmt.get("payment_type_id"),
+                amount=pmt.get("amount", 0),
+                original_amount=pmt.get("original_amount"),
+                type=pmt.get("type", ""),
+                due_date=due_date,
+                issuer_name=pmt.get("issuer_name", ""),
+                bank=pmt.get("bank", ""),
+                site_name=pmt.get("site_name", ""),
+                comment=pmt.get("comment"),
+                payment_number=pmt.get("payment_number", ""),
+                invoice_cosium_id=pmt.get("invoice_cosium_id"),
+            )
+            db.add(new_row)
+            created += 1
+
+    db.commit()
+
+    result = {"created": created, "updated": updated, "total": len(all_payments)}
+    if user_id:
+        audit_service.log_action(db, tenant_id, user_id, "create", "sync_payments", 0, new_value=result)
+    logger.info("sync_payments_done", tenant_id=tenant_id, **result)
+    return result
+
+
+def sync_third_party_payments(db: Session, tenant_id: int, user_id: int = 0) -> dict:
+    """Synchronise les tiers payants depuis l'ERP vers cosium_third_party_payments (lecture seule)."""
+    if not user_id:
+        logger.warning("operation_without_user_id", action="sync_tpp", entity="third_party_payment")
+    connector, tenant = _get_connector_for_tenant(db, tenant_id)
+    _authenticate_connector(connector, tenant)
+
+    from app.integrations.cosium.cosium_connector import CosiumConnector
+
+    if not isinstance(connector, CosiumConnector):
+        return {"created": 0, "updated": 0, "total": 0, "note": "Connector does not support third-party-payments"}
+
+    all_tpp = connector.get_third_party_payments()
+
+    existing_map: dict[int, CosiumThirdPartyPayment] = {}
+    existing_rows = db.scalars(
+        select(CosiumThirdPartyPayment).where(CosiumThirdPartyPayment.tenant_id == tenant_id)
+    ).all()
+    for row in existing_rows:
+        existing_map[row.cosium_id] = row
+
+    created = 0
+    updated = 0
+
+    for tpp in all_tpp:
+        cosium_id = tpp.get("cosium_id")
+        if not cosium_id:
+            continue
+        cosium_id = int(cosium_id)
+
+        if cosium_id in existing_map:
+            row = existing_map[cosium_id]
+            row.social_security_amount = tpp.get("social_security_amount", 0)
+            row.social_security_tpp = tpp.get("social_security_tpp", False)
+            row.additional_health_care_amount = tpp.get("additional_health_care_amount", 0)
+            row.additional_health_care_tpp = tpp.get("additional_health_care_tpp", False)
+            row.invoice_cosium_id = tpp.get("invoice_cosium_id")
+            row.synced_at = datetime.now(UTC)
+            updated += 1
+        else:
+            new_row = CosiumThirdPartyPayment(
+                tenant_id=tenant_id,
+                cosium_id=cosium_id,
+                social_security_amount=tpp.get("social_security_amount", 0),
+                social_security_tpp=tpp.get("social_security_tpp", False),
+                additional_health_care_amount=tpp.get("additional_health_care_amount", 0),
+                additional_health_care_tpp=tpp.get("additional_health_care_tpp", False),
+                invoice_cosium_id=tpp.get("invoice_cosium_id"),
+            )
+            db.add(new_row)
+            created += 1
+
+    db.commit()
+
+    result = {"created": created, "updated": updated, "total": len(all_tpp)}
+    if user_id:
+        audit_service.log_action(db, tenant_id, user_id, "create", "sync_tpp", 0, new_value=result)
+    logger.info("sync_tpp_done", tenant_id=tenant_id, **result)
+    return result
+
+
+def sync_prescriptions(db: Session, tenant_id: int, user_id: int = 0) -> dict:
+    """Synchronise les ordonnances optiques depuis l'ERP vers cosium_prescriptions (lecture seule)."""
+    if not user_id:
+        logger.warning("operation_without_user_id", action="sync_prescriptions", entity="prescription")
+    connector, tenant = _get_connector_for_tenant(db, tenant_id)
+    _authenticate_connector(connector, tenant)
+
+    from app.integrations.cosium.cosium_connector import CosiumConnector
+
+    if not isinstance(connector, CosiumConnector):
+        return {"created": 0, "updated": 0, "total": 0, "note": "Connector does not support optical-prescriptions"}
+
+    all_prescriptions = connector.get_optical_prescriptions()
+
+    # Build customer cosium_id -> OptiFlow customer.id map
+    all_customers = db.scalars(select(Customer).where(Customer.tenant_id == tenant_id)).all()
+    cosium_to_customer: dict[int, int] = {}
+    for c in all_customers:
+        erp_id = getattr(c, "cosium_id", None) or getattr(c, "erp_id", None)
+        if erp_id:
+            try:
+                cosium_to_customer[int(erp_id)] = c.id
+            except (ValueError, TypeError):
+                pass
+
+    existing_map: dict[int, CosiumPrescription] = {}
+    existing_rows = db.scalars(
+        select(CosiumPrescription).where(CosiumPrescription.tenant_id == tenant_id)
+    ).all()
+    for row in existing_rows:
+        existing_map[row.cosium_id] = row
+
+    created = 0
+    updated = 0
+
+    for presc in all_prescriptions:
+        cosium_id = presc.get("cosium_id")
+        if not cosium_id:
+            continue
+        cosium_id = int(cosium_id)
+
+        # Resolve customer_id
+        customer_cosium_id = presc.get("customer_cosium_id")
+        customer_id = cosium_to_customer.get(customer_cosium_id) if customer_cosium_id else None
+
+        # Parse file_date
+        file_date = None
+        if presc.get("file_date"):
+            try:
+                file_date = datetime.fromisoformat(str(presc["file_date"]).replace("Z", "+00:00"))
+            except (ValueError, TypeError):
+                pass
+
+        if cosium_id in existing_map:
+            row = existing_map[cosium_id]
+            row.prescription_date = presc.get("prescription_date")
+            row.file_date = file_date
+            row.customer_cosium_id = customer_cosium_id
+            row.customer_id = customer_id or row.customer_id
+            row.sphere_right = presc.get("sphere_right")
+            row.cylinder_right = presc.get("cylinder_right")
+            row.axis_right = presc.get("axis_right")
+            row.addition_right = presc.get("addition_right")
+            row.sphere_left = presc.get("sphere_left")
+            row.cylinder_left = presc.get("cylinder_left")
+            row.axis_left = presc.get("axis_left")
+            row.addition_left = presc.get("addition_left")
+            row.spectacles_json = presc.get("spectacles_json")
+            row.prescriber_name = presc.get("prescriber_name")
+            row.synced_at = datetime.now(UTC)
+            updated += 1
+        else:
+            new_row = CosiumPrescription(
+                tenant_id=tenant_id,
+                cosium_id=cosium_id,
+                prescription_date=presc.get("prescription_date"),
+                file_date=file_date,
+                customer_cosium_id=customer_cosium_id,
+                customer_id=customer_id,
+                sphere_right=presc.get("sphere_right"),
+                cylinder_right=presc.get("cylinder_right"),
+                axis_right=presc.get("axis_right"),
+                addition_right=presc.get("addition_right"),
+                sphere_left=presc.get("sphere_left"),
+                cylinder_left=presc.get("cylinder_left"),
+                axis_left=presc.get("axis_left"),
+                addition_left=presc.get("addition_left"),
+                spectacles_json=presc.get("spectacles_json"),
+                prescriber_name=presc.get("prescriber_name"),
+            )
+            db.add(new_row)
+            created += 1
+
+    db.commit()
+
+    result = {"created": created, "updated": updated, "total": len(all_prescriptions)}
+    if user_id:
+        audit_service.log_action(db, tenant_id, user_id, "create", "sync_prescriptions", 0, new_value=result)
+    logger.info("sync_prescriptions_done", tenant_id=tenant_id, **result)
     return result
 
 

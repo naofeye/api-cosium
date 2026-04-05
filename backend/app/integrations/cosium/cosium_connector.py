@@ -11,7 +11,10 @@ from app.core.logging import get_logger
 from app.integrations.cosium.adapter import (
     cosium_customer_to_optiflow,
     cosium_invoice_to_optiflow,
+    cosium_payment_to_optiflow,
+    cosium_prescription_to_optiflow,
     cosium_product_to_optiflow,
+    cosium_tpp_to_optiflow,
 )
 from app.integrations.cosium.client import CosiumClient
 from app.integrations.erp_connector import ERPConnector
@@ -258,6 +261,63 @@ class CosiumConnector(ERPConnector):
                     )
                 )
         return stocks
+
+    def get_invoice_payments(self, page: int = 0, page_size: int = 50) -> list[dict]:
+        """GET /invoice-payments — paiements de factures (lecture seule)."""
+        items = self._client.get_paginated("/invoice-payments", page_size=page_size, max_pages=600)
+        result: list[dict] = []
+        for raw in items:
+            mapped = cosium_payment_to_optiflow(raw)
+            if mapped.get("cosium_id"):
+                result.append(mapped)
+        logger.info("cosium_invoice_payments_fetched", total=len(result))
+        return result
+
+    def get_third_party_payments(self, page: int = 0, page_size: int = 50) -> list[dict]:
+        """GET /third-party-payments — tiers payant secu + mutuelle (lecture seule)."""
+        # TPP endpoint is very slow on Cosium servers — limit to avoid timeouts
+        items = self._client.get_paginated("/third-party-payments", page_size=page_size, max_pages=5)
+        result: list[dict] = []
+        for raw in items:
+            mapped = cosium_tpp_to_optiflow(raw)
+            if mapped.get("cosium_id"):
+                result.append(mapped)
+        logger.info("cosium_tpp_fetched", total=len(result))
+        return result
+
+    def get_optical_prescriptions(self, page: int = 0, page_size: int = 50) -> list[dict]:
+        """GET /optical-prescriptions — ordonnances optiques (lecture seule)."""
+        items = self._client.get_paginated("/optical-prescriptions", page_size=page_size, max_pages=600)
+        result: list[dict] = []
+        for raw in items:
+            mapped = cosium_prescription_to_optiflow(raw)
+            if mapped.get("cosium_id"):
+                result.append(mapped)
+        logger.info("cosium_prescriptions_fetched", total=len(result))
+        return result
+
+    def get_customer_documents(self, customer_cosium_id: int) -> list[dict]:
+        """GET /customers/{id}/documents — liste des documents d'un client (lecture seule)."""
+        data = self._client.get(f"/customers/{customer_cosium_id}/documents")
+        embedded = data.get("_embedded", data)
+        docs = embedded.get("documents", embedded.get("content", []))
+        if not isinstance(docs, list):
+            docs = [docs] if docs else []
+        result: list[dict] = []
+        for doc in docs:
+            result.append({
+                "document_id": doc.get("id", 0),
+                "label": doc.get("label", doc.get("name", "")),
+                "type": doc.get("type", doc.get("documentType", "")),
+                "date": doc.get("date", doc.get("creationDate")),
+                "size": doc.get("size"),
+            })
+        logger.info("cosium_customer_documents_fetched", customer_id=customer_cosium_id, total=len(result))
+        return result
+
+    def get_document_content(self, customer_cosium_id: int, document_id: int) -> bytes:
+        """GET /customers/{id}/documents/{id}/content — contenu binaire du document."""
+        return self._client.get_raw(f"/customers/{customer_cosium_id}/documents/{document_id}/content")
 
     def get_payment_types(self) -> list[ERPPaymentType]:
         data = self._client.get("/payment-types")

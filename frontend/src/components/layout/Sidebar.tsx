@@ -24,6 +24,8 @@ import {
   ChevronRight,
   HelpCircle,
   FileStack,
+  Calendar,
+  Stethoscope,
 } from "lucide-react";
 import { useState } from "react";
 import { useTenant } from "@/lib/tenant-context";
@@ -36,6 +38,11 @@ const navItems = [
   { href: "/devis", label: "Devis", icon: FileText },
   { href: "/factures", label: "Factures", icon: Receipt },
   { href: "/cosium-factures", label: "Factures Cosium", icon: FileStack },
+  { href: "/cosium-paiements", label: "Paiements Cosium", icon: CreditCard },
+  { href: "/agenda", label: "Agenda", icon: Calendar },
+  { href: "/ordonnances", label: "Ordonnances", icon: FileText },
+  { href: "/mutuelles", label: "Mutuelles", icon: Shield },
+  { href: "/prescripteurs", label: "Prescripteurs", icon: Stethoscope },
   { href: "/pec", label: "PEC", icon: Shield },
   { href: "/paiements", label: "Paiements", icon: CreditCard },
   { href: "/rapprochement", label: "Rapprochement", icon: ArrowLeftRight },

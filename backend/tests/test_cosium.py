@@ -40,8 +40,8 @@ def test_cosium_client_has_no_send_method() -> None:
 
 
 def test_cosium_client_only_allowed_methods() -> None:
-    """The CosiumClient must only have authenticate(), get(), and get_paginated() as public methods."""
-    allowed = {"authenticate", "get", "get_paginated"}
+    """The CosiumClient must only have authenticate(), get(), get_paginated(), and get_raw() as public methods."""
+    allowed = {"authenticate", "get", "get_paginated", "get_raw"}
     public_methods = {
         name for name, method in inspect.getmembers(CosiumClient, predicate=inspect.isfunction)
         if not name.startswith("_")

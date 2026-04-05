@@ -92,3 +92,170 @@ def cosium_product_to_optiflow(data: dict) -> dict:
         "family": data.get("familyType", ""),
         "price": data.get("sellingPriceTaxIncluded", 0) or 0,
     }
+
+
+def cosium_payment_to_optiflow(data: dict) -> dict:
+    """Mappe un paiement de facture Cosium vers un dict pour import.
+
+    Structure Cosium: {id, paymentTypeId, amount, originalAmount, type,
+    dueDate, issuerName, bank, siteName, comment, paymentNumber,
+    accountingDocumentNumber}
+    """
+    cosium_id = data.get("id")
+    if not cosium_id:
+        logger.warning("cosium_payment_missing_id", data_keys=list(data.keys()))
+
+    # Extract invoice link from _links or accountingDocumentNumber
+    invoice_cosium_id = None
+    acc_doc_num = data.get("accountingDocumentNumber", "")
+    if acc_doc_num and str(acc_doc_num).strip().isdigit():
+        invoice_cosium_id = int(acc_doc_num)
+    if not invoice_cosium_id:
+        acc_href = data.get("_links", {}).get("accounting-document", {}).get("href", "")
+        if "/invoices/" in acc_href:
+            try:
+                invoice_cosium_id = int(acc_href.rsplit("/invoices/", 1)[-1].split("?")[0])
+            except (ValueError, IndexError):
+                pass
+
+    return {
+        "cosium_id": cosium_id,
+        "payment_type_id": data.get("paymentTypeId"),
+        "amount": data.get("amount", 0) or 0,
+        "original_amount": data.get("originalAmount"),
+        "type": data.get("type", ""),
+        "due_date": data.get("dueDate"),
+        "issuer_name": data.get("issuerName", ""),
+        "bank": data.get("bank", ""),
+        "site_name": data.get("siteName", ""),
+        "comment": data.get("comment"),
+        "payment_number": data.get("paymentNumber", ""),
+        "invoice_cosium_id": invoice_cosium_id,
+    }
+
+
+def cosium_tpp_to_optiflow(data: dict) -> dict:
+    """Mappe un tiers payant Cosium vers un dict pour import.
+
+    Structure Cosium: {additionalHealthCareAmount, additionalHealthCareThirdPartyPayment,
+    socialSecurityAmount, socialSecurityThirdPartyPayment}
+    + _links.accounting-document.href pour l'ID facture.
+    """
+    cosium_id = data.get("id")
+    if not cosium_id:
+        # Try extracting from self link
+        self_href = data.get("_links", {}).get("self", {}).get("href", "")
+        if "/third-party-payments/" in self_href:
+            try:
+                cosium_id = int(self_href.rsplit("/third-party-payments/", 1)[-1].split("?")[0])
+            except (ValueError, IndexError):
+                pass
+
+    # Extract invoice ID from _links.accounting-document
+    invoice_cosium_id = None
+    acc_href = data.get("_links", {}).get("accounting-document", {}).get("href", "")
+    if "/invoices/" in acc_href:
+        try:
+            invoice_cosium_id = int(acc_href.rsplit("/invoices/", 1)[-1].split("?")[0])
+        except (ValueError, IndexError):
+            pass
+
+    return {
+        "cosium_id": cosium_id,
+        "social_security_amount": data.get("socialSecurityAmount", 0) or 0,
+        "social_security_tpp": bool(data.get("socialSecurityThirdPartyPayment", False)),
+        "additional_health_care_amount": data.get("additionalHealthCareAmount", 0) or 0,
+        "additional_health_care_tpp": bool(data.get("additionalHealthCareThirdPartyPayment", False)),
+        "invoice_cosium_id": invoice_cosium_id,
+    }
+
+
+def cosium_prescription_to_optiflow(data: dict) -> dict:
+    """Mappe une ordonnance optique Cosium vers un dict pour import.
+
+    Structure Cosium: {diopters: [{sphere100Left, sphere100Right, cylinder100Left,
+    cylinder100Right, axisLeft, axisRight, addition100Left, addition100Right,
+    visionType}], prescriptionDate, fileDate, selectedSpectacles: [...]}
+
+    Note: diopter values are in hundredths — divide by 100 for actual value.
+    E.g. sphere100Left=-50 means -0.50 diopters.
+    """
+    cosium_id = data.get("id")
+    if not cosium_id:
+        self_href = data.get("_links", {}).get("self", {}).get("href", "")
+        if "/optical-prescriptions/" in self_href:
+            try:
+                cosium_id = int(self_href.rsplit("/optical-prescriptions/", 1)[-1].split("?")[0])
+            except (ValueError, IndexError):
+                pass
+
+    # Extract customer ID from _links
+    customer_cosium_id = None
+    cust_href = data.get("_links", {}).get("customer", {}).get("href", "")
+    if "/customers/" in cust_href:
+        try:
+            customer_cosium_id = int(cust_href.rsplit("/customers/", 1)[-1].split("?")[0])
+        except (ValueError, IndexError):
+            pass
+
+    # Parse first diopter entry (distance vision by default)
+    diopters = data.get("diopters", [])
+    sphere_right = None
+    cylinder_right = None
+    axis_right = None
+    addition_right = None
+    sphere_left = None
+    cylinder_left = None
+    axis_left = None
+    addition_left = None
+
+    if diopters and isinstance(diopters, list) and len(diopters) > 0:
+        d = diopters[0]
+        # Diopter values in hundredths: divide by 100
+        sphere_right = _hundredths_to_diopter(d.get("sphere100Right"))
+        cylinder_right = _hundredths_to_diopter(d.get("cylinder100Right"))
+        axis_right = d.get("axisRight")  # axis is in degrees, not hundredths
+        addition_right = _hundredths_to_diopter(d.get("addition100Right"))
+        sphere_left = _hundredths_to_diopter(d.get("sphere100Left"))
+        cylinder_left = _hundredths_to_diopter(d.get("cylinder100Left"))
+        axis_left = d.get("axisLeft")
+        addition_left = _hundredths_to_diopter(d.get("addition100Left"))
+
+    # Selected spectacles as JSON string
+    import json
+
+    spectacles = data.get("selectedSpectacles", [])
+    spectacles_json = json.dumps(spectacles) if spectacles else None
+
+    # Prescriber name from _embedded or _links
+    prescriber_name = None
+    prescriber = data.get("_embedded", {}).get("prescriber", {})
+    if prescriber:
+        prescriber_name = f"{prescriber.get('firstName', '')} {prescriber.get('lastName', '')}".strip() or None
+
+    return {
+        "cosium_id": cosium_id,
+        "prescription_date": data.get("prescriptionDate"),
+        "file_date": data.get("fileDate"),
+        "customer_cosium_id": customer_cosium_id,
+        "sphere_right": sphere_right,
+        "cylinder_right": cylinder_right,
+        "axis_right": axis_right,
+        "addition_right": addition_right,
+        "sphere_left": sphere_left,
+        "cylinder_left": cylinder_left,
+        "axis_left": axis_left,
+        "addition_left": addition_left,
+        "spectacles_json": spectacles_json,
+        "prescriber_name": prescriber_name,
+    }
+
+
+def _hundredths_to_diopter(value: int | float | None) -> float | None:
+    """Convert a Cosium hundredths value to actual diopter.
+
+    E.g. -50 -> -0.50, 225 -> 2.25
+    """
+    if value is None:
+        return None
+    return round(float(value) / 100.0, 2)

@@ -309,6 +309,84 @@ export interface DashboardSummary {
   remaining: number;
 }
 
+// --- Cosium Calendar Event ---
+export interface CosiumCalendarEvent {
+  id: number;
+  start_date: string | null;
+  end_date: string | null;
+  subject: string;
+  customer_fullname: string;
+  customer_number: string;
+  category_name: string;
+  category_color: string;
+  category_family: string;
+  status: string;
+  canceled: boolean;
+  missed: boolean;
+  observation: string;
+  site_name: string;
+}
+
+// --- Cosium Prescription ---
+export interface CosiumPrescription {
+  id: number;
+  prescription_date: string | null;
+  sphere_right: number | null;
+  cylinder_right: number | null;
+  axis_right: number | null;
+  addition_right: number | null;
+  sphere_left: number | null;
+  cylinder_left: number | null;
+  axis_left: number | null;
+  addition_left: number | null;
+  prescriber_name: string | null;
+}
+
+// --- Cosium Payment Item ---
+export interface CosiumPaymentItem {
+  id: number;
+  amount: number;
+  type: string;
+  due_date: string | null;
+  issuer_name: string;
+  bank: string;
+  site_name: string;
+  payment_number: string;
+}
+
+// --- Cosium Mutuelle ---
+export interface CosiumMutuelle {
+  id: number;
+  name: string;
+  code: string;
+  phone: string;
+  email: string;
+  city: string;
+  hidden: boolean;
+  opto_amc: boolean;
+}
+
+// --- Cosium Doctor ---
+export interface CosiumDoctor {
+  id: number;
+  firstname: string;
+  lastname: string;
+  civility: string;
+  email: string | null;
+  phone: string | null;
+  rpps_number: string | null;
+  specialty: string;
+  optic_prescriber: boolean;
+  audio_prescriber: boolean;
+}
+
+// --- Cosium Document ---
+export interface CosiumDocument {
+  name: string;
+  id: number;
+  download_url: string;
+}
+
 // --- Generic API ---
 export interface PaginatedResponse<T> {
   items: T[];

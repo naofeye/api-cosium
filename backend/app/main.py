@@ -18,7 +18,9 @@ from app.api.routers import (
     client_360,
     clients,
     consents,
+    cosium_documents,
     cosium_invoices,
+    cosium_reference,
     dashboard,
     devis,
     documents,
@@ -161,6 +163,7 @@ def health() -> dict[str, str]:
 
 app.include_router(action_items.router)
 app.include_router(ai.router)
+app.include_router(cosium_documents.router)
 app.include_router(cosium_invoices.router)
 app.include_router(ai_usage.router)
 app.include_router(analytics.router)
@@ -188,4 +191,5 @@ app.include_router(client_360.router)
 app.include_router(admin_health.router)
 app.include_router(dashboard.router)
 app.include_router(onboarding.router)
+app.include_router(cosium_reference.router)
 app.include_router(sse.router)

@@ -17,3 +17,12 @@ from app.models.pec import PayerContract, PayerOrganization, PecRequest, PecStat
 from app.models.reminder import Reminder, ReminderPlan, ReminderTemplate  # noqa: F401
 from app.models.tenant import Organization, Tenant, TenantErpCredentials, TenantUser  # noqa: F401
 from app.models.user import PasswordResetToken, RefreshToken, User  # noqa: F401
+from app.models.cosium_reference import (  # noqa: F401
+    CosiumBrand,
+    CosiumCalendarEvent,
+    CosiumDoctor,
+    CosiumMutuelle,
+    CosiumSite,
+    CosiumSupplier,
+    CosiumTag,
+)

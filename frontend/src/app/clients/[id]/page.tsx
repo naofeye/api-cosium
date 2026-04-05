@@ -24,6 +24,9 @@ import { TabFinances } from "./tabs/TabFinances";
 import { TabDocuments } from "./tabs/TabDocuments";
 import { TabMarketing } from "./tabs/TabMarketing";
 import { TabHistorique } from "./tabs/TabHistorique";
+import { TabCosiumDocuments } from "./tabs/TabCosiumDocuments";
+import { TabOrdonnances } from "./tabs/TabOrdonnances";
+import { TabCosiumPaiements } from "./tabs/TabCosiumPaiements";
 
 interface Client360 {
   id: number;
@@ -37,6 +40,7 @@ interface Client360 {
   postal_code: string | null;
   social_security_number: string | null;
   avatar_url: string | null;
+  cosium_id: string | number | null;
   created_at: string | null;
   dossiers: { id: number; statut: string; source: string; created_at: string }[];
   devis: { id: number; numero: string; statut: string; montant_ttc: number; reste_a_charge: number }[];
@@ -63,7 +67,7 @@ interface Client360 {
   resume_financier: { total_facture: number; total_paye: number; reste_du: number; taux_recouvrement: number };
 }
 
-type Tab = "resume" | "dossiers" | "finances" | "documents" | "marketing" | "historique";
+type Tab = "resume" | "dossiers" | "finances" | "documents" | "marketing" | "historique" | "cosium-docs" | "ordonnances" | "cosium-paiements";
 
 export default function ClientDetailPage() {
   const params = useParams();
@@ -167,6 +171,13 @@ export default function ClientDetailPage() {
     { key: "documents", label: "Documents", count: data.documents.length },
     { key: "marketing", label: "Marketing" },
     { key: "historique", label: "Historique", count: data.interactions.length },
+    ...(data.cosium_id
+      ? [
+          { key: "cosium-docs" as Tab, label: "Docs Cosium" },
+          { key: "ordonnances" as Tab, label: "Ordonnances" },
+          { key: "cosium-paiements" as Tab, label: "Paiements Cosium" },
+        ]
+      : []),
   ];
 
   return (
@@ -257,6 +268,9 @@ export default function ClientDetailPage() {
       )}
       {activeTab === "documents" && <TabDocuments documents={data.documents} />}
       {activeTab === "marketing" && <TabMarketing consentements={data.consentements} />}
+      {activeTab === "cosium-docs" && <TabCosiumDocuments cosiumId={data.cosium_id} />}
+      {activeTab === "ordonnances" && <TabOrdonnances cosiumId={data.cosium_id} />}
+      {activeTab === "cosium-paiements" && <TabCosiumPaiements cosiumId={data.cosium_id} />}
       {activeTab === "historique" && (
         <TabHistorique
           interactions={data.interactions}
