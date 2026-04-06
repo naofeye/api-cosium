@@ -12,6 +12,7 @@ from app import models  # noqa: F401
 from app.api.routers import (
     action_items,
     admin_health,
+    admin_users,
     ai,
     ai_usage,
     analytics,
@@ -238,6 +239,7 @@ app.include_router(exports.router)
 app.include_router(gdpr.router)
 app.include_router(client_360.router)
 app.include_router(admin_health.router)
+app.include_router(admin_users.router)
 app.include_router(dashboard.router)
 app.include_router(onboarding.router)
 app.include_router(cosium_reference.router)

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
 from app.domain.schemas.renewals import (
+    PrescriptionSummary,
     RenewalConfig,
     RenewalDashboardResponse,
     RenewalOpportunity,
@@ -51,6 +52,45 @@ def _suggest_action(score: float, has_email: bool, has_phone: bool) -> str:
     if has_phone:
         return "sms"
     return "courrier"
+
+
+def _format_correction(sphere: float | None, cylinder: float | None, axis: float | None, addition: float | None) -> str:
+    """Formate une correction optique en resume lisible."""
+    parts = []
+    if sphere is not None:
+        parts.append(f"S{sphere:+.2f}")
+    if cylinder is not None:
+        parts.append(f"C{cylinder:+.2f}")
+    if axis is not None:
+        parts.append(f"A{axis:.0f}")
+    if addition is not None and addition != 0:
+        parts.append(f"Add{addition:+.2f}")
+    return " ".join(parts) if parts else ""
+
+
+def _build_prescription_summary(
+    db: "Session",
+    tenant_id: int,
+    customer_id: int,
+) -> PrescriptionSummary | None:
+    """Construit un resume de la derniere ordonnance du client."""
+    from datetime import UTC, datetime
+
+    rx = renewal_repo.get_last_prescription_for_customer(db, tenant_id, customer_id)
+    if rx is None:
+        return None
+
+    age_months = 0
+    if rx.file_date:
+        age_months = int((datetime.now(UTC).replace(tzinfo=None) - rx.file_date).days / 30)
+
+    return PrescriptionSummary(
+        prescription_date=rx.file_date,
+        age_months=age_months,
+        od_summary=_format_correction(rx.sphere_right, rx.cylinder_right, rx.axis_right, rx.addition_right),
+        og_summary=_format_correction(rx.sphere_left, rx.cylinder_left, rx.axis_left, rx.addition_left),
+        prescriber_name=rx.prescriber_name,
+    )
 
 
 def _build_reason(months_since: int, equipment_type: str | None, has_mutuelle: bool) -> str:
@@ -125,6 +165,8 @@ def detect_renewals(
             config,
         )
 
+        prescription = _build_prescription_summary(db, tenant_id, customer.id)
+
         opportunity = RenewalOpportunity(
             customer_id=customer.id,
             customer_name=f"{customer.first_name} {customer.last_name}",
@@ -138,6 +180,49 @@ def detect_renewals(
             score=score,
             suggested_action=_suggest_action(score, bool(customer.email), bool(customer.phone)),
             reason=_build_reason(item["months_since_purchase"], equipment_type, has_mutuelle),
+            prescription=prescription,
+        )
+        opportunities.append(opportunity)
+
+    # Also detect clients with old prescriptions but no matching invoices
+    seen_customer_ids = {o.customer_id for o in opportunities}
+    rx_candidates = renewal_repo.get_customers_with_old_prescriptions(
+        db,
+        tenant_id,
+        age_minimum_months=config.age_minimum_months,
+    )
+    for rx_item in rx_candidates:
+        customer = rx_item["customer"]
+        if customer.id in seen_customer_ids:
+            continue
+        if len(opportunities) >= max_candidates:
+            break
+
+        has_mutuelle = renewal_repo.customer_has_active_pec(db, tenant_id, customer.id)
+        prescription = _build_prescription_summary(db, tenant_id, customer.id)
+
+        # Use prescription age for scoring (no invoice data available)
+        score = _score_opportunity(
+            rx_item["months_since_prescription"],
+            0.0,
+            has_mutuelle,
+            config,
+        )
+
+        opportunity = RenewalOpportunity(
+            customer_id=customer.id,
+            customer_name=f"{customer.first_name} {customer.last_name}",
+            phone=customer.phone,
+            email=customer.email,
+            last_purchase_date=rx_item["last_prescription_date"],
+            months_since_purchase=rx_item["months_since_prescription"],
+            equipment_type=None,
+            last_invoice_amount=0.0,
+            has_active_mutuelle=has_mutuelle,
+            score=score,
+            suggested_action=_suggest_action(score, bool(customer.email), bool(customer.phone)),
+            reason=_build_reason(rx_item["months_since_prescription"], None, has_mutuelle),
+            prescription=prescription,
         )
         opportunities.append(opportunity)
 

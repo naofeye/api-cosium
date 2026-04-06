@@ -6,6 +6,14 @@ import { DateDisplay } from "@/components/ui/DateDisplay";
 import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
 import { TrendingUp, Send, Mail, Phone, MessageSquare } from "lucide-react";
 
+export interface PrescriptionSummary {
+  prescription_date: string | null;
+  age_months: number;
+  od_summary: string;
+  og_summary: string;
+  prescriber_name: string | null;
+}
+
 export interface RenewalOpportunity {
   customer_id: number;
   customer_name: string;
@@ -19,6 +27,7 @@ export interface RenewalOpportunity {
   score: number;
   suggested_action: string;
   reason: string;
+  prescription: PrescriptionSummary | null;
 }
 
 interface OpportunityTableProps {
@@ -107,9 +116,11 @@ export function OpportunityTable({
                 />
               </th>
               <th scope="col" className="px-4 py-3">Client</th>
+              <th scope="col" className="px-4 py-3">Derniere ordonnance</th>
+              <th scope="col" className="px-4 py-3">Age ordo.</th>
+              <th scope="col" className="px-4 py-3">Correction (OD/OG)</th>
+              <th scope="col" className="px-4 py-3">Contact</th>
               <th scope="col" className="px-4 py-3">Equipement</th>
-              <th scope="col" className="px-4 py-3">Dernier achat</th>
-              <th scope="col" className="px-4 py-3">Mois</th>
               <th scope="col" className="px-4 py-3">Montant</th>
               <th scope="col" className="px-4 py-3">Mutuelle</th>
               <th scope="col" className="px-4 py-3">Score</th>
@@ -131,12 +142,47 @@ export function OpportunityTable({
                   </td>
                   <td className="px-4 py-3 font-medium">{o.customer_name}</td>
                   <td className="px-4 py-3">
-                    {o.equipment_type ? EQUIPMENT_LABELS[o.equipment_type] || o.equipment_type : "—"}
+                    {o.prescription?.prescription_date ? (
+                      <DateDisplay date={o.prescription.prescription_date} />
+                    ) : o.last_purchase_date ? (
+                      <DateDisplay date={o.last_purchase_date} />
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="px-4 py-3 tabular-nums">
+                    {o.prescription ? (
+                      <span className={o.prescription.age_months >= 24 ? "text-red-600 font-medium" : "text-amber-600"}>
+                        {o.prescription.age_months} mois
+                      </span>
+                    ) : (
+                      <span>{o.months_since_purchase} mois</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
-                    {o.last_purchase_date ? <DateDisplay date={o.last_purchase_date} /> : "—"}
+                    {o.prescription && (o.prescription.od_summary || o.prescription.og_summary) ? (
+                      <div className="text-xs space-y-0.5">
+                        {o.prescription.od_summary && (
+                          <div><span className="font-medium text-text-secondary">OD:</span> {o.prescription.od_summary}</div>
+                        )}
+                        {o.prescription.og_summary && (
+                          <div><span className="font-medium text-text-secondary">OG:</span> {o.prescription.og_summary}</div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-text-secondary text-xs">—</span>
+                    )}
                   </td>
-                  <td className="px-4 py-3 tabular-nums">{o.months_since_purchase}</td>
+                  <td className="px-4 py-3">
+                    <div className="text-xs space-y-0.5">
+                      {o.phone && <div className="flex items-center gap-1"><Phone className="h-3 w-3 text-text-secondary" />{o.phone}</div>}
+                      {o.email && <div className="flex items-center gap-1"><Mail className="h-3 w-3 text-text-secondary" />{o.email}</div>}
+                      {!o.phone && !o.email && <span className="text-text-secondary">—</span>}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    {o.equipment_type ? EQUIPMENT_LABELS[o.equipment_type] || o.equipment_type : "—"}
+                  </td>
                   <td className="px-4 py-3 tabular-nums">
                     <MoneyDisplay amount={o.last_invoice_amount} />
                   </td>
@@ -151,10 +197,21 @@ export function OpportunityTable({
                     <ScoreBadge score={o.score} />
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 text-text-secondary" title={o.suggested_action}>
-                      <ActionIcon className="h-4 w-4" />
-                      <span className="text-xs capitalize">{o.suggested_action}</span>
-                    </div>
+                    <button
+                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
+                      title={`Contacter par ${o.suggested_action}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (o.suggested_action === "email" && o.email) {
+                          window.location.href = `mailto:${o.email}?subject=Renouvellement%20equipement%20optique`;
+                        } else if ((o.suggested_action === "telephone" || o.suggested_action === "sms") && o.phone) {
+                          window.location.href = `tel:${o.phone}`;
+                        }
+                      }}
+                    >
+                      <ActionIcon className="h-3.5 w-3.5" />
+                      Contacter
+                    </button>
                   </td>
                 </tr>
               );

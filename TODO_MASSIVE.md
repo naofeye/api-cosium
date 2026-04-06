@@ -1,6 +1,6 @@
 # TODO MASSIVE — OptiFlow AI
 
-> **Etat** : 640 tests, 44 pages frontend, 35 routers, 52 services, 115k+ enregistrements Cosium, 40 760 documents (10 GB)
+> **Etat** : 696 tests backend + 133 tests frontend, 44 pages frontend, 35 routers, 52 services, 115k+ enregistrements Cosium, 40 760 documents (10 GB)
 > **Score qualite** : 99/100 (audit 20 iterations)
 > **V12 PEC Intelligence** : Etapes 1-10 terminees (OCR, parsers, consolidation, PEC)
 
@@ -78,6 +78,19 @@
 - Raccourci clavier Ctrl+K pour ouvrir la recherche
 - **Impact** : productivite utilisateur
 
+### 2.7 Renouvellements enrichis avec ordonnances Cosium [x]
+- Moteur de detection utilise desormais CosiumPrescription en plus des factures
+- Resume ordonnance (correction OD/OG, prescripteur) dans chaque opportunite
+- Clients avec ordonnances > 2 ans detectes meme sans facture recente
+- Frontend : colonnes Derniere ordonnance, Age ordo., Correction (OD/OG), Contact, bouton Contacter
+- **Impact** : detection proactive des renouvellements optiques
+
+### 2.8 Operations batch sur liste clients [x]
+- Checkboxes de selection sur la liste clients (tout selectionner / deselectionner)
+- Barre d'actions batch : Exporter la selection (CSV), Creer un segment marketing
+- Compteur de clients selectionnes
+- **Impact** : productivite, segmentation marketing rapide
+
 ---
 
 ## PRIORITE 3 — QUALITE & ROBUSTESSE
@@ -102,11 +115,17 @@
 - Test de restauration
 - **Impact** : protection des donnees
 
-### 3.4 Tests frontend manquants [ ]
-- Couvrir les nouvelles pages V12 (PEC, mutuelles)
-- Tests E2E Playwright ou Cypress
+### 3.4 Tests frontend manquants [x]
+- 133 tests frontend passent (28 fichiers de test)
+- Tests corriges : StatusBadge, ClientsPage, DashboardPage
+- Couvrir les nouvelles pages V12 (PEC, mutuelles) — restant
+- Tests E2E Playwright ou Cypress — restant
 - Objectif : 80%+ couverture frontend
-- **Impact** : prevention regressions
+
+### 3.5 Tests API version et merge [x]
+- `test_api_version.py` : 5 tests (format, header, 404, powered-by, no-auth)
+- `test_merge_clients_endpoint.py` : 5 tests (200, 401, 400, 404, field transfer)
+- **Impact** : couverture des endpoints critiques
 
 ---
 
@@ -124,10 +143,11 @@
 - Cookie Cosium expire → notif admin (deja fait)
 - **Impact** : proactivite metier
 
-### 4.3 Import/Export ameliore [ ]
-- Import clients depuis CSV/Excel (formulaire)
-- Export personnalise (choix des colonnes)
-- Export CERFA ou formulaires OCAM pre-remplis
+### 4.3 Import/Export ameliore [x]
+- Import clients depuis CSV/Excel (formulaire) — fait
+- Export personnalise (choix des colonnes) — partiel
+- Export selection CSV via checkboxes — fait
+- Export CERFA ou formulaires OCAM pre-remplis — restant
 - **Impact** : productivite
 
 ### 4.4 Multi-langue preparation [ ]
@@ -185,12 +205,13 @@
 
 | Metrique | Valeur |
 |----------|--------|
-| Tests backend | 640 |
+| Tests backend | 696 |
+| Tests frontend | 133 (28 fichiers) |
 | Pages frontend | 44 |
 | Routers API | 35 |
 | Services | 52 |
 | Models | 20 |
-| Commits | 45 |
+| Commits | 45+ |
 | Score qualite | 99/100 |
 | Donnees Cosium | 115 712 enregistrements |
 | Documents PDF | 40 760 (10 GB) |

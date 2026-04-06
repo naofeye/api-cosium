@@ -16,8 +16,7 @@ describe("StatusBadge", () => {
 
   it("applique la couleur rouge pour refuse", () => {
     render(<StatusBadge status="refuse" />);
-    // refuse n'est pas dans LABELS, donc affiche "refuse" avec replace /_/g
-    const badge = screen.getByText("refuse");
+    const badge = screen.getByText("Refuse");
     expect(badge.className).toContain("red");
   });
 

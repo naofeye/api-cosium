@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Campaign, Case, Customer, Facture, FactureLigne, PecRequest
+from app.models import Campaign, Case, CosiumPrescription, Customer, Facture, FactureLigne, PecRequest
 
 
 def get_customers_with_last_purchase(
@@ -113,6 +113,69 @@ def get_equipment_type_from_last_invoice(
     if "solaire" in designation:
         return "solaire"
     return "autre"
+
+
+def get_customers_with_old_prescriptions(
+    db: Session,
+    tenant_id: int,
+    age_minimum_months: int = 24,
+) -> list[dict]:
+    """Retourne les clients avec une ordonnance datant de plus de N mois (via CosiumPrescription)."""
+
+    cutoff_date = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=age_minimum_months * 30)
+
+    last_prescription = (
+        select(
+            CosiumPrescription.customer_id,
+            func.max(CosiumPrescription.file_date).label("last_prescription_date"),
+        )
+        .where(
+            CosiumPrescription.tenant_id == tenant_id,
+            CosiumPrescription.customer_id.isnot(None),
+            CosiumPrescription.file_date.isnot(None),
+        )
+        .group_by(CosiumPrescription.customer_id)
+        .having(func.max(CosiumPrescription.file_date) <= cutoff_date)
+        .subquery()
+    )
+
+    stmt = (
+        select(Customer, last_prescription.c.last_prescription_date)
+        .join(last_prescription, Customer.id == last_prescription.c.customer_id)
+        .where(Customer.tenant_id == tenant_id)
+    )
+
+    rows = db.execute(stmt).all()
+    results = []
+    for customer, last_date in rows:
+        months_since = int((datetime.now(UTC).replace(tzinfo=None) - last_date).days / 30) if last_date else 0
+        results.append(
+            {
+                "customer": customer,
+                "last_prescription_date": last_date,
+                "months_since_prescription": months_since,
+            }
+        )
+    return results
+
+
+def get_last_prescription_for_customer(
+    db: Session,
+    tenant_id: int,
+    customer_id: int,
+) -> CosiumPrescription | None:
+    """Retourne la derniere ordonnance d'un client."""
+    stmt = (
+        select(CosiumPrescription)
+        .where(
+            CosiumPrescription.tenant_id == tenant_id,
+            CosiumPrescription.customer_id == customer_id,
+            CosiumPrescription.file_date.isnot(None),
+        )
+        .order_by(CosiumPrescription.file_date.desc())
+        .limit(1)
+    )
+    return db.execute(stmt).scalar_one_or_none()
 
 
 def count_renewal_campaigns(db: Session, tenant_id: int, this_month_only: bool = False) -> int:

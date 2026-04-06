@@ -157,6 +157,12 @@ export function OnboardingGuide() {
             Precedent
           </button>
           <div className="flex items-center gap-3">
+            <Link
+              href="/getting-started"
+              className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+            >
+              Suivre le guide de demarrage &rarr;
+            </Link>
             <button
               onClick={handleDismiss}
               className="text-sm text-gray-400 hover:text-gray-600 transition-colors"

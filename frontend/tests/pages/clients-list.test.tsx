@@ -68,9 +68,9 @@ describe("ClientsPage", () => {
     expect(screen.getByText("Nouveau client")).toBeInTheDocument();
   });
 
-  it("a un bouton Importer CSV", () => {
+  it("a un bouton Importer", () => {
     render(<ClientsPage />);
-    expect(screen.getByText("Importer CSV")).toBeInTheDocument();
+    expect(screen.getByText("Importer")).toBeInTheDocument();
   });
 
   it("a un bouton Exporter CSV", () => {

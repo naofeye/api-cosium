@@ -78,6 +78,8 @@ export default function ClientsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [compareGroup, setCompareGroup] = useState<DuplicateGroup | null>(null);
   const [merging, setMerging] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [creatingSegment, setCreatingSegment] = useState(false);
 
   const { data, error, isLoading, mutate } = useClients({ q: search || undefined, page });
 
@@ -202,6 +204,63 @@ export default function ClientsPage() {
     }
   };
 
+  const toggleSelectClient = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const items = data?.items ?? [];
+    if (selectedIds.size === items.length && items.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(items.map((c) => c.id)));
+    }
+  };
+
+  const handleExportSelection = () => {
+    const items = data?.items ?? [];
+    const selected = items.filter((c) => selectedIds.has(c.id));
+    if (selected.length === 0) return;
+    const headers = ["ID", "Nom", "Prenom", "Telephone", "Email", "Ville", "Date creation"];
+    const rows = selected.map((c) => [
+      String(c.id),
+      c.last_name,
+      c.first_name,
+      c.phone || "",
+      c.email || "",
+      c.city || "",
+      c.created_at || "",
+    ]);
+    exportToCsv(`clients_selection_${selected.length}.csv`, headers, rows);
+    toast(`${selected.length} client(s) exporte(s) en CSV.`, "success");
+  };
+
+  const handleCreateSegment = async () => {
+    if (selectedIds.size === 0) return;
+    setCreatingSegment(true);
+    try {
+      const segmentName = `Selection manuelle du ${new Date().toLocaleDateString("fr-FR")}`;
+      await fetchJson("/marketing/segments", {
+        method: "POST",
+        body: JSON.stringify({
+          name: segmentName,
+          criteria: { manual_ids: Array.from(selectedIds) },
+        }),
+      });
+      toast(`Segment "${segmentName}" cree avec ${selectedIds.size} client(s).`, "success");
+      setSelectedIds(new Set());
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Erreur lors de la creation du segment", "error");
+    } finally {
+      setCreatingSegment(false);
+    }
+  };
+
   const getFieldValue = (client: Customer, field: string): string => {
     const val = client[field as keyof Customer];
     if (val === null || val === undefined || val === "") return "";
@@ -217,6 +276,26 @@ export default function ClientsPage() {
   };
 
   const columns: Column<Customer>[] = [
+    {
+      key: "select",
+      header: (
+        <input
+          type="checkbox"
+          checked={selectedIds.size > 0 && selectedIds.size === (data?.items ?? []).length}
+          onChange={toggleSelectAll}
+          aria-label="Tout selectionner"
+        />
+      ),
+      render: (row) => (
+        <input
+          type="checkbox"
+          checked={selectedIds.has(row.id)}
+          onChange={(e) => { e.stopPropagation(); toggleSelectClient(row.id); }}
+          onClick={(e) => e.stopPropagation()}
+          aria-label={`Selectionner ${row.first_name} ${row.last_name}`}
+        />
+      ),
+    },
     { key: "id", header: "ID", render: (row) => <span className="font-mono text-text-secondary">#{row.id}</span> },
     {
       key: "name",
@@ -536,6 +615,31 @@ export default function ClientsPage() {
           <span>{data.items.filter((c) => c.email).length} avec email</span>
           <span className="text-gray-300">|</span>
           <span>{data.items.filter((c) => c.phone).length} avec telephone</span>
+        </div>
+      )}
+
+      {/* Batch action bar */}
+      {selectedIds.size > 0 && (
+        <div className="mb-4 flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+          <span className="text-sm font-medium text-blue-800">
+            {selectedIds.size} client{selectedIds.size > 1 ? "s" : ""} selectionne{selectedIds.size > 1 ? "s" : ""}
+          </span>
+          <div className="flex-1" />
+          <Button variant="outline" onClick={handleExportSelection}>
+            <Download className="h-4 w-4 mr-1" />
+            Exporter la selection (CSV)
+          </Button>
+          <Button onClick={handleCreateSegment} disabled={creatingSegment}>
+            <Users className="h-4 w-4 mr-1" />
+            {creatingSegment ? "Creation..." : "Creer un segment marketing"}
+          </Button>
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="text-sm text-blue-600 hover:text-blue-800 ml-2"
+            aria-label="Tout deselectionner"
+          >
+            Tout deselectionner
+          </button>
         </div>
       )}
 

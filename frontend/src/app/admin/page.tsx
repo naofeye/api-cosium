@@ -106,7 +106,14 @@ export default function AdminPage() {
       {activity && <ActivityChart activity={activity} />}
       <RecentActivity activity={activity} />
 
-      <div className="mt-6">
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Link
+          href="/admin/users"
+          className="inline-flex items-center gap-2 rounded-lg border border-border bg-bg-card px-4 py-3 text-sm font-medium text-text-primary shadow-sm hover:bg-gray-50 transition-colors"
+        >
+          <Users className="h-4 w-4 text-text-secondary" aria-hidden="true" />
+          Gestion des utilisateurs &rarr;
+        </Link>
         <Link
           href="/admin/audit"
           className="inline-flex items-center gap-2 rounded-lg border border-border bg-bg-card px-4 py-3 text-sm font-medium text-text-primary shadow-sm hover:bg-gray-50 transition-colors"

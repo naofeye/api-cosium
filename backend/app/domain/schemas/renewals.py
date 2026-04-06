@@ -3,6 +3,18 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class PrescriptionSummary(BaseModel):
+    """Resume de la derniere ordonnance pour affichage renouvellement."""
+
+    prescription_date: datetime | None = None
+    age_months: int = 0
+    od_summary: str = ""
+    og_summary: str = ""
+    prescriber_name: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class RenewalOpportunity(BaseModel):
     """Opportunite de renouvellement detectee pour un client."""
 
@@ -18,6 +30,7 @@ class RenewalOpportunity(BaseModel):
     score: float = Field(..., ge=0, le=100, description="Score d'opportunite 0-100")
     suggested_action: str = "email"
     reason: str = ""
+    prescription: PrescriptionSummary | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

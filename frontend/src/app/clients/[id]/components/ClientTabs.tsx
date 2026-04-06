@@ -15,6 +15,7 @@ import { TabCosiumPaiements } from "../tabs/TabCosiumPaiements";
 import { TabRendezVous } from "../tabs/TabRendezVous";
 import { TabEquipements } from "../tabs/TabEquipements";
 import { TabPEC } from "../tabs/TabPEC";
+import { TabActivite } from "../tabs/TabActivite";
 
 export type Tab =
   | "resume"
@@ -23,6 +24,7 @@ export type Tab =
   | "documents"
   | "marketing"
   | "historique"
+  | "activite"
   | "cosium-docs"
   | "ordonnances"
   | "cosium-paiements"
@@ -122,6 +124,7 @@ export function ClientTabs({
     { key: "equipements", label: "Equipements", count: cd?.equipments?.length ?? 0 },
     ...(cosiumId ? [{ key: "cosium-docs" as Tab, label: "Docs Cosium" }] : []),
     { key: "pec" as Tab, label: "Assistance PEC" },
+    { key: "activite" as Tab, label: "Activite" },
     { key: "marketing", label: "Marketing" },
     { key: "historique", label: "Historique", count: interactions?.length ?? 0 },
   ];
@@ -226,6 +229,17 @@ export function ClientTabs({
       {activeTab === "pec" && (
         <ErrorBoundary name="TabPEC">
           <TabPEC clientId={clientId} />
+        </ErrorBoundary>
+      )}
+      {activeTab === "activite" && (
+        <ErrorBoundary name="TabActivite">
+          <TabActivite
+            clientId={clientId}
+            interactions={interactions}
+            devis={devis}
+            factures={factures}
+            paiements={paiements}
+          />
         </ErrorBoundary>
       )}
       {activeTab === "historique" && (
