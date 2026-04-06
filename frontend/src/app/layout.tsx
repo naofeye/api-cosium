@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { ReactNode } from "react";
 import { AuthLayout } from "@/components/layout/AuthLayout";
+import { ProgressBarProvider } from "@/components/layout/ProgressBar";
 
 export const metadata = { title: "OptiFlow AI", description: "Plateforme metier pour opticiens" };
 
@@ -14,6 +15,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         >
           Aller au contenu principal
         </a>
+        <ProgressBarProvider />
         <AuthLayout>{children}</AuthLayout>
       </body>
     </html>

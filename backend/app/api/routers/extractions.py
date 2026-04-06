@@ -23,9 +23,11 @@ def extract_document(
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> DocumentExtractionResponse:
     force = payload.force if payload else False
+    use_ai = payload.use_ai if payload else False
     return extraction_service.extract_document(
         db,
         tenant_id=tenant_ctx.tenant_id,
         document_id=document_id,
         force=force,
+        use_ai=use_ai,
     )

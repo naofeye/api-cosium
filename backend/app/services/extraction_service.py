@@ -24,7 +24,11 @@ logger = get_logger("extraction_service")
 
 
 def extract_document(
-    db: Session, tenant_id: int, document_id: int, force: bool = False
+    db: Session,
+    tenant_id: int,
+    document_id: int,
+    force: bool = False,
+    use_ai: bool = False,
 ) -> DocumentExtractionResponse:
     """Extract text from a document, classify it, and parse structured data.
 
@@ -51,8 +55,8 @@ def extract_document(
     # Extract text
     extracted, classification = ocr_service.extract_and_classify(file_bytes, doc.filename)
 
-    # Parse structured data
-    structured = parse_document(extracted.raw_text, classification.document_type)
+    # Parse structured data (AI-assisted when requested, with regex fallback)
+    structured = parse_document(extracted.raw_text, classification.document_type, use_ai=use_ai)
     structured_json = json.dumps(structured, ensure_ascii=False) if structured else None
 
     # Store extraction result

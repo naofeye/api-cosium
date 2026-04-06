@@ -10,6 +10,7 @@ import { DashboardCharts } from "./components/DashboardCharts";
 import { DashboardSections } from "./components/DashboardSections";
 import { RenewalSection } from "./components/RenewalSection";
 import { PayersTable } from "./components/PayersTable";
+import { RecentActivity } from "./components/RecentActivity";
 import { OnboardingGuide } from "@/components/ui/OnboardingGuide";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { SkeletonCard } from "@/components/ui/SkeletonCard";
@@ -398,6 +399,13 @@ export default function DashboardPage() {
             </p>
           </div>
         </Link>
+      </div>
+
+      {/* Derniere activite */}
+      <div className="mb-8">
+        <ErrorBoundary name="RecentActivity">
+          <RecentActivity />
+        </ErrorBoundary>
       </div>
 
       {/* Operational / Commercial / Marketing */}

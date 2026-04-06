@@ -1,7 +1,7 @@
 # OptiFlow AI
 
 Plateforme metier pour opticiens — CRM, GED, devis, factures, PEC, paiements, relances, marketing, IA.
-Branchee sur l'ERP Cosium (lecture seule).
+Branchee sur l'ERP Cosium (lecture seule, 115k+ enregistrements synchronises).
 
 ## Demarrage rapide
 
@@ -29,12 +29,26 @@ docker compose up --build
 - **Lint** : ruff (backend), prettier + tsc (frontend)
 - **CI** : GitHub Actions
 
+## Chiffres cles
+
+| Metrique | Valeur |
+|----------|--------|
+| Tests backend | 660+ (74 fichiers) |
+| Pages frontend | 45+ |
+| Routers API | 35+ |
+| Services metier | 50+ |
+| Enregistrements Cosium | 115k+ |
+| Documents synchronises | 40k+ (~10 GB) |
+| Migrations Alembic | 24+ |
+
 ## Fonctionnalites principales
 
 - **CRM Client** : CRUD, recherche paginee, vue 360, import/export CSV, detection doublons
 - **GED** : upload MinIO, categorisation, completude documentaire
+- **OCR + Parsers** : extraction texte (pdfplumber + Tesseract), classification auto (ordonnance, devis, attestation mutuelle, facture), parsers specialises
+- **Consolidation PEC** : moteur multi-sources (Cosium, OCR, devis, mutuelles) pour profil client PEC-ready avec score de completude
 - **Devis & Factures** : creation avec lignes, calculs automatiques, workflow statut, generation PDF
-- **PEC (tiers payant)** : soumission, workflow, historique, relances automatiques
+- **PEC Intelligence (V12)** : soumission tiers payant, workflow, historique, relances automatiques, detection mutuelles
 - **Paiements** : enregistrement, idempotence, ventilation multi-factures
 - **Rapprochement bancaire** : import CSV, matching auto/manuel, drag & drop
 - **Relances** : plans parametrables, templates email HTML Jinja2, priorisation intelligente
@@ -42,57 +56,63 @@ docker compose up --build
 - **Dashboard** : KPIs financiers, balance agee, graphiques Recharts
 - **IA Copilote** : 4 modes (dossier, financier, documentaire, marketing)
 - **Multi-tenant** : isolation par magasin, switch tenant, dashboard reseau
-- **Sync Cosium** : 3710+ clients reels, factures par plage de dates, catalogue produits, sync incrementale, recherche par NIR
+- **Sync Cosium** : clients, factures, ordonnances, produits, paiements, tiers payant, documents — lecture seule
 - **Onboarding** : wizard 5 etapes, connexion Cosium (OIDC/basic)
 - **Facturation SaaS** : integration Stripe, quotas IA
 - **Aide** : centre d'aide avec FAQ, raccourcis clavier, contact support
 - **Dark mode** : theme sombre avec bascule persistante
 - **SSE** : notifications temps reel
 
-## Structure du projet
+## Architecture
+
+Separation en couches stricte :
+- **Routers** (35+) : slim, pas de logique — delegue aux services
+- **Services** (50+) : logique metier pure, pas de FastAPI, pas de HTTPException
+- **Repositories** (19+) : SQL pur, pas de logique metier
+- **Schemas** (27+) : validation Pydantic stricte sur toutes les entrees/sorties
 
 ```
-.
-├── backend/
-│   ├── app/
-│   │   ├── api/routers/       # 32 routes FastAPI (slim, pas de logique)
-│   │   ├── services/          # 37 services metier
-│   │   ├── repositories/      # 19 acces BDD
-│   │   ├── domain/schemas/    # 27 schemas Pydantic (validation)
-│   │   ├── models/            # 17 fichiers SQLAlchemy
-│   │   ├── integrations/      # Cosium, MinIO, Stripe, Email, IA, templates Jinja2
-│   │   ├── core/              # Config, auth, logging, exceptions, middleware
-│   │   ├── templates/         # Templates email HTML (base, reset, welcome, relance)
-│   │   ├── db/                # Engine, session
-│   │   └── main.py            # Point d'entree FastAPI
-│   ├── alembic/               # 24 migrations
-│   ├── tests/                 # 71 fichiers de tests (488+ tests)
-│   └── requirements.txt
-├── frontend/
-│   ├── src/
-│   │   ├── app/               # 43 pages Next.js
-│   │   ├── components/        # UI (Button, DataTable, Toast, etc.)
-│   │   ├── lib/               # API client, auth, types, hooks SWR, schemas Zod
-│   │   └── middleware.ts      # Protection routes
-│   ├── tests/                 # 26 fichiers de tests
-│   └── package.json
-├── docs/
-│   ├── specs/                 # 23 specs fonctionnelles et techniques
-│   ├── cosium/                # Documentation Cosium + PDFs API
-│   ├── directives/            # Chartes de developpement
-│   └── HISTORIQUE_TODO.md     # Archive des 11 iterations
-├── .github/workflows/         # CI GitHub Actions
-├── docker-compose.yml
-├── docker-compose.prod.yml
-├── CLAUDE.md                  # Directive maitre pour Claude CLI
-├── TODO.md                    # Backlog original (30 etapes completees)
-└── TODO_V11.md                # Backlog actif (dernier mile)
+backend/app/
+  api/routers/       # 35+ routes FastAPI
+  services/          # 50+ services metier
+  repositories/      # 19+ acces BDD
+  domain/schemas/    # 27+ schemas Pydantic
+  models/            # 17+ modeles SQLAlchemy
+  integrations/      # Cosium, MinIO, Stripe, Email, IA, templates Jinja2
+  core/              # Config, auth, logging, exceptions, middleware
+  templates/         # Templates email HTML
+  db/                # Engine, session
+  main.py            # Point d'entree FastAPI
+
+frontend/src/
+  app/               # 45+ pages Next.js
+  components/        # UI (Button, DataTable, Toast, etc.)
+  lib/               # API client, auth, types, hooks SWR, schemas Zod
+  middleware.ts       # Protection routes
+```
+
+## Commandes utiles (Makefile)
+
+```bash
+make up              # Demarrer les services (detache)
+make down            # Arreter les services
+make build           # Rebuild + demarrer
+make test            # Tests backend (pytest -q)
+make test-v          # Tests backend (verbose)
+make lint            # Lint backend (ruff)
+make lint-fix        # Lint + auto-fix
+make typecheck       # TypeScript check frontend
+make check           # lint + typecheck + test
+make logs            # Suivre les logs API
+make shell           # Shell Python dans le conteneur API
+make sync            # Lancer sync Cosium
+make redis-flush     # Vider le cache Redis
 ```
 
 ## Tests
 
 ```bash
-# Backend (488+ tests)
+# Backend (660+ tests)
 docker compose exec api pytest -v
 
 # Frontend
@@ -111,12 +131,8 @@ docker compose exec web npx tsc --noEmit
 docker compose exec web npx prettier --check "src/**/*.{ts,tsx}"
 ```
 
-## Architecture
+## Securite Cosium
 
-Separation en couches stricte :
-- **Routers** : slim, pas de logique — delegue aux services
-- **Services** : logique metier pure, pas de FastAPI, pas de HTTPException
-- **Repositories** : SQL pur, pas de logique metier
-- **Schemas** : validation Pydantic stricte sur toutes les entrees/sorties
+OptiFlow ne modifie JAMAIS les donnees dans Cosium. La synchronisation est unidirectionnelle (Cosium vers OptiFlow, lecture seule). Seul `POST /authenticate/basic` et `GET /*` sont autorises vers l'API Cosium.
 
 Voir `CLAUDE.md` pour les conventions detaillees.

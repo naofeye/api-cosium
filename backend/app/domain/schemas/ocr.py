@@ -50,3 +50,7 @@ class ExtractionRequest(BaseModel):
     """Request payload for triggering document extraction."""
 
     force: bool = Field(default=False, description="Re-extraire meme si deja fait")
+    use_ai: bool = Field(
+        default=False,
+        description="Utiliser l'IA Claude pour l'extraction structuree (fallback regex si indisponible)",
+    )
