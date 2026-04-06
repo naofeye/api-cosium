@@ -14,6 +14,7 @@ import { TabOrdonnances } from "../tabs/TabOrdonnances";
 import { TabCosiumPaiements } from "../tabs/TabCosiumPaiements";
 import { TabRendezVous } from "../tabs/TabRendezVous";
 import { TabEquipements } from "../tabs/TabEquipements";
+import { TabPEC } from "../tabs/TabPEC";
 
 export type Tab =
   | "resume"
@@ -26,7 +27,8 @@ export type Tab =
   | "ordonnances"
   | "cosium-paiements"
   | "rendez-vous"
-  | "equipements";
+  | "equipements"
+  | "pec";
 
 interface TabDef {
   key: Tab;
@@ -37,6 +39,7 @@ interface TabDef {
 interface ClientTabsProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
+  clientId: string | number;
   cosiumId: string | number | null;
   cosiumData: CosiumDataBundle | null;
   dossiers: { id: number; statut: string; source: string; created_at: string }[];
@@ -75,6 +78,7 @@ interface ClientTabsProps {
 export function ClientTabs({
   activeTab,
   onTabChange,
+  clientId,
   cosiumId,
   cosiumData: cd,
   dossiers,
@@ -117,6 +121,7 @@ export function ClientTabs({
     { key: "rendez-vous", label: "Rendez-vous", count: cd?.calendar_events?.length ?? 0 },
     { key: "equipements", label: "Equipements", count: cd?.equipments?.length ?? 0 },
     ...(cosiumId ? [{ key: "cosium-docs" as Tab, label: "Docs Cosium" }] : []),
+    { key: "pec" as Tab, label: "Assistance PEC" },
     { key: "marketing", label: "Marketing" },
     { key: "historique", label: "Historique", count: interactions?.length ?? 0 },
   ];
@@ -216,6 +221,11 @@ export function ClientTabs({
       {activeTab === "equipements" && (
         <ErrorBoundary name="TabEquipements">
           <TabEquipements equipments={cd?.equipments ?? []} />
+        </ErrorBoundary>
+      )}
+      {activeTab === "pec" && (
+        <ErrorBoundary name="TabPEC">
+          <TabPEC clientId={clientId} />
         </ErrorBoundary>
       )}
       {activeTab === "historique" && (

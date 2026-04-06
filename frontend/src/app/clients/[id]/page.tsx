@@ -151,6 +151,7 @@ export default function ClientDetailPage() {
       <ClientTabs
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        clientId={id}
         cosiumId={data.cosium_id}
         cosiumData={cd}
         dossiers={data.dossiers ?? []}

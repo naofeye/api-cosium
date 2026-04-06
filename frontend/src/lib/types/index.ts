@@ -2,6 +2,7 @@
 export * from "./client";
 export * from "./cosium";
 export * from "./financial";
+export * from "./pec-preparation";
 
 // --- Generic API ---
 export interface PaginatedResponse<T> {
