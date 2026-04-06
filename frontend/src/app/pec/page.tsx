@@ -81,6 +81,7 @@ export default function PecPage() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
+          aria-label="Filtrer par statut"
           className="rounded-lg border border-border px-3 py-2 text-sm focus:border-primary focus:outline-none"
         >
           <option value="">Tous les statuts</option>

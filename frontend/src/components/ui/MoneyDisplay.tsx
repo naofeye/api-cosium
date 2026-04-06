@@ -11,6 +11,14 @@ interface MoneyDisplayProps {
 }
 
 export function MoneyDisplay({ amount, className, colored = false, bold = false }: MoneyDisplayProps) {
+  const srLabel = colored
+    ? amount > 0
+      ? " (positif)"
+      : amount < 0
+        ? " (negatif)"
+        : ""
+    : "";
+
   return (
     <span
       className={cn(
@@ -22,6 +30,7 @@ export function MoneyDisplay({ amount, className, colored = false, bold = false 
       )}
     >
       {formatMoney(amount)}
+      {srLabel && <span className="sr-only">{srLabel}</span>}
     </span>
   );
 }

@@ -59,7 +59,7 @@ def global_search(db: Session, tenant_id: int, query: str, limit: int = 10) -> d
                         "id": c.id,
                         "type": "client",
                         "label": f"{c.last_name} {c.first_name}",
-                        "detail": f"SS: {c.social_security_number}",
+                        "detail": f"SS: ***{c.social_security_number[-4:]}" if c.social_security_number and len(c.social_security_number) >= 4 else "SS: ***",
                     }
                 )
 

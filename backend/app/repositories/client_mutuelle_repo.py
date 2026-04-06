@@ -71,7 +71,7 @@ def update(
         return None
     for key, value in data.items():
         setattr(record, key, value)
-    record.updated_at = datetime.now(UTC)
+    record.updated_at = datetime.now(UTC).replace(tzinfo=None)
     db.commit()
     db.refresh(record)
     return record

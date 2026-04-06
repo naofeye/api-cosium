@@ -8,6 +8,10 @@ from app.db.base import Base
 
 class Notification(Base):
     __tablename__ = "notifications"
+    __table_args__ = (
+        Index("ix_notifications_tenant_user_id", "tenant_id", "user_id", "id"),
+        Index("ix_notifications_tenant_user_unread", "tenant_id", "user_id", "is_read"),
+    )
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)

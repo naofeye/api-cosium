@@ -67,7 +67,7 @@ def update(db: Session, customer: Customer, **kwargs: object) -> Customer:
 
 
 def delete(db: Session, customer: Customer) -> None:
-    customer.deleted_at = datetime.now(UTC)
+    customer.deleted_at = datetime.now(UTC).replace(tzinfo=None)
     db.commit()
     db.refresh(customer)
 

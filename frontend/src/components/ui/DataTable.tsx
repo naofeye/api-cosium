@@ -144,7 +144,10 @@ export function DataTable<T extends { id: number | string }>({
                   "border-b border-border last:border-0 transition-colors duration-150",
                   onRowClick && "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50",
                 )}
+                tabIndex={onRowClick ? 0 : undefined}
+                role={onRowClick ? "button" : undefined}
                 onClick={() => onRowClick?.(row)}
+                onKeyDown={onRowClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onRowClick(row); } } : undefined}
               >
                 {columns.map((col) => (
                   <td key={col.key} className={cn("px-4 py-3", col.className)}>

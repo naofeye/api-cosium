@@ -247,7 +247,7 @@ export default function NewDevisPage() {
           <Button type="button" variant="outline" onClick={() => router.push("/devis")}>
             Annuler
           </Button>
-          <Button type="submit" disabled={!isValid || isSubmitting}>
+          <Button type="submit" disabled={!isValid} loading={isSubmitting}>
             {isSubmitting ? "Creation en cours..." : "Creer le devis"}
           </Button>
         </div>

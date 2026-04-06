@@ -4,7 +4,8 @@ Endpoints de lecture depuis la base locale + declenchement de synchronisation.
 """
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select
+from pydantic import BaseModel
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_tenant_role
@@ -23,6 +24,11 @@ from app.domain.schemas.cosium_reference import (
     SupplierResponse,
     TagResponse,
 )
+from app.domain.schemas.cosium_sync import (
+    CosiumPaymentResponse,
+    CosiumPrescriptionResponse,
+)
+from app.models.cosium_data import CosiumPayment, CosiumPrescription
 from app.models.cosium_reference import (
     CosiumBank,
     CosiumBrand,
@@ -37,6 +43,20 @@ from app.models.cosium_reference import (
     CosiumTag,
     CosiumUser,
 )
+
+
+class PaginatedPrescriptions(BaseModel):
+    items: list[CosiumPrescriptionResponse]
+    total: int
+    page: int
+    page_size: int
+
+
+class PaginatedPayments(BaseModel):
+    items: list[CosiumPaymentResponse]
+    total: int
+    page: int
+    page_size: int
 from app.services import cosium_reference_sync
 
 router = APIRouter(prefix="/api/v1/cosium", tags=["cosium-reference"])
@@ -365,6 +385,95 @@ def list_frame_materials(
         .order_by(CosiumFrameMaterial.code)
     ).all()
     return [{"id": i.id, "code": i.code, "description": i.description} for i in items]
+
+
+# --- Prescriptions ---
+
+@router.get(
+    "/prescriptions",
+    response_model=PaginatedPrescriptions,
+    summary="Lister les ordonnances",
+    description="Liste paginee des ordonnances synchronisees depuis Cosium.",
+)
+def list_prescriptions(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
+    search: str | None = Query(None, description="Recherche par nom prescripteur"),
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> PaginatedPrescriptions:
+    query = select(CosiumPrescription).where(CosiumPrescription.tenant_id == tenant_ctx.tenant_id)
+    count_query = select(func.count(CosiumPrescription.id)).where(
+        CosiumPrescription.tenant_id == tenant_ctx.tenant_id
+    )
+
+    if search:
+        pattern = f"%{search}%"
+        query = query.where(CosiumPrescription.prescriber_name.ilike(pattern))
+        count_query = count_query.where(CosiumPrescription.prescriber_name.ilike(pattern))
+
+    query = query.order_by(CosiumPrescription.file_date.desc().nullslast())
+    total = db.scalar(count_query) or 0
+    offset = (page - 1) * page_size
+    items = db.scalars(query.offset(offset).limit(page_size)).all()
+
+    return PaginatedPrescriptions(
+        items=[CosiumPrescriptionResponse.model_validate(i) for i in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+
+
+# --- Payments ---
+
+@router.get(
+    "/payments",
+    response_model=PaginatedPayments,
+    summary="Lister les paiements Cosium",
+    description="Liste paginee des paiements synchronises depuis Cosium.",
+)
+def list_cosium_payments(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
+    search: str | None = Query(None, description="Recherche par nom emetteur ou numero"),
+    date_from: str | None = Query(None, description="Date debut (YYYY-MM-DD)"),
+    date_to: str | None = Query(None, description="Date fin (YYYY-MM-DD)"),
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> PaginatedPayments:
+    query = select(CosiumPayment).where(CosiumPayment.tenant_id == tenant_ctx.tenant_id)
+    count_query = select(func.count(CosiumPayment.id)).where(
+        CosiumPayment.tenant_id == tenant_ctx.tenant_id
+    )
+
+    if search:
+        pattern = f"%{search}%"
+        search_filter = or_(
+            CosiumPayment.issuer_name.ilike(pattern),
+            CosiumPayment.payment_number.ilike(pattern),
+        )
+        query = query.where(search_filter)
+        count_query = count_query.where(search_filter)
+
+    if date_from:
+        query = query.where(CosiumPayment.due_date >= date_from)
+        count_query = count_query.where(CosiumPayment.due_date >= date_from)
+    if date_to:
+        query = query.where(CosiumPayment.due_date <= date_to)
+        count_query = count_query.where(CosiumPayment.due_date <= date_to)
+
+    query = query.order_by(CosiumPayment.due_date.desc().nullslast())
+    total = db.scalar(count_query) or 0
+    offset = (page - 1) * page_size
+    items = db.scalars(query.offset(offset).limit(page_size)).all()
+
+    return PaginatedPayments(
+        items=[CosiumPaymentResponse.model_validate(i) for i in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
 
 
 # --- Sync customer tags (separate endpoint — slow operation) ---

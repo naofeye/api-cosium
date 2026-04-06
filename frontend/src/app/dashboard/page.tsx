@@ -302,6 +302,7 @@ export default function DashboardPage() {
           <button
             key={p.key}
             onClick={() => setPeriod(p.key)}
+            aria-pressed={period === p.key}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-150 ${
               period === p.key
                 ? "bg-primary text-white"

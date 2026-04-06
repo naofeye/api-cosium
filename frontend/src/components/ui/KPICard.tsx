@@ -38,9 +38,13 @@ export function KPICard({ icon: Icon, label, value, trend, color = "primary", cl
           <Icon className="h-5 w-5" aria-hidden="true" />
         </div>
         {trend && (
-          <span className={cn("text-xs font-medium", trend.value >= 0 ? "text-success" : "text-danger")}>
+          <span
+            className={cn("text-xs font-medium", trend.value >= 0 ? "text-success" : "text-danger")}
+            aria-label={`Tendance : ${trend.value >= 0 ? "hausse" : "baisse"} de ${Math.abs(trend.value)}%`}
+          >
             {trend.value >= 0 ? "+" : ""}
-            {trend.value}%
+            {trend.value}%{" "}
+            <span className="sr-only">({trend.value >= 0 ? "hausse" : "baisse"})</span>
           </span>
         )}
       </div>

@@ -56,6 +56,7 @@ def sync_all_tenants(self) -> dict[str, int]:
                 synced += 1
             except Exception as e:
                 logger.error("tenant_sync_failed", tenant_id=tenant.id, error=str(e))
+                db.rollback()
                 failed += 1
             finally:
                 release_lock(lock_key)
@@ -188,7 +189,7 @@ def test_cosium_connection(self) -> dict[str, int]:
                         message=message,
                         entity_type="tenant",
                         entity_id=tenant.id,
-                        created_at=datetime.now(UTC),
+                        created_at=datetime.now(UTC).replace(tzinfo=None),
                     )
                     db.add(notification)
 
@@ -297,7 +298,7 @@ def check_expiring_prescriptions(self) -> dict[str, int]:
         )
 
         total_notified = 0
-        two_years_ago = datetime.now(UTC) - timedelta(days=730)
+        two_years_ago = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=730)
 
         for tenant in tenants:
             # Subquery: latest prescription date per customer
@@ -349,7 +350,7 @@ def check_expiring_prescriptions(self) -> dict[str, int]:
                         Notification.user_id == uid,
                         Notification.entity_type == "prescription_expiry",
                         Notification.entity_id == client_id,
-                        Notification.created_at > datetime.now(UTC) - timedelta(days=7),
+                        Notification.created_at > datetime.now(UTC).replace(tzinfo=None) - timedelta(days=7),
                     ).first()
 
                     if existing:
@@ -367,7 +368,7 @@ def check_expiring_prescriptions(self) -> dict[str, int]:
                         ),
                         entity_type="prescription_expiry",
                         entity_id=client_id,
-                        created_at=datetime.now(UTC),
+                        created_at=datetime.now(UTC).replace(tzinfo=None),
                     )
                     db.add(notification)
                     total_notified += 1

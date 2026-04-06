@@ -29,15 +29,23 @@ export interface User {
 // --- Client ---
 export interface Customer {
   id: number;
+  cosium_id: string | null;
+  customer_number: string | null;
   first_name: string;
   last_name: string;
   birth_date: string | null;
   phone: string | null;
   email: string | null;
   address: string | null;
+  street_number: string | null;
+  street_name: string | null;
   city: string | null;
   postal_code: string | null;
   social_security_number: string | null;
+  optician_name: string | null;
+  ophthalmologist_id: string | null;
+  mobile_phone_country: string | null;
+  site_id: number | null;
   notes: string | null;
   avatar_url: string | null;
   created_at: string | null;
@@ -136,6 +144,7 @@ export interface AuditLog {
   old_value: string | null;
   new_value: string | null;
   created_at: string;
+  user_email: string | null;
 }
 
 // --- Campaign ---

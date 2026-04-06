@@ -40,7 +40,12 @@ export interface CosiumCalendarEvent {
 // --- Cosium Prescription ---
 export interface CosiumPrescription {
   id: number;
+  tenant_id: number;
+  cosium_id: number;
   prescription_date: string | null;
+  file_date: string | null;
+  customer_cosium_id: number | null;
+  customer_id: number | null;
   sphere_right: number | null;
   cylinder_right: number | null;
   axis_right: number | null;
@@ -49,7 +54,9 @@ export interface CosiumPrescription {
   cylinder_left: number | null;
   axis_left: number | null;
   addition_left: number | null;
+  spectacles_json: string | null;
   prescriber_name: string | null;
+  synced_at: string;
 }
 
 // --- Cosium Payment Item ---

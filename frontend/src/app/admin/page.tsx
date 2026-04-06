@@ -7,7 +7,13 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { KPICard } from "@/components/ui/KPICard";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { Users, FileText, Activity, FolderOpen, Shield, Database } from "lucide-react";
-import { ActivityChart } from "./components/ActivityChart";
+import dynamic from "next/dynamic";
+import { SkeletonCard } from "@/components/ui/SkeletonCard";
+
+const ActivityChart = dynamic(
+  () => import("./components/ActivityChart").then((m) => ({ default: m.ActivityChart })),
+  { ssr: false, loading: () => <SkeletonCard /> },
+);
 import { HealthStatus } from "./components/HealthStatus";
 import { CosiumConnection } from "./components/CosiumConnection";
 import { CosiumCookies } from "./components/CosiumCookies";
