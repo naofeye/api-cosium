@@ -34,6 +34,7 @@ from app.api.routers import (
     onboarding,
     payments,
     pec,
+    pec_preparation,
     reminders,
     renewals,
     search,
@@ -203,6 +204,7 @@ app.include_router(factures.router)
 app.include_router(notifications.router)
 app.include_router(payments.router)
 app.include_router(pec.router)
+app.include_router(pec_preparation.router)
 app.include_router(reminders.router)
 app.include_router(renewals.router)
 app.include_router(consents.router)
