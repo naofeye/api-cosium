@@ -24,4 +24,4 @@ def send_email_async(self, to: str, subject: str, body_html: str) -> None:
             next_retry_seconds=backoff,
             error=str(exc),
         )
-        raise self.retry(exc=exc, countdown=backoff)
+        raise self.retry(exc=exc, countdown=backoff) from exc

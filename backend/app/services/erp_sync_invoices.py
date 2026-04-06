@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
 from app.integrations.erp_models import ERPInvoice
-from app.models import Customer, Tenant
+from app.models import Customer
 from app.models.cosium_data import CosiumInvoice
 from app.services import audit_service
 from app.services.erp_sync_service import (

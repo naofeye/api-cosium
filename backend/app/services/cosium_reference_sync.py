@@ -8,8 +8,9 @@ Gere : calendrier, mutuelles, medecins, marques, fournisseurs, tags, sites,
 """
 
 import time
+from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Any, Callable
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session

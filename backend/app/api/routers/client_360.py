@@ -6,8 +6,7 @@ from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.client_360 import Client360Response, CosiumDataBundle
 from app.domain.schemas.interactions import InteractionCreate, InteractionListResponse, InteractionResponse
-from app.services import client_360_service, interaction_service, pdf_service
-from app.services import export_pdf
+from app.services import client_360_service, export_pdf, interaction_service, pdf_service
 
 router = APIRouter(prefix="/api/v1", tags=["client-360"])
 
@@ -76,7 +75,6 @@ def export_client_pdf_endpoint(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> Response:
-    from io import BytesIO
 
     pdf_bytes = export_pdf.export_client_pdf(db, client_id, tenant_ctx.tenant_id)
     return Response(

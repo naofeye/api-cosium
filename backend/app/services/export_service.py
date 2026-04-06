@@ -24,7 +24,6 @@ from app.models import (
     PecRequest,
     Reminder,
 )
-from app.models.cosium_data import CosiumInvoice
 
 logger = get_logger("export_service")
 

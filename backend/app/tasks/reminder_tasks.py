@@ -63,7 +63,7 @@ def auto_generate_reminders(self) -> dict[str, int]:
         return plan_results
     except Exception as exc:
         logger.error("auto_generate_failed", error=str(exc))
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc
     finally:
         db.close()
 
@@ -196,6 +196,6 @@ def check_overdue_invoices(self) -> dict[str, int]:
         return results
     except Exception as exc:
         logger.error("check_overdue_failed", error=str(exc))
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc
     finally:
         db.close()

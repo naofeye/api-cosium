@@ -24,7 +24,6 @@ def run_backfill() -> None:
         conn.execute(text("ALTER TABLE customers ADD COLUMN IF NOT EXISTS cosium_id VARCHAR(50)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_customers_cosium_id ON customers(cosium_id)"))
         conn.commit()
-        print("[OK] customers.cosium_id column ensured")
 
     # Step 2: Add customer_cosium_id column to cosium_invoices if not exists
     with engine.connect() as conn:
@@ -38,7 +37,6 @@ def run_backfill() -> None:
             )
         )
         conn.commit()
-        print("[OK] cosium_invoices.customer_cosium_id column ensured")
 
     db = SessionLocal()
     try:
@@ -56,7 +54,6 @@ def _backfill_invoice_customer_links(db) -> None:  # type: ignore[no-untyped-def
         text("SELECT id, cosium_id FROM customers WHERE cosium_id IS NOT NULL")
     ).fetchall()
     cosium_to_customer: dict[str, int] = {str(r[1]): r[0] for r in rows}
-    print(f"[INFO] {len(cosium_to_customer)} customers with cosium_id")
 
     # Find unlinked invoices that have customer_cosium_id
     unlinked = db.execute(
@@ -65,7 +62,6 @@ def _backfill_invoice_customer_links(db) -> None:  # type: ignore[no-untyped-def
             "WHERE customer_id IS NULL AND customer_cosium_id IS NOT NULL AND customer_cosium_id != ''"
         )
     ).fetchall()
-    print(f"[INFO] {len(unlinked)} unlinked invoices with customer_cosium_id to process")
 
     linked = 0
     for inv_id, cust_cosium_id in unlinked:
@@ -115,7 +111,6 @@ def _backfill_invoice_customer_links(db) -> None:  # type: ignore[no-untyped-def
             name_linked += 1
 
     db.commit()
-    print(f"[OK] Invoices re-linked: {linked} via cosium_id, {name_linked} via name matching")
 
 
 def _backfill_prescription_customer_links(db) -> None:  # type: ignore[no-untyped-def]
@@ -136,7 +131,6 @@ def _backfill_prescription_customer_links(db) -> None:  # type: ignore[no-untype
             "WHERE customer_id IS NULL AND customer_cosium_id IS NOT NULL"
         )
     ).fetchall()
-    print(f"[INFO] {len(unlinked)} unlinked prescriptions to process")
 
     linked = 0
     for presc_id, cust_cosium_id in unlinked:
@@ -149,29 +143,23 @@ def _backfill_prescription_customer_links(db) -> None:  # type: ignore[no-untype
             linked += 1
 
     db.commit()
-    print(f"[OK] Prescriptions re-linked: {linked}")
 
 
 def _print_stats(db) -> None:  # type: ignore[no-untyped-def]
     """Print final linking statistics."""
-    total_inv = db.execute(text("SELECT COUNT(*) FROM cosium_invoices")).scalar()
-    linked_inv = db.execute(
+    db.execute(text("SELECT COUNT(*) FROM cosium_invoices")).scalar()
+    db.execute(
         text("SELECT COUNT(*) FROM cosium_invoices WHERE customer_id IS NOT NULL")
     ).scalar()
-    total_presc = db.execute(text("SELECT COUNT(*) FROM cosium_prescriptions")).scalar()
-    linked_presc = db.execute(
+    db.execute(text("SELECT COUNT(*) FROM cosium_prescriptions")).scalar()
+    db.execute(
         text("SELECT COUNT(*) FROM cosium_prescriptions WHERE customer_id IS NOT NULL")
     ).scalar()
-    total_cust = db.execute(text("SELECT COUNT(*) FROM customers")).scalar()
-    cust_with_cosium_id = db.execute(
+    db.execute(text("SELECT COUNT(*) FROM customers")).scalar()
+    db.execute(
         text("SELECT COUNT(*) FROM customers WHERE cosium_id IS NOT NULL")
     ).scalar()
 
-    print("\n=== BACKFILL RESULTS ===")
-    print(f"Customers: {cust_with_cosium_id}/{total_cust} have cosium_id")
-    print(f"Invoices linked: {linked_inv}/{total_inv}")
-    print(f"Prescriptions linked: {linked_presc}/{total_presc}")
-    print("========================")
 
 
 if __name__ == "__main__":

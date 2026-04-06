@@ -562,10 +562,10 @@ def enrich_top_clients_metadata(
 # that do `from app.services import erp_sync_service; erp_sync_service.sync_invoices()`
 # or `@patch("app.services.erp_sync_service.sync_invoices")` still work.
 # ---------------------------------------------------------------------------
-from app.services.erp_sync_invoices import sync_invoices  # noqa: E402, F401
 from app.services.erp_sync_extras import (  # noqa: E402, F401
     sync_payments,
     sync_prescriptions,
     sync_products,
     sync_third_party_payments,
 )
+from app.services.erp_sync_invoices import sync_invoices  # noqa: E402, F401
