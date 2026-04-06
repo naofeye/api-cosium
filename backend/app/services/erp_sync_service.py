@@ -232,38 +232,6 @@ def get_sync_status(db: Session, tenant_id: int) -> dict:
     }
 
 
-def _find_existing_customer(db: Session, tenant_id: int, erp_c: ERPCustomer) -> Customer | None:
-    """Cherche un client existant actif par email ou nom.
-
-    Exclut les clients soft-deleted pour eviter de les reutiliser
-    accidentellement. Les lookups batch (sync_customers, sync_invoices)
-    incluent intentionnellement les soft-deleted pour eviter les doublons.
-    """
-    if erp_c.email:
-        existing = db.scalars(
-            select(Customer).where(
-                Customer.tenant_id == tenant_id,
-                Customer.email == erp_c.email,
-                Customer.deleted_at.is_(None),
-            )
-        ).first()
-        if existing:
-            return existing
-
-    if erp_c.first_name and erp_c.last_name:
-        existing = db.scalars(
-            select(Customer).where(
-                Customer.tenant_id == tenant_id,
-                Customer.first_name == erp_c.first_name,
-                Customer.last_name == erp_c.last_name,
-                Customer.deleted_at.is_(None),
-            )
-        ).first()
-        if existing:
-            return existing
-
-    return None
-
 
 def _customer_has_changes(existing: Customer, erp_c: ERPCustomer) -> bool:
     """Compare ERP data with existing DB record to detect changes.

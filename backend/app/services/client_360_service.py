@@ -393,7 +393,7 @@ def get_client_360(db: Session, tenant_id: int, client_id: int) -> Client360Resp
         latest_rx_date_str = cosium_data.prescriptions[0].prescription_date
         if latest_rx_date_str:
             try:
-                from datetime import UTC, datetime, timedelta
+                from datetime import UTC, datetime
 
                 latest_rx_date = datetime.strptime(latest_rx_date_str[:10], "%Y-%m-%d")
                 days_since = (datetime.now(UTC).replace(tzinfo=None) - latest_rx_date).days

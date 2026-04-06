@@ -205,7 +205,6 @@ def _normalize_column(name: str) -> str:
 
 def _parse_date(val: str) -> str | None:
     """Try to parse a date string into YYYY-MM-DD format."""
-    import re as _re
     from datetime import datetime as _dt
 
     val = val.strip()

@@ -62,6 +62,8 @@ interface ClientTabsProps {
   city: string | null;
   renewalEligible: boolean;
   renewalMonths: number;
+  // Callback for data refresh
+  onDataRefresh?: () => void;
   // Historique form state
   showForm: boolean;
   onShowForm: (v: boolean) => void;
@@ -100,6 +102,7 @@ export function ClientTabs({
   city,
   renewalEligible,
   renewalMonths,
+  onDataRefresh,
   showForm,
   onShowForm,
   intType,
@@ -157,6 +160,7 @@ export function ClientTabs({
       {activeTab === "resume" && (
         <ErrorBoundary name="TabResume">
           <TabResume
+            clientId={clientId}
             firstName={firstName}
             lastName={lastName}
             phone={phone}
@@ -173,6 +177,7 @@ export function ClientTabs({
             nextRdv={cd?.calendar_events?.find((ev) => !ev.canceled && ev.start_date && new Date(ev.start_date) > new Date()) ?? null}
             cosiumInvoices={cosiumInvoices}
             mutuelles={cd?.mutuelles ?? []}
+            onNoteAdded={onDataRefresh}
           />
         </ErrorBoundary>
       )}

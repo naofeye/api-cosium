@@ -47,6 +47,8 @@ class CosiumInvoice(Base):
         Index("ix_cosium_invoices_tenant_cosium", "tenant_id", "cosium_id", unique=True),
         Index("ix_cosium_invoices_tenant_date", "tenant_id", "invoice_date"),
         Index("ix_cosium_invoices_tenant_type", "tenant_id", "type"),
+        Index("ix_cosium_invoices_tenant_customer", "tenant_id", "customer_id"),
+        Index("ix_cosium_invoices_tenant_outstanding", "tenant_id", "outstanding_balance"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -89,7 +91,11 @@ class CosiumPayment(Base):
     """Paiement de facture Cosium."""
 
     __tablename__ = "cosium_payments"
-    __table_args__ = (Index("ix_cosium_payments_tenant_cosium", "tenant_id", "cosium_id", unique=True),)
+    __table_args__ = (
+        Index("ix_cosium_payments_tenant_cosium", "tenant_id", "cosium_id", unique=True),
+        Index("ix_cosium_payments_tenant_customer", "tenant_id", "customer_id"),
+        Index("ix_cosium_payments_tenant_invoice", "tenant_id", "invoice_cosium_id"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
@@ -131,7 +137,10 @@ class CosiumPrescription(Base):
     """Ordonnance optique."""
 
     __tablename__ = "cosium_prescriptions"
-    __table_args__ = (Index("ix_cosium_prescriptions_tenant_cosium", "tenant_id", "cosium_id", unique=True),)
+    __table_args__ = (
+        Index("ix_cosium_prescriptions_tenant_cosium", "tenant_id", "cosium_id", unique=True),
+        Index("ix_cosium_prescriptions_tenant_customer", "tenant_id", "customer_id"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)

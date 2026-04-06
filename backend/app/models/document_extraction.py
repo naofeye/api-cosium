@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -8,6 +8,10 @@ from app.db.base import Base
 
 class DocumentExtraction(Base):
     __tablename__ = "document_extractions"
+    __table_args__ = (
+        Index("ix_doc_extractions_tenant_document", "tenant_id", "document_id"),
+        Index("ix_doc_extractions_tenant_cosium_doc", "tenant_id", "cosium_document_id"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tenant_id: Mapped[int] = mapped_column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)

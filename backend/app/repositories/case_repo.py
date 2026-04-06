@@ -1,14 +1,7 @@
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Case, Customer
-
-
-def count_cases(db: Session, tenant_id: int) -> int:
-    return (
-        db.scalar(select(func.count()).select_from(Case).where(Case.tenant_id == tenant_id, Case.deleted_at.is_(None)))
-        or 0
-    )
 
 
 def list_cases(db: Session, tenant_id: int, limit: int = 25, offset: int = 0) -> list[dict]:

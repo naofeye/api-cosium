@@ -84,8 +84,9 @@ def list_all_preparations(
     offset: int = 0,
 ) -> dict:
     """List all PEC preparations for a tenant with KPI counts."""
-    from app.models.client import Customer as CustomerModel
     from sqlalchemy import select as sa_select
+
+    from app.models.client import Customer as CustomerModel
 
     preps = pec_preparation_repo.list_all(db, tenant_id, status=status, limit=limit, offset=offset)
     total = pec_preparation_repo.count_all(db, tenant_id, status=status)

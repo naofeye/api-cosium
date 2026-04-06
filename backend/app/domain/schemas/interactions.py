@@ -29,3 +29,9 @@ class InteractionResponse(BaseModel):
 class InteractionListResponse(BaseModel):
     items: list[InteractionResponse]
     total: int
+
+
+class EmailPayload(BaseModel):
+    to: str = Field(..., min_length=3, max_length=255)
+    subject: str = Field(..., min_length=1, max_length=300)
+    body: str = Field(..., min_length=1, max_length=10000)

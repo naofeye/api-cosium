@@ -2,10 +2,18 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import NotFoundError, ValidationError
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.client_360 import Client360Response, CosiumDataBundle
-from app.domain.schemas.interactions import InteractionCreate, InteractionListResponse, InteractionResponse
+from app.domain.schemas.interactions import (
+    EmailPayload,
+    InteractionCreate,
+    InteractionListResponse,
+    InteractionResponse,
+)
+from app.integrations.email_sender import email_sender
+from app.repositories import client_repo
 from app.services import client_360_service, export_pdf, interaction_service, pdf_service
 
 router = APIRouter(prefix="/api/v1", tags=["client-360"])
@@ -145,3 +153,43 @@ def delete_interaction(
         user_id=tenant_ctx.user_id,
     )
     return {"message": "Interaction supprimee avec succes"}
+
+
+@router.post(
+    "/clients/{client_id}/send-email",
+    status_code=200,
+    summary="Envoyer un email a un client",
+    description="Envoie un email au client et enregistre une interaction de type email.",
+)
+def send_email_to_client(
+    client_id: int,
+    payload: EmailPayload,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> dict[str, str]:
+    customer = client_repo.get_by_id_active(db, client_id=client_id, tenant_id=tenant_ctx.tenant_id)
+    if not customer:
+        raise NotFoundError("client", client_id)
+    if not customer.email:
+        raise ValidationError("email", "Ce client n'a pas d'adresse email renseignee.")
+
+    body_html = payload.body.replace("\n", "<br>")
+    success = email_sender.send_email(to=payload.to, subject=payload.subject, body_html=body_html)
+    if not success:
+        raise ValidationError("email", "L'envoi de l'email a echoue. Veuillez reessayer.")
+
+    interaction_payload = InteractionCreate(
+        client_id=client_id,
+        type="email",
+        direction="sortant",
+        subject=payload.subject,
+        content=payload.body,
+    )
+    interaction_service.add_interaction(
+        db,
+        tenant_id=tenant_ctx.tenant_id,
+        payload=interaction_payload,
+        user_id=tenant_ctx.user_id,
+    )
+
+    return {"message": "Email envoye avec succes"}

@@ -165,6 +165,3 @@ def list_documents(
     )
 
 
-def remove_document(db: Session, doc: PecPreparationDocument) -> None:
-    db.delete(doc)
-    db.commit()

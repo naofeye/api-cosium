@@ -57,10 +57,6 @@ def get_usage_summary(db: Session, tenant_id: int, year: int | None = None, mont
     }
 
 
-def check_quota(db: Session, tenant_id: int) -> bool:
-    summary = get_usage_summary(db, tenant_id)
-    return summary["quota_remaining"] > 0
-
 
 def get_daily_breakdown(db: Session, tenant_id: int, year: int | None = None, month: int | None = None) -> list[dict]:
     now = datetime.now(UTC)

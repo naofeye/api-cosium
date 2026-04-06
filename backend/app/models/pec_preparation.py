@@ -6,7 +6,7 @@ PecPreparationDocument links supporting documents to a preparation.
 
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -16,6 +16,10 @@ class PecPreparation(Base):
     """A PEC preparation worksheet for a client."""
 
     __tablename__ = "pec_preparations"
+    __table_args__ = (
+        Index("ix_pec_prep_tenant_customer", "tenant_id", "customer_id"),
+        Index("ix_pec_prep_tenant_status", "tenant_id", "status"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tenant_id: Mapped[int] = mapped_column(

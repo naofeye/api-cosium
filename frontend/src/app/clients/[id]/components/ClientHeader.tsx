@@ -1,8 +1,9 @@
 "use client";
 
 import { KPICard } from "@/components/ui/KPICard";
+import { EmailDialog } from "@/components/ui/EmailDialog";
 import { formatMoney, formatDate } from "@/lib/format";
-import { Euro, CheckCircle, Clock, FolderOpen, Eye, Calendar, AlertTriangle, FileDown, ShieldCheck, Printer } from "lucide-react";
+import { Euro, CheckCircle, Clock, FolderOpen, Eye, Calendar, AlertTriangle, FileDown, ShieldCheck, Printer, Mail } from "lucide-react";
 import { AvatarUpload } from "./AvatarUpload";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { useState } from "react";
@@ -90,6 +91,7 @@ export function ClientHeader({
   })();
 
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
 
   const handleDownloadPDF = async () => {
     setPdfLoading(true);
@@ -128,6 +130,17 @@ export function ClientHeader({
           onUploaded={onAvatarUploaded}
         />
         <div className="flex items-center gap-2 shrink-0">
+          {email && (
+            <button
+              onClick={() => setShowEmailDialog(true)}
+              className="no-print inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 transition-colors"
+              title="Envoyer un email au client"
+              aria-label="Envoyer un email au client"
+            >
+              <Mail className="h-4 w-4" aria-hidden="true" />
+              Email
+            </button>
+          )}
           <button
             onClick={() => window.print()}
             className="no-print inline-flex items-center gap-2 rounded-lg border border-border bg-bg-card px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 transition-colors"
@@ -234,6 +247,17 @@ export function ClientHeader({
         />
         <KPICard icon={FolderOpen} label="Dossiers" value={dossiersCount} color="info" />
       </div>
+
+      {/* Email dialog */}
+      {email && (
+        <EmailDialog
+          open={showEmailDialog}
+          onClose={() => setShowEmailDialog(false)}
+          clientId={clientId}
+          clientEmail={email}
+          clientName={`${firstName} ${lastName}`}
+        />
+      )}
     </>
   );
 }

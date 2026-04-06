@@ -8,14 +8,12 @@ import csv
 import io
 from datetime import datetime
 
-from app.core.logging import log_operation
-
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.logging import get_logger
+from app.core.logging import get_logger, log_operation
 from app.models import (
     AuditLog,
     Campaign,
@@ -256,7 +254,6 @@ def export_clients_complet_xlsx(
     has_cosium_id: bool | None = None,
 ) -> bytes:
     """Export ALL clients with ALL data columns in styled Excel format."""
-    from datetime import date as _date
     from datetime import datetime as _dt
 
     q = select(Customer).where(Customer.tenant_id == tenant_id, Customer.deleted_at.is_(None))

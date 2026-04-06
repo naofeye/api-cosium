@@ -5,7 +5,6 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-
 VALID_ROLES = ("admin", "manager", "operator", "viewer")
 
 

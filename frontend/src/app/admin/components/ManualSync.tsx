@@ -14,6 +14,9 @@ import {
   Shield,
   PlayCircle,
   FolderDown,
+  CheckCircle2,
+  XCircle,
+  Loader2,
 } from "lucide-react";
 
 interface SyncResult {
@@ -57,10 +60,15 @@ function formatResult(r: SyncResult): string {
   return parts.join(", ") || "Termine";
 }
 
+const SYNC_ALL_STEPS = ["customers", "invoices", "payments", "prescriptions"] as const;
+
 export function ManualSync() {
   const [syncing, setSyncing] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, SyncResult>>({});
   const [syncAllRunning, setSyncAllRunning] = useState(false);
+  const [syncAllStep, setSyncAllStep] = useState(0);
+  const [syncAllTotal] = useState(SYNC_ALL_STEPS.length);
+  const [syncAllStatus, setSyncAllStatus] = useState<Record<string, "pending" | "success" | "error">>({});
 
   const runSync = async (type: string) => {
     setSyncing(type);
@@ -78,23 +86,28 @@ export function ManualSync() {
   const runSyncAll = async () => {
     setSyncAllRunning(true);
     setSyncing("all");
-    try {
-      const result = await fetchJson<SyncResult>("/sync/all", { method: "POST" });
-      // Le endpoint /sync/all retourne un objet avec un resultat par type
-      setResults((prev) => ({
-        ...prev,
-        all: result,
-        ...(result.customers ? { customers: result.customers as SyncResult } : {}),
-        ...(result.invoices ? { invoices: result.invoices as SyncResult } : {}),
-        ...(result.payments ? { payments: result.payments as SyncResult } : {}),
-        ...(result.prescriptions ? { prescriptions: result.prescriptions as SyncResult } : {}),
-      }));
-    } catch {
-      setResults((prev) => ({ ...prev, all: { note: "Erreur lors de la synchronisation globale" } }));
-    } finally {
-      setSyncAllRunning(false);
-      setSyncing(null);
+    setSyncAllStep(0);
+    const statusMap: Record<string, "pending" | "success" | "error"> = {};
+    for (const s of SYNC_ALL_STEPS) statusMap[s] = "pending";
+    setSyncAllStatus({ ...statusMap });
+
+    for (let i = 0; i < SYNC_ALL_STEPS.length; i++) {
+      const step = SYNC_ALL_STEPS[i];
+      setSyncAllStep(i + 1);
+      setSyncing(step);
+      try {
+        const result = await fetchJson<SyncResult>(`/sync/${step}`, { method: "POST" });
+        setResults((prev) => ({ ...prev, [step]: result }));
+        statusMap[step] = "success";
+      } catch {
+        setResults((prev) => ({ ...prev, [step]: { note: "Erreur lors de la synchronisation" } }));
+        statusMap[step] = "error";
+      }
+      setSyncAllStatus({ ...statusMap });
     }
+
+    setSyncAllRunning(false);
+    setSyncing(null);
   };
 
   const isDisabled = syncing !== null;
@@ -112,9 +125,72 @@ export function ManualSync() {
         </Button>
       </div>
 
-      {results.all?.note && (
-        <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
-          {results.all.note}
+      {/* Sync All progress */}
+      {syncAllRunning && (
+        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Loader2 className="h-4 w-4 animate-spin text-blue-600" aria-hidden="true" />
+            <p className="text-sm font-medium text-blue-800">
+              Synchronisation en cours... {syncAllStep}/{syncAllTotal} etapes
+            </p>
+          </div>
+          <div className="w-full bg-blue-100 rounded-full h-2 mb-3">
+            <div
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${(syncAllStep / syncAllTotal) * 100}%` }}
+            />
+          </div>
+          <div className="space-y-1">
+            {SYNC_ALL_STEPS.map((step) => {
+              const status = syncAllStatus[step];
+              const label = SYNC_ITEMS.find((s) => s.key === step)?.label ?? step;
+              return (
+                <div key={step} className="flex items-center gap-2 text-sm">
+                  {status === "success" ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                  ) : status === "error" ? (
+                    <XCircle className="h-4 w-4 text-red-600" aria-hidden="true" />
+                  ) : syncing === step ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-600" aria-hidden="true" />
+                  ) : (
+                    <div className="h-4 w-4 rounded-full border border-gray-300" />
+                  )}
+                  <span className={status === "success" ? "text-emerald-700" : status === "error" ? "text-red-700" : "text-gray-600"}>
+                    {label}
+                    {status === "success" && results[step] && ` — ${formatResult(results[step])}`}
+                    {status === "error" && " — Erreur"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Completed sync all summary */}
+      {!syncAllRunning && Object.keys(syncAllStatus).length > 0 && (
+        <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+          <p className="text-sm font-medium text-emerald-800 mb-2">Synchronisation terminee</p>
+          <div className="space-y-1">
+            {SYNC_ALL_STEPS.map((step) => {
+              const status = syncAllStatus[step];
+              const label = SYNC_ITEMS.find((s) => s.key === step)?.label ?? step;
+              return (
+                <div key={step} className="flex items-center gap-2 text-sm">
+                  {status === "success" ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-red-600" aria-hidden="true" />
+                  )}
+                  <span className={status === "success" ? "text-emerald-700" : "text-red-700"}>
+                    {label}
+                    {status === "success" && results[step] && ` — ${formatResult(results[step])}`}
+                    {status === "error" && " — Erreur"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

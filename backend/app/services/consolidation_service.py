@@ -17,7 +17,7 @@ from app.domain.schemas.consolidation import (
 )
 from app.models.client import Customer
 from app.models.client_mutuelle import ClientMutuelle
-from app.models.cosium_data import CosiumInvoice, CosiumPrescription
+from app.models.cosium_data import CosiumPrescription
 from app.models.devis import Devis, DevisLigne
 from app.models.document_extraction import DocumentExtraction
 
@@ -67,24 +67,6 @@ def _make_field(
         last_updated=last_updated or datetime.now(UTC),
     )
 
-
-def _pick_best(
-    candidates: list[ConsolidatedField],
-) -> ConsolidatedField | None:
-    """Pick the best field value based on source priority and confidence."""
-    if not candidates:
-        return None
-    # Sort by priority (derived from source prefix) descending, then confidence descending
-    def _priority(f: ConsolidatedField) -> tuple[int, float]:
-        f.source.split("_")[0] + "_" + f.source.split("_")[1] if "_" in f.source else f.source
-        # Map source string to priority
-        for key in SOURCE_PRIORITY:
-            if f.source.startswith(key) or f.source == key:
-                return (SOURCE_PRIORITY[key], f.confidence)
-        return (0, f.confidence)
-
-    candidates.sort(key=_priority, reverse=True)
-    return candidates[0]
 
 
 def _load_cosium_client(
@@ -186,20 +168,6 @@ def _load_document_extractions(
         ).all()
     )
 
-
-def _load_cosium_invoices(
-    db: Session, tenant_id: int, customer_id: int
-) -> list[CosiumInvoice]:
-    return list(
-        db.scalars(
-            select(CosiumInvoice).where(
-                CosiumInvoice.customer_id == customer_id,
-                CosiumInvoice.tenant_id == tenant_id,
-            )
-            .order_by(CosiumInvoice.invoice_date.desc().nullslast())
-            .limit(5)
-        ).all()
-    )
 
 
 def _parse_structured_data(extraction: DocumentExtraction) -> dict | None:

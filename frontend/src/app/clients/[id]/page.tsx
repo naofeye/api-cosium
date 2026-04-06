@@ -171,6 +171,7 @@ export default function ClientDetailPage() {
         city={data.city}
         renewalEligible={renewalEligible}
         renewalMonths={renewalMonths}
+        onDataRefresh={() => mutate()}
         showForm={showForm}
         onShowForm={setShowForm}
         intType={intType}
