@@ -34,3 +34,11 @@ class CosiumInvoiceListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class CosiumInvoiceTotals(BaseModel):
+    """Aggregate totals for filtered Cosium invoices (across all pages)."""
+
+    total_ttc: float
+    total_impaye: float
+    count: int

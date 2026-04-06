@@ -113,6 +113,8 @@ export function useCosiumInvoices(params?: {
   type_filter?: string;
   settled?: boolean | null;
   search?: string;
+  date_from?: string;
+  date_to?: string;
 }) {
   const sp = new URLSearchParams();
   if (params?.page) sp.set("page", String(params.page));
@@ -120,7 +122,31 @@ export function useCosiumInvoices(params?: {
   if (params?.type_filter) sp.set("type_filter", params.type_filter);
   if (params?.settled !== undefined && params?.settled !== null) sp.set("settled", String(params.settled));
   if (params?.search) sp.set("search", params.search);
+  if (params?.date_from) sp.set("date_from", params.date_from);
+  if (params?.date_to) sp.set("date_to", params.date_to);
   return useSWR<PaginatedResponse<CosiumInvoice>>(`/cosium-invoices?${sp}`);
+}
+
+export interface CosiumInvoiceTotals {
+  total_ttc: number;
+  total_impaye: number;
+  count: number;
+}
+
+export function useCosiumInvoiceTotals(params?: {
+  type_filter?: string;
+  settled?: boolean | null;
+  search?: string;
+  date_from?: string;
+  date_to?: string;
+}) {
+  const sp = new URLSearchParams();
+  if (params?.type_filter) sp.set("type_filter", params.type_filter);
+  if (params?.settled !== undefined && params?.settled !== null) sp.set("settled", String(params.settled));
+  if (params?.search) sp.set("search", params.search);
+  if (params?.date_from) sp.set("date_from", params.date_from);
+  if (params?.date_to) sp.set("date_to", params.date_to);
+  return useSWR<CosiumInvoiceTotals>(`/cosium-invoices/totals?${sp}`);
 }
 
 // --- Cosium Calendar Events ---

@@ -107,6 +107,35 @@ def export_fec(
 
 
 @router.get(
+    "/clients-complet",
+    summary="Export Clients Complet (Excel)",
+    description="Genere un fichier Excel avec toutes les donnees clients.",
+)
+def export_clients_complet(
+    date_from: date | None = Query(None, description="Date de debut (YYYY-MM-DD)"),
+    date_to: date | None = Query(None, description="Date de fin (YYYY-MM-DD)"),
+    has_email: bool | None = Query(None, description="Filtrer par presence d'email"),
+    has_cosium_id: bool | None = Query(None, description="Filtrer par presence d'ID Cosium"),
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
+) -> StreamingResponse:
+    data = export_service.export_clients_complet_xlsx(
+        db,
+        tenant_id=tenant_ctx.tenant_id,
+        date_from=date_from,
+        date_to=date_to,
+        has_email=has_email,
+        has_cosium_id=has_cosium_id,
+    )
+    filename = f"clients_complet_{datetime.now(UTC).strftime('%Y%m%d')}.xlsx"
+    return StreamingResponse(
+        iter([data]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@router.get(
     "/{entity_type}",
     summary="Exporter des donnees",
     description="Exporte les donnees d'une entite au format CSV ou XLSX.",

@@ -152,6 +152,18 @@ def data_quality(
     )
 
 
+@router.get(
+    "/sentry-test",
+    summary="Test Sentry",
+    description="Leve une exception de test pour verifier que Sentry capture bien les erreurs (admin uniquement).",
+)
+def test_sentry(
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin")),
+) -> dict:
+    """Admin-only: raise a test exception captured by Sentry."""
+    raise ValueError("Sentry test exception from OptiFlow")
+
+
 class CosiumConnectionTest(BaseModel):
     connected: bool
     error: str | None = None

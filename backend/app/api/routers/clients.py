@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, File, Query, UploadFile
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_tenant_role
@@ -57,24 +57,40 @@ def get_duplicates(
     return client_service.find_duplicates(db, tenant_id=tenant_ctx.tenant_id)
 
 
+@router.get(
+    "/import/template",
+    summary="Telecharger le modele d'import",
+    description="Telecharge un fichier CSV modele pour l'import de clients.",
+)
+def download_import_template() -> Response:
+    data = client_service.generate_import_template()
+    return Response(
+        content=data,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=modele_import_clients.csv"},
+    )
+
+
 @router.post(
     "/import",
     response_model=ClientImportResult,
-    summary="Importer des clients depuis un CSV",
-    description="Importe des clients en lot depuis un fichier CSV (separateur point-virgule).",
+    summary="Importer des clients depuis un fichier",
+    description="Importe des clients en lot depuis un fichier CSV ou Excel (.xlsx).",
 )
-async def import_csv(
+async def import_file(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> ClientImportResult:
-    if not file.filename or not file.filename.lower().endswith(".csv"):
-        raise ValidationError("file", "Le fichier doit etre au format CSV.")
+    allowed_extensions = (".csv", ".xlsx", ".xls")
+    if not file.filename or not file.filename.lower().endswith(allowed_extensions):
+        raise ValidationError("file", "Le fichier doit etre au format CSV ou Excel (.xlsx).")
     content = await file.read()
-    return client_service.import_from_csv(
+    return client_service.import_from_file(
         db,
         tenant_id=tenant_ctx.tenant_id,
         file_content=content,
+        filename=file.filename,
         user_id=tenant_ctx.user_id,
     )
 

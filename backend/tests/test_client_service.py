@@ -97,7 +97,8 @@ class TestImportFromCsv:
             b";;;;;;\n"  # empty line — should be skipped (no nom)
         )
 
-        result = client_service.import_from_csv(db, tid, csv_content, seed_user.id)
+        result = client_service.import_from_file(db, tid, csv_content, "test.csv", seed_user.id)
         assert result.imported == 2
         assert result.skipped == 1
-        assert len(result.errors) == 0
+        # The skipped row (empty name) produces an error entry
+        assert any(e.line == 4 for e in result.errors)

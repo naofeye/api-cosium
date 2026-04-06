@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -8,10 +9,10 @@ import { SearchInput } from "@/components/ui/SearchInput";
 import { DateDisplay } from "@/components/ui/DateDisplay";
 import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
 import { Button } from "@/components/ui/Button";
-import { useCosiumInvoices } from "@/lib/hooks/use-api";
+import { useCosiumInvoices, useCosiumInvoiceTotals } from "@/lib/hooks/use-api";
 import { exportToCsv } from "@/lib/export-csv";
 import { formatMoney, formatDate } from "@/lib/format";
-import { Download, Receipt } from "lucide-react";
+import { Download, Receipt, Euro, AlertCircle, FileText } from "lucide-react";
 import type { CosiumInvoice } from "@/lib/types";
 
 const TYPE_OPTIONS = [
@@ -41,36 +42,36 @@ function typeLabel(type: string): string {
 }
 
 export default function CosiumFacturesPage() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState("");
   const [settledFilter, setSettledFilter] = useState("");
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const settled = settledFilter === "" ? null : settledFilter === "true";
+
+  const filterParams = {
+    type_filter: typeFilter || undefined,
+    settled: settled ?? undefined,
+    search: search || undefined,
+    date_from: dateFrom || undefined,
+    date_to: dateTo || undefined,
+  };
 
   const { data, error, isLoading, mutate } = useCosiumInvoices({
     page,
     page_size: 25,
-    type_filter: typeFilter || undefined,
-    settled: settled ?? undefined,
-    search: search || undefined,
+    ...filterParams,
   });
+
+  const { data: totals } = useCosiumInvoiceTotals(filterParams);
 
   const handleSearch = useCallback((q: string) => {
     setSearch(q);
     setPage(1);
   }, []);
-
-  const stats = useMemo(() => {
-    const items = data?.items ?? [];
-    if (items.length === 0) return null;
-    const totalTTC = items.reduce((sum, inv) => sum + inv.total_ti, 0);
-    const totalImpaye = items.reduce((sum, inv) => sum + inv.outstanding_balance, 0);
-    const invoiceCount = items.filter((inv) => inv.type === "INVOICE").length;
-    const quoteCount = items.filter((inv) => inv.type === "QUOTE").length;
-    const creditCount = items.filter((inv) => inv.type === "CREDIT_NOTE").length;
-    return { totalTTC, totalImpaye, invoiceCount, quoteCount, creditCount };
-  }, [data]);
 
   const handleExportCsv = () => {
     if (!data?.items?.length) return;
@@ -85,6 +86,12 @@ export default function CosiumFacturesPage() {
       inv.settled ? "Solde" : "Impaye",
     ]);
     exportToCsv("cosium-factures.csv", headers, rows);
+  };
+
+  const handleClientClick = (inv: CosiumInvoice) => {
+    if (inv.customer_id) {
+      router.push(`/clients/${inv.customer_id}`);
+    }
   };
 
   const columns: Column<CosiumInvoice>[] = [
@@ -105,7 +112,22 @@ export default function CosiumFacturesPage() {
       key: "customer_name",
       header: "Client",
       sortable: true,
-      render: (row) => row.customer_name || "-",
+      render: (row) => (
+        row.customer_id ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClientClick(row);
+            }}
+            className="text-blue-600 hover:text-blue-700 hover:underline font-medium text-left"
+            title="Voir la fiche client"
+          >
+            {row.customer_name || "-"}
+          </button>
+        ) : (
+          <span>{row.customer_name || "-"}</span>
+        )
+      ),
     },
     {
       key: "type",
@@ -155,24 +177,40 @@ export default function CosiumFacturesPage() {
         </Button>
       }
     >
-      {stats && (
-        <div className="flex items-center gap-6 mb-4 text-sm text-text-secondary">
-          <span>Total TTC : <span className="font-semibold text-text-primary">{formatMoney(stats.totalTTC)}</span></span>
-          <span className="text-gray-300">|</span>
-          <span>Impaye : <span className="font-semibold text-red-600">{formatMoney(stats.totalImpaye)}</span></span>
-          <span className="text-gray-300">|</span>
-          <span>{stats.invoiceCount} facture{stats.invoiceCount > 1 ? "s" : ""}</span>
-          <span className="text-gray-300">|</span>
-          <span>{stats.quoteCount} devis</span>
-          {stats.creditCount > 0 && (
-            <>
-              <span className="text-gray-300">|</span>
-              <span>{stats.creditCount} avoir{stats.creditCount > 1 ? "s" : ""}</span>
-            </>
-          )}
+      {/* KPI bar with server-side totals */}
+      {totals && totals.count > 0 && (
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-4 flex items-center gap-3">
+            <div className="rounded-lg bg-blue-50 p-2">
+              <FileText className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Nombre de documents</p>
+              <p className="text-xl font-bold text-gray-900 tabular-nums">{totals.count}</p>
+            </div>
+          </div>
+          <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-4 flex items-center gap-3">
+            <div className="rounded-lg bg-emerald-50 p-2">
+              <Euro className="h-5 w-5 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Total TTC</p>
+              <p className="text-xl font-bold text-gray-900 tabular-nums">{formatMoney(totals.total_ttc)}</p>
+            </div>
+          </div>
+          <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-4 flex items-center gap-3">
+            <div className="rounded-lg bg-red-50 p-2">
+              <AlertCircle className="h-5 w-5 text-red-600" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Total impaye</p>
+              <p className="text-xl font-bold text-red-600 tabular-nums">{formatMoney(totals.total_impaye)}</p>
+            </div>
+          </div>
         </div>
       )}
 
+      {/* Filters */}
       <div className="flex flex-wrap items-center gap-4 mb-6">
         <SearchInput placeholder="Rechercher par numero ou client..." onSearch={handleSearch} />
         <select
@@ -205,6 +243,32 @@ export default function CosiumFacturesPage() {
             </option>
           ))}
         </select>
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-text-secondary" htmlFor="date-from">Du</label>
+          <input
+            id="date-from"
+            type="date"
+            value={dateFrom}
+            onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+            className="rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+          <label className="text-sm text-text-secondary" htmlFor="date-to">au</label>
+          <input
+            id="date-to"
+            type="date"
+            value={dateTo}
+            onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+            className="rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+          {(dateFrom || dateTo) && (
+            <button
+              onClick={() => { setDateFrom(""); setDateTo(""); setPage(1); }}
+              className="text-xs text-blue-600 hover:text-blue-700"
+            >
+              Effacer dates
+            </button>
+          )}
+        </div>
       </div>
 
       <DataTable

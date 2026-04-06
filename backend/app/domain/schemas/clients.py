@@ -70,10 +70,16 @@ class ClientListResponse(BaseModel):
     page_size: int
 
 
+class ClientImportError(BaseModel):
+    line: int
+    reason: str
+
+
 class ClientImportResult(BaseModel):
     imported: int
+    updated: int = 0
     skipped: int
-    errors: list[str]
+    errors: list[ClientImportError]
 
 
 class DuplicateGroup(BaseModel):
