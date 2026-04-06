@@ -274,3 +274,54 @@ textarea:focus-visible,
     font-size: 0.6875rem;
   }
 }
+
+/* ================================================================== */
+/* Print styles — Ctrl+P friendly                                     */
+/* ================================================================== */
+@media print {
+  /* Hide non-essential elements */
+  aside,
+  header,
+  nav,
+  .no-print,
+  button,
+  [role="navigation"],
+  .stats-footer {
+    display: none !important;
+  }
+
+  /* Main content full width */
+  main {
+    margin-left: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Cards and tables */
+  .rounded-xl {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  table {
+    font-size: 10pt;
+  }
+
+  /* Ensure backgrounds print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Page breaks */
+  h2, h3 {
+    break-after: avoid;
+  }
+
+  body {
+    font-size: 11pt;
+    color: black !important;
+    background: white !important;
+  }
+}

@@ -24,10 +24,22 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const cancelRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<Element | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      // Store the element that triggered the dialog so focus can return to it
+      triggerRef.current = document.activeElement;
+      cancelRef.current?.focus();
+    } else if (triggerRef.current) {
+      // Return focus to the trigger element when the dialog closes
+      (triggerRef.current as HTMLElement).focus?.();
+      triggerRef.current = null;
+    }
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
-    cancelRef.current?.focus();
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {

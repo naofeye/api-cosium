@@ -11,7 +11,11 @@ class ServiceStatus(BaseModel):
 
 class HealthCheckResponse(BaseModel):
     status: str
-    services: dict[str, ServiceStatus]
+    version: str | None = None
+    components: dict[str, ServiceStatus] | None = None
+    uptime_seconds: int | None = None
+    # Legacy alias kept for backwards compatibility
+    services: dict[str, ServiceStatus] | None = None
 
 
 class MetricsTotals(BaseModel):

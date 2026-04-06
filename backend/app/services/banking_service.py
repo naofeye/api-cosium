@@ -6,7 +6,7 @@ from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessError, NotFoundError
-from app.core.logging import get_logger
+from app.core.logging import get_logger, log_operation
 from app.domain.schemas.banking import (
     BankTransactionListResponse,
     BankTransactionResponse,
@@ -20,6 +20,7 @@ from app.services import audit_service, event_service
 logger = get_logger("banking_service")
 
 
+@log_operation("create_payment")
 def create_payment(
     db: Session,
     tenant_id: int,

@@ -20,6 +20,7 @@ import {
   Activity,
 } from "lucide-react";
 import Link from "next/link";
+import { CopyButton } from "@/components/ui/CopyButton";
 
 interface Interaction {
   id: number;
@@ -105,17 +106,22 @@ function InfoRow({
   icon: Icon,
   label,
   value,
+  copyValue,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
+  copyValue?: string;
 }) {
   return (
     <div className="flex items-center gap-3">
       <Icon className="h-4 w-4 text-text-secondary shrink-0" />
       <div className="flex justify-between flex-1">
         <span className="text-text-secondary">{label}</span>
-        <span className="font-medium">{value}</span>
+        <span className="font-medium inline-flex items-center gap-1">
+          {value}
+          {copyValue && <CopyButton text={copyValue} label={label} />}
+        </span>
       </div>
     </div>
   );
@@ -175,9 +181,9 @@ export function TabResume({
           <h3 className="text-lg font-semibold mb-4">Informations personnelles</h3>
           <div className="space-y-3 text-sm">
             <InfoRow icon={User} label="Nom" value={`${firstName} ${lastName}`} />
-            <InfoRow icon={Phone} label="Telephone" value={phone ? formatPhone(phone) : "Non renseigne"} />
-            <InfoRow icon={Mail} label="Email" value={email || "Non renseigne"} />
-            <InfoRow icon={Shield} label="N\u00B0 Secu" value={socialSecurityNumber || "Non renseigne"} />
+            <InfoRow icon={Phone} label="Telephone" value={phone ? formatPhone(phone) : "Non renseigne"} copyValue={phone || undefined} />
+            <InfoRow icon={Mail} label="Email" value={email || "Non renseigne"} copyValue={email || undefined} />
+            <InfoRow icon={Shield} label="N\u00B0 Secu" value={socialSecurityNumber || "Non renseigne"} copyValue={socialSecurityNumber || undefined} />
             <InfoRow icon={MapPin} label="Ville" value={city ? `${postalCode || ""} ${city}` : "Non renseignee"} />
           </div>
         </div>

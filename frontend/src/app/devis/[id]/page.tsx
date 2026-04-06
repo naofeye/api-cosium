@@ -30,6 +30,7 @@ import {
   Eye,
   ArrowRight,
   Check,
+  Printer,
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
@@ -273,6 +274,20 @@ export default function DevisDetailPage() {
 
     // Always show status badge
     buttons.push(<StatusBadge key="badge" status={devis.status} />);
+
+    // Print button
+    buttons.push(
+      <Button
+        key="print"
+        variant="outline"
+        size="sm"
+        onClick={() => window.print()}
+        className="no-print"
+        aria-label="Imprimer le devis"
+      >
+        <Printer className="h-4 w-4" /> Imprimer
+      </Button>,
+    );
 
     // PDF download always available
     buttons.push(

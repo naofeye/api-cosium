@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.logging import get_logger
+from app.core.logging import get_logger, log_operation
 from app.integrations.erp_models import ERPInvoice
 from app.models import Customer
 from app.models.cosium_data import CosiumInvoice
@@ -26,6 +26,7 @@ from app.services.erp_sync_service import (
 logger = get_logger("erp_sync_invoices")
 
 
+@log_operation("sync_invoices")
 def sync_invoices(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     """Synchronise les factures depuis l'ERP vers cosium_invoices (lecture seule).
 

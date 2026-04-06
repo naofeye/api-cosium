@@ -11,7 +11,7 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.core.logging import get_logger
+from app.core.logging import get_logger, log_operation
 from app.models.cosium_data import CosiumInvoice
 
 logger = get_logger("export_pdf")
@@ -330,6 +330,7 @@ def _get_balance_rows(
 # Balance Clients PDF
 # ---------------------------------------------------------------------------
 
+@log_operation("export_balance_clients_pdf")
 def export_balance_clients_pdf(
     db: Session,
     tenant_id: int,
@@ -412,6 +413,7 @@ def export_balance_clients_pdf(
 # Dashboard PDF
 # ---------------------------------------------------------------------------
 
+@log_operation("export_dashboard_pdf")
 def export_dashboard_pdf(
     db: Session,
     tenant_id: int,
@@ -556,6 +558,7 @@ def _field_row(label: str, field: dict | None) -> list[str]:
     return [label, value, str(source), conf_str]
 
 
+@log_operation("export_pec_preparation_pdf")
 def export_pec_preparation_pdf(
     db: Session,
     tenant_id: int,

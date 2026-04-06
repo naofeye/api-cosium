@@ -567,18 +567,16 @@ def merge_clients(
             .values(client_id=keep_id)
         )
 
-    # Transfer PEC requests
+    # Transfer PEC requests (PecRequest links via case_id, which is transferred above,
+    # so we count them for reporting but they follow the cases automatically)
     pec_transferred = db.execute(
         select(func.count()).select_from(PecRequest).where(
-            PecRequest.client_id == merge_id, PecRequest.tenant_id == tenant_id
+            PecRequest.case_id.in_(
+                select(Case.id).where(Case.customer_id == keep_id, Case.tenant_id == tenant_id)
+            ),
+            PecRequest.tenant_id == tenant_id,
         )
-    ).scalar_one()
-    if pec_transferred:
-        db.execute(
-            PecRequest.__table__.update()
-            .where(PecRequest.client_id == merge_id, PecRequest.tenant_id == tenant_id)
-            .values(client_id=keep_id)
-        )
+    ).scalar_one() if cases_transferred else 0
 
     # Transfer PEC preparations
     db.execute(

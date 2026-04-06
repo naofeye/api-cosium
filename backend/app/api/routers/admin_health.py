@@ -19,23 +19,40 @@ from app.services import onboarding_service
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
 
+def _check_cosium_status() -> dict:
+    """Quick Cosium connectivity check (cookie-based, no heavy call)."""
+    try:
+        from app.integrations.cosium.client import CosiumClient
+
+        client = CosiumClient()
+        client.authenticate()
+        return {"status": "ok"}
+    except Exception as exc:
+        msg = str(exc)
+        if "401" in msg:
+            return {"status": "degraded", "error": "cookie expired"}
+        return {"status": "error", "error": "unavailable"}
+
+
 @router.get(
     "/health",
     response_model=HealthCheckResponse,
     summary="Verification de sante",
-    description="Verifie l'etat de sante de tous les services (PostgreSQL, Redis, MinIO).",
+    description="Verifie l'etat de sante de tous les services (PostgreSQL, Redis, MinIO, Cosium).",
 )
 def health_check(db: Session = Depends(get_db)) -> HealthCheckResponse:
     """Public health check for load balancer. No auth required."""
-    checks = {}
+    from app.main import _APP_START_TIME, _APP_VERSION
+
+    checks: dict[str, dict] = {}
 
     # PostgreSQL
     try:
         start = time.time()
         db.execute(text("SELECT 1"))
-        checks["postgres"] = {"status": "ok", "response_ms": round((time.time() - start) * 1000, 1)}
+        checks["database"] = {"status": "ok", "response_ms": round((time.time() - start) * 1000, 1)}
     except Exception:
-        checks["postgres"] = {"status": "error", "error": "unavailable"}
+        checks["database"] = {"status": "error", "error": "unavailable"}
 
     # Redis
     try:
@@ -61,8 +78,18 @@ def health_check(db: Session = Depends(get_db)) -> HealthCheckResponse:
     except Exception:
         checks["minio"] = {"status": "error", "error": "unavailable"}
 
+    # Cosium
+    checks["cosium"] = _check_cosium_status()
+
     all_ok = all(c["status"] == "ok" for c in checks.values())
-    return {"status": "healthy" if all_ok else "degraded", "services": checks}
+    uptime_seconds = int(time.time() - _APP_START_TIME)
+
+    return {
+        "status": "ok" if all_ok else "degraded",
+        "version": _APP_VERSION,
+        "components": checks,
+        "uptime_seconds": uptime_seconds,
+    }
 
 
 @router.get(

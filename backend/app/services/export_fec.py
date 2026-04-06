@@ -7,7 +7,7 @@ from datetime import date, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.logging import get_logger
+from app.core.logging import get_logger, log_operation
 from app.models import Facture, Payment
 
 logger = get_logger("export_fec")
@@ -50,6 +50,7 @@ def _fmt_amount(value: float | None) -> str:
     return f"{value:.2f}".replace(".", ",")
 
 
+@log_operation("export_fec")
 def generate_fec(
     db: Session,
     tenant_id: int,

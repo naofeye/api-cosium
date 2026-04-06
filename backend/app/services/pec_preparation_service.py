@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessError, NotFoundError
-from app.core.logging import get_logger
+from app.core.logging import get_logger, log_operation
 from app.domain.schemas.consolidation import ConsolidatedClientProfile
 from app.domain.schemas.pec_preparation import (
     PecPreparationDocumentResponse,
@@ -407,6 +407,7 @@ def refresh_preparation(
     return _to_response(prep)
 
 
+@log_operation("create_pec_from_preparation")
 def create_pec_from_preparation(
     db: Session,
     tenant_id: int,

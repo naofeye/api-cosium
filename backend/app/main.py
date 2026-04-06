@@ -1,7 +1,12 @@
+import time as _time
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.gzip import GZipMiddleware as _BaseGZipMiddleware
+
+_APP_VERSION = "1.0.0"
+_APP_START_TIME = _time.time()
 
 from app import models  # noqa: F401
 from app.api.routers import (
@@ -155,6 +160,24 @@ async def unhandled_error_handler(request: Request, exc: Exception) -> JSONRespo
     body = {"error": {"code": "INTERNAL_ERROR", "message": "Une erreur interne est survenue"}}
     body = _inject_request_id(request, body)
     return JSONResponse(status_code=500, content=body)
+
+
+@app.middleware("http")
+async def add_version_header(request: Request, call_next):  # type: ignore[no-untyped-def]
+    response = await call_next(request)
+    response.headers["X-API-Version"] = _APP_VERSION
+    response.headers["X-Powered-By"] = "OptiFlow AI"
+    return response
+
+
+@app.get(
+    "/api/v1/version",
+    summary="Version de l'API",
+    description="Retourne la version courante de l'API, le prefixe et la date de build.",
+    tags=["admin"],
+)
+def api_version() -> dict:
+    return {"version": _APP_VERSION, "api": "v1", "build": "2026-04-06"}
 
 
 @app.on_event("startup")

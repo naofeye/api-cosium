@@ -8,6 +8,8 @@ import csv
 import io
 from datetime import datetime
 
+from app.core.logging import log_operation
+
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from sqlalchemy import select
@@ -126,6 +128,7 @@ def _get_rows(
     return rows
 
 
+@log_operation("export_csv")
 def export_to_csv(
     db: Session, tenant_id: int, entity_type: str, date_from: datetime | None = None, date_to: datetime | None = None
 ) -> bytes:
@@ -143,6 +146,7 @@ def export_to_csv(
     return output.getvalue().encode("utf-8-sig")
 
 
+@log_operation("export_xlsx")
 def export_to_xlsx(
     db: Session, tenant_id: int, entity_type: str, date_from: datetime | None = None, date_to: datetime | None = None
 ) -> bytes:
@@ -166,6 +170,7 @@ def export_to_xlsx(
     return output.getvalue()
 
 
+@log_operation("export_balance_clients_xlsx")
 def export_balance_clients_xlsx(
     db: Session,
     tenant_id: int,
@@ -241,6 +246,7 @@ def export_balance_clients_xlsx(
     return output.getvalue()
 
 
+@log_operation("export_clients_complet_xlsx")
 def export_clients_complet_xlsx(
     db: Session,
     tenant_id: int,

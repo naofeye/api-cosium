@@ -7,15 +7,41 @@ def test_health_public(client: TestClient) -> None:
     assert resp.status_code == 200
     data = resp.json()
     assert "status" in data
-    assert "services" in data
-    assert "postgres" in data["services"]
+    assert "components" in data
+    assert "database" in data["components"]
 
 
-def test_health_postgres_ok(client: TestClient) -> None:
+def test_health_database_ok(client: TestClient) -> None:
     resp = client.get("/api/v1/admin/health")
     data = resp.json()
-    assert data["services"]["postgres"]["status"] == "ok"
-    assert data["services"]["postgres"]["response_ms"] >= 0
+    assert data["components"]["database"]["status"] == "ok"
+    assert data["components"]["database"]["response_ms"] >= 0
+
+
+def test_health_includes_version_and_uptime(client: TestClient) -> None:
+    resp = client.get("/api/v1/admin/health")
+    data = resp.json()
+    assert "version" in data
+    assert "uptime_seconds" in data
+    assert isinstance(data["uptime_seconds"], int)
+    assert data["uptime_seconds"] >= 0
+
+
+def test_version_endpoint(client: TestClient) -> None:
+    """Version endpoint should return version info."""
+    resp = client.get("/api/v1/version")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["version"] == "1.0.0"
+    assert data["api"] == "v1"
+    assert "build" in data
+
+
+def test_version_header_present(client: TestClient) -> None:
+    """All responses should include X-API-Version and X-Powered-By headers."""
+    resp = client.get("/api/v1/version")
+    assert resp.headers.get("X-API-Version") == "1.0.0"
+    assert resp.headers.get("X-Powered-By") == "OptiFlow AI"
 
 
 def test_metrics_requires_auth(client: TestClient) -> None:

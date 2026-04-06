@@ -18,7 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.encryption import decrypt
-from app.core.logging import get_logger
+from app.core.logging import get_logger, log_operation
 from app.integrations.erp_connector import ERPConnector
 from app.integrations.erp_factory import get_connector
 from app.integrations.erp_models import ERPCustomer
@@ -99,6 +99,7 @@ def _authenticate_connector(connector: ERPConnector, tenant: Tenant) -> None:
     connector.authenticate(base_url, erp_tenant, login, password)
 
 
+@log_operation("sync_customers")
 def sync_customers(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     """Synchronise les clients depuis l'ERP vers OptiFlow (lecture seule).
 

@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.logging import get_logger
+from app.core.logging import get_logger, log_operation
 from app.models import Customer
 from app.models.cosium_data import (
     CosiumPayment,
@@ -30,6 +30,7 @@ from app.services.erp_sync_service import (
 logger = get_logger("erp_sync_extras")
 
 
+@log_operation("sync_products")
 def sync_products(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     """Synchronise un echantillon de produits depuis l'ERP vers cosium_products.
 
@@ -109,6 +110,7 @@ def sync_products(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     return result
 
 
+@log_operation("sync_payments")
 def sync_payments(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     """Synchronise les paiements de factures depuis l'ERP vers cosium_payments (lecture seule)."""
     if not user_id:
@@ -227,6 +229,7 @@ def sync_payments(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     return result
 
 
+@log_operation("sync_third_party_payments")
 def sync_third_party_payments(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     """Synchronise les tiers payants depuis l'ERP vers cosium_third_party_payments (lecture seule)."""
     if not user_id:
@@ -304,6 +307,7 @@ def sync_third_party_payments(db: Session, tenant_id: int, user_id: int = 0) -> 
     return result
 
 
+@log_operation("sync_prescriptions")
 def sync_prescriptions(db: Session, tenant_id: int, user_id: int = 0) -> dict:
     """Synchronise les ordonnances optiques depuis l'ERP vers cosium_prescriptions (lecture seule)."""
     if not user_id:

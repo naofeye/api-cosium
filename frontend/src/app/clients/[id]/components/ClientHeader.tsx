@@ -2,8 +2,9 @@
 
 import { KPICard } from "@/components/ui/KPICard";
 import { formatMoney, formatDate } from "@/lib/format";
-import { Euro, CheckCircle, Clock, FolderOpen, Eye, Calendar, AlertTriangle, FileDown, ShieldCheck } from "lucide-react";
+import { Euro, CheckCircle, Clock, FolderOpen, Eye, Calendar, AlertTriangle, FileDown, ShieldCheck, Printer } from "lucide-react";
 import { AvatarUpload } from "./AvatarUpload";
+import { CopyButton } from "@/components/ui/CopyButton";
 import { useState } from "react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
@@ -126,16 +127,27 @@ export function ClientHeader({
           phone={phone}
           onUploaded={onAvatarUploaded}
         />
-        <button
-          onClick={handleDownloadPDF}
-          disabled={pdfLoading}
-          className="inline-flex items-center gap-2 rounded-lg border border-border bg-bg-card px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 transition-colors disabled:opacity-50 shrink-0"
-          title="Telecharger la fiche client en PDF"
-          aria-label="Telecharger la fiche client en PDF"
-        >
-          <FileDown className="h-4 w-4" aria-hidden="true" />
-          {pdfLoading ? "Export..." : "Telecharger PDF"}
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => window.print()}
+            className="no-print inline-flex items-center gap-2 rounded-lg border border-border bg-bg-card px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 transition-colors"
+            title="Imprimer la fiche client"
+            aria-label="Imprimer la fiche client"
+          >
+            <Printer className="h-4 w-4" aria-hidden="true" />
+            Imprimer
+          </button>
+          <button
+            onClick={handleDownloadPDF}
+            disabled={pdfLoading}
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-bg-card px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 transition-colors disabled:opacity-50"
+            title="Telecharger la fiche client en PDF"
+            aria-label="Telecharger la fiche client en PDF"
+          >
+            <FileDown className="h-4 w-4" aria-hidden="true" />
+            {pdfLoading ? "Export..." : "Telecharger PDF"}
+          </button>
+        </div>
       </div>
 
       {/* Prescription expiry alert */}
@@ -152,6 +164,7 @@ export function ClientHeader({
           {cosiumId && (
             <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 border border-blue-200">
               Cosium #{cosiumId}
+              <CopyButton text={String(cosiumId)} label="le N. Client Cosium" />
             </span>
           )}
           {correction && (

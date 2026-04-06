@@ -11,7 +11,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Button } from "@/components/ui/Button";
 import { downloadPdf } from "@/lib/download";
 import { formatMoney } from "@/lib/format";
-import { Euro, FileText, Receipt, Download } from "lucide-react";
+import { Euro, FileText, Receipt, Download, Printer } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
 
@@ -89,7 +89,17 @@ export default function FactureDetailPage() {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => window.print()}
+            className="no-print"
+            aria-label="Imprimer la facture"
+          >
+            <Printer className="h-4 w-4" /> Imprimer
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => downloadPdf(`/factures/${facture.id}/pdf`, `facture_${facture.numero}.pdf`)}
+            aria-label="Telecharger en PDF"
           >
             <Download className="h-4 w-4" /> PDF
           </Button>

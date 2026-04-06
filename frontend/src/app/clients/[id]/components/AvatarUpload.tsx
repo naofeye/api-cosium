@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { CopyButton } from "@/components/ui/CopyButton";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
@@ -105,8 +106,18 @@ export function AvatarUpload({
         <h2 className="text-lg font-semibold text-text-primary">
           {firstName} {lastName}
         </h2>
-        {email && <p className="text-sm text-text-secondary">{email}</p>}
-        {phone && <p className="text-sm text-text-secondary">{phone}</p>}
+        {email && (
+          <p className="text-sm text-text-secondary inline-flex items-center gap-1">
+            {email}
+            <CopyButton text={email} label="l'email" />
+          </p>
+        )}
+        {phone && (
+          <p className="text-sm text-text-secondary inline-flex items-center gap-1">
+            {phone}
+            <CopyButton text={phone} label="le telephone" />
+          </p>
+        )}
       </div>
     </div>
   );
