@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import useSWR from "swr";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/Button";
@@ -11,8 +11,18 @@ import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
 import { DateDisplay } from "@/components/ui/DateDisplay";
 import { KPICard } from "@/components/ui/KPICard";
 import { fetchJson } from "@/lib/api";
+import { formatMoney } from "@/lib/format";
 import { ManualReconciliation } from "./components/ManualReconciliation";
-import { Upload, RefreshCw, Link2, CheckCircle, AlertCircle, FileText } from "lucide-react";
+import {
+  Upload,
+  RefreshCw,
+  Link2,
+  CheckCircle,
+  AlertCircle,
+  FileText,
+  BarChart3,
+  Calendar,
+} from "lucide-react";
 
 interface BankTx {
   id: number;
@@ -51,7 +61,20 @@ export default function RapprochementPage() {
   const [showReconciled, setShowReconciled] = useState<boolean | undefined>(undefined);
   const [mutationError, setMutationError] = useState<string | null>(null);
 
-  const swrKey = `/banking/transactions${showReconciled !== undefined ? `?reconciled=${showReconciled}` : ""}`;
+  /* Date range filter */
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  const buildSwrKey = () => {
+    const parts: string[] = [];
+    if (showReconciled !== undefined) parts.push(`reconciled=${showReconciled}`);
+    if (dateFrom) parts.push(`date_from=${dateFrom}`);
+    if (dateTo) parts.push(`date_to=${dateTo}`);
+    const qs = parts.length > 0 ? `?${parts.join("&")}` : "";
+    return `/banking/transactions${qs}`;
+  };
+
+  const swrKey = buildSwrKey();
   const { data: txData, error: swrError, isLoading, mutate } = useSWR<TxList>(swrKey);
 
   const {
@@ -65,9 +88,24 @@ export default function RapprochementPage() {
   const payments = unreconciledPayments ?? [];
   const error = swrError?.message ?? mutationError ?? null;
 
-  const unmatchedTx = transactions.filter((t) => !t.reconciled);
-  const matchedCount = transactions.filter((t) => t.reconciled).length;
-  const unmatchedCount = unmatchedTx.length;
+  /* ─── KPI computations ─── */
+  const { matchedCount, unmatchedCount, unmatchedTx, tauxRapprochement, totalImported, totalMatched, totalUnmatched } =
+    useMemo(() => {
+      const matched = transactions.filter((t) => t.reconciled);
+      const unmatched = transactions.filter((t) => !t.reconciled);
+      const taux = total > 0 ? Math.round((matched.length / total) * 100) : 0;
+      const totalM = matched.reduce((s, t) => s + Math.abs(t.montant), 0);
+      const totalU = unmatched.reduce((s, t) => s + Math.abs(t.montant), 0);
+      return {
+        matchedCount: matched.length,
+        unmatchedCount: unmatched.length,
+        unmatchedTx: unmatched,
+        tauxRapprochement: taux,
+        totalImported: total,
+        totalMatched: totalM,
+        totalUnmatched: totalU,
+      };
+    }, [transactions, total]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -134,8 +172,9 @@ export default function RapprochementPage() {
       description="Import de releves et rapprochement avec les paiements"
       breadcrumb={[{ label: "Rapprochement" }]}
     >
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <KPICard icon={FileText} label="Total transactions" value={total} color="primary" />
+      {/* KPI Bar */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <KPICard icon={FileText} label="Transactions importees" value={totalImported} color="primary" />
         <KPICard icon={CheckCircle} label="Rapprochees" value={matchedCount} color="success" />
         <KPICard
           icon={AlertCircle}
@@ -144,14 +183,40 @@ export default function RapprochementPage() {
           color={unmatchedCount > 0 ? "danger" : "success"}
         />
         <KPICard
-          icon={Link2}
-          label="Paiements a rapprocher"
-          value={payments.length}
-          color={payments.length > 0 ? "warning" : "success"}
+          icon={BarChart3}
+          label="Taux rapprochement"
+          value={`${tauxRapprochement}%`}
+          color={tauxRapprochement >= 80 ? "success" : tauxRapprochement >= 50 ? "warning" : "danger"}
         />
       </div>
 
-      <div className="flex items-center gap-3 mb-6">
+      {/* Mini summary amounts */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="rounded-xl border border-border bg-bg-card p-4 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium text-text-secondary">Montant rapproche</p>
+            <p className="text-lg font-bold tabular-nums text-emerald-700">{formatMoney(totalMatched)}</p>
+          </div>
+          <CheckCircle className="h-8 w-8 text-emerald-200" />
+        </div>
+        <div className="rounded-xl border border-border bg-bg-card p-4 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium text-text-secondary">Montant non rapproche</p>
+            <p className="text-lg font-bold tabular-nums text-amber-700">{formatMoney(totalUnmatched)}</p>
+          </div>
+          <AlertCircle className="h-8 w-8 text-amber-200" />
+        </div>
+        <div className="rounded-xl border border-border bg-bg-card p-4 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium text-text-secondary">Paiements a rapprocher</p>
+            <p className="text-lg font-bold tabular-nums text-blue-700">{payments.length}</p>
+          </div>
+          <Link2 className="h-8 w-8 text-blue-200" />
+        </div>
+      </div>
+
+      {/* Action bar + filters */}
+      <div className="flex flex-wrap items-center gap-3 mb-6">
         <label className="cursor-pointer">
           <input type="file" accept=".csv" onChange={handleUpload} className="hidden" />
           <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-bg-card px-4 py-2 text-sm font-medium hover:bg-gray-50 transition-colors">
@@ -163,6 +228,10 @@ export default function RapprochementPage() {
           <RefreshCw className={`h-4 w-4 mr-1.5 ${reconciling ? "animate-spin" : ""}`} />
           {reconciling ? "Rapprochement..." : "Rapprochement auto"}
         </Button>
+
+        <div className="h-6 w-px bg-gray-200 mx-1" />
+
+        {/* Reconciled filter */}
         <label htmlFor="filter-reconciled" className="sr-only">Filtrer par statut de rapprochement</label>
         <select
           id="filter-reconciled"
@@ -175,8 +244,45 @@ export default function RapprochementPage() {
           <option value="false">Non rapprochees</option>
           <option value="true">Rapprochees</option>
         </select>
+
+        {/* Date range filter */}
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-text-secondary" />
+          <label htmlFor="date-from" className="sr-only">Date debut</label>
+          <input
+            id="date-from"
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="rounded-lg border border-border px-3 py-2 text-sm"
+            aria-label="Date debut"
+          />
+          <span className="text-text-secondary text-sm">au</span>
+          <label htmlFor="date-to" className="sr-only">Date fin</label>
+          <input
+            id="date-to"
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="rounded-lg border border-border px-3 py-2 text-sm"
+            aria-label="Date fin"
+          />
+          {(dateFrom || dateTo) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setDateFrom("");
+                setDateTo("");
+              }}
+            >
+              Effacer
+            </Button>
+          )}
+        </div>
       </div>
 
+      {/* Result banners */}
       {importResult && (
         <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 flex items-center gap-2">
           <CheckCircle className="h-4 w-4" aria-hidden="true" /> {importResult}
@@ -192,7 +298,6 @@ export default function RapprochementPage() {
           <CheckCircle className="h-4 w-4" aria-hidden="true" /> {matchResult}
         </div>
       )}
-
       {matching && (
         <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700 flex items-center gap-2">
           <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" /> Rapprochement en cours...
@@ -226,10 +331,10 @@ export default function RapprochementPage() {
         />
       ) : (
         <>
-          {/* Drag-and-drop zone for unmatched items */}
+          {/* Side-by-side manual reconciliation zone */}
           <ManualReconciliation unmatchedTx={unmatchedTx} payments={payments} onMatch={handleManualMatch} />
 
-          {/* Full transaction table */}
+          {/* Full transaction table with color coding */}
           <div>
             <h2 className="text-lg font-semibold text-gray-800 mb-3">Toutes les transactions</h2>
             <div className="rounded-xl border border-border bg-bg-card shadow-sm">
@@ -245,7 +350,14 @@ export default function RapprochementPage() {
                 </thead>
                 <tbody>
                   {transactions.map((tx) => (
-                    <tr key={tx.id} className="border-b border-border last:border-0 hover:bg-gray-50">
+                    <tr
+                      key={tx.id}
+                      className={`border-b border-border last:border-0 transition-colors ${
+                        tx.reconciled
+                          ? "bg-emerald-50/40 hover:bg-emerald-50"
+                          : "bg-amber-50/30 hover:bg-amber-50"
+                      }`}
+                    >
                       <td className="px-4 py-3">
                         <DateDisplay date={tx.date} />
                       </td>
@@ -256,11 +368,11 @@ export default function RapprochementPage() {
                       <td className="px-4 py-3 text-text-secondary font-mono text-xs">{tx.reference || "-"}</td>
                       <td className="px-4 py-3 text-center">
                         {tx.reconciled ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-100 rounded-full px-2.5 py-0.5">
                             <CheckCircle className="h-3.5 w-3.5" aria-hidden="true" /> Rapprochee
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700">
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-100 rounded-full px-2.5 py-0.5">
                             <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" /> Non rapprochee
                           </span>
                         )}

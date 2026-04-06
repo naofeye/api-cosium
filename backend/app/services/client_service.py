@@ -12,6 +12,7 @@ from app.domain.schemas.clients import (
     ClientImportError,
     ClientImportResult,
     ClientListResponse,
+    ClientMergeResult,
     ClientResponse,
     ClientUpdate,
     DuplicateGroup,
@@ -495,3 +496,174 @@ def get_avatar_url(db: Session, tenant_id: int, client_id: int) -> str:
         expires=3600,
     )
     return url
+
+
+def merge_clients(
+    db: Session, tenant_id: int, keep_id: int, merge_id: int, user_id: int
+) -> ClientMergeResult:
+    """Merge merge_id into keep_id. Transfer all related data, then soft-delete merge_id."""
+    from app.models.case import Case
+    from app.models.client_mutuelle import ClientMutuelle
+    from app.models.cosium_data import (
+        CosiumDocument,
+        CosiumInvoice,
+        CosiumPayment,
+        CosiumPrescription,
+    )
+    from app.models.interaction import Interaction
+    from app.models.marketing import MarketingConsent, MessageLog, SegmentMembership
+    from app.models.pec import PecRequest
+    from app.models.pec_preparation import PecPreparation
+
+    if keep_id == merge_id:
+        raise BusinessError("Impossible de fusionner un client avec lui-meme", "MERGE_SAME_CLIENT")
+
+    keep_client = client_repo.get_by_id_active(db, client_id=keep_id, tenant_id=tenant_id)
+    if not keep_client:
+        raise NotFoundError("client", keep_id)
+
+    merge_client = client_repo.get_by_id_active(db, client_id=merge_id, tenant_id=tenant_id)
+    if not merge_client:
+        raise NotFoundError("client", merge_id)
+
+    # Fill empty fields on keep_client from merge_client
+    fillable_fields = [
+        "phone", "email", "birth_date", "address", "street_number",
+        "street_name", "city", "postal_code", "social_security_number",
+        "optician_name", "ophthalmologist_id", "notes", "cosium_id",
+        "customer_number", "mobile_phone_country", "site_id",
+    ]
+    fields_filled: list[str] = []
+    for field in fillable_fields:
+        keep_val = getattr(keep_client, field, None)
+        merge_val = getattr(merge_client, field, None)
+        if not keep_val and merge_val:
+            setattr(keep_client, field, merge_val)
+            fields_filled.append(field)
+
+    # Transfer cases
+    cases_transferred = db.execute(
+        select(func.count()).select_from(Case).where(
+            Case.customer_id == merge_id, Case.tenant_id == tenant_id
+        )
+    ).scalar_one()
+    if cases_transferred:
+        db.execute(
+            Case.__table__.update()
+            .where(Case.customer_id == merge_id, Case.tenant_id == tenant_id)
+            .values(customer_id=keep_id)
+        )
+
+    # Transfer interactions
+    interactions_transferred = db.execute(
+        select(func.count()).select_from(Interaction).where(
+            Interaction.client_id == merge_id, Interaction.tenant_id == tenant_id
+        )
+    ).scalar_one()
+    if interactions_transferred:
+        db.execute(
+            Interaction.__table__.update()
+            .where(Interaction.client_id == merge_id, Interaction.tenant_id == tenant_id)
+            .values(client_id=keep_id)
+        )
+
+    # Transfer PEC requests
+    pec_transferred = db.execute(
+        select(func.count()).select_from(PecRequest).where(
+            PecRequest.client_id == merge_id, PecRequest.tenant_id == tenant_id
+        )
+    ).scalar_one()
+    if pec_transferred:
+        db.execute(
+            PecRequest.__table__.update()
+            .where(PecRequest.client_id == merge_id, PecRequest.tenant_id == tenant_id)
+            .values(client_id=keep_id)
+        )
+
+    # Transfer PEC preparations
+    db.execute(
+        PecPreparation.__table__.update()
+        .where(PecPreparation.customer_id == merge_id, PecPreparation.tenant_id == tenant_id)
+        .values(customer_id=keep_id)
+    )
+
+    # Transfer client mutuelles
+    db.execute(
+        ClientMutuelle.__table__.update()
+        .where(ClientMutuelle.customer_id == merge_id, ClientMutuelle.tenant_id == tenant_id)
+        .values(customer_id=keep_id)
+    )
+
+    # Transfer marketing data
+    marketing_transferred = 0
+    for model in [MarketingConsent, SegmentMembership, MessageLog]:
+        cnt = db.execute(
+            select(func.count()).select_from(model).where(
+                model.client_id == merge_id, model.tenant_id == tenant_id
+            )
+        ).scalar_one()
+        marketing_transferred += cnt
+        if cnt:
+            db.execute(
+                model.__table__.update()
+                .where(model.client_id == merge_id, model.tenant_id == tenant_id)
+                .values(client_id=keep_id)
+            )
+
+    # Transfer cosium data references
+    cosium_transferred = 0
+    for cosium_model in [CosiumInvoice, CosiumPayment, CosiumDocument, CosiumPrescription]:
+        if hasattr(cosium_model, "customer_id") and hasattr(cosium_model, "tenant_id"):
+            cnt = db.execute(
+                select(func.count()).select_from(cosium_model).where(
+                    cosium_model.customer_id == merge_id, cosium_model.tenant_id == tenant_id
+                )
+            ).scalar_one()
+            cosium_transferred += cnt
+            if cnt:
+                db.execute(
+                    cosium_model.__table__.update()
+                    .where(cosium_model.customer_id == merge_id, cosium_model.tenant_id == tenant_id)
+                    .values(customer_id=keep_id)
+                )
+
+    # Soft-delete merged client
+    client_repo.delete(db, merge_client)
+
+    db.commit()
+    db.refresh(keep_client)
+
+    audit_service.log_action(
+        db,
+        tenant_id,
+        user_id,
+        "merge",
+        "client",
+        keep_id,
+        new_value={
+            "merged_from": merge_id,
+            "cases_transferred": cases_transferred,
+            "interactions_transferred": interactions_transferred,
+            "pec_transferred": pec_transferred,
+            "marketing_transferred": marketing_transferred,
+            "fields_filled": fields_filled,
+        },
+    )
+    logger.info(
+        "clients_merged",
+        tenant_id=tenant_id,
+        keep_id=keep_id,
+        merge_id=merge_id,
+        user_id=user_id,
+    )
+
+    return ClientMergeResult(
+        kept_client=ClientResponse.model_validate(keep_client),
+        cases_transferred=cases_transferred,
+        interactions_transferred=interactions_transferred,
+        pec_transferred=pec_transferred,
+        marketing_transferred=marketing_transferred,
+        cosium_data_transferred=cosium_transferred,
+        fields_filled=fields_filled,
+        merged_client_deleted=True,
+    )

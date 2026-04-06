@@ -73,7 +73,7 @@ export default function AdminPage() {
 
   if (loading)
     return (
-      <PageLayout title="Chargement...">
+      <PageLayout title="Chargement..." breadcrumb={[{ label: "Admin" }]}>
         <LoadingState text="Chargement de l'administration..." />
       </PageLayout>
     );

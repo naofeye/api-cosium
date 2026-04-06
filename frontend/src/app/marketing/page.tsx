@@ -126,13 +126,13 @@ export default function MarketingPage() {
 
   if (isLoading)
     return (
-      <PageLayout title="Chargement...">
+      <PageLayout title="Chargement..." breadcrumb={[{ label: "Marketing" }]}>
         <LoadingState text="Chargement du marketing..." />
       </PageLayout>
     );
   if (displayError)
     return (
-      <PageLayout title="Erreur">
+      <PageLayout title="Erreur" breadcrumb={[{ label: "Marketing" }]}>
         <ErrorState
           message={displayError}
           onRetry={() => {

@@ -86,3 +86,19 @@ class DuplicateGroup(BaseModel):
     name: str
     count: int
     clients: list[ClientResponse]
+
+
+class ClientMergeRequest(BaseModel):
+    keep_id: int = Field(..., description="ID du client a conserver")
+    merge_id: int = Field(..., description="ID du client a fusionner (sera supprime)")
+
+
+class ClientMergeResult(BaseModel):
+    kept_client: ClientResponse
+    cases_transferred: int = 0
+    interactions_transferred: int = 0
+    pec_transferred: int = 0
+    marketing_transferred: int = 0
+    cosium_data_transferred: int = 0
+    fields_filled: list[str] = []
+    merged_client_deleted: bool = True

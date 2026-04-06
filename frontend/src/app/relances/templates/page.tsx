@@ -93,13 +93,13 @@ export default function TemplatesPage() {
 
   if (isLoading)
     return (
-      <PageLayout title="Chargement...">
+      <PageLayout title="Chargement..." breadcrumb={[{ label: "Relances", href: "/relances" }, { label: "Templates" }]}>
         <LoadingState text="Chargement des templates..." />
       </PageLayout>
     );
   if (displayError)
     return (
-      <PageLayout title="Erreur">
+      <PageLayout title="Erreur" breadcrumb={[{ label: "Relances", href: "/relances" }, { label: "Templates" }]}>
         <ErrorState
           message={displayError}
           onRetry={() => {

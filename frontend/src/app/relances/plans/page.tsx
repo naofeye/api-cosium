@@ -86,13 +86,13 @@ export default function PlansPage() {
 
   if (isLoading)
     return (
-      <PageLayout title="Chargement...">
+      <PageLayout title="Chargement..." breadcrumb={[{ label: "Relances", href: "/relances" }, { label: "Plans" }]}>
         <LoadingState text="Chargement des plans..." />
       </PageLayout>
     );
   if (displayError)
     return (
-      <PageLayout title="Erreur">
+      <PageLayout title="Erreur" breadcrumb={[{ label: "Relances", href: "/relances" }, { label: "Plans" }]}>
         <ErrorState
           message={displayError}
           onRetry={() => {

@@ -133,13 +133,13 @@ export default function StatistiquesPage() {
 
   if (isLoading)
     return (
-      <PageLayout title="Chargement...">
+      <PageLayout title="Chargement..." breadcrumb={[{ label: "Statistiques" }]}>
         <LoadingState text="Chargement des statistiques..." />
       </PageLayout>
     );
   if (error || !data)
     return (
-      <PageLayout title="Erreur">
+      <PageLayout title="Erreur" breadcrumb={[{ label: "Statistiques" }]}>
         <ErrorState message={error?.message ?? "Erreur"} onRetry={() => mutate()} />
       </PageLayout>
     );

@@ -142,7 +142,7 @@ export default function ActionsPage() {
 
   if (isLoading) {
     return (
-      <PageLayout title="Chargement...">
+      <PageLayout title="Chargement..." breadcrumb={[{ label: "Actions" }]}>
         <LoadingState text="Chargement de vos priorites..." />
       </PageLayout>
     );
@@ -150,7 +150,7 @@ export default function ActionsPage() {
 
   if (error) {
     return (
-      <PageLayout title="Erreur">
+      <PageLayout title="Erreur" breadcrumb={[{ label: "Actions" }]}>
         <ErrorState
           message={error}
           onRetry={() => {

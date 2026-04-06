@@ -10,6 +10,8 @@ from app.domain.schemas.clients import (
     ClientCreate,
     ClientImportResult,
     ClientListResponse,
+    ClientMergeRequest,
+    ClientMergeResult,
     ClientResponse,
     ClientUpdate,
     DuplicateGroup,
@@ -68,6 +70,26 @@ def download_import_template() -> Response:
         content=data,
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": "attachment; filename=modele_import_clients.csv"},
+    )
+
+
+@router.post(
+    "/merge",
+    response_model=ClientMergeResult,
+    summary="Fusionner deux clients",
+    description="Fusionne le client merge_id dans keep_id. Transfere les dossiers, interactions, PEC, etc.",
+)
+def merge_clients(
+    payload: ClientMergeRequest,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
+) -> ClientMergeResult:
+    return client_service.merge_clients(
+        db,
+        tenant_id=tenant_ctx.tenant_id,
+        keep_id=payload.keep_id,
+        merge_id=payload.merge_id,
+        user_id=tenant_ctx.user_id,
     )
 
 
