@@ -2,10 +2,12 @@
 
 import { useState, useMemo, useCallback } from "react";
 import useSWR from "swr";
+import dynamic from "next/dynamic";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { KPICard } from "@/components/ui/KPICard";
+import { SkeletonCard } from "@/components/ui/SkeletonCard";
 import { useToast } from "@/components/ui/Toast";
 import { formatMoney } from "@/lib/format";
 import {
@@ -19,19 +21,19 @@ import {
   FolderOpen,
   Target,
 } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-} from "recharts";
+
+const StatistiquesCharts = dynamic(
+  () => import("./components/StatistiquesCharts").then((m) => ({ default: m.StatistiquesCharts })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+    ),
+  },
+);
 
 type PeriodKey = "7d" | "30d" | "90d" | "365d";
 
@@ -87,7 +89,6 @@ interface DashboardData {
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
-const PIE_COLORS = ["#2563eb", "#8b5cf6", "#f59e0b"];
 
 export default function StatistiquesPage() {
   const [period, setPeriod] = useState<PeriodKey>("30d");
@@ -144,15 +145,6 @@ export default function StatistiquesPage() {
     );
 
   const { financial, operational, commercial, cosium } = data;
-
-  // Pie chart data: repartition factures / devis / avoirs
-  const pieData = cosium
-    ? [
-        { name: "Factures", value: cosium.invoice_count },
-        { name: "Devis", value: cosium.quote_count },
-        { name: "Avoirs", value: cosium.credit_note_count },
-      ]
-    : [];
 
   return (
     <PageLayout
@@ -224,46 +216,8 @@ export default function StatistiquesPage() {
         <KPICard icon={FileText} label="Taux conversion" value={`${commercial.taux_conversion} %`} color={commercial.taux_conversion > 50 ? "success" : "warning"} />
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* CA par mois */}
-        <div className="rounded-xl border border-border bg-bg-card p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-text-primary mb-4">CA par mois</h3>
-          {commercial.ca_par_mois.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={commercial.ca_par_mois}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                <XAxis dataKey="mois" tick={{ fontSize: 12 }} label={{ value: "Mois", position: "insideBottomRight", offset: -5, fontSize: 11, fill: "#6b7280" }} />
-                <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} label={{ value: "Montant (EUR)", angle: -90, position: "insideLeft", offset: 10, fontSize: 11, fill: "#6b7280" }} />
-                <Tooltip formatter={(value) => [formatMoney(Number(value)), "Chiffre d'affaires"]} />
-                <Bar dataKey="ca" name="Chiffre d'affaires" fill="#2563eb" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-sm text-text-secondary py-8 text-center">Pas de donnees</p>
-          )}
-        </div>
-
-        {/* Repartition factures / devis / avoirs */}
-        <div className="rounded-xl border border-border bg-bg-card p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-text-primary mb-4">Repartition documents Cosium</h3>
-          {pieData.length > 0 && pieData.some((d) => d.value > 0) ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={100} paddingAngle={3} dataKey="value" label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ""} ${((percent ?? 0) * 100).toFixed(0)}%`}>
-                  {pieData.map((_, idx) => (
-                    <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => [Number(value).toLocaleString("fr-FR"), "Documents"]} />
-                <Legend verticalAlign="bottom" height={36} />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-sm text-text-secondary py-8 text-center">Aucune donnee Cosium</p>
-          )}
-        </div>
-      </div>
+      {/* Charts (lazy loaded) */}
+      <StatistiquesCharts caParMois={commercial.ca_par_mois} cosium={cosium} />
 
       {/* Cosium summary if available */}
       {cosium && (

@@ -1,4 +1,4 @@
-from sqlalchemy import func, select, update
+from sqlalchemy import delete as sa_delete, func, select, update
 from sqlalchemy.orm import Session
 
 from app.models import Notification
@@ -57,6 +57,30 @@ def mark_all_read(db: Session, user_id: int, tenant_id: int) -> None:
         .values(is_read=True)
     )
     db.commit()
+
+
+def delete_notification(db: Session, notification_id: int, tenant_id: int, user_id: int) -> bool:
+    result = db.execute(
+        sa_delete(Notification).where(
+            Notification.id == notification_id,
+            Notification.tenant_id == tenant_id,
+            Notification.user_id == user_id,
+        )
+    )
+    db.commit()
+    return (result.rowcount or 0) > 0
+
+
+def delete_read_notifications(db: Session, tenant_id: int, user_id: int) -> int:
+    result = db.execute(
+        sa_delete(Notification).where(
+            Notification.tenant_id == tenant_id,
+            Notification.user_id == user_id,
+            Notification.is_read.is_(True),
+        )
+    )
+    db.commit()
+    return result.rowcount or 0
 
 
 def create(

@@ -84,3 +84,34 @@ def mark_all_read(
         tenant_id=tenant_ctx.tenant_id,
         user_id=tenant_ctx.user_id,
     )
+
+
+@router.delete(
+    "/notifications/read",
+    status_code=204,
+    summary="Supprimer les notifications lues",
+    description="Supprime toutes les notifications lues de l'utilisateur.",
+)
+def delete_read_notifications(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> None:
+    notification_service.delete_read_notifications(
+        db, tenant_id=tenant_ctx.tenant_id, user_id=tenant_ctx.user_id,
+    )
+
+
+@router.delete(
+    "/notifications/{notification_id}",
+    status_code=204,
+    summary="Supprimer une notification",
+    description="Supprime une notification.",
+)
+def delete_notification(
+    notification_id: int,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> None:
+    notification_service.delete_notification(
+        db, tenant_id=tenant_ctx.tenant_id, notification_id=notification_id, user_id=tenant_ctx.user_id
+    )

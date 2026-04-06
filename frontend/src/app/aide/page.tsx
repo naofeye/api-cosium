@@ -1,7 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { HelpCircle, Keyboard, ChevronDown, ChevronRight, Mail } from "lucide-react";
+import {
+  HelpCircle,
+  Keyboard,
+  ChevronDown,
+  ChevronRight,
+  Mail,
+  Phone,
+  BookOpen,
+  RefreshCw,
+  Info,
+  Shield,
+  Cookie,
+  FileText,
+  Globe,
+} from "lucide-react";
 
 interface FAQItem {
   question: string;
@@ -35,6 +49,16 @@ const faqItems: FAQItem[] = [
       "Le copilote IA est un assistant intelligent integre a OptiFlow. Il peut analyser vos dossiers, suggerer des actions commerciales, verifier la completude documentaire, et repondre a vos questions sur les donnees financieres. Accedez-y via l'icone IA dans la barre laterale ou avec le raccourci Ctrl+K.",
   },
   {
+    question: "Comment fonctionne la synchronisation Cosium ?",
+    answer:
+      "OptiFlow se connecte a votre ERP Cosium en lecture seule pour recuperer les donnees clients, factures, paiements, ordonnances et rendez-vous. La synchronisation est declenchee depuis la page Administration. Aucune donnee n'est modifiee dans Cosium : la synchronisation est unidirectionnelle (Cosium vers OptiFlow uniquement).",
+  },
+  {
+    question: "Comment preparer une prise en charge (PEC) ?",
+    answer:
+      "Allez dans Assistance PEC via le menu lateral. Selectionnez un client, puis lancez la preparation. Le systeme consolide automatiquement les donnees depuis toutes les sources (Cosium, documents, devis) et detecte les incoherences. Verifiez chaque champ, corrigez si necessaire, puis soumettez la PEC.",
+  },
+  {
     question: "Comment contacter le support ?",
     answer:
       "Pour toute question technique ou demande d'assistance, envoyez un email a support@optiflow.ai. Notre equipe repond sous 24h ouvrables. Pour les urgences (blocage complet), appelez le 01 23 45 67 89.",
@@ -44,7 +68,10 @@ const faqItems: FAQItem[] = [
 const shortcuts = [
   { keys: "Ctrl + K", description: "Ouvrir la recherche globale / Copilote IA" },
   { keys: "Ctrl + N", description: "Creer un nouveau dossier" },
+  { keys: "Ctrl + B", description: "Ouvrir/fermer la barre laterale" },
   { keys: "Escape", description: "Fermer la modale ou le panneau actif" },
+  { keys: "Alt + D", description: "Aller au Dashboard" },
+  { keys: "Alt + C", description: "Aller aux Clients" },
 ];
 
 function FAQAccordion({ item }: { item: FAQItem }) {
@@ -74,6 +101,8 @@ function FAQAccordion({ item }: { item: FAQItem }) {
 }
 
 export default function AidePage() {
+  const [cosiumGuideOpen, setCosiumGuideOpen] = useState(false);
+
   return (
     <div className="space-y-8">
       {/* Page header */}
@@ -90,8 +119,50 @@ export default function AidePage() {
         <p className="mt-2 text-sm text-gray-500">Trouvez rapidement des reponses a vos questions sur OptiFlow AI.</p>
       </div>
 
-      {/* FAQ Section */}
+      {/* Quick links */}
       <section>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <a
+            href="#faq"
+            className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition-all"
+          >
+            <div className="rounded-lg bg-blue-100 p-2">
+              <BookOpen className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Questions frequentes</p>
+              <p className="text-xs text-gray-500">{faqItems.length} questions</p>
+            </div>
+          </a>
+          <a
+            href="#raccourcis"
+            className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition-all"
+          >
+            <div className="rounded-lg bg-purple-100 p-2">
+              <Keyboard className="h-5 w-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Raccourcis clavier</p>
+              <p className="text-xs text-gray-500">{shortcuts.length} raccourcis</p>
+            </div>
+          </a>
+          <a
+            href="#cosium-cookie"
+            className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-400 hover:shadow-md transition-all"
+          >
+            <div className="rounded-lg bg-amber-100 p-2">
+              <Cookie className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Cookie Cosium</p>
+              <p className="text-xs text-gray-500">Guide de renouvellement</p>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section id="faq">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Questions frequentes</h2>
         <div className="space-y-2">
           {faqItems.map((item, index) => (
@@ -100,8 +171,67 @@ export default function AidePage() {
         </div>
       </section>
 
+      {/* Cosium cookie renewal guide */}
+      <section id="cosium-cookie">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 shadow-sm overflow-hidden">
+          <button
+            onClick={() => setCosiumGuideOpen(!cosiumGuideOpen)}
+            className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-amber-100/50 transition-colors"
+            aria-expanded={cosiumGuideOpen}
+          >
+            <div className="flex items-center gap-3">
+              <Cookie className="h-5 w-5 text-amber-600" />
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800">Comment renouveler le cookie Cosium</h2>
+                <p className="text-sm text-gray-600 mt-0.5">
+                  Guide pas a pas pour maintenir la connexion avec votre ERP Cosium
+                </p>
+              </div>
+            </div>
+            {cosiumGuideOpen ? (
+              <ChevronDown className="h-5 w-5 text-gray-500 shrink-0" />
+            ) : (
+              <ChevronRight className="h-5 w-5 text-gray-500 shrink-0" />
+            )}
+          </button>
+          {cosiumGuideOpen && (
+            <div className="px-6 pb-6 space-y-4">
+              <div className="bg-white rounded-lg border border-amber-200 p-4">
+                <h3 className="text-sm font-semibold text-gray-800 mb-3">Etapes de renouvellement</h3>
+                <ol className="space-y-3 text-sm text-gray-700">
+                  <li className="flex gap-3">
+                    <span className="shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">1</span>
+                    <span>Connectez-vous a votre espace Cosium via votre navigateur : <strong>https://c1.cosium.biz/votre-tenant</strong></span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">2</span>
+                    <span>Entrez vos identifiants Cosium (login et mot de passe)</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">3</span>
+                    <span>Une fois connecte, allez dans <strong>Administration &gt; Connexion ERP</strong> dans OptiFlow</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">4</span>
+                    <span>Cliquez sur <strong>&quot;Tester la connexion&quot;</strong> pour verifier que le cookie est valide</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">5</span>
+                    <span>Si la connexion echoue, cliquez sur <strong>&quot;Rafraichir le token&quot;</strong> pour re-authentifier</span>
+                  </li>
+                </ol>
+              </div>
+              <div className="flex items-start gap-2 text-xs text-amber-700">
+                <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                <p>Le cookie Cosium expire regulierement pour des raisons de securite. Si la synchronisation cesse de fonctionner, c&apos;est probablement que le cookie a expire. Renouvelez-le en suivant les etapes ci-dessus.</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* Keyboard shortcuts */}
-      <section>
+      <section id="raccourcis">
         <div className="flex items-center gap-2 mb-4">
           <Keyboard className="h-5 w-5 text-gray-600" />
           <h2 className="text-lg font-semibold text-gray-800">Raccourcis clavier</h2>
@@ -130,6 +260,43 @@ export default function AidePage() {
         </div>
       </section>
 
+      {/* Documentation link */}
+      <section>
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="rounded-lg bg-blue-100 p-2">
+              <FileText className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800">Documentation</h2>
+              <p className="mt-1 text-sm text-gray-600">
+                Consultez la documentation complete pour decouvrir toutes les fonctionnalites d&apos;OptiFlow AI.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <a
+                  href="https://docs.optiflow.ai"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <Globe className="h-4 w-4" aria-hidden="true" />
+                  Documentation en ligne
+                </a>
+                <a
+                  href="/api/v1/docs"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <Shield className="h-4 w-4" aria-hidden="true" />
+                  API Swagger
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Contact support */}
       <section className="bg-blue-50 rounded-xl border border-blue-200 p-6">
         <div className="flex items-start gap-4">
@@ -139,13 +306,31 @@ export default function AidePage() {
             <p className="mt-1 text-sm text-gray-600">
               Notre equipe support est disponible du lundi au vendredi, de 9h a 18h.
             </p>
-            <a
-              href="mailto:support@optiflow.ai"
-              className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Contacter le support
-            </a>
+            <div className="mt-3 flex flex-wrap gap-3">
+              <a
+                href="mailto:support@optiflow.ai"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Mail className="h-4 w-4" aria-hidden="true" />
+                support@optiflow.ai
+              </a>
+              <a
+                href="tel:+33123456789"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-blue-200 text-blue-700 text-sm font-medium rounded-lg hover:bg-blue-50 transition-colors"
+              >
+                <Phone className="h-4 w-4" aria-hidden="true" />
+                01 23 45 67 89
+              </a>
+            </div>
           </div>
+        </div>
+      </section>
+
+      {/* Version info */}
+      <section className="text-center pb-4">
+        <div className="inline-flex items-center gap-2 text-xs text-gray-400">
+          <Info className="h-3.5 w-3.5" aria-hidden="true" />
+          <span>OptiFlow AI v1.0.0 | Plateforme metier pour opticiens</span>
         </div>
       </section>
     </div>

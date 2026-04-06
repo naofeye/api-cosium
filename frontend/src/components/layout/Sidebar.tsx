@@ -29,6 +29,7 @@ import {
   Stethoscope,
   BarChart3,
   ClipboardCheck,
+  Bell,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -104,6 +105,7 @@ const navGroups: NavGroup[] = [
     label: "Administration",
     items: [
       { href: "/admin", label: "Admin", icon: Settings },
+      { href: "/notifications", label: "Notifications", icon: Bell },
       { href: "/aide", label: "Aide", icon: HelpCircle },
     ],
   },

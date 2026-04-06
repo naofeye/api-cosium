@@ -530,3 +530,281 @@ def export_dashboard_pdf(
 
     logger.info("dashboard_pdf_exported", tenant_id=tenant_id)
     return output.getvalue()
+
+
+# ---------------------------------------------------------------------------
+# PEC Preparation PDF
+# ---------------------------------------------------------------------------
+
+def _severity_color(severity: str) -> rl_colors.Color:
+    """Return a ReportLab color for an alert severity."""
+    if severity == "error":
+        return rl_colors.HexColor("#DC2626")
+    if severity == "warning":
+        return rl_colors.HexColor("#D97706")
+    return rl_colors.HexColor("#2563EB")
+
+
+def _field_row(label: str, field: dict | None) -> list[str]:
+    """Build a table row from a consolidated field dict."""
+    if not field:
+        return [label, "-", "-", "-"]
+    value = str(field.get("value", "-") or "-")
+    source = field.get("source_label", field.get("source", "-"))
+    confidence = field.get("confidence")
+    conf_str = f"{confidence * 100:.0f} %" if confidence is not None else "-"
+    return [label, value, str(source), conf_str]
+
+
+def export_pec_preparation_pdf(
+    db: Session,
+    tenant_id: int,
+    preparation_id: int,
+) -> bytes:
+    """Generate a professional PDF of a PEC preparation worksheet."""
+    from app.services import pec_preparation_service
+
+    prep = pec_preparation_service.get_preparation(db, tenant_id, preparation_id)
+
+    output = io.BytesIO()
+    doc = SimpleDocTemplate(
+        output,
+        pagesize=A4,
+        topMargin=20 * mm,
+        bottomMargin=20 * mm,
+        leftMargin=15 * mm,
+        rightMargin=15 * mm,
+    )
+
+    styles = getSampleStyleSheet()
+    elements: list = []
+
+    title_style = ParagraphStyle(
+        "PecTitle", parent=styles["Heading1"], fontSize=16, alignment=1, spaceAfter=4,
+    )
+    subtitle_style = ParagraphStyle(
+        "PecSubtitle", parent=styles["Normal"], fontSize=10, alignment=1,
+        spaceAfter=6, textColor=rl_colors.grey,
+    )
+    section_style = ParagraphStyle(
+        "PecSection", parent=styles["Heading2"], fontSize=12, spaceAfter=6,
+        spaceBefore=12, textColor=rl_colors.HexColor("#1E40AF"),
+    )
+    normal = styles["Normal"]
+    small = ParagraphStyle("SmallPec", parent=normal, fontSize=8, textColor=rl_colors.grey)
+
+    profile = prep.consolidated_data or {}
+
+    # ── Header ──
+    elements.append(Paragraph("Fiche d'assistance PEC — OptiFlow", title_style))
+    generated = datetime.now(UTC).strftime("%d/%m/%Y %H:%M")
+    score = prep.completude_score
+    elements.append(Paragraph(
+        f"Generee le {generated} | Score de completude : {score:.0f} % | "
+        f"Statut : {prep.status}",
+        subtitle_style,
+    ))
+    elements.append(Spacer(1, 6 * mm))
+
+    # ── 1. Identite du patient ──
+    elements.append(Paragraph("1. Identite du patient", section_style))
+    identity_rows = [["Champ", "Valeur", "Source", "Confiance"]]
+    for label, key in [
+        ("Nom", "nom"),
+        ("Prenom", "prenom"),
+        ("Date de naissance", "date_naissance"),
+        ("N. Securite sociale", "numero_secu"),
+    ]:
+        identity_rows.append(_field_row(label, profile.get(key)))
+    id_table = Table(identity_rows, colWidths=[120, 160, 100, 60])
+    id_table.setStyle(_section_table_style())
+    elements.append(id_table)
+    elements.append(Spacer(1, 4 * mm))
+
+    # ── 2. Mutuelle / OCAM ──
+    elements.append(Paragraph("2. Mutuelle / OCAM", section_style))
+    mut_rows = [["Champ", "Valeur", "Source", "Confiance"]]
+    for label, key in [
+        ("Mutuelle", "mutuelle_nom"),
+        ("N. Adherent", "mutuelle_numero_adherent"),
+        ("Code organisme", "mutuelle_code_organisme"),
+        ("Beneficiaire", "type_beneficiaire"),
+        ("Fin de droits", "date_fin_droits"),
+    ]:
+        mut_rows.append(_field_row(label, profile.get(key)))
+    mut_table = Table(mut_rows, colWidths=[120, 160, 100, 60])
+    mut_table.setStyle(_section_table_style())
+    elements.append(mut_table)
+    elements.append(Spacer(1, 4 * mm))
+
+    # ── 3. Correction optique ──
+    elements.append(Paragraph("3. Correction optique", section_style))
+    corr_header = ["", "Sphere", "Cylindre", "Axe", "Addition"]
+    od_row = [
+        "OD",
+        str((profile.get("sphere_od") or {}).get("value", "-")),
+        str((profile.get("cylinder_od") or {}).get("value", "-")),
+        str((profile.get("axis_od") or {}).get("value", "-")),
+        str((profile.get("addition_od") or {}).get("value", "-")),
+    ]
+    og_row = [
+        "OG",
+        str((profile.get("sphere_og") or {}).get("value", "-")),
+        str((profile.get("cylinder_og") or {}).get("value", "-")),
+        str((profile.get("axis_og") or {}).get("value", "-")),
+        str((profile.get("addition_og") or {}).get("value", "-")),
+    ]
+    corr_table = Table([corr_header, od_row, og_row], colWidths=[40, 80, 80, 60, 80])
+    corr_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), rl_colors.HexColor("#2563EB")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), rl_colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTNAME", (0, 1), (0, -1), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("GRID", (0, 0), (-1, -1), 0.5, rl_colors.grey),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [rl_colors.white, rl_colors.HexColor("#F9FAFB")]),
+    ]))
+    elements.append(corr_table)
+
+    prescripteur = profile.get("prescripteur")
+    date_ordo = profile.get("date_ordonnance")
+    ep = profile.get("ecart_pupillaire")
+    extra_rows = []
+    if prescripteur:
+        extra_rows.append(_field_row("Prescripteur", prescripteur))
+    if date_ordo:
+        extra_rows.append(_field_row("Date ordonnance", date_ordo))
+    if ep:
+        extra_rows.append(_field_row("Ecart pupillaire", ep))
+    if extra_rows:
+        extra_rows.insert(0, ["Champ", "Valeur", "Source", "Confiance"])
+        et = Table(extra_rows, colWidths=[120, 160, 100, 60])
+        et.setStyle(_section_table_style())
+        elements.append(Spacer(1, 2 * mm))
+        elements.append(et)
+    elements.append(Spacer(1, 4 * mm))
+
+    # ── 4. Equipement (devis) ──
+    elements.append(Paragraph("4. Equipement (lignes devis)", section_style))
+    equip_rows = [["Element", "Valeur", "Source", "Confiance"]]
+    monture = profile.get("monture")
+    if monture:
+        equip_rows.append(_field_row("Monture", monture))
+    verres = profile.get("verres", [])
+    for i, v in enumerate(verres):
+        equip_rows.append(_field_row(f"Verre {i + 1}", v))
+    if len(equip_rows) == 1:
+        equip_rows.append(["", "Aucun equipement renseigne", "", ""])
+    eq_table = Table(equip_rows, colWidths=[120, 160, 100, 60])
+    eq_table.setStyle(_section_table_style())
+    elements.append(eq_table)
+    elements.append(Spacer(1, 4 * mm))
+
+    # ── 5. Synthese financiere ──
+    elements.append(Paragraph("5. Synthese financiere", section_style))
+    fin_rows = [["Poste", "Montant", "Source", "Confiance"]]
+    for label, key in [
+        ("Total TTC", "montant_ttc"),
+        ("Part Securite sociale", "part_secu"),
+        ("Part Mutuelle", "part_mutuelle"),
+        ("Reste a charge", "reste_a_charge"),
+    ]:
+        field = profile.get(key)
+        if field and field.get("value") is not None:
+            val = _fmt_money(float(field["value"]))
+        else:
+            val = "-"
+        source = (field.get("source_label", "-") if field else "-")
+        conf = f"{field['confidence'] * 100:.0f} %" if field and field.get("confidence") is not None else "-"
+        fin_rows.append([label, val, str(source), conf])
+    fin_table = Table(fin_rows, colWidths=[120, 120, 100, 60])
+    fin_table.setStyle(_section_table_style())
+    elements.append(fin_table)
+    elements.append(Spacer(1, 4 * mm))
+
+    # ── 6. Pieces justificatives ──
+    elements.append(Paragraph("6. Pieces justificatives", section_style))
+    from app.services import pec_preparation_service as pps
+    try:
+        docs = pps.list_documents(db, tenant_id, preparation_id)
+        if docs:
+            doc_rows = [["Role", "Document ID", "Cosium Doc ID"]]
+            for d in docs:
+                doc_rows.append([
+                    d.document_role,
+                    str(d.document_id or "-"),
+                    str(d.cosium_document_id or "-"),
+                ])
+            doc_table = Table(doc_rows, colWidths=[120, 120, 120])
+            doc_table.setStyle(_section_table_style())
+            elements.append(doc_table)
+        else:
+            elements.append(Paragraph("Aucune piece justificative attachee.", small))
+    except Exception:
+        elements.append(Paragraph("Impossible de charger les pieces justificatives.", small))
+    elements.append(Spacer(1, 4 * mm))
+
+    # ── 7. Alertes et incoherences ──
+    elements.append(Paragraph("7. Alertes et incoherences", section_style))
+    alertes = profile.get("alertes", [])
+    if alertes:
+        alert_rows = [["Severite", "Champ", "Message"]]
+        for a in alertes:
+            sev = a.get("severity", "info")
+            alert_rows.append([sev.upper(), a.get("field", "-"), a.get("message", "-")])
+        alert_table = Table(alert_rows, colWidths=[60, 100, 280])
+        alert_ts = TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), rl_colors.HexColor("#374151")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), rl_colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("GRID", (0, 0), (-1, -1), 0.5, rl_colors.grey),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ])
+        alert_table.setStyle(alert_ts)
+        # Color code severity cells
+        for i, a in enumerate(alertes, start=1):
+            sev = a.get("severity", "info")
+            color = _severity_color(sev)
+            alert_table.setStyle(TableStyle([
+                ("TEXTCOLOR", (0, i), (0, i), color),
+                ("FONTNAME", (0, i), (0, i), "Helvetica-Bold"),
+            ]))
+        elements.append(alert_table)
+    else:
+        elements.append(Paragraph("Aucune alerte detectee.", small))
+    elements.append(Spacer(1, 4 * mm))
+
+    # Summary
+    elements.append(Spacer(1, 4 * mm))
+    summary_text = (
+        f"Erreurs : {prep.errors_count} | "
+        f"Avertissements : {prep.warnings_count} | "
+        f"Champs manquants : {', '.join(profile.get('champs_manquants', [])) or 'aucun'}"
+    )
+    elements.append(Paragraph(summary_text, ParagraphStyle(
+        "Summary", parent=normal, fontSize=9, spaceAfter=8,
+    )))
+
+    # Footer
+    elements.append(Spacer(1, 8 * mm))
+    footer_style = ParagraphStyle(
+        "PecFooter", parent=styles["Italic"], fontSize=8,
+        textColor=rl_colors.grey, alignment=1,
+    )
+    elements.append(Paragraph(
+        "Document genere automatiquement — a verifier avant soumission.",
+        footer_style,
+    ))
+
+    doc.build(elements)
+    output.seek(0)
+
+    logger.info(
+        "pec_preparation_pdf_exported",
+        tenant_id=tenant_id,
+        preparation_id=preparation_id,
+    )
+    return output.getvalue()

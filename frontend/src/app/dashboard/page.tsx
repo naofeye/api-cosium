@@ -5,8 +5,8 @@ import useSWR from "swr";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import dynamic from "next/dynamic";
 import { DashboardKPIs } from "./components/DashboardKPIs";
-import { DashboardCharts } from "./components/DashboardCharts";
 import { DashboardSections } from "./components/DashboardSections";
 import { RenewalSection } from "./components/RenewalSection";
 import { PayersTable } from "./components/PayersTable";
@@ -14,6 +14,16 @@ import { RecentActivity } from "./components/RecentActivity";
 import { OnboardingGuide } from "@/components/ui/OnboardingGuide";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { SkeletonCard } from "@/components/ui/SkeletonCard";
+
+const DashboardCharts = dynamic(() => import("./components/DashboardCharts").then((m) => ({ default: m.DashboardCharts })), {
+  ssr: false,
+  loading: () => (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <SkeletonCard />
+      <SkeletonCard />
+    </div>
+  ),
+});
 import { useToast } from "@/components/ui/Toast";
 import { FileDown, Calendar, Eye, RefreshCw as RefreshIcon, Clock, ClipboardCheck, Search, AlertCircle, Settings } from "lucide-react";
 import Link from "next/link";

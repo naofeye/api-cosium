@@ -1,9 +1,16 @@
 import "./globals.css";
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { ProgressBarProvider } from "@/components/layout/ProgressBar";
 
-export const metadata = { title: "OptiFlow AI", description: "Plateforme metier pour opticiens" };
+export const metadata: Metadata = {
+  title: "OptiFlow AI — Gestion Opticien",
+  description: "Plateforme de gestion pour opticiens connectee a Cosium",
+  icons: { icon: "/favicon.svg" },
+  keywords: ["opticien", "gestion", "cosium", "optiflow", "crm"],
+  authors: [{ name: "OptiFlow AI" }],
+};
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

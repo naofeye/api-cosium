@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Send,
   ArrowLeft,
+  FileDown,
 } from "lucide-react";
 
 import { PageLayout } from "@/components/layout/PageLayout";
@@ -80,7 +81,34 @@ export default function PecPreparationDetailPage() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
+
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
+
+  const handleExportPDF = async () => {
+    setExporting(true);
+    try {
+      const resp = await fetch(`${API_BASE}/pec-preparations/${prepId}/export-pdf`, {
+        credentials: "include",
+      });
+      if (!resp.ok) throw new Error("Erreur lors de l'export PDF");
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `pec_preparation_${prepId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast("PDF telecharge avec succes", "success");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Impossible de telecharger le PDF", "error");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const profile = data?.consolidated_data ?? null;
   const validations = data?.user_validations ?? {};
@@ -376,6 +404,9 @@ export default function PecPreparationDetailPage() {
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleRefresh} loading={refreshing}>
             <RefreshCw className="h-4 w-4 mr-1" /> Rafraichir
+          </Button>
+          <Button variant="outline" onClick={handleExportPDF} loading={exporting}>
+            <FileDown className="h-4 w-4 mr-1" /> Exporter PDF
           </Button>
         </div>
         <div className="flex gap-2">

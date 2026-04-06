@@ -1,6 +1,7 @@
 """API router for PEC preparation (assistance PEC)."""
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.core.tenant_context import TenantContext, get_tenant_context
@@ -15,6 +16,7 @@ from app.domain.schemas.pec_preparation import (
     PecPreparationSummary,
 )
 from app.services import pec_preparation_service
+from app.services.export_pdf import export_pec_preparation_pdf
 
 router = APIRouter(prefix="/api/v1", tags=["pec-preparation"])
 
@@ -223,4 +225,28 @@ def attach_document(
         cosium_document_id=payload.cosium_document_id,
         document_role=payload.document_role,
         extraction_id=payload.extraction_id,
+    )
+
+
+@router.get(
+    "/pec-preparations/{preparation_id}/export-pdf",
+    summary="Exporter la fiche PEC en PDF",
+    description="Genere un PDF professionnel de la fiche d'assistance PEC.",
+)
+def export_preparation_pdf(
+    preparation_id: int,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> Response:
+    pdf_bytes = export_pec_preparation_pdf(
+        db,
+        tenant_id=tenant_ctx.tenant_id,
+        preparation_id=preparation_id,
+    )
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="pec_preparation_{preparation_id}.pdf"',
+        },
     )
