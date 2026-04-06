@@ -29,17 +29,42 @@ def cosium_customer_to_optiflow(data: dict) -> dict:
     contact = data.get("_embedded", {}).get("contact", {})
     address = data.get("_embedded", {}).get("address", {})
 
+    # Build full address string from components if available
+    street_number = address.get("streetNumber") or address.get("number")
+    street_name_val = address.get("streetName") or address.get("street")
+    full_address = street_name_val or ""
+    if street_number and street_name_val:
+        full_address = f"{street_number} {street_name_val}"
+
+    # Mobile phone country from contact sub-resource
+    mobile_country = contact.get("mobilePhoneNumberCountry") or contact.get("e164MobilePhoneNumberCountry")
+
+    # Site ID: direct field or from _links
+    site_id = data.get("siteId")
+    if site_id is None:
+        site_href = data.get("_links", {}).get("site", {}).get("href", "")
+        if "/sites/" in site_href:
+            try:
+                site_id = int(site_href.rsplit("/sites/", 1)[-1].split("?")[0])
+            except (ValueError, IndexError):
+                pass
+
     return {
         "first_name": data.get("firstName") or "",
         "last_name": data.get("lastName") or "",
         "birth_date": data.get("birthDate"),
         "phone": data.get("mobilePhone") or contact.get("mobilePhoneNumber") or contact.get("phoneNumber"),
         "email": data.get("email") or contact.get("email"),
-        "address": address.get("streetName") or address.get("street"),
+        "address": full_address,
+        "street_number": street_number,
+        "street_name": street_name_val,
         "city": address.get("town") or address.get("city"),
         "postal_code": address.get("postCode") or address.get("zipCode"),
         "social_security_number": data.get("socialSecurityNumber"),
         "cosium_id": str(data.get("id", "")),
+        "customer_number": data.get("customerNumber"),
+        "site_id": site_id,
+        "mobile_phone_country": mobile_country,
     }
 
 

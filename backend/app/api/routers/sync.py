@@ -149,6 +149,37 @@ def sync_prescriptions(
 
 
 @router.post(
+    "/enrich-clients",
+    summary="Enrichir les metadonnees clients",
+    description=(
+        "Recupere l'opticien referent et l'ophtalmologiste pour les clients "
+        "qui n'ont pas encore ces informations. Limité aux N premiers clients "
+        "pour eviter de surcharger l'API Cosium (1 appel par client)."
+    ),
+)
+def enrich_clients(
+    limit: int = 500,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
+) -> dict:
+    lock_key = f"sync:enrich:{tenant_ctx.tenant_id}"
+    if not acquire_lock(lock_key, ttl=1200):
+        raise BusinessError(
+            "ENRICH_IN_PROGRESS",
+            "Un enrichissement est deja en cours. Veuillez patienter.",
+        )
+    try:
+        return erp_sync_service.enrich_top_clients_metadata(
+            db,
+            tenant_id=tenant_ctx.tenant_id,
+            user_id=tenant_ctx.user_id,
+            limit=limit,
+        )
+    finally:
+        release_lock(lock_key)
+
+
+@router.post(
     "/all",
     response_model=SyncAllResult,
     summary="Synchroniser tout",

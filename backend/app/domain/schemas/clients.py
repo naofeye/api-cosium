@@ -32,15 +32,22 @@ class ClientUpdate(BaseModel):
 class ClientResponse(BaseModel):
     id: int
     cosium_id: str | None = None
+    customer_number: str | None = None
     first_name: str
     last_name: str
     birth_date: date | None = None
     phone: str | None = None
     email: str | None = None
     address: str | None = None
+    street_number: str | None = None
+    street_name: str | None = None
     city: str | None = None
     postal_code: str | None = None
     social_security_number: str | None = None
+    optician_name: str | None = None
+    ophthalmologist_id: str | None = None
+    mobile_phone_country: str | None = None
+    site_id: int | None = None
     notes: str | None = None
     avatar_url: str | None = None
     created_at: datetime | None = None

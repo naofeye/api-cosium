@@ -174,6 +174,11 @@ class CosiumConnector(ERPConnector):
                     city=mapped.get("city"),
                     postal_code=mapped.get("postal_code"),
                     social_security_number=mapped.get("social_security_number"),
+                    customer_number=mapped.get("customer_number"),
+                    street_number=mapped.get("street_number"),
+                    street_name=mapped.get("street_name"),
+                    mobile_phone_country=mapped.get("mobile_phone_country"),
+                    site_id=mapped.get("site_id"),
                 )
             )
         return customers
@@ -327,6 +332,30 @@ class CosiumConnector(ERPConnector):
     def get_document_content(self, customer_cosium_id: int, document_id: int) -> bytes:
         """GET /customers/{id}/documents/{id}/content — contenu binaire du document."""
         return self._client.get_raw(f"/customers/{customer_cosium_id}/documents/{document_id}/content")
+
+    def get_customer_optician(self, customer_erp_id: str) -> str | None:
+        """GET /customers/{id}/optician — retourne le nom de l'opticien referent."""
+        try:
+            data = self._client.get(f"/customers/{customer_erp_id}/optician")
+            first = data.get("firstName", "")
+            last = data.get("lastName", "")
+            name = f"{first} {last}".strip()
+            return name if name else None
+        except Exception:
+            logger.debug("cosium_optician_not_found", customer_id=customer_erp_id)
+            return None
+
+    def get_customer_ophthalmologist_id(self, customer_erp_id: str) -> str | None:
+        """Extract ophthalmologist reference from customer _links."""
+        try:
+            data = self._client.get(f"/customers/{customer_erp_id}")
+            oph_href = data.get("_links", {}).get("ophthalmologist", {}).get("href", "")
+            if "/doctors/" in oph_href:
+                return oph_href.rsplit("/doctors/", 1)[-1].split("?")[0]
+            return None
+        except Exception:
+            logger.debug("cosium_ophthalmologist_not_found", customer_id=customer_erp_id)
+            return None
 
     def get_payment_types(self) -> list[ERPPaymentType]:
         data = self._client.get("/payment-types")

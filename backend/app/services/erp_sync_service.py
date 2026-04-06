@@ -274,10 +274,17 @@ def _customer_has_changes(existing: Customer, erp_c: ERPCustomer) -> bool:
     # cosium_id missing = always needs update
     if erp_c.erp_id and not getattr(existing, "cosium_id", None):
         return True
-    for field in ("phone", "address", "city", "postal_code", "social_security_number"):
+    enriched_fields = (
+        "phone", "address", "city", "postal_code", "social_security_number",
+        "customer_number", "street_number", "street_name",
+        "mobile_phone_country",
+    )
+    for field in enriched_fields:
         erp_val = getattr(erp_c, field, None)
         if erp_val and not getattr(existing, field, None):
             return True
+    if erp_c.site_id is not None and not getattr(existing, "site_id", None):
+        return True
     if erp_c.birth_date and not existing.birth_date:
         return True
     # Check if core identity fields differ (e.g. name correction in Cosium)
@@ -297,11 +304,19 @@ def _update_customer_fields(existing: Customer, erp_c: ERPCustomer) -> bool:
     if erp_c.erp_id and not getattr(existing, "cosium_id", None):
         existing.cosium_id = str(erp_c.erp_id)
         changed = True
-    for field in ("phone", "address", "city", "postal_code", "social_security_number"):
+    enriched_fields = (
+        "phone", "address", "city", "postal_code", "social_security_number",
+        "customer_number", "street_number", "street_name",
+        "mobile_phone_country",
+    )
+    for field in enriched_fields:
         erp_val = getattr(erp_c, field, None)
         if erp_val and not getattr(existing, field, None):
             setattr(existing, field, erp_val)
             changed = True
+    if erp_c.site_id is not None and not getattr(existing, "site_id", None):
+        existing.site_id = erp_c.site_id
+        changed = True
     if erp_c.birth_date and not existing.birth_date:
         existing.birth_date = erp_c.birth_date
         changed = True
@@ -377,6 +392,11 @@ def _create_customer_from_erp(tenant_id: int, erp_c: ERPCustomer) -> Customer:
         postal_code=erp_c.postal_code,
         social_security_number=erp_c.social_security_number,
         birth_date=erp_c.birth_date,
+        customer_number=erp_c.customer_number,
+        street_number=erp_c.street_number,
+        street_name=erp_c.street_name,
+        mobile_phone_country=erp_c.mobile_phone_country,
+        site_id=erp_c.site_id,
     )
 
 
@@ -455,6 +475,85 @@ def _match_customer_by_name(customer_name: str, name_map: dict[str, int]) -> int
             return normalized_map[last_two]
 
     return None
+
+
+def enrich_top_clients_metadata(
+    db: Session, tenant_id: int, user_id: int = 0, limit: int = 500
+) -> dict:
+    """Fetch optician and ophthalmologist for top clients via sub-resource calls.
+
+    This is a separate, optional enrichment step because it requires one API
+    call per customer per sub-resource. Rate-limited to avoid overloading
+    the Cosium server (0.3s between calls).
+
+    Only enriches customers that don't already have the data populated.
+    """
+    import time
+
+    connector, tenant = _get_connector_for_tenant(db, tenant_id)
+    _authenticate_connector(connector, tenant)
+
+    # Only CosiumConnector supports sub-resource calls
+    from app.integrations.cosium.cosium_connector import CosiumConnector
+
+    if not isinstance(connector, CosiumConnector):
+        return {"enriched": 0, "error": "Sub-resource enrichment only supported for Cosium"}
+
+    # Get customers missing optician or ophthalmologist data, with cosium_id set
+    customers_to_enrich = db.scalars(
+        select(Customer).where(
+            Customer.tenant_id == tenant_id,
+            Customer.cosium_id.isnot(None),
+            Customer.deleted_at.is_(None),
+            (Customer.optician_name.is_(None)) | (Customer.ophthalmologist_id.is_(None)),
+        ).limit(limit)
+    ).all()
+
+    enriched = 0
+    errors = 0
+
+    for customer in customers_to_enrich:
+        try:
+            if not customer.optician_name:
+                optician = connector.get_customer_optician(customer.cosium_id)
+                if optician:
+                    customer.optician_name = optician
+
+            if not customer.ophthalmologist_id:
+                oph_id = connector.get_customer_ophthalmologist_id(customer.cosium_id)
+                if oph_id:
+                    customer.ophthalmologist_id = oph_id
+
+            customer.updated_at = datetime.now(UTC).replace(tzinfo=None)
+            enriched += 1
+            time.sleep(0.3)  # Rate limiting
+        except Exception as exc:
+            errors += 1
+            logger.warning(
+                "enrich_client_failed",
+                customer_id=customer.id,
+                cosium_id=customer.cosium_id,
+                error=str(exc),
+            )
+
+        if enriched % 50 == 0 and enriched > 0:
+            try:
+                db.flush()
+            except Exception as e:
+                logger.error("enrich_batch_flush_error", error=str(e))
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error("enrich_commit_failed", error=str(e))
+        raise
+
+    result = {"enriched": enriched, "errors": errors, "total_candidates": len(customers_to_enrich)}
+    logger.info("enrich_top_clients_done", tenant_id=tenant_id, **result)
+    if user_id:
+        audit_service.log_action(db, tenant_id, user_id, "create", "enrich_clients", 0, new_value=result)
+    return result
 
 
 # ---------------------------------------------------------------------------

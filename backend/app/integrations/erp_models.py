@@ -18,6 +18,13 @@ class ERPCustomer(BaseModel):
     city: str | None = None
     postal_code: str | None = None
     social_security_number: str | None = None
+    customer_number: str | None = None
+    street_number: str | None = None
+    street_name: str | None = None
+    optician_name: str | None = None
+    ophthalmologist_id: str | None = None
+    mobile_phone_country: str | None = None
+    site_id: int | None = None
 
 
 class ERPInvoice(BaseModel):
