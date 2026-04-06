@@ -18,6 +18,7 @@ from app.domain.schemas.client_360 import (
     CosiumPrescriptionSummary,
     EquipmentItem,
     FinancialSummary,
+    PrescriptionWarning,
 )
 from app.domain.schemas.client_mutuelle import ClientMutuelleResponse
 from app.domain.schemas.interactions import InteractionResponse
@@ -386,6 +387,31 @@ def get_client_360(db: Session, tenant_id: int, client_id: int) -> Client360Resp
 
     customer_cosium_id = getattr(customer, "cosium_id", None)
 
+    # --- Prescription warning (> 2 years) ---
+    prescription_warning = None
+    if cosium_data.prescriptions:
+        latest_rx_date_str = cosium_data.prescriptions[0].prescription_date
+        if latest_rx_date_str:
+            try:
+                from datetime import UTC, datetime, timedelta
+
+                latest_rx_date = datetime.strptime(latest_rx_date_str[:10], "%Y-%m-%d")
+                days_since = (datetime.now(UTC).replace(tzinfo=None) - latest_rx_date).days
+                if days_since > 730:
+                    prescription_warning = PrescriptionWarning(
+                        expired=True,
+                        latest_date=latest_rx_date_str[:10],
+                        days_since=days_since,
+                        message=(
+                            f"Ordonnance de plus de 2 ans "
+                            f"(derniere : {latest_rx_date.strftime('%d/%m/%Y')}, "
+                            f"il y a {days_since} jours). "
+                            f"Pensez a contacter le client pour un renouvellement."
+                        ),
+                    )
+            except (ValueError, TypeError):
+                pass
+
     return Client360Response(
         id=customer.id,
         first_name=customer.first_name,
@@ -416,6 +442,7 @@ def get_client_360(db: Session, tenant_id: int, client_id: int) -> Client360Resp
             reste_du=reste_du,
             taux_recouvrement=taux,
         ),
+        prescription_warning=prescription_warning,
     )
 
 

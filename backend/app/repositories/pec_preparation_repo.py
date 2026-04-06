@@ -69,6 +69,52 @@ def list_by_customer(
     )
 
 
+def list_all(
+    db: Session,
+    tenant_id: int,
+    status: str | None = None,
+    limit: int = 25,
+    offset: int = 0,
+) -> list[PecPreparation]:
+    """List all PEC preparations for a tenant with optional status filter."""
+    stmt = (
+        select(PecPreparation)
+        .where(PecPreparation.tenant_id == tenant_id)
+    )
+    if status:
+        stmt = stmt.where(PecPreparation.status == status)
+    stmt = stmt.order_by(PecPreparation.created_at.desc()).limit(limit).offset(offset)
+    return list(db.scalars(stmt).all())
+
+
+def count_all(
+    db: Session,
+    tenant_id: int,
+    status: str | None = None,
+) -> int:
+    """Count all PEC preparations for a tenant with optional status filter."""
+    from sqlalchemy import func
+
+    stmt = select(func.count()).select_from(PecPreparation).where(
+        PecPreparation.tenant_id == tenant_id
+    )
+    if status:
+        stmt = stmt.where(PecPreparation.status == status)
+    return db.scalar(stmt) or 0
+
+
+def count_by_status(db: Session, tenant_id: int) -> dict[str, int]:
+    """Count preparations by status for a tenant."""
+    from sqlalchemy import func
+
+    rows = db.execute(
+        select(PecPreparation.status, func.count())
+        .where(PecPreparation.tenant_id == tenant_id)
+        .group_by(PecPreparation.status)
+    ).all()
+    return {row[0]: row[1] for row in rows}
+
+
 def update(db: Session, prep: PecPreparation, **kwargs: object) -> PecPreparation:
     for key, value in kwargs.items():
         if hasattr(prep, key):

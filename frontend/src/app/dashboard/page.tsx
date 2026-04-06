@@ -14,7 +14,7 @@ import { OnboardingGuide } from "@/components/ui/OnboardingGuide";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { SkeletonCard } from "@/components/ui/SkeletonCard";
 import { useToast } from "@/components/ui/Toast";
-import { FileDown, Calendar, Eye, RefreshCw as RefreshIcon, Clock } from "lucide-react";
+import { FileDown, Calendar, Eye, RefreshCw as RefreshIcon, Clock, ClipboardCheck, Search, AlertCircle, Settings } from "lucide-react";
 import Link from "next/link";
 
 type PeriodKey = "today" | "7d" | "30d" | "90d" | "all";
@@ -310,6 +310,51 @@ export default function DashboardPage() {
           cosium={cosium}
         />
       </ErrorBoundary>
+
+      {/* Actions rapides */}
+      <div className="mb-8">
+        <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-3">
+          Actions rapides
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Link
+            href="/pec-dashboard"
+            className="flex flex-col items-center gap-2 rounded-xl border border-border bg-bg-card p-4 shadow-sm hover:border-primary hover:shadow-md transition-all text-center"
+          >
+            <ClipboardCheck className="h-6 w-6 text-primary" aria-hidden="true" />
+            <span className="text-sm font-semibold text-text-primary">Nouvelle PEC</span>
+            <span className="text-xs text-text-secondary">Preparer une prise en charge</span>
+          </Link>
+          <button
+            onClick={() => {
+              // Trigger Ctrl+K search
+              const event = new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true });
+              document.dispatchEvent(event);
+            }}
+            className="flex flex-col items-center gap-2 rounded-xl border border-border bg-bg-card p-4 shadow-sm hover:border-primary hover:shadow-md transition-all text-center"
+          >
+            <Search className="h-6 w-6 text-primary" aria-hidden="true" />
+            <span className="text-sm font-semibold text-text-primary">Rechercher un client</span>
+            <span className="text-xs text-text-secondary">Ctrl+K pour la recherche</span>
+          </button>
+          <Link
+            href="/cosium-factures?status=impayee"
+            className="flex flex-col items-center gap-2 rounded-xl border border-border bg-bg-card p-4 shadow-sm hover:border-primary hover:shadow-md transition-all text-center"
+          >
+            <AlertCircle className="h-6 w-6 text-danger" aria-hidden="true" />
+            <span className="text-sm font-semibold text-text-primary">Voir les impayes</span>
+            <span className="text-xs text-text-secondary">Factures en attente de paiement</span>
+          </Link>
+          <Link
+            href="/admin"
+            className="flex flex-col items-center gap-2 rounded-xl border border-border bg-bg-card p-4 shadow-sm hover:border-primary hover:shadow-md transition-all text-center"
+          >
+            <Settings className="h-6 w-6 text-primary" aria-hidden="true" />
+            <span className="text-sm font-semibold text-text-primary">Sync Cosium</span>
+            <span className="text-xs text-text-secondary">Synchroniser les donnees</span>
+          </Link>
+        </div>
+      </div>
 
       {/* Quick links */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">

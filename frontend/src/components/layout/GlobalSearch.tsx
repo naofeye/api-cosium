@@ -107,6 +107,12 @@ export function GlobalSearch() {
           placeholder="Rechercher un client, dossier, devis, facture..."
           className="w-full rounded-lg border border-border bg-gray-50 dark:bg-gray-800 py-2 pl-10 pr-8 text-sm outline-none focus:border-primary focus:bg-white dark:focus:bg-gray-900 focus:ring-1 focus:ring-primary"
         />
+        {/* Ctrl+K hint */}
+        {!query && (
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline text-xs text-text-secondary bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded font-mono">
+            Ctrl+K
+          </span>
+        )}
         {query && (
           <button
             onClick={() => {

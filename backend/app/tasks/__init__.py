@@ -17,5 +17,9 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.sync_tasks.test_cosium_connection",
         "schedule": crontab(minute=0, hour="*/4"),  # Every 4 hours
     },
+    "check-expiring-prescriptions": {
+        "task": "app.tasks.sync_tasks.check_expiring_prescriptions",
+        "schedule": crontab(hour=10, minute=0, day_of_week=1),  # Monday 10 AM
+    },
 }
 celery_app.conf.timezone = "Europe/Paris"

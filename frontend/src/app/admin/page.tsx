@@ -6,13 +6,14 @@ import useSWR from "swr";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { KPICard } from "@/components/ui/KPICard";
 import { LoadingState } from "@/components/ui/LoadingState";
-import { Users, FileText, Activity, FolderOpen, Shield } from "lucide-react";
+import { Users, FileText, Activity, FolderOpen, Shield, Database } from "lucide-react";
 import { ActivityChart } from "./components/ActivityChart";
 import { HealthStatus } from "./components/HealthStatus";
 import { CosiumConnection } from "./components/CosiumConnection";
 import { CosiumCookies } from "./components/CosiumCookies";
 import { ManualSync } from "./components/ManualSync";
 import { RecentActivity } from "./components/RecentActivity";
+import { DataQualitySection } from "./components/DataQualitySection";
 
 interface AuditLogEntry {
   id: number;
@@ -99,6 +100,8 @@ export default function AdminPage() {
       <CosiumConnection syncStatus={syncStatus} />
       <CosiumCookies />
       <ManualSync />
+
+      <DataQualitySection />
 
       {activity && <ActivityChart activity={activity} />}
       <RecentActivity activity={activity} />

@@ -19,6 +19,28 @@ from app.services import pec_preparation_service
 router = APIRouter(prefix="/api/v1", tags=["pec-preparation"])
 
 
+@router.get(
+    "/pec-preparations",
+    summary="Lister toutes les preparations PEC du tenant",
+    description="Retourne la liste paginee de toutes les preparations PEC avec KPIs.",
+)
+def list_all_preparations(
+    status: str | None = Query(None, description="Filtrer par statut"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> dict:
+    offset = (page - 1) * page_size
+    return pec_preparation_service.list_all_preparations(
+        db,
+        tenant_id=tenant_ctx.tenant_id,
+        status=status,
+        limit=page_size,
+        offset=offset,
+    )
+
+
 @router.post(
     "/clients/{customer_id}/pec-preparation",
     response_model=PecPreparationResponse,

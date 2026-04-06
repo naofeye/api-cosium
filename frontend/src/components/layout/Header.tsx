@@ -64,6 +64,21 @@ export function Header({ breadcrumb }: HeaderProps) {
     setIsDark(document.documentElement.classList.contains("dark"));
   }, []);
 
+  // Ctrl+K / Cmd+K to focus the global search input
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        const searchInput = document.querySelector<HTMLInputElement>('[role="combobox"]');
+        if (searchInput) {
+          searchInput.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
+
   // SWR for unread count (auto-refresh every 30s)
   const { data: unreadData } = useSWR<{ count: number }>("/notifications/unread-count", { refreshInterval: 30000 });
   const unreadCount = unreadData?.count ?? 0;

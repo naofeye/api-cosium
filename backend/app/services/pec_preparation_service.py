@@ -76,6 +76,56 @@ def _validate_customer(db: Session, tenant_id: int, customer_id: int) -> None:
         raise NotFoundError("customer", customer_id)
 
 
+def list_all_preparations(
+    db: Session,
+    tenant_id: int,
+    status: str | None = None,
+    limit: int = 25,
+    offset: int = 0,
+) -> dict:
+    """List all PEC preparations for a tenant with KPI counts."""
+    from app.models.client import Customer as CustomerModel
+    from sqlalchemy import select as sa_select
+
+    preps = pec_preparation_repo.list_all(db, tenant_id, status=status, limit=limit, offset=offset)
+    total = pec_preparation_repo.count_all(db, tenant_id, status=status)
+    counts = pec_preparation_repo.count_by_status(db, tenant_id)
+
+    # Collect customer IDs and fetch names
+    customer_ids = list({p.customer_id for p in preps})
+    customers_map: dict[int, str] = {}
+    if customer_ids:
+        rows = db.execute(
+            sa_select(CustomerModel.id, CustomerModel.first_name, CustomerModel.last_name).where(
+                CustomerModel.id.in_(customer_ids),
+                CustomerModel.tenant_id == tenant_id,
+            )
+        ).all()
+        for row in rows:
+            customers_map[row[0]] = f"{row[1] or ''} {row[2] or ''}".strip()
+
+    items = [
+        {
+            "id": p.id,
+            "customer_id": p.customer_id,
+            "customer_name": customers_map.get(p.customer_id, "Inconnu"),
+            "devis_id": p.devis_id,
+            "status": p.status,
+            "completude_score": p.completude_score,
+            "errors_count": p.errors_count,
+            "warnings_count": p.warnings_count,
+            "created_at": p.created_at.isoformat() if p.created_at else None,
+        }
+        for p in preps
+    ]
+
+    return {
+        "items": items,
+        "total": total,
+        "counts": counts,
+    }
+
+
 def prepare_pec(
     db: Session,
     tenant_id: int,

@@ -28,6 +28,7 @@ import {
   Calendar,
   Stethoscope,
   BarChart3,
+  ClipboardCheck,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -75,6 +76,7 @@ const navGroups: NavGroup[] = [
       { href: "/paiements", label: "Paiements", icon: CreditCard },
       { href: "/rapprochement", label: "Rapprochement", icon: ArrowLeftRight },
       { href: "/pec", label: "PEC", icon: Shield },
+      { href: "/pec-dashboard", label: "Assistance PEC", icon: ClipboardCheck },
     ],
   },
   {

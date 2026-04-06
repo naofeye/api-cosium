@@ -157,6 +157,15 @@ class CosiumDataBundle(BaseModel):
     mutuelles: list[ClientMutuelleResponse] = []
 
 
+class PrescriptionWarning(BaseModel):
+    """Warning when the latest prescription is older than 2 years."""
+
+    expired: bool = False
+    latest_date: str | None = None
+    days_since: int | None = None
+    message: str | None = None
+
+
 class Client360Response(BaseModel):
     id: int
     first_name: str
@@ -182,3 +191,4 @@ class Client360Response(BaseModel):
     cosium_invoices: list[CosiumInvoiceSummary] = []
     cosium_data: CosiumDataBundle = CosiumDataBundle()
     resume_financier: FinancialSummary = FinancialSummary()
+    prescription_warning: PrescriptionWarning | None = None
