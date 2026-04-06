@@ -35,6 +35,7 @@ from app.models.cosium_reference import (  # noqa: F401
 )
 from app.models.devis import Devis, DevisLigne  # noqa: F401
 from app.models.document import Document, DocumentType  # noqa: F401
+from app.models.document_extraction import DocumentExtraction  # noqa: F401
 from app.models.facture import Facture, FactureLigne  # noqa: F401
 from app.models.interaction import Interaction  # noqa: F401
 from app.models.marketing import Campaign, MarketingConsent, MessageLog, Segment, SegmentMembership  # noqa: F401

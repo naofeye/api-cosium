@@ -26,6 +26,7 @@ from app.api.routers import (
     devis,
     documents,
     exports,
+    extractions,
     factures,
     gdpr,
     marketing,
@@ -197,6 +198,7 @@ app.include_router(client_mutuelles.router)
 app.include_router(clients.router)
 app.include_router(devis.router)
 app.include_router(documents.router)
+app.include_router(extractions.router)
 app.include_router(factures.router)
 app.include_router(notifications.router)
 app.include_router(payments.router)
