@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import io
 import re
-from datetime import UTC, datetime
 
 from app.core.logging import get_logger
 from app.domain.schemas.ocr import DocumentClassification, ExtractedDocument
@@ -141,8 +140,8 @@ def extract_text_from_pdf(file_bytes: bytes) -> ExtractedDocument:
 
 def _ocr_pdf_fallback(file_bytes: bytes, page_count_hint: int) -> ExtractedDocument:
     """OCR fallback for scanned PDFs."""
-    from pdf2image import convert_from_bytes
     import pytesseract
+    from pdf2image import convert_from_bytes
 
     images = convert_from_bytes(file_bytes, dpi=300)
     page_count = len(images)
@@ -152,7 +151,7 @@ def _ocr_pdf_fallback(file_bytes: bytes, page_count_hint: int) -> ExtractedDocum
     for img in images:
         data = pytesseract.image_to_data(img, lang="fra", output_type=pytesseract.Output.DICT)
         page_text = " ".join(
-            word for word, conf in zip(data["text"], data["conf"]) if int(conf) > 0 and word.strip()
+            word for word, conf in zip(data["text"], data["conf"], strict=False) if int(conf) > 0 and word.strip()
         )
         text_parts.append(page_text)
 
@@ -182,15 +181,15 @@ def _ocr_pdf_fallback(file_bytes: bytes, page_count_hint: int) -> ExtractedDocum
 
 def extract_text_from_image(file_bytes: bytes) -> ExtractedDocument:
     """Extract text from an image file (JPG, PNG, TIFF) using Tesseract OCR."""
-    from PIL import Image
     import pytesseract
+    from PIL import Image
 
     img = Image.open(io.BytesIO(file_bytes))
     data = pytesseract.image_to_data(img, lang="fra", output_type=pytesseract.Output.DICT)
 
     words = []
     valid_confs: list[int] = []
-    for word, conf in zip(data["text"], data["conf"]):
+    for word, conf in zip(data["text"], data["conf"], strict=False):
         c = int(conf)
         if c > 0 and word.strip():
             words.append(word)

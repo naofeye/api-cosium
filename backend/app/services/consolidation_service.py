@@ -14,7 +14,6 @@ from app.core.logging import get_logger
 from app.domain.schemas.consolidation import (
     ConsolidatedClientProfile,
     ConsolidatedField,
-    ConsolidationAlert,
 )
 from app.models.client import Customer
 from app.models.client_mutuelle import ClientMutuelle
@@ -77,7 +76,7 @@ def _pick_best(
         return None
     # Sort by priority (derived from source prefix) descending, then confidence descending
     def _priority(f: ConsolidatedField) -> tuple[int, float]:
-        src_key = f.source.split("_")[0] + "_" + f.source.split("_")[1] if "_" in f.source else f.source
+        f.source.split("_")[0] + "_" + f.source.split("_")[1] if "_" in f.source else f.source
         # Map source string to priority
         for key in SOURCE_PRIORITY:
             if f.source.startswith(key) or f.source == key:
@@ -170,8 +169,8 @@ def _load_document_extractions(
     db: Session, tenant_id: int, customer_id: int
 ) -> list[DocumentExtraction]:
     """Load document extractions linked to this customer's documents."""
-    from app.models.document import Document
     from app.models.case import Case
+    from app.models.document import Document
 
     return list(
         db.scalars(
@@ -258,7 +257,7 @@ def consolidate_client_for_pec(
     prescription = _load_latest_prescription(db, tenant_id, customer_id)
     if prescription:
         src = f"cosium_prescription_{prescription.id}"
-        src_label = f"Ordonnance Cosium"
+        src_label = "Ordonnance Cosium"
         if prescription.prescription_date:
             src_label = f"Ordonnance du {prescription.prescription_date}"
         sources_used.append(src)

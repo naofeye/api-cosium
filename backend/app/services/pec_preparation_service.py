@@ -395,8 +395,9 @@ def create_pec_from_preparation(
             pass
 
     # Find or create a payer organization from the mutuelle
-    from app.models.pec import PayerOrganization
     from sqlalchemy import select as sa_select
+
+    from app.models.pec import PayerOrganization
 
     org = None
     if profile.mutuelle_nom:

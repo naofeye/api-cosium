@@ -29,7 +29,7 @@ def extract_document(self, tenant_id: int, document_id: int) -> dict:
         return {"document_id": document_id, "document_type": result.document_type, "status": "ok"}
     except Exception as exc:
         logger.error("task_extract_document_failed", document_id=document_id, error=str(exc))
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc
     finally:
         db.close()
 
@@ -85,6 +85,6 @@ def extract_all_client_documents(self, tenant_id: int, customer_id: int) -> dict
         return {"customer_id": customer_id, "extracted": extracted, "errors": errors}
     except Exception as exc:
         logger.error("task_batch_extract_failed", customer_id=customer_id, error=str(exc))
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc
     finally:
         db.close()

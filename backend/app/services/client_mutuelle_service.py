@@ -1,6 +1,5 @@
 """Service for detecting and managing client-mutuelle associations."""
 
-from sqlalchemy import func as sa_func
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -79,7 +78,7 @@ def detect_client_mutuelles(
 
     detected: list[dict] = []
     cosium_id = getattr(customer, "cosium_id", None)
-    client_full_name = f"{customer.last_name} {customer.first_name}".strip()
+    f"{customer.last_name} {customer.first_name}".strip()
 
     # --- Get client's Cosium invoices ---
     inv_query = select(CosiumInvoice).where(CosiumInvoice.tenant_id == tenant_id)
@@ -175,7 +174,7 @@ def detect_all_clients_mutuelles(
         .group_by(CosiumInvoice.customer_id)
     ).all()
 
-    unique_customer_ids = list(set(cid for cid in customer_ids_with_invoices if cid))
+    unique_customer_ids = list({cid for cid in customer_ids_with_invoices if cid})
     result.total_clients_scanned = len(unique_customer_ids)
 
     for cust_id in unique_customer_ids:

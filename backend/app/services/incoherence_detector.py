@@ -4,7 +4,7 @@ Detects contradictions, anomalies, and missing data that would prevent
 a successful PEC submission.
 """
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 
 from app.core.logging import get_logger
 from app.domain.schemas.consolidation import (
