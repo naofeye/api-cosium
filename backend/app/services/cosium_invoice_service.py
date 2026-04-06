@@ -46,7 +46,8 @@ def list_invoices(
         page=page,
         filters={"type": type_filter, "settled": settled, "search": search},
     )
-    return CosiumInvoiceListResponse(items=items, total=total, page=page, page_size=page_size)
+    total_pages = (total + page_size - 1) // page_size if page_size else 0
+    return CosiumInvoiceListResponse(items=items, total=total, page=page, page_size=page_size, total_pages=total_pages)
 
 
 def get_totals(

@@ -25,8 +25,9 @@ const DashboardCharts = dynamic(() => import("./components/DashboardCharts").the
   ),
 });
 import { useToast } from "@/components/ui/Toast";
-import { FileDown, Calendar, Eye, RefreshCw as RefreshIcon, Clock, ClipboardCheck, Search, AlertCircle, Settings } from "lucide-react";
+import { FileDown, Calendar, Eye, RefreshCw as RefreshIcon, Clock, ClipboardCheck, Search, AlertCircle, Settings, Users } from "lucide-react";
 import Link from "next/link";
+import { formatMoney } from "@/lib/format";
 
 type PeriodKey = "today" | "7d" | "30d" | "90d" | "all";
 
@@ -113,6 +114,19 @@ interface RenewalData {
   total_opportunities: number;
   high_score_count: number;
   estimated_revenue: number;
+}
+
+interface OverdueInvoice {
+  id: number;
+  customer_name: string;
+  montant_ttc: number;
+  date_emission: string;
+  days_overdue: number;
+}
+
+interface OverdueInvoicesResponse {
+  items: OverdueInvoice[];
+  total: number;
 }
 
 interface CalendarEvent {
@@ -211,6 +225,15 @@ export default function DashboardPage() {
       /* ignore renewal errors silently */
     },
   });
+
+  const { data: overdueData } = useSWR<OverdueInvoicesResponse>(
+    "/cosium-invoices?status=impayee&page_size=5",
+    {
+      refreshInterval: 120000,
+      onError: () => { /* ignore overdue errors silently */ },
+    },
+  );
+  const overdueInvoices = overdueData?.items ?? [];
 
   if (isLoading)
     return (
@@ -366,6 +389,48 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Clients a relancer (impayes > 30j) */}
+      {overdueInvoices.length > 0 && (
+        <div className="rounded-xl border border-border bg-bg-card p-4 mb-8 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-danger" aria-hidden="true" />
+              <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide">
+                Clients a relancer
+              </h3>
+            </div>
+            <Link
+              href="/relances"
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              Voir toutes les relances &rarr;
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {overdueInvoices.map((inv) => {
+              const colorClass = inv.days_overdue > 60
+                ? "text-danger"
+                : inv.days_overdue > 30
+                  ? "text-amber-600"
+                  : "text-text-secondary";
+              return (
+                <div key={inv.id} className="flex items-center justify-between text-sm rounded-lg px-3 py-2 hover:bg-gray-50">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="font-medium text-text-primary truncate">{inv.customer_name}</span>
+                  </div>
+                  <div className="flex items-center gap-4 shrink-0">
+                    <span className="font-semibold tabular-nums">{formatMoney(inv.montant_ttc)}</span>
+                    <span className={`text-xs font-medium ${colorClass}`}>
+                      {inv.days_overdue}j de retard
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Quick links */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">

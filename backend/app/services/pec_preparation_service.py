@@ -119,9 +119,14 @@ def list_all_preparations(
         for p in preps
     ]
 
+    page = (offset // limit + 1) if limit else 1
+    total_pages = (total + limit - 1) // limit if limit else 0
     return {
         "items": items,
         "total": total,
+        "page": page,
+        "page_size": limit,
+        "total_pages": total_pages,
         "counts": counts,
     }
 

@@ -51,19 +51,36 @@ export async function fetchJson<T = unknown>(path: string, options?: RequestInit
       } catch {
         // Non-JSON response (HTML error page, proxy error, etc.)
       }
-      const msg =
+      const msg = String(
         (errorBody?.error as Record<string, unknown>)?.message ||
         errorBody?.message ||
         errorBody?.detail ||
-        `Erreur API ${response.status}`;
-      throw new Error(String(msg));
+        `Erreur API ${response.status}`
+      );
+
+      // Dispatch a custom event for global toast handling (skip 401, handled above)
+      if (typeof window !== "undefined" && response.status !== 401) {
+        window.dispatchEvent(
+          new CustomEvent("api-error", {
+            detail: { message: msg, status: response.status },
+          })
+        );
+      }
+
+      throw new Error(msg);
     }
 
     if (response.status === 204) return undefined as T;
     return response.json();
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
-      throw new Error("La requete a expire. Verifiez votre connexion et reessayez.");
+      const timeoutMsg = "La requete a expire. Verifiez votre connexion et reessayez.";
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("api-error", { detail: { message: timeoutMsg, status: 0 } })
+        );
+      }
+      throw new Error(timeoutMsg);
     }
     throw err;
   } finally {

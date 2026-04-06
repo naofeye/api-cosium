@@ -33,9 +33,14 @@ def list_notifications(
         db, user_id=user_id, tenant_id=tenant_id, unread_only=unread_only, limit=limit, offset=offset
     )
     unread = notification_repo.get_unread_count(db, user_id=user_id, tenant_id=tenant_id)
+    page = (offset // limit + 1) if limit else 1
+    total_pages = (total + limit - 1) // limit if limit else 0
     return NotificationListResponse(
         items=[NotificationResponse.model_validate(n) for n in items],
         total=total,
+        page=page,
+        page_size=limit,
+        total_pages=total_pages,
         unread_count=unread,
     )
 

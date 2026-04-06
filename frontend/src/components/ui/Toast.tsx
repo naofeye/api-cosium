@@ -109,6 +109,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     [dismissToast],
   );
 
+  // Listen for global API error events
+  useEffect(() => {
+    function handleApiError(e: Event) {
+      const detail = (e as CustomEvent<{ message: string; status: number }>).detail;
+      if (detail && detail.message) {
+        addToast(detail.message, "error");
+      }
+    }
+    window.addEventListener("api-error", handleApiError);
+    return () => {
+      window.removeEventListener("api-error", handleApiError);
+    };
+  }, [addToast]);
+
   // Cleanup timers on unmount
   useEffect(() => {
     return () => {

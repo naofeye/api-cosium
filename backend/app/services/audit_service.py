@@ -72,9 +72,11 @@ def search_logs(
         resp.user_email = email_map.get(i.user_id)
         enriched.append(resp)
 
+    total_pages = (total + page_size - 1) // page_size if page_size else 0
     return AuditLogListResponse(
         items=enriched,
         total=total,
         page=page,
         page_size=page_size,
+        total_pages=total_pages,
     )

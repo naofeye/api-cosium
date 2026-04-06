@@ -46,4 +46,12 @@ export interface PaymentSummary {
   items: PaymentItem[];
 }
 
-export type Tab = "resume" | "documents" | "finances" | "ia";
+export interface CaseActivity {
+  id: number;
+  type: string;
+  description: string;
+  created_at: string;
+  user_name: string | null;
+}
+
+export type Tab = "resume" | "documents" | "finances" | "historique" | "ia";

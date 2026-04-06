@@ -26,6 +26,9 @@ RATE_LIMIT_RULES: dict[tuple[str, str], tuple[int, int]] = {
     ("/api/v1/gdpr", "POST"): (5, 60),
     ("/api/v1/banking/import-statement", "POST"): (5, 60),
     ("/api/v1/exports/fec", "GET"): (5, 60),
+    ("/api/v1/clients/merge", "POST"): (5, 60),
+    ("/api/v1/admin/users", "POST"): (10, 60),
+    ("/api/v1/admin/detect-mutuelles", "POST"): (2, 300),
 }
 
 # Prefix-based rules: matched when no exact rule applies.
@@ -33,6 +36,8 @@ RATE_LIMIT_PREFIX_RULES: dict[tuple[str, str], tuple[int, int]] = {
     ("/api/v1/clients", "DELETE"): (10, 60),
     ("/api/v1/exports", "GET"): (5, 60),
     ("/api/v1/sync", "POST"): (3, 300),
+    ("/api/v1/pec-preparations", "POST"): (5, 60),
+    ("/api/v1/documents", "POST"): (10, 60),
 }
 
 # In-memory fallback (also exported as _global_attempts for backward compat in tests)

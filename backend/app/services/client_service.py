@@ -33,11 +33,13 @@ def search_clients(
     include_deleted: bool = False,
 ) -> ClientListResponse:
     items, total = client_repo.search(db, tenant_id, query, page, page_size, include_deleted=include_deleted)
+    total_pages = (total + page_size - 1) // page_size if page_size else 0
     return ClientListResponse(
         items=[ClientResponse.model_validate(c) for c in items],
         total=total,
         page=page,
         page_size=page_size,
+        total_pages=total_pages,
     )
 
 
