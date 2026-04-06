@@ -9,6 +9,7 @@ import {
   Mail,
   MapPin,
   Shield,
+  ShieldCheck,
   RefreshCw,
   Pencil,
   PhoneCall,
@@ -51,6 +52,18 @@ interface CalendarEvent {
   site_name: string | null;
 }
 
+interface ClientMutuelleInfo {
+  id: number;
+  mutuelle_name: string;
+  active: boolean;
+  source: string;
+  confidence: number;
+  numero_adherent: string | null;
+  type_beneficiaire: string;
+  date_debut: string | null;
+  date_fin: string | null;
+}
+
 interface CosiumInvoice {
   cosium_id: number;
   invoice_number: string;
@@ -76,6 +89,7 @@ interface TabResumeProps {
   lastVisitDate: string | null;
   nextRdv: CalendarEvent | null;
   cosiumInvoices: CosiumInvoice[];
+  mutuelles: ClientMutuelleInfo[];
 }
 
 const TYPE_ICONS: Record<string, typeof PhoneCall> = {
@@ -134,6 +148,7 @@ export function TabResume({
   lastVisitDate,
   nextRdv,
   cosiumInvoices,
+  mutuelles,
 }: TabResumeProps) {
   const recentInvoices = cosiumInvoices?.slice(0, 5) ?? [];
 
@@ -202,6 +217,56 @@ export function TabResume({
               </div>
             )}
           </div>
+        </div>
+
+        {/* Mutuelle */}
+        <div className="rounded-xl border border-border bg-bg-card p-6 shadow-sm">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-emerald-600" aria-hidden="true" />
+            Mutuelle
+          </h3>
+          {mutuelles.length === 0 ? (
+            <p className="text-sm text-text-secondary text-center py-4">
+              Aucune mutuelle detectee ou renseignee.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {mutuelles.filter(m => m.active).map((m) => (
+                <div key={m.id} className="flex items-start gap-3 text-sm">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">{m.mutuelle_name}</p>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {m.numero_adherent && (
+                        <span className="text-xs text-text-secondary">
+                          N° adherent : {m.numero_adherent}
+                        </span>
+                      )}
+                      <span
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                          m.confidence >= 0.9
+                            ? "bg-emerald-50 text-emerald-700"
+                            : m.confidence >= 0.5
+                            ? "bg-amber-50 text-amber-700"
+                            : "bg-gray-100 text-gray-600"
+                        }`}
+                      >
+                        Confiance : {Math.round(m.confidence * 100)}%
+                      </span>
+                      <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                        {m.source === "cosium_tpp"
+                          ? "Tiers payant"
+                          : m.source === "cosium_invoice"
+                          ? "Facture"
+                          : m.source === "manual"
+                          ? "Saisie manuelle"
+                          : m.source}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Latest correction */}

@@ -11,8 +11,9 @@ from sqlalchemy.orm import Session
 from app.core.deps import require_tenant_role
 from app.core.tenant_context import TenantContext
 from app.db.session import get_db
-from app.domain.schemas.admin import HealthCheckResponse, MetricsResponse
+from app.domain.schemas.admin import DataQualityResponse, HealthCheckResponse, MetricsResponse
 from app.models import AuditLog, Case, Customer, Facture, Payment
+from app.models.cosium_data import CosiumDocument, CosiumInvoice, CosiumPayment, CosiumPrescription
 from app.services import onboarding_service
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
@@ -113,6 +114,42 @@ def metrics(
             "active_users_last_hour": active_users,
         },
     }
+
+
+def _entity_quality(db: Session, model: type, tenant_id: int) -> dict:
+    """Compute link stats for a cosium data model."""
+    total = db.scalar(
+        select(func.count()).select_from(model).where(model.tenant_id == tenant_id)
+    ) or 0
+    linked = db.scalar(
+        select(func.count()).select_from(model).where(
+            model.tenant_id == tenant_id,
+            model.customer_id.isnot(None),
+        )
+    ) or 0
+    orphan = total - linked
+    link_rate = round((linked / total) * 100, 1) if total > 0 else 0.0
+    return {"total": total, "linked": linked, "orphan": orphan, "link_rate": link_rate}
+
+
+@router.get(
+    "/data-quality",
+    response_model=DataQualityResponse,
+    summary="Qualite des donnees",
+    description="Retourne le taux de liaison client pour chaque type de donnee Cosium.",
+)
+def data_quality(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
+) -> DataQualityResponse:
+    """Data quality dashboard: link rates for invoices, payments, documents, prescriptions."""
+    tid = tenant_ctx.tenant_id
+    return DataQualityResponse(
+        invoices=_entity_quality(db, CosiumInvoice, tid),
+        payments=_entity_quality(db, CosiumPayment, tid),
+        documents=_entity_quality(db, CosiumDocument, tid),
+        prescriptions=_entity_quality(db, CosiumPrescription, tid),
+    )
 
 
 class CosiumConnectionTest(BaseModel):

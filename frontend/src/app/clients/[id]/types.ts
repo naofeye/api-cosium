@@ -65,6 +65,23 @@ export interface EquipmentItem {
   type: string;
 }
 
+export interface ClientMutuelle {
+  id: number;
+  tenant_id: number;
+  customer_id: number;
+  mutuelle_id: number | null;
+  mutuelle_name: string;
+  numero_adherent: string | null;
+  type_beneficiaire: string;
+  date_debut: string | null;
+  date_fin: string | null;
+  source: string;
+  confidence: number;
+  active: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
 export interface CosiumDataBundle {
   prescriptions: CosiumPrescriptionSummary[];
   cosium_payments: CosiumPaymentSummary[];
@@ -74,6 +91,7 @@ export interface CosiumDataBundle {
   total_ca_cosium: number;
   last_visit_date: string | null;
   customer_tags: string[];
+  mutuelles: ClientMutuelle[];
 }
 
 export interface Client360 {

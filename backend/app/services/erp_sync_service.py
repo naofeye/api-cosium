@@ -474,6 +474,22 @@ def _match_customer_by_name(customer_name: str, name_map: dict[str, int]) -> int
         if last_two in normalized_map:
             return normalized_map[last_two]
 
+    # LAST RESORT: fuzzy matching on normalized names (score >= 85)
+    try:
+        from rapidfuzz import fuzz
+
+        best_match = None
+        best_score = 0.0
+        for map_name, cust_id in normalized_map.items():
+            score = fuzz.ratio(stripped, map_name)
+            if score > best_score and score >= 85:
+                best_score = score
+                best_match = cust_id
+        if best_match is not None:
+            return best_match
+    except ImportError:
+        pass
+
     return None
 
 

@@ -2,6 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+from app.domain.schemas.client_mutuelle import ClientMutuelleResponse
 from app.domain.schemas.interactions import InteractionResponse
 
 
@@ -153,6 +154,7 @@ class CosiumDataBundle(BaseModel):
     total_ca_cosium: float = 0
     last_visit_date: str | None = None
     customer_tags: list[str] = []
+    mutuelles: list[ClientMutuelleResponse] = []
 
 
 class Client360Response(BaseModel):

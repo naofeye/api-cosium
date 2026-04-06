@@ -141,6 +141,7 @@ export default function ClientDetailPage() {
         correction={cd?.correction_actuelle ?? null}
         lastVisitDate={cd?.last_visit_date ?? null}
         customerTags={cd?.customer_tags ?? []}
+        mutuelles={cd?.mutuelles ?? []}
         resumeFinancier={fin}
         totalCaCosium={cd?.total_ca_cosium ?? 0}
         dossiersCount={data.dossiers.length}

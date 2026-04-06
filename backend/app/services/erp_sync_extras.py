@@ -23,6 +23,8 @@ from app.services.erp_sync_service import (
     BATCH_SIZE,
     _authenticate_connector,
     _get_connector_for_tenant,
+    _match_customer_by_name,
+    _normalize_name,
 )
 
 logger = get_logger("erp_sync_extras")
@@ -121,6 +123,18 @@ def sync_payments(db: Session, tenant_id: int, user_id: int = 0) -> dict:
 
     all_payments = connector.get_invoice_payments()
 
+    # Build customer lookup maps for matching
+    all_customers = db.scalars(select(Customer).where(Customer.tenant_id == tenant_id)).all()
+    customer_name_map: dict[str, int] = {}
+    customer_cosium_id_map: dict[str, int] = {}
+    for c in all_customers:
+        normalized_full = _normalize_name(f"{c.last_name} {c.first_name}")
+        customer_name_map[normalized_full] = c.id
+        normalized_reverse = _normalize_name(f"{c.first_name} {c.last_name}")
+        customer_name_map[normalized_reverse] = c.id
+        if c.cosium_id:
+            customer_cosium_id_map[str(c.cosium_id)] = c.id
+
     # Build existing map for upsert
     existing_map: dict[int, CosiumPayment] = {}
     existing_rows = db.scalars(select(CosiumPayment).where(CosiumPayment.tenant_id == tenant_id)).all()
@@ -146,6 +160,12 @@ def sync_payments(db: Session, tenant_id: int, user_id: int = 0) -> dict:
             except (ValueError, TypeError):
                 pass
 
+        # Resolve customer_id from cosium_id or issuer_name
+        pmt_customer_cosium_id = pmt.get("customer_cosium_id") or ""
+        customer_id = customer_cosium_id_map.get(pmt_customer_cosium_id) if pmt_customer_cosium_id else None
+        if not customer_id and pmt.get("issuer_name"):
+            customer_id = _match_customer_by_name(pmt["issuer_name"], customer_name_map)
+
         if cosium_id in existing_map:
             row = existing_map[cosium_id]
             row.payment_type_id = pmt.get("payment_type_id")
@@ -159,6 +179,8 @@ def sync_payments(db: Session, tenant_id: int, user_id: int = 0) -> dict:
             row.comment = pmt.get("comment")
             row.payment_number = pmt.get("payment_number", "")
             row.invoice_cosium_id = pmt.get("invoice_cosium_id")
+            row.customer_cosium_id = pmt_customer_cosium_id or row.customer_cosium_id
+            row.customer_id = customer_id or row.customer_id
             row.synced_at = datetime.now(UTC)
             updated += 1
         else:
@@ -176,6 +198,8 @@ def sync_payments(db: Session, tenant_id: int, user_id: int = 0) -> dict:
                 comment=pmt.get("comment"),
                 payment_number=pmt.get("payment_number", ""),
                 invoice_cosium_id=pmt.get("invoice_cosium_id"),
+                customer_cosium_id=pmt_customer_cosium_id or None,
+                customer_id=customer_id,
             )
             db.add(new_row)
             created += 1

@@ -29,3 +29,17 @@ class MetricsActivity(BaseModel):
 class MetricsResponse(BaseModel):
     totals: MetricsTotals
     activity: MetricsActivity
+
+
+class DataQualityEntity(BaseModel):
+    total: int
+    linked: int
+    orphan: int
+    link_rate: float
+
+
+class DataQualityResponse(BaseModel):
+    invoices: DataQualityEntity
+    payments: DataQualityEntity
+    documents: DataQualityEntity
+    prescriptions: DataQualityEntity

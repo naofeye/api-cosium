@@ -16,6 +16,7 @@ from app.api.routers import (
     billing,
     cases,
     client_360,
+    client_mutuelles,
     clients,
     consents,
     cosium_documents,
@@ -192,6 +193,7 @@ app.include_router(banking.router)
 app.include_router(billing.router)
 app.include_router(auth.router)
 app.include_router(cases.router)
+app.include_router(client_mutuelles.router)
 app.include_router(clients.router)
 app.include_router(devis.router)
 app.include_router(documents.router)

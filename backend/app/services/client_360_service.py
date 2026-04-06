@@ -19,6 +19,7 @@ from app.domain.schemas.client_360 import (
     EquipmentItem,
     FinancialSummary,
 )
+from app.domain.schemas.client_mutuelle import ClientMutuelleResponse
 from app.domain.schemas.interactions import InteractionResponse
 from app.models import (
     Case,
@@ -26,6 +27,7 @@ from app.models import (
     Interaction,
     MarketingConsent,
 )
+from app.models.client_mutuelle import ClientMutuelle
 from app.models.cosium_data import CosiumInvoice, CosiumPayment, CosiumPrescription
 from app.models.cosium_reference import CosiumCalendarEvent, CosiumCustomerTag
 
@@ -226,6 +228,15 @@ def _build_cosium_data(
         ).all()
         customer_tags = list(tag_rows)
 
+    # --- Client mutuelles ---
+    mutuelle_rows = db.scalars(
+        select(ClientMutuelle).where(
+            ClientMutuelle.tenant_id == tenant_id,
+            ClientMutuelle.customer_id == client_id,
+        ).order_by(ClientMutuelle.active.desc(), ClientMutuelle.created_at.desc())
+    ).all()
+    mutuelles = [ClientMutuelleResponse.model_validate(m) for m in mutuelle_rows]
+
     return CosiumDataBundle(
         prescriptions=prescriptions,
         cosium_payments=cosium_payments,
@@ -235,6 +246,7 @@ def _build_cosium_data(
         total_ca_cosium=round(total_ca_cosium, 2),
         last_visit_date=last_visit_date,
         customer_tags=customer_tags,
+        mutuelles=mutuelles,
     )
 
 

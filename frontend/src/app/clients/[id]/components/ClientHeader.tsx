@@ -2,7 +2,7 @@
 
 import { KPICard } from "@/components/ui/KPICard";
 import { formatMoney, formatDate } from "@/lib/format";
-import { Euro, CheckCircle, Clock, FolderOpen, Eye, Calendar, AlertTriangle, FileDown } from "lucide-react";
+import { Euro, CheckCircle, Clock, FolderOpen, Eye, Calendar, AlertTriangle, FileDown, ShieldCheck } from "lucide-react";
 import { AvatarUpload } from "./AvatarUpload";
 import { useState } from "react";
 
@@ -27,6 +27,14 @@ function formatDiopter(value: number | null): string {
   return `${sign}${value.toFixed(2)}`;
 }
 
+interface ClientMutuelleInfo {
+  id: number;
+  mutuelle_name: string;
+  active: boolean;
+  source: string;
+  confidence: number;
+}
+
 interface ClientHeaderProps {
   clientId: string;
   firstName: string;
@@ -38,6 +46,7 @@ interface ClientHeaderProps {
   correction: CorrectionActuelle | null;
   lastVisitDate: string | null;
   customerTags: string[];
+  mutuelles: ClientMutuelleInfo[];
   resumeFinancier: {
     total_facture: number;
     total_paye: number;
@@ -60,6 +69,7 @@ export function ClientHeader({
   correction,
   lastVisitDate,
   customerTags,
+  mutuelles,
   resumeFinancier: fin,
   totalCaCosium,
   dossiersCount,
@@ -176,6 +186,23 @@ export function ClientHeader({
               className="inline-flex items-center rounded-full bg-purple-50 px-2.5 py-0.5 text-xs font-medium text-purple-700 border border-purple-200"
             >
               {tag}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Mutuelle badges */}
+      {mutuelles.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" aria-hidden="true" />
+          <span className="text-xs font-medium text-text-secondary">Mutuelle :</span>
+          {mutuelles.filter(m => m.active).map((m) => (
+            <span
+              key={m.id}
+              className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 border border-emerald-200"
+              title={`Source : ${m.source} | Confiance : ${Math.round(m.confidence * 100)}%`}
+            >
+              {m.mutuelle_name}
             </span>
           ))}
         </div>

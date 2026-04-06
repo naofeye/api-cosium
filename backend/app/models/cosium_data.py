@@ -105,6 +105,8 @@ class CosiumPayment(Base):
     comment: Mapped[str | None] = mapped_column(String(500), nullable=True)
     payment_number: Mapped[str] = mapped_column(String(100), nullable=False, default="")
     invoice_cosium_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    customer_cosium_id: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id"), nullable=True, index=True)
     synced_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
 
 

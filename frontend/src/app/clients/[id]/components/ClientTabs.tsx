@@ -164,6 +164,7 @@ export function ClientTabs({
             lastVisitDate={cd?.last_visit_date ?? null}
             nextRdv={cd?.calendar_events?.find((ev) => !ev.canceled && ev.start_date && new Date(ev.start_date) > new Date()) ?? null}
             cosiumInvoices={cosiumInvoices}
+            mutuelles={cd?.mutuelles ?? []}
           />
         </ErrorBoundary>
       )}

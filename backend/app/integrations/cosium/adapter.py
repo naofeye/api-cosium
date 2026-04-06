@@ -75,6 +75,16 @@ def cosium_invoice_to_optiflow(data: dict) -> dict:
     if not numero:
         logger.warning("cosium_invoice_missing_field", field="invoiceNumber", cosium_id=data.get("id"))
 
+    # Extract customer_cosium_id: direct field first, then HAL link fallback
+    customer_cosium_id = str(data.get("customerId", ""))
+    if not customer_cosium_id:
+        cust_href = data.get("_links", {}).get("customer", {}).get("href", "")
+        if "/customers/" in cust_href:
+            try:
+                customer_cosium_id = str(int(cust_href.rsplit("/customers/", 1)[-1].split("?")[0]))
+            except (ValueError, IndexError):
+                pass
+
     return {
         "cosium_id": str(data.get("id", "")),
         "type": data.get("type", "INVOICE"),
@@ -87,7 +97,7 @@ def cosium_invoice_to_optiflow(data: dict) -> dict:
         if data.get("outstandingBalance") is not None
         else data.get("settled", False),
         "customer_name": data.get("customerName", ""),
-        "customer_cosium_id": str(data.get("customerId", "")),
+        "customer_cosium_id": customer_cosium_id,
         "outstanding_balance": data.get("outstandingBalance", 0),
         "share_social_security": data.get("shareSocialSecurity", 0),
         "share_private_insurance": data.get("sharePrivateInsurance", 0),
@@ -130,6 +140,15 @@ def cosium_payment_to_optiflow(data: dict) -> dict:
     if not cosium_id:
         logger.warning("cosium_payment_missing_id", data_keys=list(data.keys()))
 
+    # Extract customer link from _links.customer.href
+    customer_cosium_id = None
+    cust_href = data.get("_links", {}).get("customer", {}).get("href", "")
+    if "/customers/" in cust_href:
+        try:
+            customer_cosium_id = str(int(cust_href.rsplit("/customers/", 1)[-1].split("?")[0]))
+        except (ValueError, IndexError):
+            pass
+
     # Extract invoice link from _links or accountingDocumentNumber
     invoice_cosium_id = None
     acc_doc_num = data.get("accountingDocumentNumber", "")
@@ -156,6 +175,7 @@ def cosium_payment_to_optiflow(data: dict) -> dict:
         "comment": data.get("comment"),
         "payment_number": data.get("paymentNumber", ""),
         "invoice_cosium_id": invoice_cosium_id,
+        "customer_cosium_id": customer_cosium_id,
     }
 
 
