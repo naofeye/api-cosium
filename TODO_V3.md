@@ -48,7 +48,7 @@
 - [x] `dashboard/page.tsx` — SWR `onError` silencieux acceptable (dashboard resilient, ErrorBoundary en place)
 
 ### 3.3 XSS et securite [MOYEN]
-- [ ] `dashboard/page.tsx:66` — `{aiResponse}` → verifier sanitisation API ou escaper
+- [x] `TabIA.tsx:66` — `{aiResponse}` rendu via JSX (React auto-escape), pas de risque XSS
 
 ---
 
@@ -69,7 +69,7 @@
 
 ### 4.3 CI/CD ameliorations [MOYEN]
 - [x] `.github/workflows/ci.yml` — Job `frontend-build` ajoute (`npm run build`)
-- [ ] `.github/workflows/ci.yml` — Ajouter execution des tests frontend (`npm run test`)
+- [x] `.github/workflows/ci.yml` — Job `frontend-test` ajoute (`npm run test -- --run`)
 - [x] `.github/workflows/ci.yml` — `npm audit --audit-level=high` ajoute
 
 ---
@@ -81,7 +81,7 @@
 
 ### 5.2 Soft deletes non enforces [MOYEN]
 - [x] Index `deleted_at` ajoute sur Customer et Case
-- [ ] Verifier que tous les services filtrent bien `deleted_at IS NULL` sur les queries de lecture
+- [x] Verifie : client_repo et case_repo filtrent `deleted_at IS NULL` sur toutes les lectures
 
 ---
 

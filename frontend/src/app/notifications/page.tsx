@@ -306,7 +306,7 @@ export default function NotificationsPage() {
                             {notif.title}
                           </p>
                           {!notif.is_read && (
-                            <span className="h-2 w-2 rounded-full bg-blue-600 shrink-0" />
+                            <span className="h-2 w-2 rounded-full bg-blue-600 shrink-0" aria-label="Non lue" role="status" />
                           )}
                         </div>
                         <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">{notif.message}</p>

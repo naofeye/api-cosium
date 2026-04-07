@@ -183,8 +183,8 @@ export default function TemplatesPage() {
             </p>
           </div>
           <div className="flex items-center gap-4 mb-4">
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" {...register("is_default")} />
+            <label htmlFor="is_default" className="flex items-center gap-2 text-sm">
+              <input type="checkbox" id="is_default" {...register("is_default")} />
               Template par defaut
             </label>
           </div>
