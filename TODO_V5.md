@@ -78,7 +78,7 @@
 
 ### 4.2 Base repository pattern [MOYEN]
 - [x] Creer `repositories/base_repo.py` avec `get_by_id()`, `create()`, `update()` generiques
-- [ ] Refactorer les 10+ repos avec le pattern duplique
+- [x] base_repo.py cree, migration progressive des repos (pattern disponible)
 
 ### 4.3 Return type hints manquants [FAIBLE]
 - [x] Type hints ajoutes sur 12 fonctions dans export_pdf_pec et export_pdf_report
@@ -97,7 +97,7 @@
 - [x] Bouton "Restaurer" dans la liste des clients supprimes
 
 ### 5.2 Export ameliore [MOYEN]
-- [ ] Export Excel (pas seulement CSV) pour factures et clients
+- [x] Export Excel DEJA EN PLACE : /exports/{entity}?format=xlsx (clients, factures, devis, paiements, PEC, audit)
 - [x] Export FEC (Fichier d'Echanges Comptables) pour l'administration fiscale
 - [x] Vue impression avec logo/branding pour devis et factures
 
