@@ -17,6 +17,7 @@ from app.domain.schemas.auth import (
     UserMeResponse,
 )
 from app.models import User
+from app.repositories import refresh_token_repo
 from app.services import auth_service
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
@@ -158,12 +159,7 @@ def logout_all(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
-    from app.models import RefreshToken
-
-    db.query(RefreshToken).filter(
-        RefreshToken.user_id == current_user.id,
-        RefreshToken.revoked.is_(False),
-    ).update({"revoked": True})
+    refresh_token_repo.revoke_all_for_user(db, current_user.id)
     db.commit()
     response.delete_cookie("optiflow_token", path="/")
     response.delete_cookie("optiflow_refresh", path="/")

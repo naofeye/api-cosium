@@ -40,7 +40,7 @@ Si un check echoue : corrige avant de cocher l'etape. Ne coche JAMAIS une etape 
 - **Infra** : Docker Compose (PostgreSQL, Redis 7, MinIO, Mailhog, API, Web)
 - **Auth** : JWT (PyJWT) + bcrypt (passlib)
 - **Tests** : pytest + httpx (a configurer)
-- **Migrations** : Alembic (a configurer, actuellement create_all)
+- **Migrations** : Alembic (configure, utilise `alembic upgrade head`)
 
 ## Architecture obligatoire
 

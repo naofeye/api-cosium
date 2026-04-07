@@ -25,6 +25,17 @@ def get_active_by_user_and_tenant(db: Session, user_id: int, tenant_id: int) -> 
     ).first()
 
 
+def list_user_ids_by_roles(db: Session, tenant_id: int, roles: list[str]) -> list[int]:
+    """Return user IDs for a tenant filtered by roles."""
+    rows = db.execute(
+        select(TenantUser.user_id).where(
+            TenantUser.tenant_id == tenant_id,
+            TenantUser.role.in_(roles),
+        )
+    ).all()
+    return [row[0] for row in rows]
+
+
 def list_by_tenant(db: Session, tenant_id: int) -> list[TenantUser]:
     return list(
         db.scalars(

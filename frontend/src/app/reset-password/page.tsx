@@ -14,7 +14,7 @@ const resetSchema = z
   .object({
     new_password: z
       .string()
-      .min(8, "Le mot de passe doit contenir au moins 8 caracteres")
+      .min(8, "Le mot de passe doit contenir au moins 8 caractères")
       .regex(/[A-Z]/, "Le mot de passe doit contenir au moins une majuscule")
       .regex(/\d/, "Le mot de passe doit contenir au moins un chiffre"),
     confirm_password: z.string().min(1, "Veuillez confirmer le mot de passe"),
@@ -82,7 +82,7 @@ function ResetPasswordForm() {
     return (
       <div className="space-y-4">
         <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700">
-          Mot de passe modifie avec succes. Vous allez etre redirige vers la page de connexion.
+          Mot de passe modifié avec succès. Vous allez être redirigé vers la page de connexion.
         </div>
         <div className="text-center">
           <Link href="/login" className="text-sm text-primary hover:underline">
@@ -98,7 +98,7 @@ function ResetPasswordForm() {
       <FormField label="Nouveau mot de passe" error={errors.new_password?.message}>
         <FormInput
           type="password"
-          placeholder="Minimum 8 caracteres, 1 majuscule, 1 chiffre"
+          placeholder="Minimum 8 caractères, 1 majuscule, 1 chiffre"
           autoComplete="new-password"
           autoFocus
           error={!!errors.new_password}
@@ -109,7 +109,7 @@ function ResetPasswordForm() {
       <FormField label="Confirmer le mot de passe" error={errors.confirm_password?.message}>
         <FormInput
           type="password"
-          placeholder="Repetez le mot de passe"
+          placeholder="Répétez le mot de passe"
           autoComplete="new-password"
           error={!!errors.confirm_password}
           {...register("confirm_password")}

@@ -45,7 +45,7 @@ export function validateEmail(email: string): string | undefined {
 
 export function validatePassword(password: string): string | undefined {
   if (!password) return "Le mot de passe est requis";
-  if (password.length < 8) return "Le mot de passe doit contenir au moins 8 caracteres";
+  if (password.length < 8) return "Le mot de passe doit contenir au moins 8 caractères";
   return undefined;
 }
 

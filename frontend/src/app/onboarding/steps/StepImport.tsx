@@ -19,7 +19,7 @@ export function StepImport({ onComplete, onSkip }: { onComplete: () => void; onS
       try {
         const data = await fetchJson<FirstSyncResponse>("/onboarding/first-sync", { method: "POST" });
         setSyncResult(data.details);
-        toast("Importation terminee avec succes", "success");
+        toast("Importation terminee avec succès", "success");
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Erreur lors de l'importation";
         setApiError(msg);
@@ -86,13 +86,13 @@ export function StepImport({ onComplete, onSkip }: { onComplete: () => void; onS
         <div className="space-y-3">
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{apiError}</div>
           <Button type="button" onClick={handleSync} className="w-full">
-            Reessayer
+            Réessayer
           </Button>
         </div>
       )}
       {!syncResult && !syncPending && (
         <Button type="button" variant="ghost" onClick={onSkip} className="w-full">
-          Passer cette etape
+          Passer cette étape
         </Button>
       )}
     </div>

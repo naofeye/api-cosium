@@ -151,7 +151,7 @@ export default function FactureDetailPage() {
                 Solde restant : {formatMoney(facture.reste_a_payer ?? (facture.montant_ttc - (facture.montant_paye ?? 0)))}
               </p>
               <p className="text-xs text-amber-600">
-                Cette facture n&apos;est pas entierement reglee.
+                Cette facture n&apos;est pas entièrement reglee.
               </p>
             </div>
           </div>

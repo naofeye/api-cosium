@@ -45,7 +45,8 @@ minio_data/
 
 # Build artifacts (ne pas tracker)
 frontend/tsconfig.tsbuildinfo
-backend/celerybeat-schedule
+backend/celerybeat-schedule*
+**/*.pid
 
 # Backups
 backups/

@@ -37,8 +37,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       }
 
       const sectionLabel = this.props.name
-        ? `La section "${this.props.name}" a rencontre un probleme.`
-        : "Une section de la page a rencontre un probleme.";
+        ? `La section "${this.props.name}" a rencontré un problème.`
+        : "Une section de la page a rencontré un problème.";
 
       return (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-6" role="alert">
@@ -46,11 +46,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
             <div className="flex-1">
               <h3 className="text-sm font-semibold text-amber-900">
-                Quelque chose ne s&apos;est pas passe comme prevu
+                Quelque chose ne s&apos;est pas passé comme prévu
               </h3>
               <p className="mt-1 text-sm text-amber-800">{sectionLabel}</p>
               <p className="mt-1 text-xs text-amber-700">
-                Vous pouvez essayer de recharger cette section ou la page entiere.
+                Vous pouvez essayer de recharger cette section ou la page entière.
               </p>
 
               <div className="mt-4 flex flex-wrap gap-2">
@@ -59,7 +59,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                   className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 transition-colors"
                 >
                   <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
-                  Reessayer
+                  Réessayer
                 </button>
                 <button
                   onClick={() => window.location.reload()}
@@ -73,13 +73,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                   className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100 transition-colors"
                 >
                   <Bug className="h-3.5 w-3.5" aria-hidden="true" />
-                  {this.state.showDetails ? "Masquer les details" : "Signaler cette erreur"}
+                  {this.state.showDetails ? "Masquer les détails" : "Signaler cette erreur"}
                 </button>
               </div>
 
               {this.state.showDetails && this.state.error && (
                 <div className="mt-4 rounded-lg border border-amber-200 bg-white p-3">
-                  <p className="text-xs font-medium text-gray-700 mb-1">Details techniques :</p>
+                  <p className="text-xs font-medium text-gray-700 mb-1">Détails techniques :</p>
                   <pre className="text-xs text-gray-600 whitespace-pre-wrap break-words font-mono max-h-40 overflow-auto">
                     {this.state.error.name}: {this.state.error.message}
                     {this.state.error.stack && (

@@ -21,7 +21,7 @@ if ! docker compose -f "$COMPOSE_FILE" ps postgres 2>/dev/null | grep -q "runnin
 fi
 
 docker compose -f "$COMPOSE_FILE" exec -T postgres \
-    pg_dump -U optiflow -Fc optiflow > "$BACKUP_FILE"
+    pg_dump -U "${POSTGRES_USER:-optiflow}" -Fc "${POSTGRES_DB:-optiflow}" > "$BACKUP_FILE"
 
 SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
 echo "Backup termine: $BACKUP_FILE ($SIZE)"

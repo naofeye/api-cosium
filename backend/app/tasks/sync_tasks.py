@@ -33,15 +33,11 @@ logger = get_logger("sync_tasks")
 def sync_all_tenants(self) -> dict[str, int]:
     """Sync all active tenants with their ERP (daily incremental sync)."""
     from app.db.session import SessionLocal
-    from app.models import Tenant
+    from app.repositories import onboarding_repo
 
     db = SessionLocal()
     try:
-        tenants = (
-            db.query(Tenant)
-            .filter(Tenant.is_active.is_(True), Tenant.cosium_connected.is_(True))
-            .all()
-        )
+        tenants = onboarding_repo.get_active_cosium_tenants(db)
         synced = 0
         failed = 0
 
@@ -165,17 +161,12 @@ def test_cosium_connection(self) -> dict[str, int]:
     If a tenant's connection fails with 401, create a notification for admin users.
     """
     from app.db.session import SessionLocal
-    from app.models import Tenant
     from app.models.notification import Notification
-    from app.models.tenant import TenantUser
+    from app.repositories import onboarding_repo, tenant_user_repo
 
     db = SessionLocal()
     try:
-        tenants = (
-            db.query(Tenant)
-            .filter(Tenant.is_active.is_(True), Tenant.cosium_connected.is_(True))
-            .all()
-        )
+        tenants = onboarding_repo.get_active_cosium_tenants(db)
         ok_count = 0
         fail_count = 0
 
@@ -198,13 +189,8 @@ def test_cosium_connection(self) -> dict[str, int]:
                 )
 
                 # Create notification for admin users of this tenant
-                admin_user_ids = (
-                    db.query(TenantUser.user_id)
-                    .filter(
-                        TenantUser.tenant_id == tenant.id,
-                        TenantUser.role.in_(["admin", "owner"]),
-                    )
-                    .all()
+                admin_user_ids = tenant_user_repo.list_user_ids_by_roles(
+                    db, tenant.id, ["admin", "owner"]
                 )
 
                 title = (
@@ -219,7 +205,7 @@ def test_cosium_connection(self) -> dict[str, int]:
                     else f"Erreur de connexion Cosium pour {tenant.name} : {error_msg[:200]}"
                 )
 
-                for (uid,) in admin_user_ids:
+                for uid in admin_user_ids:
                     notification = Notification(
                         tenant_id=tenant.id,
                         user_id=uid,
@@ -323,18 +309,14 @@ def check_expiring_prescriptions(self) -> dict[str, int]:
     from sqlalchemy import select
 
     from app.db.session import SessionLocal
-    from app.models import Customer, Tenant
+    from app.models import Customer
     from app.models.cosium_data import CosiumPrescription
     from app.models.notification import Notification
-    from app.models.tenant import TenantUser
+    from app.repositories import onboarding_repo, tenant_user_repo
 
     db = SessionLocal()
     try:
-        tenants = (
-            db.query(Tenant)
-            .filter(Tenant.is_active.is_(True))
-            .all()
-        )
+        tenants = onboarding_repo.get_active_tenants(db)
 
         total_notified = 0
         two_years_ago = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=730)  # naive datetime for DB compatibility
@@ -369,20 +351,15 @@ def check_expiring_prescriptions(self) -> dict[str, int]:
                 continue
 
             # Get admin/manager users for this tenant
-            staff_user_ids = (
-                db.query(TenantUser.user_id)
-                .filter(
-                    TenantUser.tenant_id == tenant.id,
-                    TenantUser.role.in_(["admin", "owner", "manager"]),
-                )
-                .all()
+            staff_user_ids = tenant_user_repo.list_user_ids_by_roles(
+                db, tenant.id, ["admin", "owner", "manager"]
             )
 
             for client_row in expired_clients:
                 client_id, first_name, last_name, latest_date = client_row
                 client_name = f"{last_name} {first_name}".strip()
 
-                for (uid,) in staff_user_ids:
+                for uid in staff_user_ids:
                     # Check if notification already exists (avoid duplicates)
                     existing = db.query(Notification).filter(
                         Notification.tenant_id == tenant.id,

@@ -109,7 +109,7 @@ export default function SettingsPage() {
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword.length < 8) {
-      toast("Le mot de passe doit contenir au moins 8 caracteres", "error");
+      toast("Le mot de passe doit contenir au moins 8 caractères", "error");
       return;
     }
     setChanging(true);

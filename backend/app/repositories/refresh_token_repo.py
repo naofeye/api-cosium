@@ -1,7 +1,7 @@
 import hashlib
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.models import RefreshToken
@@ -38,9 +38,11 @@ def revoke(db: Session, token: str) -> None:
 
 
 def revoke_all_for_user(db: Session, user_id: int) -> None:
-    db.query(RefreshToken).filter(
-        RefreshToken.user_id == user_id, RefreshToken.revoked.is_(False)
-    ).update({"revoked": True})
+    db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user_id, RefreshToken.revoked.is_(False))
+        .values(revoked=True)
+    )
 
 
 def is_valid(rt: RefreshToken) -> bool:

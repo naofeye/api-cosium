@@ -13,9 +13,9 @@ from app.core.deps import require_tenant_role
 from app.core.tenant_context import TenantContext
 from app.db.session import get_db
 from app.domain.schemas.admin import DataQualityResponse, ExtractionStats, HealthCheckResponse, MetricsResponse
-from app.models.tenant import Tenant
 from app.models.cosium_data import CosiumDocument, CosiumInvoice, CosiumPayment, CosiumPrescription
 from app.models.document_extraction import DocumentExtraction
+from app.repositories import onboarding_repo
 from app.services import admin_metrics_service, onboarding_service
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
@@ -35,7 +35,7 @@ def _check_cosium_status(db: Session, tenant_id: int | None = None) -> dict:
         client.base_url = settings.cosium_base_url
 
         if tenant_id is not None:
-            tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+            tenant = onboarding_repo.get_tenant_by_id(db, tenant_id)
             if not tenant:
                 return {"status": "error", "error": "tenant introuvable"}
 
@@ -232,7 +232,7 @@ def test_cosium_connection(
         from app.core.encryption import decrypt
         from app.integrations.cosium.client import CosiumClient
 
-        tenant = db.query(Tenant).filter(Tenant.id == tenant_ctx.tenant_id).first()
+        tenant = onboarding_repo.get_tenant_by_id(db, tenant_ctx.tenant_id)
         client = CosiumClient()
         client.base_url = settings.cosium_base_url
 

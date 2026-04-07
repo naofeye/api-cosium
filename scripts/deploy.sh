@@ -10,12 +10,27 @@ cd "$(dirname "$0")/.."
 
 COMPOSE_FILE="docker-compose.prod.yml"
 
+# Pre-flight: verify required env vars
+if [ ! -f .env ]; then
+    echo "ERREUR: Fichier .env introuvable."
+    exit 1
+fi
+
+MISSING=""
+grep -q "^JWT_SECRET=" .env || MISSING="$MISSING JWT_SECRET"
+grep -q "^ENCRYPTION_KEY=" .env || MISSING="$MISSING ENCRYPTION_KEY"
+
+if [ -n "$MISSING" ]; then
+    echo "ERREUR: Variables d'environnement manquantes dans .env:$MISSING"
+    exit 1
+fi
+
 # 0. Backup database before deployment
 echo "[0/6] Backup de la base de donnees..."
 if docker compose -f "$COMPOSE_FILE" ps postgres 2>/dev/null | grep -q "running"; then
     echo "  Backup en cours..."
     docker compose -f "$COMPOSE_FILE" exec -T postgres \
-        pg_dump -U optiflow -Fc optiflow > "backups/optiflow_$(date +%Y%m%d_%H%M%S).dump" 2>/dev/null \
+        pg_dump -U "${POSTGRES_USER:-optiflow}" -Fc "${POSTGRES_DB:-optiflow}" > "backups/optiflow_$(date +%Y%m%d_%H%M%S).dump" 2>/dev/null \
         && echo "  Backup termine." \
         || echo "  WARN: Backup echoue (non bloquant)."
 else

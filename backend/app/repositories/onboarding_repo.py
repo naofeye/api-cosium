@@ -31,6 +31,24 @@ def get_org_by_id(db: Session, org_id: int) -> Organization | None:
     return db.scalars(select(Organization).where(Organization.id == org_id)).first()
 
 
+def get_active_cosium_tenants(db: Session) -> list[Tenant]:
+    """Return all active tenants with Cosium connected."""
+    return list(
+        db.scalars(
+            select(Tenant).where(Tenant.is_active.is_(True), Tenant.cosium_connected.is_(True))
+        ).all()
+    )
+
+
+def get_active_tenants(db: Session) -> list[Tenant]:
+    """Return all active tenants."""
+    return list(
+        db.scalars(
+            select(Tenant).where(Tenant.is_active.is_(True))
+        ).all()
+    )
+
+
 def has_customers(db: Session, tenant_id: int) -> bool:
     """Check if tenant has at least one customer."""
     return db.scalar(

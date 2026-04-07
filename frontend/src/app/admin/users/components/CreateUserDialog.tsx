@@ -179,7 +179,7 @@ export function CreateUserDialog({ open, onClose, onCreated }: CreateUserDialogP
             </div>
             {form.password.length > 0 && form.password.length < 8 && (
               <p className="mt-1 text-xs text-red-600">
-                Minimum 8 caracteres
+                Minimum 8 caractères
               </p>
             )}
           </div>

@@ -140,7 +140,7 @@ export function StepAccount({ onComplete }: { onComplete: () => void }) {
             id="owner_password"
             type={showPassword ? "text" : "password"}
             {...register("owner_password")}
-            placeholder="Minimum 8 caracteres"
+            placeholder="Minimum 8 caractères"
             className={cn(inputClass("owner_password"), "pr-10")}
             autoComplete="new-password"
           />
