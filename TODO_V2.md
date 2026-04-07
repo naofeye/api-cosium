@@ -131,8 +131,8 @@
 > Objectif : polissage continu
 
 ### 7.1 Frontend UX [FAIBLE]
-- [ ] Remplacer les `window.confirm()` par le composant `ConfirmDialog`
-- [ ] Remplacer les `window.open()` par des liens Next.js
+- [x] `window.confirm()` — 2 occurrences dans `useUnsavedChangesWarning.ts`, contexte synchrone obligatoire (navigation guard), correct
+- [x] `window.open()` — 6 occurrences, toutes pour downloads/PDF/mailto, pattern correct
 - [ ] Ajouter un type TypeScript strict pour chaque reponse admin
 
 ### 7.2 Monitoring [FAIBLE]
