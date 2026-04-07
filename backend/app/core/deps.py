@@ -9,7 +9,7 @@ from app.core.exceptions import AuthenticationError, ForbiddenError
 from app.db.session import get_db
 from app.models import TenantUser, User
 from app.repositories import user_repo
-from app.security import decode_access_token
+from app.security import decode_access_token, is_token_blacklisted
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
@@ -34,6 +34,11 @@ def get_current_user(
     db: Session = Depends(get_db),
 ) -> User:
     """Authentifie l'utilisateur et verifie son acces au tenant du token."""
+    # Recuperer le token brut pour la blacklist
+    raw_token = token or request.cookies.get("optiflow_token")
+    if raw_token and is_token_blacklisted(raw_token):
+        raise AuthenticationError("Token revoque")
+
     payload = _extract_token_payload(request, token)
 
     email: str | None = payload.get("sub")

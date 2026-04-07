@@ -24,8 +24,7 @@ from app.domain.schemas.reconciliation import (
     PaymentMatch,
     ReconciliationSummary,
 )
-from app.models.cosium_data import CosiumPayment
-from app.repositories import reconciliation_repo
+from app.repositories import client_repo, reconciliation_repo
 
 logger = get_logger("reconciliation_service")
 
@@ -122,12 +121,8 @@ def link_payments_to_customers(db: Session, tenant_id: int) -> LinkPaymentsResul
     db.commit()
 
     # Count already-linked payments
-    total_payments_q = (
-        db.query(CosiumPayment)
-        .filter(CosiumPayment.tenant_id == tenant_id)
-        .count()
-    )
-    already_linked = total_payments_q - total
+    total_payments_count = reconciliation_repo.count_payments(db, tenant_id)
+    already_linked = total_payments_count - total
 
     logger.info(
         "payments_linked_to_customers",
@@ -138,7 +133,7 @@ def link_payments_to_customers(db: Session, tenant_id: int) -> LinkPaymentsResul
     )
 
     return LinkPaymentsResult(
-        total_payments=total_payments_q,
+        total_payments=total_payments_count,
         already_linked=already_linked,
         newly_linked=newly_linked,
         unmatched=total - newly_linked,
@@ -149,13 +144,10 @@ def reconcile_customer_dossier(
     db: Session, tenant_id: int, customer_id: int,
 ) -> DossierReconciliationResponse:
     """Reconcile all financial data for a single customer."""
-    from app.models.client import Customer
+    from app.core.exceptions import NotFoundError
 
-    customer = db.query(Customer).filter(
-        Customer.id == customer_id, Customer.tenant_id == tenant_id,
-    ).first()
+    customer = client_repo.get_by_id(db, customer_id, tenant_id)
     if not customer:
-        from app.core.exceptions import NotFoundError
         raise NotFoundError("Customer", customer_id)
 
     cosium_id = customer.cosium_id
@@ -459,8 +451,7 @@ def get_customer_reconciliation(
         return reconcile_customer_dossier(db, tenant_id, customer_id)
 
     # Reconstruct response from stored data
-    from app.models.client import Customer
-    customer = db.query(Customer).filter(Customer.id == customer_id).first()
+    customer = client_repo.get_by_id(db, customer_id, tenant_id)
     customer_name = f"{customer.last_name} {customer.first_name}" if customer else ""
 
     invoices = json.loads(recon.detail_json) if recon.detail_json else []

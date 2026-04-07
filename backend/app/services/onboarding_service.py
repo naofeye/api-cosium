@@ -13,8 +13,7 @@ from app.domain.schemas.onboarding import (
     OnboardingStep,
     SignupRequest,
 )
-from app.models import Customer, Organization, Tenant, TenantUser, User
-from app.repositories import refresh_token_repo
+from app.repositories import onboarding_repo, refresh_token_repo
 from app.security import (
     create_access_token,
     generate_refresh_token,
@@ -37,53 +36,50 @@ def _slugify(name: str) -> str:
 def _ensure_unique_slug(db: Session, base_slug: str) -> str:
     slug = base_slug
     counter = 1
-    while db.query(Tenant).filter(Tenant.slug == slug).first() is not None:
+    while onboarding_repo.get_tenant_by_slug(db, slug) is not None:
         slug = f"{base_slug}-{counter}"
         counter += 1
     return slug
 
 
 def signup(db: Session, payload: SignupRequest) -> TokenResponse:
-    existing = db.query(User).filter(User.email == payload.owner_email).first()
+    existing = onboarding_repo.get_user_by_email(db, payload.owner_email)
     if existing:
         raise ValidationError("owner_email", "Un compte existe déjà avec cet email")
 
     org_slug = _slugify(payload.company_name)
     org_counter = 1
     final_org_slug = org_slug
-    while db.query(Organization).filter(Organization.slug == final_org_slug).first():
+    while onboarding_repo.get_org_by_slug(db, final_org_slug):
         final_org_slug = f"{org_slug}-{org_counter}"
         org_counter += 1
 
-    org = Organization(
+    org = onboarding_repo.create_organization(
+        db,
         name=payload.company_name,
         slug=final_org_slug,
         contact_email=payload.owner_email,
         plan="trial",
         trial_ends_at=datetime.now(UTC) + timedelta(days=TRIAL_DAYS),
     )
-    db.add(org)
-    db.flush()
 
     tenant_slug = _ensure_unique_slug(db, org_slug)
-    tenant = Tenant(
+    tenant = onboarding_repo.create_tenant(
+        db,
         organization_id=org.id,
         name=payload.company_name,
         slug=tenant_slug,
     )
-    db.add(tenant)
-    db.flush()
 
-    user = User(
+    user = onboarding_repo.create_user(
+        db,
         email=payload.owner_email,
         password_hash=hash_password(payload.owner_password),
         role="admin",
         is_active=True,
     )
-    db.add(user)
-    db.flush()
 
-    db.add(TenantUser(user_id=user.id, tenant_id=tenant.id, role="admin"))
+    onboarding_repo.create_tenant_user(db, user.id, tenant.id, "admin")
     db.commit()
 
     access_token = create_access_token(
@@ -108,7 +104,7 @@ def signup(db: Session, payload: SignupRequest) -> TokenResponse:
 
 
 def connect_cosium(db: Session, tenant_id: int, payload: ConnectCosiumRequest) -> bool:
-    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    tenant = onboarding_repo.get_tenant_by_id(db, tenant_id)
     if not tenant:
         raise BusinessError("Magasin introuvable")
 
@@ -138,7 +134,7 @@ def connect_cosium(db: Session, tenant_id: int, payload: ConnectCosiumRequest) -
 
 
 def trigger_first_sync(db: Session, tenant_id: int) -> dict:
-    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    tenant = onboarding_repo.get_tenant_by_id(db, tenant_id)
     if not tenant:
         raise BusinessError("Magasin introuvable")
     if not tenant.cosium_connected:
@@ -159,7 +155,7 @@ def trigger_first_sync(db: Session, tenant_id: int) -> dict:
 
 def update_cosium_cookies(db: Session, tenant_id: int, access_token: str, device_credential: str) -> bool:
     """Store encrypted Cosium browser cookies for the tenant."""
-    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    tenant = onboarding_repo.get_tenant_by_id(db, tenant_id)
     if not tenant:
         raise BusinessError("Magasin introuvable")
 
@@ -173,13 +169,13 @@ def update_cosium_cookies(db: Session, tenant_id: int, access_token: str, device
 
 
 def get_onboarding_status(db: Session, tenant_id: int) -> OnboardingStatusResponse:
-    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    tenant = onboarding_repo.get_tenant_by_id(db, tenant_id)
     if not tenant:
         raise BusinessError("Magasin introuvable")
 
-    org = db.query(Organization).filter(Organization.id == tenant.organization_id).first()
+    org = onboarding_repo.get_org_by_id(db, tenant.organization_id)
 
-    has_customers = db.query(Customer).filter(Customer.tenant_id == tenant_id).count() > 0
+    has_customers = onboarding_repo.has_customers(db, tenant_id)
 
     steps = [
         OnboardingStep(key="account", label="Créer votre compte", completed=True),

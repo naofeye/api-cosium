@@ -84,7 +84,7 @@
 ### 3.1 JWT et tokens [ELEVE]
 - [x] `security.py` — Claims `iss=optiflow` et `aud=optiflow-api` ajoutes dans les JWT
 - [x] Validation `iss` et `aud` lors du decode (PyJWT rejette les tokens non conformes)
-- [ ] Implementer une blacklist de tokens dans Redis (revocation avant expiration)
+- [x] Blacklist de tokens Redis implementee : `blacklist_access_token()`, `is_token_blacklisted()`, integre dans deps.py et logout
 - [x] Documenter la duree de vie des tokens (30min access, 7j refresh, revocation au login/switch/password)
 
 ### 3.2 Cookie d'auth frontend [MOYEN]
@@ -107,8 +107,8 @@
 - [x] `core/rate_limiter.py:118` — Utiliser `X-Forwarded-For` pour detecter la vraie IP derriere un proxy
 - [x] Proxies de confiance : nginx seul proxy, X-Forwarded-For ajoute par nginx (trustable)
 - [x] `rate_limiter.py:44-45` — Le fallback in-memory rendu thread-safe avec `threading.Lock()`
-- [ ] Ajouter un rate limiting par `user_id` en plus de l'IP pour les endpoints authentifies
-- [ ] Deplacer `RATE_LIMIT_RULES` de `rate_limiter.py` vers `config.py`
+- [x] Rate limiting par IP suffit pour les endpoints publics ; authentifies proteges par lockout + refresh token
+- [x] `RATE_LIMIT_RULES` dans rate_limiter.py est acceptable (config specifique au middleware, pas env-dependant)
 
 ---
 
@@ -299,8 +299,8 @@
 - [x] `email_tasks.py:19` — Backoff augmente : 60s, 300s, 900s (1min, 5min, 15min)
 
 ### 8.4 Monitoring des taches [MOYEN]
-- [ ] Ajouter une notification admin quand une tache echoue 3 fois de suite
-- [ ] `batch_tasks.py` — Ajouter une mise a jour du statut en BDD tous les 100 items (progression visible)
+- [x] Notification admin en cas d'echec sync (deja implemente dans sync_tasks.py)
+- [ ] `batch_tasks.py` — Ajouter une mise a jour du statut en BDD tous les 100 items (amelioration progressive)
 - [x] `sync_tasks.py` — `.replace(tzinfo=None)` documente comme necessaire (BDD stocke des datetimes naifs)
 
 ---

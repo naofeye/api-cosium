@@ -1,6 +1,5 @@
 """Copilote IA pour le renouvellement — generation de messages personnalises."""
 
-from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
@@ -115,7 +114,7 @@ def analyze_renewal_potential(
 ) -> str:
     """Analyse IA mensuelle du potentiel de renouvellement."""
 
-    total_clients = db.scalar(select(func.count()).select_from(Customer).where(Customer.tenant_id == tenant_id)) or 0
+    total_clients = ai_context_repo.count_customers(db, tenant_id)
 
     context = (
         f"ANALYSE RENOUVELLEMENT — RESUME MENSUEL\n"
@@ -147,20 +146,16 @@ def _log_ai_usage(db: Session, tenant_id: int, result: dict, user_id: int = 0) -
     """Enregistre l'utilisation IA."""
     if not user_id:
         logger.warning("operation_without_user_id", action="log_ai_usage", entity="ai_usage")
-    try:
-        usage = AiUsageLog(
-            tenant_id=tenant_id,
-            user_id=user_id,
-            copilot_type="renouvellement",
-            model_used=result.get("model", "unknown"),
-            tokens_in=result.get("tokens_in", 0),
-            tokens_out=result.get("tokens_out", 0),
-            cost_usd=_estimate_cost(result.get("tokens_in", 0), result.get("tokens_out", 0)),
-        )
-        db.add(usage)
-        db.commit()
-    except (SQLAlchemyError, ValueError, TypeError) as e:
-        logger.warning("ai_usage_log_failed", error=str(e))
+    ai_usage_repo.create(
+        db,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        copilot_type="renouvellement",
+        model_used=result.get("model", "unknown"),
+        tokens_in=result.get("tokens_in", 0),
+        tokens_out=result.get("tokens_out", 0),
+        cost_usd=_estimate_cost(result.get("tokens_in", 0), result.get("tokens_out", 0)),
+    )
 
 
 def _estimate_cost(tokens_in: int, tokens_out: int) -> float:

@@ -22,7 +22,7 @@ from app.models import (
     Interaction,
     MarketingConsent,
 )
-from app.models.client_mutuelle import ClientMutuelle
+from app.repositories import client_mutuelle_repo, client_repo
 from app.services.client_360_documents import (
     build_calendar_events,
     build_correction_actuelle,
@@ -73,12 +73,7 @@ def _build_cosium_data(
     customer_tags = get_customer_tags(db, tenant_id, cosium_id)
 
     # Client mutuelles
-    mutuelle_rows = db.scalars(
-        select(ClientMutuelle).where(
-            ClientMutuelle.tenant_id == tenant_id,
-            ClientMutuelle.customer_id == client_id,
-        ).order_by(ClientMutuelle.active.desc(), ClientMutuelle.created_at.desc())
-    ).all()
+    mutuelle_rows = client_mutuelle_repo.get_by_customer(db, client_id, tenant_id)
     mutuelles = [ClientMutuelleResponse.model_validate(m) for m in mutuelle_rows]
 
     ocr_data = build_ocr_data(db, tenant_id, client_id, cosium_id, prescriptions_raw)
@@ -99,8 +94,8 @@ def _build_cosium_data(
 
 def get_client_360(db: Session, tenant_id: int, client_id: int) -> Client360Response:
     """Build the full 360 view for a client."""
-    customer = db.get(Customer, client_id)
-    if not customer or customer.tenant_id != tenant_id:
+    customer = client_repo.get_by_id(db, client_id, tenant_id)
+    if not customer:
         raise NotFoundError("client", client_id)
 
     cases = db.scalars(
@@ -200,8 +195,8 @@ def get_client_360(db: Session, tenant_id: int, client_id: int) -> Client360Resp
 
 def get_client_cosium_data(db: Session, tenant_id: int, client_id: int) -> CosiumDataBundle:
     """Return all Cosium data for a client in one call."""
-    customer = db.get(Customer, client_id)
-    if not customer or customer.tenant_id != tenant_id:
+    customer = client_repo.get_by_id(db, client_id, tenant_id)
+    if not customer:
         raise NotFoundError("client", client_id)
 
     client_full_name = f"{customer.last_name} {customer.first_name}".strip()

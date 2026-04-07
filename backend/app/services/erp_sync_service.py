@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.logging import get_logger, log_operation
 from app.models import Customer, Tenant
+from app.repositories import onboarding_repo
 from app.services import audit_service
 from app.integrations.erp_factory import get_connector  # noqa: F401 — re-export for patch targets
 from app.services.erp_auth_service import (
@@ -162,7 +163,7 @@ def sync_customers(db: Session, tenant_id: int, user_id: int = 0) -> dict:
 
 def get_sync_status(db: Session, tenant_id: int) -> dict:
     """Retourne l'etat de la connexion ERP pour un tenant."""
-    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    tenant = onboarding_repo.get_tenant_by_id(db, tenant_id)
     if not tenant:
         return {"configured": False, "erp_type": "cosium"}
 

@@ -1,147 +1,25 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import useSWR from "swr";
-import Link from "next/link";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/Button";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
-import { KPICard } from "@/components/ui/KPICard";
-import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Pagination } from "@/components/ui/Pagination";
-import { formatMoney } from "@/lib/format";
 import { fetchJson } from "@/lib/api";
-import {
-  CheckCircle,
-  AlertCircle,
-  FileText,
-  Users,
-  Euro,
-  ArrowLeftRight,
-  ChevronDown,
-  ChevronRight,
-  ExternalLink,
-  RefreshCw,
-  Link2,
-  Search,
-} from "lucide-react";
+import { ArrowLeftRight, RefreshCw, Link2, Search } from "lucide-react";
 
-/* ---- Types ---- */
-
-interface ReconciliationSummary {
-  total_customers: number;
-  solde: number;
-  solde_non_rapproche: number;
-  partiellement_paye: number;
-  en_attente: number;
-  incoherent: number;
-  info_insuffisante: number;
-  total_facture: number;
-  total_outstanding: number;
-  total_paid: number;
-}
-
-interface ReconciliationListItem {
-  customer_id: number;
-  customer_name: string;
-  status: string;
-  confidence: string;
-  total_facture: number;
-  total_outstanding: number;
-  total_paid: number;
-  total_secu: number;
-  total_mutuelle: number;
-  total_client: number;
-  total_avoir: number;
-  invoice_count: number;
-  has_pec: boolean;
-  explanation: string;
-  reconciled_at: string;
-}
-
-interface ReconciliationListResponse {
-  items: ReconciliationListItem[];
-  total: number;
-  page: number;
-  page_size: number;
-}
-
-interface AnomalyItem {
-  type: string;
-  severity: string;
-  message: string;
-  invoice_number?: string;
-  amount?: number;
-}
-
-interface PaymentMatch {
-  payment_id: number;
-  amount: number;
-  type: string;
-  category: string;
-  issuer_name: string;
-}
-
-interface InvoiceReconciliation {
-  invoice_id: number;
-  invoice_number: string;
-  invoice_date: string | null;
-  total_ti: number;
-  outstanding_balance: number;
-  settled: boolean;
-  total_paid: number;
-  paid_secu: number;
-  paid_mutuelle: number;
-  paid_client: number;
-  paid_avoir: number;
-  status: string;
-  payments: PaymentMatch[];
-  anomalies: AnomalyItem[];
-}
-
-interface CustomerReconciliation {
-  id: number;
-  customer_id: number;
-  customer_name: string;
-  status: string;
-  confidence: string;
-  total_facture: number;
-  total_outstanding: number;
-  total_paid: number;
-  total_secu: number;
-  total_mutuelle: number;
-  total_client: number;
-  total_avoir: number;
-  invoice_count: number;
-  invoices: InvoiceReconciliation[];
-  anomalies: AnomalyItem[];
-  explanation: string;
-}
-
-/* ---- Filter tabs ---- */
-
-type FilterTab = "tous" | "solde" | "solde_non_rapproche" | "partiellement_paye" | "en_attente" | "incoherent";
-
-const FILTER_TABS: { key: FilterTab; label: string }[] = [
-  { key: "tous", label: "Tous" },
-  { key: "solde", label: "Soldes" },
-  { key: "solde_non_rapproche", label: "Non rapproches" },
-  { key: "partiellement_paye", label: "Partiellement payes" },
-  { key: "en_attente", label: "En attente" },
-  { key: "incoherent", label: "Incoherents" },
-];
-
-const CONFIDENCE_COLORS: Record<string, string> = {
-  certain: "bg-emerald-100 text-emerald-700",
-  probable: "bg-blue-100 text-blue-700",
-  partiel: "bg-amber-100 text-amber-700",
-  incertain: "bg-red-100 text-red-700",
-};
-
-/* ---- Component ---- */
+import type {
+  ReconciliationSummary,
+  ReconciliationListResponse,
+  CustomerReconciliation,
+  FilterTab,
+} from "./components/types";
+import { FILTER_TABS } from "./components/types";
+import { ReconciliationStatsPanel } from "./components/ReconciliationStatsPanel";
+import { ReconciliationRow } from "./components/ReconciliationRow";
 
 export default function RapprochementCosiumPage() {
   const [activeTab, setActiveTab] = useState<FilterTab>("tous");
@@ -152,7 +30,6 @@ export default function RapprochementCosiumPage() {
   const [running, setRunning] = useState(false);
   const [linking, setLinking] = useState(false);
 
-  // Build query params
   const statusParam = activeTab === "tous" ? "" : `&status=${activeTab}`;
   const searchParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : "";
 
@@ -169,7 +46,6 @@ export default function RapprochementCosiumPage() {
     `/reconciliation/list?page=${page}&page_size=${pageSize}${statusParam}${searchParam}`,
   );
 
-  // Detail data for expanded row
   const {
     data: detailData,
     isLoading: detailLoading,
@@ -212,16 +88,6 @@ export default function RapprochementCosiumPage() {
     setExpandedRow((prev) => (prev === customerId ? null : customerId));
   };
 
-  // KPI values
-  const totalDossiers = summary?.total_customers ?? 0;
-  const soldes = summary?.solde ?? 0;
-  const nonRapproches = summary?.solde_non_rapproche ?? 0;
-  const partiels = summary?.partiellement_paye ?? 0;
-  const incoherents = summary?.incoherent ?? 0;
-  const totalFacture = summary?.total_facture ?? 0;
-  const totalImpaye = summary?.total_outstanding ?? 0;
-  const tauxSolde = totalDossiers > 0 ? Math.round(((soldes + nonRapproches) / totalDossiers) * 100) : 0;
-
   return (
     <PageLayout
       title="Rapprochement Cosium"
@@ -240,63 +106,7 @@ export default function RapprochementCosiumPage() {
         </div>
       }
     >
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-        <KPICard
-          icon={Users}
-          label="Total dossiers"
-          value={totalDossiers.toLocaleString("fr-FR")}
-          color="primary"
-        />
-        <KPICard
-          icon={CheckCircle}
-          label={`Soldes (${tauxSolde}%)`}
-          value={soldes.toLocaleString("fr-FR")}
-          color="success"
-        />
-        <KPICard
-          icon={ArrowLeftRight}
-          label="Non rapproches"
-          value={nonRapproches.toLocaleString("fr-FR")}
-          color="primary"
-        />
-        <KPICard
-          icon={AlertCircle}
-          label="Partiellement payes"
-          value={partiels.toLocaleString("fr-FR")}
-          color="warning"
-        />
-        <KPICard
-          icon={AlertCircle}
-          label="Incoherents"
-          value={incoherents.toLocaleString("fr-FR")}
-          color="danger"
-        />
-        <KPICard
-          icon={Euro}
-          label="Total impaye"
-          value={formatMoney(totalImpaye)}
-          color={totalImpaye > 0 ? "danger" : "success"}
-        />
-      </div>
-
-      {/* Summary amounts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="rounded-xl border border-border bg-bg-card p-4 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium text-text-secondary">Total facture</p>
-            <p className="text-lg font-bold tabular-nums text-text-primary">{formatMoney(totalFacture)}</p>
-          </div>
-          <FileText className="h-8 w-8 text-gray-200" aria-hidden="true" />
-        </div>
-        <div className="rounded-xl border border-border bg-bg-card p-4 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium text-text-secondary">Total impaye</p>
-            <p className="text-lg font-bold tabular-nums text-red-700">{formatMoney(totalImpaye)}</p>
-          </div>
-          <Euro className="h-8 w-8 text-red-200" aria-hidden="true" />
-        </div>
-      </div>
+      <ReconciliationStatsPanel summary={summary} />
 
       {/* Filter tabs + search */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
@@ -396,188 +206,5 @@ export default function RapprochementCosiumPage() {
         </>
       )}
     </PageLayout>
-  );
-}
-
-/* ---- Row component ---- */
-
-function ReconciliationRow({
-  item,
-  isExpanded,
-  onToggle,
-  detail,
-  detailLoading,
-}: {
-  item: ReconciliationListItem;
-  isExpanded: boolean;
-  onToggle: () => void;
-  detail: CustomerReconciliation | null;
-  detailLoading: boolean;
-}) {
-  const resteDu = item.total_outstanding;
-
-  return (
-    <>
-      <tr
-        className={`border-b border-border last:border-0 transition-colors cursor-pointer ${
-          isExpanded ? "bg-blue-50/40" : "hover:bg-gray-50"
-        }`}
-        onClick={onToggle}
-      >
-        <td className="px-3 py-3">
-          {isExpanded ? (
-            <ChevronDown className="h-4 w-4 text-text-secondary" aria-hidden="true" />
-          ) : (
-            <ChevronRight className="h-4 w-4 text-text-secondary" aria-hidden="true" />
-          )}
-        </td>
-        <td className="px-4 py-3">
-          <Link
-            href={`/clients/${item.customer_id}`}
-            onClick={(e) => e.stopPropagation()}
-            className="font-medium text-primary hover:underline"
-          >
-            {item.customer_name}
-          </Link>
-        </td>
-        <td className="px-4 py-3">
-          <StatusBadge status={item.status} />
-        </td>
-        <td className="px-4 py-3">
-          <span className={`inline-flex items-center text-xs font-medium rounded-full px-2.5 py-0.5 ${CONFIDENCE_COLORS[item.confidence] ?? "bg-gray-100 text-gray-700"}`}>
-            {item.confidence}
-          </span>
-        </td>
-        <td className="px-4 py-3 text-right">
-          <MoneyDisplay amount={item.total_facture} />
-        </td>
-        <td className="px-4 py-3 text-right">
-          <MoneyDisplay amount={item.total_paid} colored />
-        </td>
-        <td className="px-4 py-3 text-right">
-          <span className={`font-semibold tabular-nums ${resteDu > 0.01 ? "text-red-600" : "text-emerald-600"}`}>
-            {formatMoney(resteDu)}
-          </span>
-        </td>
-        <td className="px-4 py-3 text-right tabular-nums text-text-secondary">
-          {formatMoney(item.total_secu)}
-        </td>
-        <td className="px-4 py-3 text-right tabular-nums text-text-secondary">
-          {formatMoney(item.total_mutuelle)}
-        </td>
-        <td className="px-4 py-3 text-right tabular-nums text-text-secondary">
-          {formatMoney(item.total_client)}
-        </td>
-        <td className="px-4 py-3 text-center tabular-nums">
-          {item.invoice_count}
-        </td>
-        <td className="px-4 py-3 text-center">
-          <Link
-            href={`/clients/${item.customer_id}?tab=rapprochement`}
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-            title="Voir le detail"
-          >
-            <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-            Detail
-          </Link>
-        </td>
-      </tr>
-
-      {/* Expanded detail */}
-      {isExpanded && (
-        <tr>
-          <td colSpan={12} className="px-6 py-4 bg-gray-50/50">
-            {detailLoading ? (
-              <div className="flex items-center gap-2 text-sm text-text-secondary py-4">
-                <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
-                Chargement du detail...
-              </div>
-            ) : detail ? (
-              <ExpandedDetail detail={detail} />
-            ) : (
-              <p className="text-sm text-text-secondary">Impossible de charger le detail.</p>
-            )}
-          </td>
-        </tr>
-      )}
-    </>
-  );
-}
-
-/* ---- Expanded detail ---- */
-
-function ExpandedDetail({ detail }: { detail: CustomerReconciliation }) {
-  return (
-    <div className="space-y-4">
-      {/* Explanation */}
-      <div className="rounded-lg border border-border bg-white p-3">
-        <p className="text-sm text-text-primary">{detail.explanation}</p>
-      </div>
-
-      {/* Anomalies */}
-      {detail.anomalies.length > 0 && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-          <h4 className="text-sm font-semibold text-red-800 mb-2">
-            Anomalies detectees ({detail.anomalies.length})
-          </h4>
-          <ul className="space-y-1">
-            {detail.anomalies.map((a, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-red-700">
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
-                <span>
-                  {a.message}
-                  {a.amount != null && (
-                    <span className="font-semibold ml-1">({formatMoney(a.amount)})</span>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Per-invoice breakdown */}
-      {detail.invoices.length > 0 && (
-        <div className="rounded-lg border border-border bg-white overflow-hidden">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border bg-gray-50">
-                <th scope="col" className="px-3 py-2 text-left font-medium text-text-secondary">Facture</th>
-                <th scope="col" className="px-3 py-2 text-left font-medium text-text-secondary">Statut</th>
-                <th scope="col" className="px-3 py-2 text-right font-medium text-text-secondary">TTC</th>
-                <th scope="col" className="px-3 py-2 text-right font-medium text-text-secondary">Paye</th>
-                <th scope="col" className="px-3 py-2 text-right font-medium text-text-secondary">Secu</th>
-                <th scope="col" className="px-3 py-2 text-right font-medium text-text-secondary">Mutuelle</th>
-                <th scope="col" className="px-3 py-2 text-right font-medium text-text-secondary">Client</th>
-                <th scope="col" className="px-3 py-2 text-right font-medium text-text-secondary">Reste du</th>
-                <th scope="col" className="px-3 py-2 text-center font-medium text-text-secondary">Paiements</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detail.invoices.map((inv) => (
-                <tr key={inv.invoice_id} className="border-b border-border last:border-0">
-                  <td className="px-3 py-2 font-mono font-medium">{inv.invoice_number}</td>
-                  <td className="px-3 py-2">
-                    <StatusBadge status={inv.status} />
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums">{formatMoney(inv.total_ti)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{formatMoney(inv.total_paid)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-text-secondary">{formatMoney(inv.paid_secu)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-text-secondary">{formatMoney(inv.paid_mutuelle)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-text-secondary">{formatMoney(inv.paid_client)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">
-                    <span className={inv.outstanding_balance > 0.01 ? "text-red-600 font-semibold" : "text-emerald-600"}>
-                      {formatMoney(inv.outstanding_balance)}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-center tabular-nums">{inv.payments.length}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
   );
 }

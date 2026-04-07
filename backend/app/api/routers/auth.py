@@ -134,6 +134,11 @@ def reset_password_endpoint(payload: ResetPasswordRequest, db: Session = Depends
     "/logout", status_code=204, summary="Deconnexion", description="Revoque le refresh token et supprime les cookies."
 )
 def logout(request: Request, response: Response, db: Session = Depends(get_db)) -> None:
+    # Blacklister l'access token pour empecher sa reutilisation
+    access_tok = request.cookies.get("optiflow_token")
+    if access_tok:
+        from app.security import blacklist_access_token
+        blacklist_access_token(access_tok)
     refresh_tok = request.cookies.get("optiflow_refresh")
     if refresh_tok:
         auth_service.logout(db, refresh_tok)

@@ -53,6 +53,35 @@ def decode_access_token(token: str) -> dict:
     )
 
 
+def blacklist_access_token(token: str) -> None:
+    """Ajoute un access token a la blacklist Redis (TTL = duree restante du token)."""
+    try:
+        from app.core.redis_cache import get_redis_client
+
+        r = get_redis_client()
+        if r is None:
+            return
+        payload = jwt.decode(token, options={"verify_signature": False, "verify_exp": False})
+        exp = payload.get("exp", 0)
+        ttl = max(int(exp - datetime.now(UTC).timestamp()), 60)
+        r.setex(f"blacklist:{token[:32]}", ttl, "1")
+    except Exception:
+        pass
+
+
+def is_token_blacklisted(token: str) -> bool:
+    """Verifie si un access token est dans la blacklist Redis."""
+    try:
+        from app.core.redis_cache import get_redis_client
+
+        r = get_redis_client()
+        if r is None:
+            return False
+        return bool(r.exists(f"blacklist:{token[:32]}"))
+    except Exception:
+        return False
+
+
 def generate_refresh_token() -> str:
     return secrets.token_urlsafe(64)
 
