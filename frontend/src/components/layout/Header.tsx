@@ -145,7 +145,7 @@ export function Header({ breadcrumb }: HeaderProps) {
       )}
       <header
         role="banner"
-        className={`sticky ${trialDays !== null ? "top-[36px]" : "top-0"} z-30 flex h-16 items-center justify-between border-b border-border bg-bg-card px-3 sm:px-6 shadow-sm`}
+        className={`sticky ${trialDays !== null ? "top-[36px]" : "top-0"} z-30 flex h-16 items-center justify-between border-b border-border bg-bg-card px-3 sm:px-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)]`}
       >
         {/* Left side: hamburger (mobile) + breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-text-secondary min-w-0">
@@ -217,7 +217,7 @@ export function Header({ breadcrumb }: HeaderProps) {
                 aria-modal="false"
                 aria-label="Panneau de notifications"
                 onKeyDown={(e) => { if (e.key === "Escape") setShowDropdown(false); }}
-                className="absolute right-0 top-12 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-bg-card shadow-xl"
+                className="absolute right-0 top-12 w-96 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-bg-card shadow-2xl ring-1 ring-black/5"
               >
                 <div className="flex items-center justify-between border-b border-border px-4 py-3">
                   <h3 className="text-sm font-semibold text-text-primary">Notifications</h3>
@@ -238,7 +238,7 @@ export function Header({ breadcrumb }: HeaderProps) {
                   </div>
                 </div>
 
-                <div className="max-h-80 overflow-y-auto">
+                <div className="max-h-96 overflow-y-auto overscroll-contain">
                   {notifications.length === 0 ? (
                     <div className="py-8 text-center text-sm text-text-secondary">Aucune notification</div>
                   ) : (
@@ -283,7 +283,7 @@ export function Header({ breadcrumb }: HeaderProps) {
           {/* User avatar + logout - hide logout text on mobile */}
           <div className="flex items-center gap-1 sm:gap-2">
             <div
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white ring-2 ring-blue-100 dark:ring-blue-900/50"
               aria-label="Profil utilisateur"
               role="img"
             >

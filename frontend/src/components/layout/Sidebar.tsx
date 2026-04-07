@@ -35,6 +35,7 @@ import {
   Briefcase,
   RotateCcw,
   X,
+  Eye,
   type LucideIcon,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
@@ -192,10 +193,10 @@ function SidebarGroupComponent({
               aria-current={active ? "page" : undefined}
               aria-label={item.label}
               className={cn(
-                "flex items-center justify-center rounded-lg p-2.5 text-sm font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none",
+                "flex items-center justify-center rounded-lg p-2.5 text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none",
                 active
-                  ? "bg-primary text-white border-l-2 border-white"
-                  : "text-gray-400 hover:bg-gray-800 hover:text-white",
+                  ? "bg-white/10 text-blue-400 border-l-3 border-blue-400 shadow-sm shadow-blue-500/10"
+                  : "text-gray-400 hover:bg-white/5 hover:text-gray-200",
               )}
               title={item.label}
             >
@@ -211,7 +212,7 @@ function SidebarGroupComponent({
     <div className="mb-1 mt-3">
       <button
         onClick={() => onToggleGroup(group.key)}
-        className="flex w-full items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-gray-200 transition-colors duration-150 border-b border-gray-700/50 pb-2"
+        className="flex w-full items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-gray-300 transition-all duration-200 border-b border-white/5 pb-2"
         aria-expanded={!effectiveCollapsed}
         aria-label={`${effectiveCollapsed ? "Ouvrir" : "Fermer"} la section ${group.label}`}
       >
@@ -240,13 +241,13 @@ function SidebarGroupComponent({
                 onClick={onLinkClick}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none",
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none",
                   active
-                    ? "bg-primary text-white border-l-2 border-white"
-                    : "text-gray-400 hover:bg-gray-800 hover:text-white",
+                    ? "bg-white/10 text-white border-l-3 border-blue-400 shadow-sm shadow-blue-500/10"
+                    : "text-gray-400 hover:bg-white/5 hover:text-gray-200",
                 )}
               >
-                <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                <item.icon className={cn("h-5 w-5 shrink-0", active && "text-blue-400")} aria-hidden="true" />
                 <span>{item.label}</span>
               </Link>
             );
@@ -284,11 +285,21 @@ export function Sidebar() {
 
   const sidebarContent = (
     <>
-      <div className="flex h-16 items-center justify-between px-4">
-        {showLabel && (
-          <Link href="/actions" className="text-lg font-bold" onClick={handleLinkClick}>
-            OptiFlow AI
+      <div className="flex h-16 items-center justify-between px-4 border-b border-white/10">
+        {showLabel ? (
+          <Link href="/actions" className="flex items-center gap-2.5 group" onClick={handleLinkClick}>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25 transition-transform duration-200 group-hover:scale-105">
+              <Eye className="h-4.5 w-4.5 text-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold tracking-tight text-white">OptiFlow AI</span>
+              <span className="text-[10px] text-gray-500 font-medium -mt-0.5">Gestion Optique</span>
+            </div>
           </Link>
+        ) : (
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25 mx-auto">
+            <Eye className="h-4.5 w-4.5 text-white" />
+          </div>
         )}
         <button
           onClick={() => {
@@ -298,7 +309,7 @@ export function Sidebar() {
               setCollapsed(!collapsed);
             }
           }}
-          className="rounded-lg p-1.5 hover:bg-gray-800 transition-colors duration-150"
+          className="rounded-lg p-1.5 hover:bg-white/10 transition-all duration-200"
           aria-label={mobileOpen ? "Fermer le menu" : collapsed ? "Agrandir le menu" : "Reduire le menu"}
           title={mobileOpen ? "Fermer le menu" : collapsed ? "Agrandir le menu" : "Reduire le menu"}
         >
@@ -326,7 +337,7 @@ export function Sidebar() {
         ))}
 
         {/* Settings section */}
-        {showLabel && <div className="mx-3 my-3 border-t border-gray-700" />}
+        {showLabel && <div className="mx-3 my-3 border-t border-white/10" />}
         {!showLabel && <div className="my-2" />}
         {settingsItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
@@ -338,15 +349,15 @@ export function Sidebar() {
               aria-current={active ? "page" : undefined}
               aria-label={!showLabel ? item.label : undefined}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none",
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none",
                 active
-                  ? "bg-primary text-white border-l-2 border-white"
-                  : "text-gray-400 hover:bg-gray-800 hover:text-white",
+                  ? "bg-white/10 text-white border-l-3 border-blue-400 shadow-sm shadow-blue-500/10"
+                  : "text-gray-400 hover:bg-white/5 hover:text-gray-200",
                 !showLabel && "justify-center",
               )}
               title={!showLabel ? item.label : undefined}
             >
-              <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+              <item.icon className={cn("h-5 w-5 shrink-0", active && "text-blue-400")} aria-hidden="true" />
               {showLabel && <span>{item.label}</span>}
             </Link>
           );
@@ -355,7 +366,7 @@ export function Sidebar() {
         {/* Network admin: visible only if multi-tenant */}
         {isMultiTenant && (
           <>
-            {showLabel && <div className="mx-3 my-3 border-t border-gray-700" />}
+            {showLabel && <div className="mx-3 my-3 border-t border-white/10" />}
             <Link
               href={networkAdminItem.href}
               onClick={handleLinkClick}
@@ -366,10 +377,10 @@ export function Sidebar() {
               }
               aria-label={!showLabel ? networkAdminItem.label : undefined}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none",
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none",
                 pathname === networkAdminItem.href || pathname.startsWith(networkAdminItem.href + "/")
-                  ? "bg-primary text-white border-l-2 border-white"
-                  : "text-gray-400 hover:bg-gray-800 hover:text-white",
+                  ? "bg-white/10 text-white border-l-3 border-blue-400 shadow-sm shadow-blue-500/10"
+                  : "text-gray-400 hover:bg-white/5 hover:text-gray-200",
                 !showLabel && "justify-center",
               )}
               title={!showLabel ? networkAdminItem.label : undefined}
@@ -390,7 +401,7 @@ export function Sidebar() {
         role="navigation"
         aria-label="Menu principal"
         className={cn(
-          "fixed inset-y-0 left-0 z-40 hidden lg:flex flex-col bg-bg-sidebar text-text-on-dark transition-all duration-200",
+          "fixed inset-y-0 left-0 z-40 hidden lg:flex flex-col bg-gradient-to-b from-gray-900 via-gray-900 to-gray-950 text-text-on-dark transition-all duration-200",
           collapsed ? "w-16" : "w-64",
         )}
       >
@@ -411,7 +422,7 @@ export function Sidebar() {
         role="navigation"
         aria-label="Menu principal"
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-bg-sidebar text-text-on-dark transition-transform duration-300 lg:hidden",
+          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-gradient-to-b from-gray-900 via-gray-900 to-gray-950 text-text-on-dark transition-transform duration-300 lg:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >

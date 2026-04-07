@@ -72,10 +72,10 @@ const TYPE_ICONS: Record<string, typeof FolderOpen> = {
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
-  critical: "bg-red-100 text-red-800",
-  high: "bg-amber-100 text-amber-800",
-  medium: "bg-blue-100 text-blue-800",
-  low: "bg-gray-100 text-gray-600",
+  critical: "bg-red-50 text-red-700 ring-1 ring-inset ring-red-200",
+  high: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200",
+  medium: "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200",
+  low: "bg-gray-50 text-gray-600 ring-1 ring-inset ring-gray-200",
 };
 
 const PRIORITY_LABELS: Record<string, string> = {
@@ -190,8 +190,7 @@ export default function ActionsPage() {
 
   return (
     <PageLayout
-      title="Bonjour, bienvenue sur OptiFlow AI"
-      description="Voici vos priorites du jour"
+      title=""
       breadcrumb={[{ label: "Actions" }]}
       actions={
         <Button variant="outline" onClick={refresh} disabled={refreshing}>
@@ -200,6 +199,20 @@ export default function ActionsPage() {
         </Button>
       }
     >
+      {/* Greeting section */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-text-primary tracking-tight">
+          {(() => {
+            const hour = new Date().getHours();
+            if (hour < 12) return "Bonjour";
+            if (hour < 18) return "Bon apres-midi";
+            return "Bonsoir";
+          })()}, bienvenue sur OptiFlow
+        </h1>
+        <p className="mt-1 text-sm text-text-secondary">
+          Voici vos priorites du jour — {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+        </p>
+      </div>
       {showOnboarding && (
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
           <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" aria-label="Bienvenue" />
@@ -258,17 +271,19 @@ export default function ActionsPage() {
           {Object.entries(groupedActions).map(([type, items]) => {
             const Icon = TYPE_ICONS[type] || AlertCircle;
             return (
-              <div key={type} className="rounded-xl border border-border bg-bg-card shadow-sm">
-                <div className="flex items-center gap-3 border-b border-border px-5 py-3">
-                  <Icon className="h-5 w-5 text-text-secondary" />
+              <div key={type} className="rounded-xl border border-border bg-bg-card shadow-sm hover:shadow-md transition-shadow duration-200">
+                <div className="flex items-center gap-3 border-b border-border px-5 py-3.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                    <Icon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  </div>
                   <h3 className="text-sm font-semibold text-text-primary">{TYPE_LABELS[type] || type}</h3>
-                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-text-secondary">
+                  <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:ring-blue-800">
                     {items.length}
                   </span>
                 </div>
                 <div className="divide-y divide-border">
                   {items.map((item) => (
-                    <div key={item.id} className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50 transition-colors">
+                    <div key={item.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/80 dark:hover:bg-gray-800/50 transition-colors duration-150">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-text-primary">{item.title}</p>
                         {item.description && <p className="text-xs text-text-secondary mt-0.5">{item.description}</p>}

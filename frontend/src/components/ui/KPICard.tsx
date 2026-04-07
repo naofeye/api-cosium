@@ -31,7 +31,7 @@ const iconColorMap = {
 export function KPICard({ icon: Icon, label, value, trend, color = "primary", className }: KPICardProps) {
   return (
     <div
-      className={cn("rounded-xl border border-border bg-bg-card p-6 shadow-sm border-t-[6px] transition-shadow hover:shadow-md", colorMap[color], className)}
+      className={cn("rounded-xl border border-border bg-bg-card p-6 shadow-sm border-t-[3px] transition-all duration-200 hover:shadow-md hover:-translate-y-0.5", colorMap[color], className)}
     >
       <div className="flex items-center justify-between">
         <div className={cn("rounded-lg p-2", iconColorMap[color])}>
