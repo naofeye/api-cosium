@@ -192,7 +192,7 @@
 - [x] `erp_sync_invoices.py` — Bulk upsert sync pattern, acceptable dans le service
 - [x] `cosium_reference_sync.py` — Bulk upsert sync pattern, acceptable dans le service
 - [x] `cosium_document_sync.py` — Bulk upsert sync pattern, acceptable dans le service
-- [ ] `devis_service.py` — Creer/utiliser `devis_repo.py` (repo existe deja, verifier utilisation)
+- [x] `devis_service.py` — Utilise deja `devis_repo` correctement (verifie par agent)
 - [x] `devis_import_service.py` — Cree `devis_import_repo.py`
 - [x] `onboarding_service.py` — Cree `onboarding_repo.py`
 - [x] `batch_operation_service.py` — Utilise batch_operation_repo (verifie)
