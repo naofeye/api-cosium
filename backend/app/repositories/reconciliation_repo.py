@@ -9,18 +9,14 @@ from app.models.reconciliation import DossierReconciliation
 
 
 def get_invoices_by_customer(
-    db: Session, tenant_id: int, customer_cosium_id: str,
+    db: Session, tenant_id: int, customer_id: int,
+    customer_cosium_id: str | None = None,
 ) -> list[CosiumInvoice]:
-    """Get all invoices for a customer by their Cosium ID."""
-    return (
-        db.query(CosiumInvoice)
-        .filter(
-            CosiumInvoice.tenant_id == tenant_id,
-            CosiumInvoice.customer_cosium_id == customer_cosium_id,
-        )
-        .order_by(CosiumInvoice.invoice_date.desc())
-        .all()
-    )
+    """Get all invoices for a customer by customer_id (preferred) or cosium_id."""
+    # Prefer customer_id (82% linked) over customer_cosium_id (0% linked)
+    query = db.query(CosiumInvoice).filter(CosiumInvoice.tenant_id == tenant_id)
+    query = query.filter(CosiumInvoice.customer_id == customer_id)
+    return query.order_by(CosiumInvoice.invoice_date.desc()).all()
 
 
 def get_payments_by_customer(

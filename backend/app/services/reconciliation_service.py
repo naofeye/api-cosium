@@ -161,10 +161,8 @@ def reconcile_customer_dossier(
     cosium_id = customer.cosium_id
     customer_name = f"{customer.last_name} {customer.first_name}"
 
-    # Load invoices by type
-    all_invoices: list[CosiumInvoice] = []
-    if cosium_id:
-        all_invoices = reconciliation_repo.get_invoices_by_customer(db, tenant_id, cosium_id)
+    # Load invoices by type (use customer_id, not cosium_id)
+    all_invoices = reconciliation_repo.get_invoices_by_customer(db, tenant_id, customer_id)
 
     invoices = [i for i in all_invoices if i.type == "INVOICE"]
     quotes = [i for i in all_invoices if i.type == "QUOTE"]
