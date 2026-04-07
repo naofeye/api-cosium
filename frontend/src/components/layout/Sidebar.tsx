@@ -98,9 +98,9 @@ const navGroups: NavGroup[] = [
   },
   {
     key: "operations-batch",
-    label: "Journees entreprise",
+    label: "Groupes marketing",
     items: [
-      { href: "/operations-batch", label: "Journees entreprise", icon: Briefcase },
+      { href: "/operations-batch", label: "Groupes marketing", icon: Briefcase },
     ],
   },
   {

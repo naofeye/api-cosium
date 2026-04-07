@@ -1,4 +1,4 @@
-"""Celery tasks for async batch processing (Journees entreprise).
+"""Celery tasks for async batch processing (Groupes marketing).
 
 Large batches (50+ clients) can take minutes to consolidate.
 This task runs the processing in the background so the API

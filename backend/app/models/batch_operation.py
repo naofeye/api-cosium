@@ -1,4 +1,4 @@
-"""Models for batch PEC operations (Journees entreprise).
+"""Models for batch PEC operations (Groupes marketing).
 
 BatchOperation groups multiple clients for bulk PEC preparation.
 BatchOperationItem tracks per-client status within a batch.

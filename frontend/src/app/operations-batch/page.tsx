@@ -170,9 +170,9 @@ export default function BatchOperationsPage() {
 
   return (
     <PageLayout
-      title="Journees entreprise — Journees en entreprise"
+      title="Groupes marketing — Journees en entreprise"
       description="Traitement batch des dossiers PEC par code marketing"
-      breadcrumb={[{ label: "Journees entreprise", href: "/operations-batch" }]}
+      breadcrumb={[{ label: "Groupes marketing", href: "/operations-batch" }]}
       actions={
         <Link
           href="/operations-batch/historique"

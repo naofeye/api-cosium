@@ -120,7 +120,7 @@ app = FastAPI(
         {"name": "billing", "description": "Facturation et abonnement OptiFlow"},
         {"name": "onboarding", "description": "Inscription et configuration initiale"},
         {"name": "admin", "description": "Administration, sante systeme et gestion utilisateurs"},
-        {"name": "batch", "description": "Operations batch PEC (Journees entreprise)"},
+        {"name": "batch", "description": "Operations batch PEC (Groupes marketing)"},
         {"name": "sse", "description": "Evenements temps reel (Server-Sent Events)"},
     ],
 )

@@ -1,4 +1,4 @@
-"""Batch PEC operation service — Journees entreprise bulk processing.
+"""Batch PEC operation service — Groupes marketing bulk processing.
 
 Orchestrates batch creation, consolidation, pre-control, and PEC preparation
 for all clients linked to a marketing code (Cosium tag).

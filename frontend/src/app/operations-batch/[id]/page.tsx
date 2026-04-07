@@ -107,7 +107,7 @@ export default function BatchDetailPage() {
       <PageLayout
         title="Lot operations"
         breadcrumb={[
-          { label: "Journees entreprise", href: "/operations-batch" },
+          { label: "Groupes marketing", href: "/operations-batch" },
           { label: "Historique", href: "/operations-batch/historique" },
           { label: `Lot #${batchId}` },
         ]}
@@ -122,7 +122,7 @@ export default function BatchDetailPage() {
       <PageLayout
         title="Lot operations"
         breadcrumb={[
-          { label: "Journees entreprise", href: "/operations-batch" },
+          { label: "Groupes marketing", href: "/operations-batch" },
           { label: "Historique", href: "/operations-batch/historique" },
           { label: `Lot #${batchId}` },
         ]}
@@ -147,7 +147,7 @@ export default function BatchDetailPage() {
       title={`Lot #${batch.id} — ${batch.marketing_code}`}
       description={batch.label || undefined}
       breadcrumb={[
-        { label: "Journees entreprise", href: "/operations-batch" },
+        { label: "Groupes marketing", href: "/operations-batch" },
         { label: "Historique", href: "/operations-batch/historique" },
         { label: `Lot #${batch.id}` },
       ]}

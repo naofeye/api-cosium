@@ -32,10 +32,10 @@ export default function BatchHistoriquePage() {
 
   return (
     <PageLayout
-      title="Historique des lots Journees entreprise"
+      title="Historique des lots Groupes marketing"
       description="Tous les traitements batch passes"
       breadcrumb={[
-        { label: "Journees entreprise", href: "/operations-batch" },
+        { label: "Groupes marketing", href: "/operations-batch" },
         { label: "Historique" },
       ]}
       actions={

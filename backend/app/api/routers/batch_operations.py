@@ -1,4 +1,4 @@
-"""API router for batch PEC operations (Journees entreprise)."""
+"""API router for batch PEC operations (Groupes marketing)."""
 
 import io
 from datetime import date, datetime
