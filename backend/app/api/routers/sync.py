@@ -243,6 +243,40 @@ def sync_all(
         release_lock(lock_key)
 
 
+@router.post(
+    "/import-cosium-quotes",
+    summary="Importer les devis Cosium",
+    description=(
+        "Convertit les devis (QUOTE) synchronises depuis Cosium en devis OptiFlow. "
+        "Cree les dossiers manquants si necessaire. Idempotent : les devis deja importes sont ignores."
+    ),
+)
+def import_cosium_quotes(
+    customer_id: int | None = None,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin")),
+) -> dict:
+    from app.services.devis_import_service import import_cosium_quotes_as_devis
+
+    lock_key = f"sync:import_quotes:{tenant_ctx.tenant_id}"
+    if not acquire_lock(lock_key, ttl=1200):
+        raise BusinessError(
+            "IMPORT_IN_PROGRESS",
+            "Un import de devis est deja en cours. Veuillez patienter.",
+        )
+    try:
+        result = import_cosium_quotes_as_devis(
+            db,
+            tenant_id=tenant_ctx.tenant_id,
+            user_id=tenant_ctx.user_id,
+            customer_id=customer_id,
+        )
+        _invalidate_tenant_caches(tenant_ctx.tenant_id)
+        return result
+    finally:
+        release_lock(lock_key)
+
+
 @router.get(
     "/erp-types",
     response_model=list[ERPTypeItem],
