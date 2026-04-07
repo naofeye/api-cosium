@@ -18,7 +18,7 @@
 - [x] `services/onboarding_service.py` — La generation de slug unique n'est pas atomique → ajouter UNIQUE constraint sur tenant.slug + try/catch/retry
 
 ### 1.3 File upload magic bytes [MOYEN]
-- [ ] `services/document_service.py` — Validation par extension + MIME seulement → ajouter verification magic bytes avec `python-magic` ou signature manuelle
+- [x] `document_service.py` — Verification magic bytes ajoutee (PDF, PNG, JPG, TIFF, BMP, ZIP/DOCX sans dependance externe)
 
 ### 1.4 Rate limiting manquant [MOYEN]
 - [x] `core/rate_limiter.py` — Ajouter rate limit sur PEC status change, batch task submission, et bulk import
@@ -81,7 +81,7 @@
 - [ ] Refactorer les 10+ repos avec le pattern duplique
 
 ### 4.3 Return type hints manquants [FAIBLE]
-- [ ] Ajouter `-> None` ou type de retour sur les 13+ fonctions dans export_pdf_*, ai_context_repo
+- [x] Type hints ajoutes sur 12 fonctions dans export_pdf_pec et export_pdf_report
 
 ### 4.4 Reconciliation complexity [FAIBLE]
 - [ ] `reconciliation_service.py:223-292` — Extraire la determination de statut dans une state machine
@@ -92,7 +92,7 @@
 > Ce que l'opticien attend
 
 ### 5.1 Undo / Restore client [MOYEN]
-- [ ] Frontend — Page admin pour voir les clients supprimes et les restaurer
+- [x] Page `/admin/deleted-clients` creee avec liste + bouton restaurer + lien depuis admin
 - [x] Bouton "Restaurer" dans la liste des clients supprimes
 
 ### 5.2 Export ameliore [MOYEN]
