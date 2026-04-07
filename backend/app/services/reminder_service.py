@@ -43,6 +43,7 @@ def create_plan(db: Session, tenant_id: int, payload: ReminderPlanCreate, user_i
     )
     if user_id:
         audit_service.log_action(db, tenant_id, user_id, "create", "reminder_plan", plan.id)
+    db.commit()
     logger.info("plan_created", tenant_id=tenant_id, plan_id=plan.id, name=payload.name)
     return ReminderPlanResponse.model_validate(plan)
 
@@ -52,6 +53,7 @@ def toggle_plan(db: Session, tenant_id: int, plan_id: int, is_active: bool) -> R
     if not plan:
         raise NotFoundError("reminder_plan", plan_id)
     reminder_repo.toggle_plan(db, plan, is_active)
+    db.commit()
     return ReminderPlanResponse.model_validate(plan)
 
 
@@ -127,6 +129,7 @@ def execute_plan(db: Session, tenant_id: int, plan_id: int, user_id: int) -> lis
     if user_id and created:
         event_service.emit_event(db, tenant_id, "RelanceEnvoyee", "reminder_plan", plan_id, user_id)
 
+    db.commit()
     logger.info("plan_executed", tenant_id=tenant_id, plan_id=plan_id, reminders_created=len(created))
     return created
 
@@ -151,6 +154,7 @@ def create_reminder(db: Session, tenant_id: int, payload: ReminderCreate, user_i
     )
     if user_id:
         audit_service.log_action(db, tenant_id, user_id, "create", "reminder", reminder.id)
+    db.commit()
     logger.info("reminder_created", tenant_id=tenant_id, reminder_id=reminder.id)
     return ReminderResponse.model_validate(reminder)
 
@@ -213,6 +217,7 @@ def send_reminder(db: Session, tenant_id: int, reminder_id: int, user_id: int) -
         event_name = "RelanceEnvoyee" if new_status == "sent" else "RelanceEchouee"
         event_service.emit_event(db, tenant_id, event_name, "reminder", reminder_id, user_id)
 
+    db.commit()
     logger.info("reminder_sent", tenant_id=tenant_id, reminder_id=reminder_id, status=new_status)
     return ReminderResponse.model_validate(reminder)
 
@@ -253,5 +258,6 @@ def create_template(
         payload.body,
         payload.is_default,
     )
+    db.commit()
     logger.info("template_created", tenant_id=tenant_id, template_id=t.id)
     return ReminderTemplateResponse.model_validate(t)

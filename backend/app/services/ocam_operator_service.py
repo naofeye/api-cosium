@@ -77,6 +77,7 @@ def create_operator(
         specific_rules=json.dumps(payload.specific_rules) if payload.specific_rules else None,
         active=payload.active,
     )
+    db.commit()
     logger.info("ocam_operator_created", operator_id=op.id, name=op.name)
     return _to_response(op)
 
@@ -136,5 +137,6 @@ def seed_default_operators(db: Session, tenant_id: int) -> int:
         )
         count += 1
 
+    db.commit()
     logger.info("ocam_operators_seeded", tenant_id=tenant_id, count=count)
     return count
