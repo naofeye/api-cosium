@@ -207,7 +207,7 @@ def delete_client(db: Session, tenant_id: int, client_id: int, user_id: int) -> 
 
 
 def restore_client(db: Session, tenant_id: int, client_id: int, user_id: int) -> ClientResponse:
-    customer = client_repo.get_by_id(db, client_id=client_id, tenant_id=tenant_id)
+    customer = client_repo.get_by_id_including_deleted(db, client_id=client_id, tenant_id=tenant_id)
     if not customer:
         raise NotFoundError("client", client_id)
     if customer.deleted_at is None:

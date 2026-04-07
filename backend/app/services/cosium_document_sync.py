@@ -142,8 +142,12 @@ def sync_customer_documents(
                 synced_at=datetime.now(UTC),
             )
             db.add(record)
-            db.commit()
+            db.flush()
             downloaded += 1
+
+            # Batch commit every 50 documents
+            if downloaded % 50 == 0:
+                db.commit()
 
             logger.info(
                 "cosium_doc_downloaded",
@@ -167,6 +171,10 @@ def sync_customer_documents(
         # 2e. Rate limit between downloads
         if delay_between_docs > 0:
             time.sleep(delay_between_docs)
+
+    # Final commit for remaining records
+    if downloaded % 50 != 0:
+        db.commit()
 
     return {"downloaded": downloaded, "skipped": skipped, "errors": errors}
 

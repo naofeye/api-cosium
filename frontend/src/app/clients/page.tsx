@@ -62,6 +62,8 @@ export default function ClientsPage() {
         setShowDuplicates(true);
       } catch (err) {
         toast(err instanceof Error ? err.message : "Erreur", "error");
+        setShowDuplicates(false);
+        setDuplicates([]);
       }
     });
   };

@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from decimal import Decimal
 
 from sqlalchemy import DateTime, ForeignKey, Index, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -35,8 +36,8 @@ class PecRequest(Base):
     case_id: Mapped[int] = mapped_column(ForeignKey("cases.id"), nullable=False, index=True)
     organization_id: Mapped[int] = mapped_column(ForeignKey("payer_organizations.id"), nullable=False, index=True)
     facture_id: Mapped[int | None] = mapped_column(ForeignKey("factures.id"), nullable=True, index=True)
-    montant_demande: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0)
-    montant_accorde: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+    montant_demande: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
+    montant_accorde: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="soumise", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
 

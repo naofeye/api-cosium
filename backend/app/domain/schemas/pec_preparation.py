@@ -80,13 +80,13 @@ class PecPreparationResponse(BaseModel):
     devis_id: int | None = None
     pec_request_id: int | None = None
     ocam_operator_id: int | None = None
-    consolidated_data: dict[str, FieldValue | dict] | None = None
+    consolidated_data: dict | None = None
     status: str
     completude_score: float = 0.0
     errors_count: int = 0
     warnings_count: int = 0
-    user_validations: dict[str, UserValidationEntry] | None = None
-    user_corrections: dict[str, UserCorrectionEntry] | None = None
+    user_validations: dict | None = None
+    user_corrections: dict | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
     created_by: int | None = None

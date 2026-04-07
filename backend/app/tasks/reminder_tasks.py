@@ -7,6 +7,7 @@ Tasks:
        and creates reminders + sends emails. Runs weekly on Mondays at 9 AM.
 """
 
+import re
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
@@ -213,7 +214,7 @@ def check_overdue_invoices(self) -> dict[str, int]:
 
                     from app.tasks.email_tasks import send_email_async
 
-                    subject = f"Relance — Solde impaye de {total_due:.2f} EUR"
+                    subject = re.sub(r'[\r\n\t]', ' ', f"Relance — Solde impaye de {total_due:.2f} EUR")
                     body_html = escape(content).replace("\n", "<br>")
                     send_email_async.delay(
                         to=customer_obj.email,

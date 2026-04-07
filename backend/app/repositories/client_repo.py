@@ -36,10 +36,6 @@ def search(
 
 
 def get_by_id(db: Session, client_id: int, tenant_id: int) -> Customer | None:
-    return db.scalars(select(Customer).where(Customer.id == client_id, Customer.tenant_id == tenant_id)).first()
-
-
-def get_by_id_active(db: Session, client_id: int, tenant_id: int) -> Customer | None:
     return db.scalars(
         select(Customer).where(
             Customer.id == client_id,
@@ -47,6 +43,14 @@ def get_by_id_active(db: Session, client_id: int, tenant_id: int) -> Customer | 
             Customer.deleted_at.is_(None),
         )
     ).first()
+
+
+def get_by_id_including_deleted(db: Session, client_id: int, tenant_id: int) -> Customer | None:
+    return db.scalars(select(Customer).where(Customer.id == client_id, Customer.tenant_id == tenant_id)).first()
+
+
+# Keep old alias for backwards compatibility
+get_by_id_active = get_by_id
 
 
 def create(db: Session, tenant_id: int, **kwargs: object) -> Customer:

@@ -56,9 +56,9 @@ export function useUnsavedChangesWarning(isDirty: boolean, message?: string) {
       if (!isDirtyRef.current) return;
       const confirmed = window.confirm(msg);
       if (!confirmed) {
-        // Push back to prevent navigation
-        e.preventDefault();
-        history.pushState(null, "", window.location.href);
+        // Go forward to counteract the back navigation.
+        // e.preventDefault() is a no-op on popstate, and pushState would create a duplicate entry.
+        history.go(1);
       }
     },
     [msg],

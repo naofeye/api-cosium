@@ -304,10 +304,8 @@ def startup() -> None:
     except Exception as e:
         logger.error("table_verification_failed", error=str(e))
 
-    # Seeding conditionnel — uniquement en dev/local et si demande explicitement
-    import os
-
-    if settings.app_env in ("local", "development") and os.environ.get("SEED_ON_STARTUP", "true").lower() == "true":
+    # Seeding conditionnel — uniquement en dev/local et si active
+    if settings.app_env in ("local", "development") and settings.seed_on_startup:
         db = SessionLocal()
         try:
             seed_data(db)

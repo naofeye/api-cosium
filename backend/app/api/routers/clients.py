@@ -3,7 +3,8 @@ from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_tenant_role
-from app.core.exceptions import ValidationError
+from app.core.exceptions import BusinessError, ValidationError
+from app.core.redis_cache import acquire_lock, release_lock
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.clients import (
@@ -84,13 +85,19 @@ def merge_clients(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> ClientMergeResult:
-    return client_service.merge_clients(
-        db,
-        tenant_id=tenant_ctx.tenant_id,
-        keep_id=payload.keep_id,
-        merge_id=payload.merge_id,
-        user_id=tenant_ctx.user_id,
-    )
+    lock_key = f"merge:client:{tenant_ctx.tenant_id}:{payload.keep_id}:{payload.merge_id}"
+    if not acquire_lock(lock_key, ttl=60):
+        raise BusinessError("Une fusion est deja en cours pour ces clients")
+    try:
+        return client_service.merge_clients(
+            db,
+            tenant_id=tenant_ctx.tenant_id,
+            keep_id=payload.keep_id,
+            merge_id=payload.merge_id,
+            user_id=tenant_ctx.user_id,
+        )
+    finally:
+        release_lock(lock_key)
 
 
 @router.post(

@@ -27,6 +27,14 @@ export function InlineEdit({
   const [draft, setDraft] = useState(value);
   const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup blur timer on unmount
+  useEffect(() => {
+    return () => {
+      if (blurTimerRef.current) clearTimeout(blurTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     setDraft(value);
@@ -85,7 +93,8 @@ export function InlineEdit({
           onKeyDown={handleKeyDown}
           onBlur={() => {
             // Small delay to allow click on check/cross buttons
-            setTimeout(() => {
+            blurTimerRef.current = setTimeout(() => {
+              blurTimerRef.current = null;
               if (editing && !saving) handleSave();
             }, 150);
           }}

@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from decimal import Decimal
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -21,8 +22,8 @@ class Payment(Base):
     mode_paiement: Mapped[str | None] = mapped_column(String(50), nullable=True)
     reference_externe: Mapped[str | None] = mapped_column(String(255), nullable=True)
     date_paiement: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
-    amount_due: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0)
-    amount_paid: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0)
+    amount_due: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
+    amount_paid: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending", index=True)
     idempotency_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
@@ -36,7 +37,7 @@ class BankTransaction(Base):
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
     date: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
     libelle: Mapped[str] = mapped_column(String(500), nullable=False)
-    montant: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    montant: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     reference: Mapped[str | None] = mapped_column(String(255), nullable=True)
     source_file: Mapped[str | None] = mapped_column(String(255), nullable=True)
     reconciled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

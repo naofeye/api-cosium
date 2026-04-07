@@ -14,7 +14,7 @@ export function SWRProvider({ children }: { children: ReactNode }) {
       value={{
         fetcher: swrFetcher,
         revalidateOnFocus: true,
-        dedupingInterval: 5000,
+        dedupingInterval: 2000,
         errorRetryCount: 2,
       }}
     >

@@ -154,6 +154,7 @@ def _create_prep(
     if with_docs:
         for role in ("ordonnance", "devis", "attestation_mutuelle"):
             doc = PecPreparationDocument(
+                tenant_id=tenant.id,
                 preparation_id=prep.id,
                 document_role=role,
             )
@@ -323,7 +324,9 @@ class TestDocumentValidation:
         prep = _create_prep(db_session, profile=profile, with_docs=False)
 
         # Only attach devis (no ordonnance)
+        tenant = db_session.query(Tenant).first()
         doc = PecPreparationDocument(
+            tenant_id=tenant.id,
             preparation_id=prep.id,
             document_role="devis",
         )

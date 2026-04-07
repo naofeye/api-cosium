@@ -26,6 +26,8 @@ export async function fetchJson<T = unknown>(path: string, options?: RequestInit
 
     // On 401, try silent refresh via httpOnly cookie
     if (response.status === 401) {
+      // Clear the original timeout so it doesn't abort the retry
+      clearTimeout(timeout);
       const refreshed = await refreshAccessToken();
       if (refreshed) {
         response = await fetch(`${API_BASE}${path}`, {

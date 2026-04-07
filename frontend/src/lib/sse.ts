@@ -16,6 +16,7 @@ let eventSource: EventSource | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let currentHandler: NotificationHandler | null = null;
 let reconnectAttempts = 0;
+let isReconnecting = false;
 
 const BASE_RECONNECT_DELAY_MS = 5_000;
 const MAX_RECONNECT_DELAY_MS = 60_000;
@@ -53,6 +54,7 @@ export function connectSSE(onNotification: NotificationHandler): void {
 
   eventSource.onopen = () => {
     reconnectAttempts = 0;
+    isReconnecting = false;
   };
 
   eventSource.onerror = () => {
@@ -62,6 +64,10 @@ export function connectSSE(onNotification: NotificationHandler): void {
       eventSource = null;
     }
 
+    // Prevent multiple simultaneous reconnection attempts from rapid onerror calls
+    if (isReconnecting) return;
+    isReconnecting = true;
+
     // Schedule reconnect with backoff
     const delay = getReconnectDelay();
     reconnectAttempts++;
@@ -69,6 +75,7 @@ export function connectSSE(onNotification: NotificationHandler): void {
     if (reconnectTimer) clearTimeout(reconnectTimer);
     reconnectTimer = setTimeout(() => {
       reconnectTimer = null;
+      isReconnecting = false;
       if (currentHandler) {
         connectSSE(currentHandler);
       }
@@ -79,6 +86,7 @@ export function connectSSE(onNotification: NotificationHandler): void {
 export function disconnectSSE(): void {
   currentHandler = null;
   reconnectAttempts = 0;
+  isReconnecting = false;
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;

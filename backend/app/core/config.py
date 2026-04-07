@@ -65,6 +65,10 @@ class Settings(BaseSettings):
     cosium_access_token: str = ""  # Cookie access_token from browser
     cosium_device_credential: str = ""  # Cookie device-credential from browser
 
+    # Runtime flags
+    seed_on_startup: bool = True  # Seeding auto en dev (desactiver avec SEED_ON_STARTUP=false)
+    celery_worker: bool = False  # True si execute dans un worker Celery (CELERY_WORKER=true)
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @model_validator(mode="after")

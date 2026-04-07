@@ -141,8 +141,17 @@ def add_document(
     cosium_document_id: int | None = None,
     document_role: str = "autre",
     extraction_id: int | None = None,
+    tenant_id: int | None = None,
 ) -> PecPreparationDocument:
+    # Resolve tenant_id from the parent preparation if not provided
+    if tenant_id is None:
+        prep = db.scalars(
+            select(PecPreparation).where(PecPreparation.id == preparation_id)
+        ).first()
+        if prep:
+            tenant_id = prep.tenant_id
     doc = PecPreparationDocument(
+        tenant_id=tenant_id,
         preparation_id=preparation_id,
         document_id=document_id,
         cosium_document_id=cosium_document_id,

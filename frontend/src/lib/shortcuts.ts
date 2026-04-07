@@ -32,21 +32,21 @@ export function initShortcuts(): () => void {
     // Ctrl+N or Cmd+N = new client
     if ((e.ctrlKey || e.metaKey) && e.key === "n" && !e.shiftKey) {
       e.preventDefault();
-      window.location.href = "/clients?action=new";
+      window.dispatchEvent(new CustomEvent("optiflow:navigate", { detail: { path: "/clients?action=new" } }));
       return;
     }
 
     // Ctrl+D or Cmd+D = dashboard
     if ((e.ctrlKey || e.metaKey) && e.key === "d" && !e.shiftKey) {
       e.preventDefault();
-      window.location.href = "/dashboard";
+      window.dispatchEvent(new CustomEvent("optiflow:navigate", { detail: { path: "/dashboard" } }));
       return;
     }
 
     // Ctrl+Shift+S = statistiques
     if ((e.ctrlKey || e.metaKey) && e.key === "S" && e.shiftKey) {
       e.preventDefault();
-      window.location.href = "/statistiques";
+      window.dispatchEvent(new CustomEvent("optiflow:navigate", { detail: { path: "/statistiques" } }));
       return;
     }
   };

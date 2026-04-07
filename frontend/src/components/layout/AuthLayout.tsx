@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { useEffect, useCallback } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { LayoutDashboard, Users, Calendar, Receipt } from "lucide-react";
 import { Sidebar } from "./Sidebar";
@@ -16,13 +16,27 @@ import { KeyboardShortcutsHelp } from "@/components/ui/KeyboardShortcuts";
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const isPublicPage = pathname === "/login" || pathname?.startsWith("/onboarding") || pathname === "/getting-started";
+
+  // Listen for keyboard shortcut navigation events (client-side, no full reload)
+  const handleNavigate = useCallback(
+    (e: Event) => {
+      const path = (e as CustomEvent<{ path: string }>).detail?.path;
+      if (path) router.push(path);
+    },
+    [router],
+  );
 
   useEffect(() => {
     initTheme();
     const cleanup = initShortcuts();
-    return cleanup;
-  }, []);
+    window.addEventListener("optiflow:navigate", handleNavigate);
+    return () => {
+      cleanup();
+      window.removeEventListener("optiflow:navigate", handleNavigate);
+    };
+  }, [handleNavigate]);
 
   if (isPublicPage) {
     return <ToastProvider>{children}</ToastProvider>;
