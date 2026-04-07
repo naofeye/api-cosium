@@ -183,8 +183,8 @@
 - [x] `admin_user_service.py` — 10 appels DB directs remplaces par `user_repo` + `tenant_user_repo`
 - [x] `auth_service.py` — 8 appels DB remplaces par repos. Cree `tenant_user_repo.py` (7 fonctions) + `revoke_all_for_user` dans refresh_token_repo
 - [x] `billing_service.py` — Evalue : queries simples self-contained, pas besoin de repo dedie
-- [ ] `ai_service.py` — Remplacer les `db.execute()` par des appels repository
-- [ ] `ai_renewal_copilot.py` — Remplacer les `db.add()`/`db.commit()` par des appels repository
+- [x] `ai_service.py` — Cree `ai_context_repo.py` et `ai_usage_repo.py`, DB calls extraits
+- [x] `ai_renewal_copilot.py` — Utilise `ai_usage_repo` pour les insertions
 - [ ] `client_360_service.py` — Remplacer les `db.scalars()` par des appels repository
 - [ ] `consolidation_service.py` — Remplacer les `db.scalars()`/`select()` par des appels repository
 - [ ] `erp_sync_service.py` — Extraire les operations BDD dans les repositories existants
@@ -192,9 +192,9 @@
 - [ ] `erp_sync_invoices.py` — Idem
 - [ ] `cosium_reference_sync.py` — Idem
 - [ ] `cosium_document_sync.py` — Idem
-- [ ] `devis_service.py` — Creer/utiliser `devis_repo.py`
-- [ ] `devis_import_service.py` — Idem
-- [ ] `onboarding_service.py` — Creer/utiliser `onboarding_repo.py`
+- [ ] `devis_service.py` — Creer/utiliser `devis_repo.py` (repo existe deja, verifier utilisation)
+- [x] `devis_import_service.py` — Cree `devis_import_repo.py`
+- [x] `onboarding_service.py` — Cree `onboarding_repo.py`
 - [ ] `batch_operation_service.py` — Utiliser `batch_operation_repo.py`
 - [ ] `document_service.py` — Utiliser `document_repo.py`
 - [ ] `extraction_service.py` — Utiliser les repositories existants
@@ -336,7 +336,7 @@
 - [x] `getting-started/page.tsx` (593→80 lignes) — 6 composants extraits (ProgressBar, 5 etapes Step*)
 - [ ] `rapprochement-cosium/page.tsx` (583 lignes) — Extraire la logique de rapprochement
 - [ ] `operations-batch/page.tsx` (554 lignes) — Extraire les etapes du wizard
-- [ ] `devis/[id]/page.tsx` (534 lignes) — Extraire timeline, formulaire, actions
+- [x] `devis/[id]/page.tsx` (534→~140 lignes) — Extrait Timeline, Financial, Lines, Actions
 - [x] `admin/users/page.tsx` (504→276 lignes) — Extrait `CreateUserDialog` (230l)
 - [x] `settings/page.tsx` (489→162 lignes) — 5 composants extraits (Profile, Security, Preferences, Links, About)
 - [x] `relances/page.tsx` (453→225 lignes) — 4 composants extraits (OverdueTab, Clients30Tab, TimelineTab, HistoriqueTab)
