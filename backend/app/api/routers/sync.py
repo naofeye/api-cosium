@@ -3,13 +3,22 @@ from sqlalchemy.orm import Session
 
 from app.core.deps import require_tenant_role
 from app.core.exceptions import BusinessError
-from app.core.redis_cache import acquire_lock, release_lock
+from app.core.redis_cache import acquire_lock, cache_delete_pattern, release_lock
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.sync import ERPTypeItem, SeedDemoResponse, SyncAllResult, SyncResultResponse, SyncStatusResponse
 from app.services import erp_sync_service
 
 router = APIRouter(prefix="/api/v1/sync", tags=["sync"])
+
+
+def _invalidate_tenant_caches(tenant_id: int) -> None:
+    """Invalidate all cached data for a tenant after sync operations."""
+    cache_delete_pattern(f"analytics:*:{tenant_id}*")
+    cache_delete_pattern(f"admin:metrics:{tenant_id}")
+    cache_delete_pattern(f"admin:data_quality:{tenant_id}")
+    cache_delete_pattern(f"client:quick:{tenant_id}:*")
+    cache_delete_pattern(f"dashboard:*:{tenant_id}*")
 
 
 @router.post(
@@ -54,11 +63,13 @@ def sync_customers(
     if not acquire_lock(lock_key, ttl=600):
         raise BusinessError("SYNC_IN_PROGRESS", "Une synchronisation des clients est deja en cours. Veuillez patienter.")
     try:
-        return erp_sync_service.sync_customers(
+        result = erp_sync_service.sync_customers(
             db,
             tenant_id=tenant_ctx.tenant_id,
             user_id=tenant_ctx.user_id,
         )
+        _invalidate_tenant_caches(tenant_ctx.tenant_id)
+        return result
     finally:
         release_lock(lock_key)
 
@@ -73,11 +84,13 @@ def sync_invoices(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> SyncResultResponse:
-    return erp_sync_service.sync_invoices(
+    result = erp_sync_service.sync_invoices(
         db,
         tenant_id=tenant_ctx.tenant_id,
         user_id=tenant_ctx.user_id,
     )
+    _invalidate_tenant_caches(tenant_ctx.tenant_id)
+    return result
 
 
 @router.post(
@@ -107,11 +120,13 @@ def sync_payments(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> SyncResultResponse:
-    return erp_sync_service.sync_payments(
+    result = erp_sync_service.sync_payments(
         db,
         tenant_id=tenant_ctx.tenant_id,
         user_id=tenant_ctx.user_id,
     )
+    _invalidate_tenant_caches(tenant_ctx.tenant_id)
+    return result
 
 
 @router.post(
@@ -221,6 +236,8 @@ def sync_all(
             results["reference"] = {"error": "Echec de la synchronisation des donnees de reference."}
             has_errors = True
 
+        # Invalidate cached data after sync
+        _invalidate_tenant_caches(tenant_ctx.tenant_id)
         return SyncAllResult(**results, has_errors=has_errors)
     finally:
         release_lock(lock_key)

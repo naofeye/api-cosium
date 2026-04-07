@@ -11,6 +11,23 @@ from app.models.document_extraction import DocumentExtraction
 logger = get_logger("search_service")
 
 
+def _fmt_diopter(val: float | None) -> str:
+    if val is None:
+        return "-"
+    sign = "+" if val >= 0 else ""
+    return f"{sign}{val:.2f}"
+
+
+def _build_correction_summary(prescription: CosiumPrescription) -> str | None:
+    """Build a short OD/OG summary string from a prescription."""
+    parts: list[str] = []
+    if hasattr(prescription, "sphere_right") and prescription.sphere_right is not None:
+        parts.append(f"OD {_fmt_diopter(prescription.sphere_right)}")
+    if hasattr(prescription, "sphere_left") and prescription.sphere_left is not None:
+        parts.append(f"OG {_fmt_diopter(prescription.sphere_left)}")
+    return " | ".join(parts) if parts else None
+
+
 def global_search(db: Session, tenant_id: int, query: str, limit: int = 10) -> dict:
     """Recherche dans clients, dossiers, devis, factures, factures Cosium, documents OCR."""
     if not query or len(query) < 2:
@@ -38,7 +55,14 @@ def global_search(db: Session, tenant_id: int, query: str, limit: int = 10) -> d
     for c in clients:
         client_ids_found.add(c.id)
         results["clients"].append(
-            {"id": c.id, "type": "client", "label": f"{c.last_name} {c.first_name}", "detail": c.email or c.phone or ""}
+            {
+                "id": c.id,
+                "type": "client",
+                "label": f"{c.last_name} {c.first_name}",
+                "detail": c.email or c.phone or "",
+                "phone": c.phone,
+                "city": c.city if hasattr(c, "city") else None,
+            }
         )
 
     # Clients par numero de securite sociale (requetes >= 5 caracteres)
@@ -85,13 +109,32 @@ def global_search(db: Session, tenant_id: int, query: str, limit: int = 10) -> d
     devis = db.scalars(
         select(Devis).where(Devis.tenant_id == tenant_id, Devis.numero.ilike(pattern)).limit(limit)
     ).all()
-    results["devis"] = [{"id": d.id, "type": "devis", "label": d.numero, "detail": d.status} for d in devis]
+    results["devis"] = [
+        {
+            "id": d.id,
+            "type": "devis",
+            "label": d.numero,
+            "detail": d.status,
+            "amount": float(d.montant_ttc) if hasattr(d, "montant_ttc") and d.montant_ttc else None,
+        }
+        for d in devis
+    ]
 
     # Factures OptiFlow
     factures = db.scalars(
         select(Facture).where(Facture.tenant_id == tenant_id, Facture.numero.ilike(pattern)).limit(limit)
     ).all()
-    results["factures"] = [{"id": f.id, "type": "facture", "label": f.numero, "detail": f.status} for f in factures]
+    results["factures"] = [
+        {
+            "id": f.id,
+            "type": "facture",
+            "label": f.numero,
+            "detail": f.status,
+            "amount": float(f.montant_ttc) if hasattr(f, "montant_ttc") and f.montant_ttc else None,
+            "date": str(f.date_emission) if hasattr(f, "date_emission") and f.date_emission else None,
+        }
+        for f in factures
+    ]
 
     # Factures Cosium (par numero de facture ou nom client)
     cosium_invoices = db.scalars(
@@ -111,6 +154,9 @@ def global_search(db: Session, tenant_id: int, query: str, limit: int = 10) -> d
             "type": "cosium_facture",
             "label": ci.invoice_number,
             "detail": f"{ci.customer_name} — {ci.total_ti} EUR",
+            "amount": float(ci.total_ti) if ci.total_ti else None,
+            "client_name": ci.customer_name,
+            "date": str(ci.invoice_date) if hasattr(ci, "invoice_date") and ci.invoice_date else None,
         }
         for ci in cosium_invoices
     ]
@@ -130,6 +176,9 @@ def global_search(db: Session, tenant_id: int, query: str, limit: int = 10) -> d
             "type": "ordonnance",
             "label": f"Ordonnance #{o.id}",
             "detail": f"Dr. {o.prescriber_name}" if o.prescriber_name else "",
+            "date": str(o.prescription_date) if hasattr(o, "prescription_date") and o.prescription_date else None,
+            "prescriber_name": o.prescriber_name,
+            "correction_summary": _build_correction_summary(o),
         }
         for o in ordonnances
     ]

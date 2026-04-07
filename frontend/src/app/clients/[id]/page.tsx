@@ -137,6 +137,7 @@ export default function ClientDetailPage() {
         avatarUrl={data.avatar_url}
         email={data.email}
         phone={data.phone}
+        address={data.address}
         cosiumId={data.cosium_id}
         correction={cd?.correction_actuelle ?? null}
         lastVisitDate={cd?.last_visit_date ?? null}

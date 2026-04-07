@@ -204,10 +204,20 @@ async def unhandled_error_handler(request: Request, exc: Exception) -> JSONRespo
 
 
 @app.middleware("http")
-async def add_version_header(request: Request, call_next):  # type: ignore[no-untyped-def]
+async def log_response_time(request: Request, call_next):  # type: ignore[no-untyped-def]
+    start = _time.time()
     response = await call_next(request)
+    duration_ms = (_time.time() - start) * 1000
+    response.headers["X-Response-Time"] = f"{int(duration_ms)}ms"
     response.headers["X-API-Version"] = _APP_VERSION
     response.headers["X-Powered-By"] = "OptiFlow AI"
+    if duration_ms > 1000:
+        logger.warning(
+            "slow_request",
+            path=request.url.path,
+            method=request.method,
+            duration_ms=int(duration_ms),
+        )
     return response
 
 
@@ -228,6 +238,26 @@ def startup() -> None:
         raise RuntimeError(
             "FATAL: JWT_SECRET is set to default value. Change it in .env before starting in production."
         )
+
+    # Verify all model tables exist, create missing ones
+    from app.db.base import Base
+    from app.db.session import engine
+
+    try:
+        from sqlalchemy import inspect as sa_inspect
+
+        inspector = sa_inspect(engine)
+        db_tables = set(inspector.get_table_names())
+        model_tables = set(Base.metadata.tables.keys())
+        missing = model_tables - db_tables
+        if missing:
+            logger.warning("missing_tables_detected", missing=sorted(missing), count=len(missing))
+            Base.metadata.create_all(bind=engine)
+            logger.info("missing_tables_created", tables=sorted(missing))
+        else:
+            logger.info("all_model_tables_present", count=len(model_tables))
+    except Exception as e:
+        logger.error("table_verification_failed", error=str(e))
 
     db = SessionLocal()
     try:

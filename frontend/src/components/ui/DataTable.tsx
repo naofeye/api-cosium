@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsUpDown, type LucideIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsUpDown, Settings2, type LucideIcon } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import { LoadingState } from "./LoadingState";
 import { ErrorState } from "./ErrorState";
@@ -14,9 +14,13 @@ export interface Column<T> {
   render: (row: T) => ReactNode;
   className?: string;
   sortable?: boolean;
+  /** If true, the column cannot be hidden via column customization */
+  alwaysVisible?: boolean;
 }
 
 type SortDirection = "asc" | "desc";
+
+const MIN_VISIBLE_COLUMNS = 3;
 
 interface DataTableProps<T> {
   columns: Column<T>[];
@@ -33,6 +37,53 @@ interface DataTableProps<T> {
   pageSize?: number;
   total?: number;
   onPageChange?: (page: number) => void;
+  /** Unique key for storing column visibility preference in localStorage. If omitted, column customization is disabled. */
+  storageKey?: string;
+}
+
+function useColumnVisibility(storageKey: string | undefined, allColumnKeys: string[]) {
+  const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(() => {
+    if (!storageKey || typeof window === "undefined") return new Set();
+    try {
+      const stored = localStorage.getItem(`datatable-cols-${storageKey}`);
+      if (stored) return new Set(JSON.parse(stored) as string[]);
+    } catch {
+      // ignore
+    }
+    return new Set();
+  });
+
+  const persist = useCallback(
+    (hidden: Set<string>) => {
+      if (!storageKey) return;
+      try {
+        localStorage.setItem(`datatable-cols-${storageKey}`, JSON.stringify([...hidden]));
+      } catch {
+        // ignore
+      }
+    },
+    [storageKey],
+  );
+
+  const toggle = useCallback(
+    (key: string, visibleCount: number) => {
+      setHiddenColumns((prev) => {
+        const next = new Set(prev);
+        if (next.has(key)) {
+          next.delete(key);
+        } else {
+          // Prevent hiding if it would drop below MIN_VISIBLE_COLUMNS
+          if (visibleCount <= MIN_VISIBLE_COLUMNS) return prev;
+          next.add(key);
+        }
+        persist(next);
+        return next;
+      });
+    },
+    [persist],
+  );
+
+  return { hiddenColumns, toggle };
 }
 
 export function DataTable<T extends { id: number | string }>({
@@ -42,19 +93,42 @@ export function DataTable<T extends { id: number | string }>({
   error,
   onRetry,
   onRowClick,
-  emptyTitle = "Aucune donnée",
-  emptyDescription = "Aucun élément à afficher pour le moment.",
+  emptyTitle = "Aucune donnee",
+  emptyDescription = "Aucun element a afficher pour le moment.",
   emptyIcon,
   emptyAction,
   page = 1,
   pageSize = 25,
   total,
   onPageChange,
+  storageKey,
 }: DataTableProps<T>) {
   const safeData = data ?? [];
 
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [showColumnPicker, setShowColumnPicker] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  const allColumnKeys = useMemo(() => columns.map((c) => c.key), [columns]);
+  const { hiddenColumns, toggle: toggleColumn } = useColumnVisibility(storageKey, allColumnKeys);
+
+  const visibleColumns = useMemo(
+    () => columns.filter((c) => c.alwaysVisible || !hiddenColumns.has(c.key)),
+    [columns, hiddenColumns],
+  );
+
+  // Close picker when clicking outside
+  useEffect(() => {
+    if (!showColumnPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowColumnPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showColumnPicker]);
 
   const handleSort = (columnKey: string) => {
     if (sortKey === columnKey) {
@@ -67,7 +141,7 @@ export function DataTable<T extends { id: number | string }>({
 
   const sortedData = useMemo(() => {
     if (!sortKey) return safeData;
-    const col = columns.find((c) => c.key === sortKey);
+    const col = visibleColumns.find((c) => c.key === sortKey);
     if (!col?.sortable) return safeData;
 
     return [...safeData].sort((a, b) => {
@@ -87,7 +161,7 @@ export function DataTable<T extends { id: number | string }>({
 
       return sortDirection === "asc" ? cmp : -cmp;
     });
-  }, [safeData, sortKey, sortDirection, columns]);
+  }, [safeData, sortKey, sortDirection, visibleColumns]);
 
   if (loading) return <LoadingState text="Chargement des données..." />;
   if (error) return <ErrorState message={error} onRetry={onRetry} />;
@@ -101,7 +175,7 @@ export function DataTable<T extends { id: number | string }>({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-gray-50 dark:bg-gray-800/50">
-              {columns.map((col) => (
+              {visibleColumns.map((col) => (
                 <th
                   key={col.key}
                   scope="col"
@@ -134,6 +208,54 @@ export function DataTable<T extends { id: number | string }>({
                   </span>
                 </th>
               ))}
+              {storageKey && (
+                <th scope="col" className="px-2 py-3 w-8 text-right relative">
+                  <div ref={pickerRef} className="inline-block">
+                    <button
+                      type="button"
+                      onClick={() => setShowColumnPicker((v) => !v)}
+                      className="rounded p-1 text-text-secondary hover:text-text-primary hover:bg-gray-200 transition-colors"
+                      aria-label="Personnaliser les colonnes"
+                      title="Personnaliser les colonnes"
+                    >
+                      <Settings2 className="h-3.5 w-3.5" />
+                    </button>
+                    {showColumnPicker && (
+                      <div className="absolute right-0 top-full mt-1 z-50 w-56 rounded-lg border border-border bg-bg-card shadow-lg py-1">
+                        <p className="px-3 py-1.5 text-xs font-medium text-text-secondary border-b border-border">
+                          Colonnes visibles
+                        </p>
+                        {columns.map((col) => {
+                          const isHidden = hiddenColumns.has(col.key);
+                          const isAlwaysVisible = col.alwaysVisible === true;
+                          const wouldDropBelowMin = !isHidden && visibleColumns.length <= MIN_VISIBLE_COLUMNS;
+                          const disabled = isAlwaysVisible || wouldDropBelowMin;
+                          return (
+                            <label
+                              key={col.key}
+                              className={cn(
+                                "flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50",
+                                disabled && "opacity-50 cursor-not-allowed",
+                              )}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={!isHidden}
+                                disabled={disabled}
+                                onChange={() => toggleColumn(col.key, visibleColumns.length)}
+                                className="rounded border-gray-300 text-primary focus:ring-primary"
+                              />
+                              <span className="truncate">
+                                {typeof col.header === "string" ? col.header : col.key}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -149,11 +271,12 @@ export function DataTable<T extends { id: number | string }>({
                 onClick={() => onRowClick?.(row)}
                 onKeyDown={onRowClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onRowClick(row); } } : undefined}
               >
-                {columns.map((col) => (
+                {visibleColumns.map((col) => (
                   <td key={col.key} className={cn("px-4 py-3", col.className)}>
                     {col.render(row)}
                   </td>
                 ))}
+                {storageKey && <td className="px-2 py-3 w-8" />}
               </tr>
             ))}
           </tbody>

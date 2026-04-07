@@ -36,6 +36,7 @@ import { DocumentChecklist } from "@/components/pec/DocumentChecklist";
 import { PreControlPanel } from "@/components/pec/PreControlPanel";
 import { AuditTrailModal } from "@/components/pec/AuditTrailModal";
 import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 
 import type { PecPreparation, PecPreparationDocument, ConsolidatedClientProfile, ConsolidatedField } from "@/lib/types/pec-preparation";
 
@@ -247,6 +248,14 @@ export default function PecPreparationDetailPage() {
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
   const [auditModalOpen, setAuditModalOpen] = useState(false);
 
+  // Track unsaved corrections made this session (not yet submitted as PEC)
+  const [pendingCorrections, setPendingCorrections] = useState(0);
+  const hasPendingWork = pendingCorrections > 0 && data?.status === "en_preparation";
+  useUnsavedChangesWarning(
+    hasPendingWork,
+    "Vous avez des modifications non enregistrees. Voulez-vous quitter sans sauvegarder ?",
+  );
+
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
   const handleExportPDF = async () => {
@@ -303,6 +312,7 @@ export default function PecPreparationDetailPage() {
         body: JSON.stringify({ field_name: fieldName, new_value: newValue, reason: reason || null }),
       });
       toast("Champ corrige avec succes", "success");
+      setPendingCorrections((c) => c + 1);
       mutate();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Erreur lors de la correction", "error");
@@ -353,6 +363,7 @@ export default function PecPreparationDetailPage() {
     try {
       await fetchJson(`/pec-preparations/${prepId}/submit`, { method: "POST" });
       toast("PEC soumise avec succes", "success");
+      setPendingCorrections(0);
       mutate();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Erreur lors de la soumission", "error");

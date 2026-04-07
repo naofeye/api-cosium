@@ -16,6 +16,7 @@ class CaseCreate(BaseModel):
 
 class CaseResponse(BaseModel):
     id: int
+    customer_id: int | None = None
     customer_name: str
     status: str
     source: str | None

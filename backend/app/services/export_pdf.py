@@ -526,10 +526,10 @@ def export_monthly_report_pdf(
     # ── 5. Statistiques opticiens (via CosiumInvoice par site) ──
     elements.append(Paragraph("5. Statistiques opticiens", section_style))
 
-    # Use CosiumInvoice grouped by site_name as proxy for opticien/store stats
+    # Use CosiumInvoice grouped by site_id as proxy for opticien/store stats
     opticien_q = (
         select(
-            CosiumInvoice.site_name,
+            CosiumInvoice.site_id,
             func.coalesce(func.sum(CosiumInvoice.total_ti), 0).label("ca"),
             func.count(CosiumInvoice.id).label("nb_factures"),
         )
@@ -539,7 +539,7 @@ def export_monthly_report_pdf(
             CosiumInvoice.invoice_date >= month_start,
             CosiumInvoice.invoice_date <= month_end,
         )
-        .group_by(CosiumInvoice.site_name)
+        .group_by(CosiumInvoice.site_id)
         .order_by(func.sum(CosiumInvoice.total_ti).desc())
     )
     opticien_rows = db.execute(opticien_q).all()
@@ -547,7 +547,7 @@ def export_monthly_report_pdf(
     if opticien_rows:
         opt_data = [["Site / Opticien", "Nb Factures", "CA"]]
         for row in opticien_rows:
-            name = row.site_name or "Non renseigne"
+            name = f"Site {row.site_id}" if row.site_id else "Non renseigne"
             opt_data.append([name, str(row.nb_factures), _fmt_money(float(row.ca))])
         t = Table(opt_data, colWidths=[200, 100, 150])
         t.setStyle(_section_table_style())

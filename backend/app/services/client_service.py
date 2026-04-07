@@ -60,8 +60,14 @@ def get_client(db: Session, tenant_id: int, client_id: int) -> ClientResponse:
 
 def get_client_quick(db: Session, tenant_id: int, client_id: int) -> dict:
     """Return a lightweight quick-view of a client (for hover cards)."""
+    from app.core.redis_cache import cache_get, cache_set
     from app.models import Case, Facture
     from app.models.cosium_data import CosiumPrescription
+
+    cache_key = f"client:quick:{tenant_id}:{client_id}"
+    cached = cache_get(cache_key)
+    if cached:
+        return cached
 
     customer = client_repo.get_by_id_active(db, client_id=client_id, tenant_id=tenant_id)
     if not customer:
@@ -98,17 +104,19 @@ def get_client_quick(db: Session, tenant_id: int, client_id: int) -> dict:
             correction_og = f"{sign}{latest_rx.sphere_left:.2f}"
 
     # Last visit from cosium calendar events
-    from app.models.cosium_data import CosiumCalendarEvent
+    from app.models.cosium_reference import CosiumCalendarEvent
 
-    last_event = db.scalar(
-        select(CosiumCalendarEvent.start_date)
-        .where(
-            CosiumCalendarEvent.customer_id == customer.id,
-            CosiumCalendarEvent.tenant_id == tenant_id,
+    last_event = None
+    if customer.cosium_id:
+        last_event = db.scalar(
+            select(CosiumCalendarEvent.start_date)
+            .where(
+                CosiumCalendarEvent.customer_number == customer.cosium_id,
+                CosiumCalendarEvent.tenant_id == tenant_id,
+            )
+            .order_by(CosiumCalendarEvent.start_date.desc())
+            .limit(1)
         )
-        .order_by(CosiumCalendarEvent.start_date.desc())
-        .limit(1)
-    )
     last_visit = None
     if last_event:
         try:
@@ -123,7 +131,7 @@ def get_client_quick(db: Session, tenant_id: int, client_id: int) -> dict:
         except (ValueError, TypeError):
             last_visit = str(last_event)
 
-    return {
+    result = {
         "id": customer.id,
         "first_name": customer.first_name,
         "last_name": customer.last_name,
@@ -134,6 +142,8 @@ def get_client_quick(db: Session, tenant_id: int, client_id: int) -> dict:
         "last_visit": last_visit,
         "ca_total": round(ca_total, 2),
     }
+    cache_set(cache_key, result, ttl=120)
+    return result
 
 
 def create_client(db: Session, tenant_id: int, payload: ClientCreate, user_id: int) -> ClientResponse:

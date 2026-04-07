@@ -104,7 +104,14 @@ def metrics(
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin")),
 ) -> MetricsResponse:
     """Admin-only metrics scoped to current tenant."""
+    from app.core.redis_cache import cache_get, cache_set
+
     tid = tenant_ctx.tenant_id
+    cache_key = f"admin:metrics:{tid}"
+    cached = cache_get(cache_key)
+    if cached:
+        return MetricsResponse(**cached)
+
     one_hour_ago = datetime.now(UTC).replace(tzinfo=None) - timedelta(hours=1)
 
     total_clients = db.scalar(select(func.count()).select_from(Customer).where(Customer.tenant_id == tid)) or 0
@@ -130,7 +137,7 @@ def metrics(
         or 0
     )
 
-    return {
+    result = {
         "totals": {
             "clients": total_clients,
             "dossiers": total_cases,
@@ -142,6 +149,8 @@ def metrics(
             "active_users_last_hour": active_users,
         },
     }
+    cache_set(cache_key, result, ttl=300)
+    return result
 
 
 def _entity_quality(db: Session, model: type, tenant_id: int) -> dict:
@@ -171,7 +180,13 @@ def data_quality(
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> DataQualityResponse:
     """Data quality dashboard: link rates for invoices, payments, documents, prescriptions."""
+    from app.core.redis_cache import cache_get, cache_set
+
     tid = tenant_ctx.tenant_id
+    cache_key = f"admin:data_quality:{tid}"
+    cached = cache_get(cache_key)
+    if cached:
+        return DataQualityResponse(**cached)
 
     # Extraction stats from DocumentExtraction table
     total_documents = db.scalar(
@@ -193,7 +208,7 @@ def data_quality(
     ).all()
     by_type = {row[0]: row[1] for row in type_counts_raw}
 
-    return DataQualityResponse(
+    result = DataQualityResponse(
         invoices=_entity_quality(db, CosiumInvoice, tid),
         payments=_entity_quality(db, CosiumPayment, tid),
         documents=_entity_quality(db, CosiumDocument, tid),
@@ -205,6 +220,8 @@ def data_quality(
             by_type=by_type,
         ),
     )
+    cache_set(cache_key, result.model_dump(), ttl=600)
+    return result
 
 
 @router.get(

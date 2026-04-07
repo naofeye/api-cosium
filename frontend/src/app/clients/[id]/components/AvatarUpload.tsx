@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { CopyButton } from "@/components/ui/CopyButton";
+import { InlineEdit } from "@/components/ui/InlineEdit";
+import { fetchJson } from "@/lib/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
@@ -14,6 +16,7 @@ interface AvatarUploadProps {
   avatarUrl: string | null;
   email: string | null;
   phone: string | null;
+  address: string | null;
   onUploaded: () => void;
 }
 
@@ -24,9 +27,19 @@ export function AvatarUpload({
   avatarUrl,
   email,
   phone,
+  address,
   onUploaded,
 }: AvatarUploadProps) {
   const { toast } = useToast();
+
+  const handleInlineSave = async (field: string, newValue: string) => {
+    await fetchJson(`/clients/${clientId}`, {
+      method: "PUT",
+      body: JSON.stringify({ [field]: newValue || null }),
+    });
+    toast("Mis a jour", "success");
+    onUploaded();
+  };
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
@@ -106,18 +119,38 @@ export function AvatarUpload({
         <h2 className="text-lg font-semibold text-text-primary">
           {firstName} {lastName}
         </h2>
-        {email && (
-          <p className="text-sm text-text-secondary inline-flex items-center gap-1">
-            {email}
-            <CopyButton text={email} label="l'email" />
-          </p>
-        )}
-        {phone && (
-          <p className="text-sm text-text-secondary inline-flex items-center gap-1">
-            {phone}
-            <CopyButton text={phone} label="le telephone" />
-          </p>
-        )}
+        <p className="text-sm text-text-secondary inline-flex items-center gap-1">
+          <InlineEdit
+            value={email || ""}
+            onSave={(v) => handleInlineSave("email", v)}
+            type="email"
+            placeholder="email@exemple.com"
+            emptyLabel="Ajouter un email"
+            displayClassName="text-sm text-text-secondary"
+          />
+          {email && <CopyButton text={email} label="l'email" />}
+        </p>
+        <p className="text-sm text-text-secondary inline-flex items-center gap-1">
+          <InlineEdit
+            value={phone || ""}
+            onSave={(v) => handleInlineSave("phone", v)}
+            type="tel"
+            placeholder="06 12 34 56 78"
+            emptyLabel="Ajouter un telephone"
+            displayClassName="text-sm text-text-secondary"
+          />
+          {phone && <CopyButton text={phone} label="le telephone" />}
+        </p>
+        <p className="text-sm text-text-secondary inline-flex items-center gap-1">
+          <InlineEdit
+            value={address || ""}
+            onSave={(v) => handleInlineSave("address", v)}
+            type="text"
+            placeholder="12 rue de la Paix, 75001 Paris"
+            emptyLabel="Ajouter une adresse"
+            displayClassName="text-sm text-text-secondary"
+          />
+        </p>
       </div>
     </div>
   );

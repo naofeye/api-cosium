@@ -44,6 +44,7 @@ interface ClientHeaderProps {
   avatarUrl: string | null;
   email: string | null;
   phone: string | null;
+  address: string | null;
   cosiumId: string | number | null;
   correction: CorrectionActuelle | null;
   lastVisitDate: string | null;
@@ -67,6 +68,7 @@ export function ClientHeader({
   avatarUrl,
   email,
   phone,
+  address,
   cosiumId,
   correction,
   lastVisitDate,
@@ -127,6 +129,7 @@ export function ClientHeader({
           avatarUrl={avatarUrl}
           email={email}
           phone={phone}
+          address={address}
           onUploaded={onAvatarUploaded}
         />
         <div className="flex items-center gap-2 shrink-0">

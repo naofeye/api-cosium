@@ -10,6 +10,16 @@ interface SearchResultItem {
   type: string;
   label: string;
   detail: string;
+  /** Extended context fields for richer previews */
+  phone?: string | null;
+  city?: string | null;
+  last_visit_date?: string | null;
+  amount?: number | null;
+  client_name?: string | null;
+  date?: string | null;
+  prescriber_name?: string | null;
+  correction_summary?: string | null;
+  document_type?: string | null;
 }
 
 interface SearchResults {
@@ -19,6 +29,52 @@ interface SearchResults {
   factures: SearchResultItem[];
   cosium_factures: SearchResultItem[];
   ordonnances: SearchResultItem[];
+}
+
+function formatSearchDate(date: string | null | undefined): string {
+  if (!date) return "";
+  try {
+    return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(date));
+  } catch {
+    return date;
+  }
+}
+
+function formatSearchMoney(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined) return "";
+  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(amount);
+}
+
+/** Build rich context chips for a search result based on type */
+function buildContextParts(item: SearchResultItem): string[] {
+  const parts: string[] = [];
+  switch (item.type) {
+    case "client":
+      if (item.phone) parts.push(item.phone);
+      if (item.city) parts.push(item.city);
+      if (item.last_visit_date) parts.push(`Visite : ${formatSearchDate(item.last_visit_date)}`);
+      break;
+    case "facture":
+    case "cosium_facture":
+      if (item.amount !== null && item.amount !== undefined) parts.push(formatSearchMoney(item.amount));
+      if (item.client_name) parts.push(item.client_name);
+      if (item.date) parts.push(formatSearchDate(item.date));
+      break;
+    case "ordonnance":
+      if (item.date) parts.push(formatSearchDate(item.date));
+      if (item.prescriber_name) parts.push(item.prescriber_name);
+      if (item.correction_summary) parts.push(item.correction_summary);
+      break;
+    case "devis":
+      if (item.amount !== null && item.amount !== undefined) parts.push(formatSearchMoney(item.amount));
+      if (item.client_name) parts.push(item.client_name);
+      break;
+    case "dossier":
+      if (item.client_name) parts.push(item.client_name);
+      if (item.date) parts.push(formatSearchDate(item.date));
+      break;
+  }
+  return parts;
 }
 
 const TYPE_CONFIG = {
@@ -149,8 +205,17 @@ export function GlobalSearch() {
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-text-primary truncate">{item.label}</p>
                         {item.detail && <p className="text-xs text-text-secondary truncate">{item.detail}</p>}
+                        {(() => {
+                          const ctx = buildContextParts(item);
+                          if (ctx.length === 0) return null;
+                          return (
+                            <p className="text-xs text-text-secondary truncate mt-0.5">
+                              {ctx.join(" \u00b7 ")}
+                            </p>
+                          );
+                        })()}
                       </div>
-                      <span className="text-xs text-text-secondary">{config.label}</span>
+                      <span className="text-xs text-text-secondary whitespace-nowrap">{config.label}</span>
                     </button>
                   </li>
                 );
