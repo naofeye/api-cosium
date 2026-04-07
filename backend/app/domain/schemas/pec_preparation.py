@@ -10,6 +10,7 @@ class PecPreparationCreate(BaseModel):
     """Request to start a PEC preparation for a client."""
 
     devis_id: int | None = None
+    ocam_operator_id: int | None = None
 
 
 class FieldValidation(BaseModel):
@@ -23,6 +24,7 @@ class FieldCorrection(BaseModel):
 
     field_name: str = Field(..., min_length=1)
     new_value: Any
+    reason: str | None = Field(None, max_length=500, description="Raison de la correction")
 
 
 class DocumentAttach(BaseModel):
@@ -75,6 +77,7 @@ class PecPreparationResponse(BaseModel):
     customer_id: int
     devis_id: int | None = None
     pec_request_id: int | None = None
+    ocam_operator_id: int | None = None
     consolidated_data: dict | None = None
     status: str
     completude_score: float = 0.0

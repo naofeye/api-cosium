@@ -172,6 +172,7 @@ def correct_field(
         field_name=payload.field_name,
         new_value=payload.new_value,
         corrected_by=tenant_ctx.user_id,
+        reason=payload.reason,
     )
 
 

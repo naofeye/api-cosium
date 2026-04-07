@@ -40,6 +40,7 @@ from app.models.facture import Facture, FactureLigne  # noqa: F401
 from app.models.interaction import Interaction  # noqa: F401
 from app.models.marketing import Campaign, MarketingConsent, MessageLog, Segment, SegmentMembership  # noqa: F401
 from app.models.notification import ActionItem, Notification  # noqa: F401
+from app.models.ocam_operator import OcamOperator  # noqa: F401
 from app.models.payment import BankTransaction, Payment  # noqa: F401
 from app.models.pec import PayerContract, PayerOrganization, PecRequest, PecStatusHistory, Relance  # noqa: F401
 from app.models.pec_audit import PecAuditEntry  # noqa: F401

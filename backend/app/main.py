@@ -29,6 +29,7 @@ from app.api.routers import (
     cosium_invoices,
     cosium_reference,
     dashboard,
+    ocam_operators,
     devis,
     documents,
     exports,
@@ -94,6 +95,7 @@ app = FastAPI(
         {"name": "banking", "description": "Rapprochement bancaire et import releves"},
         {"name": "pec", "description": "Prise en charge et tiers payant"},
         {"name": "pec-preparation", "description": "Assistance preparation PEC"},
+        {"name": "ocam-operators", "description": "Operateurs OCAM (mutuelles/complementaires)"},
         {"name": "documents", "description": "Gestion electronique des documents (GED)"},
         {"name": "extractions", "description": "Extraction OCR et analyse de documents"},
         {"name": "cosium-invoices", "description": "Factures synchronisees depuis Cosium (lecture seule)"},
@@ -281,4 +283,5 @@ app.include_router(admin_users.router)
 app.include_router(dashboard.router)
 app.include_router(onboarding.router)
 app.include_router(cosium_reference.router)
+app.include_router(ocam_operators.router)
 app.include_router(sse.router)

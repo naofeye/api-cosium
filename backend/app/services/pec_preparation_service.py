@@ -51,6 +51,7 @@ def _to_response(prep: object) -> PecPreparationResponse:
         customer_id=prep.customer_id,
         devis_id=prep.devis_id,
         pec_request_id=prep.pec_request_id,
+        ocam_operator_id=getattr(prep, "ocam_operator_id", None),
         consolidated_data=_profile_to_dict(prep.consolidated_data),
         status=prep.status,
         completude_score=prep.completude_score,
@@ -377,6 +378,7 @@ def correct_field(
     field_name: str,
     new_value: object,
     corrected_by: int,
+    reason: str | None = None,
 ) -> PecPreparationResponse:
     """Correct a field value and recalculate alerts."""
     prep = pec_preparation_repo.get_by_id(db, preparation_id, tenant_id)
@@ -396,12 +398,15 @@ def correct_field(
     corrections = json.loads(prep.user_corrections) if prep.user_corrections else {}
     original_field = getattr(profile, field_name, None)
     original_value = original_field.value if original_field else None
-    corrections[field_name] = {
+    correction_entry: dict = {
         "original": original_value,
         "corrected": new_value,
         "by": corrected_by,
         "at": datetime.now(UTC).isoformat(),
     }
+    if reason:
+        correction_entry["reason"] = reason
+    corrections[field_name] = correction_entry
 
     # Apply correction to profile
     if hasattr(profile, field_name):
@@ -444,6 +449,9 @@ def correct_field(
     )
 
     # PEC audit trail: log field correction
+    audit_new_value = {"value": new_value}
+    if reason:
+        audit_new_value["reason"] = reason
     pec_audit_repo.create(
         db,
         tenant_id=tenant_id,
@@ -452,7 +460,7 @@ def correct_field(
         user_id=corrected_by,
         field_name=field_name,
         old_value=original_value,
-        new_value=new_value,
+        new_value=audit_new_value,
         source="manual",
     )
 

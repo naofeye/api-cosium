@@ -34,6 +34,9 @@ class PecPreparation(Base):
     pec_request_id: Mapped[int | None] = mapped_column(
         ForeignKey("pec_requests.id"), nullable=True, index=True
     )
+    ocam_operator_id: Mapped[int | None] = mapped_column(
+        ForeignKey("ocam_operators.id"), nullable=True, index=True
+    )
 
     # Snapshot of consolidated data (JSON serialized ConsolidatedClientProfile)
     consolidated_data: Mapped[str | None] = mapped_column(Text, nullable=True)

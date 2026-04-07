@@ -33,6 +33,8 @@ import { ConsolidatedFieldDisplay } from "@/components/pec/ConsolidatedFieldDisp
 import { AlertPanel } from "@/components/pec/AlertPanel";
 import { CorrectionTable } from "@/components/pec/CorrectionTable";
 import { DocumentChecklist } from "@/components/pec/DocumentChecklist";
+import { PreControlPanel } from "@/components/pec/PreControlPanel";
+import { AuditTrailModal } from "@/components/pec/AuditTrailModal";
 import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
 
 import type { PecPreparation, PecPreparationDocument, ConsolidatedClientProfile, ConsolidatedField } from "@/lib/types/pec-preparation";
@@ -71,40 +73,8 @@ function fieldValue(field: ConsolidatedField | null | undefined): string {
   return String(field.value);
 }
 
-function CopyPasteSummary({ profile }: { profile: ConsolidatedClientProfile }) {
+function SectionCopyButton({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = useState(false);
-
-  const lines = [
-    "=== RESUME PEC ===",
-    "",
-    "--- IDENTITE ---",
-    `Nom : ${fieldValue(profile.nom)}`,
-    `Prenom : ${fieldValue(profile.prenom)}`,
-    `Date de naissance : ${fieldValue(profile.date_naissance)}`,
-    `N. Securite sociale : ${fieldValue(profile.numero_secu)}`,
-    "",
-    "--- MUTUELLE / OCAM ---",
-    `Mutuelle : ${fieldValue(profile.mutuelle_nom)}`,
-    `N. Adherent : ${fieldValue(profile.mutuelle_numero_adherent)}`,
-    `Code organisme : ${fieldValue(profile.mutuelle_code_organisme)}`,
-    `Beneficiaire : ${fieldValue(profile.type_beneficiaire)}`,
-    `Fin de droits : ${fieldValue(profile.date_fin_droits)}`,
-    "",
-    "--- CORRECTION OPTIQUE ---",
-    `OD : Sph ${fieldValue(profile.sphere_od)} | Cyl ${fieldValue(profile.cylinder_od)} | Axe ${fieldValue(profile.axis_od)} | Add ${fieldValue(profile.addition_od)}`,
-    `OG : Sph ${fieldValue(profile.sphere_og)} | Cyl ${fieldValue(profile.cylinder_og)} | Axe ${fieldValue(profile.axis_og)} | Add ${fieldValue(profile.addition_og)}`,
-    `Ecart pupillaire : ${fieldValue(profile.ecart_pupillaire)}`,
-    `Prescripteur : ${fieldValue(profile.prescripteur)}`,
-    `Date ordonnance : ${fieldValue(profile.date_ordonnance)}`,
-    "",
-    "--- FINANCIER ---",
-    `Total TTC : ${fieldValue(profile.montant_ttc)}`,
-    `Part Secu : ${fieldValue(profile.part_secu)}`,
-    `Part Mutuelle : ${fieldValue(profile.part_mutuelle)}`,
-    `Reste a charge : ${fieldValue(profile.reste_a_charge)}`,
-  ];
-
-  const text = lines.join("\n");
 
   const handleCopy = async () => {
     try {
@@ -112,7 +82,6 @@ function CopyPasteSummary({ profile }: { profile: ConsolidatedClientProfile }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback
       const textarea = document.createElement("textarea");
       textarea.value = text;
       document.body.appendChild(textarea);
@@ -125,6 +94,97 @@ function CopyPasteSummary({ profile }: { profile: ConsolidatedClientProfile }) {
   };
 
   return (
+    <Button
+      variant={copied ? "primary" : "ghost"}
+      size="sm"
+      onClick={handleCopy}
+      aria-label={`Copier la section ${label}`}
+    >
+      {copied ? (
+        <><ClipboardCheck className="h-3 w-3 mr-1" /> Copie !</>
+      ) : (
+        <><Copy className="h-3 w-3 mr-1" /> Copier</>
+      )}
+    </Button>
+  );
+}
+
+function CopyPasteSummary({ profile }: { profile: ConsolidatedClientProfile }) {
+  const [allCopied, setAllCopied] = useState(false);
+
+  const sections = [
+    {
+      title: "ASSURE",
+      lines: [
+        `Nom: ${fieldValue(profile.nom)}`,
+        `Prenom: ${fieldValue(profile.prenom)}`,
+        `Date de naissance: ${fieldValue(profile.date_naissance)}`,
+        `N. Securite sociale: ${fieldValue(profile.numero_secu)}`,
+      ],
+    },
+    {
+      title: "MUTUELLE",
+      lines: [
+        `Organisme: ${fieldValue(profile.mutuelle_nom)}`,
+        `N. Adherent: ${fieldValue(profile.mutuelle_numero_adherent)}`,
+        `Code AMC: ${fieldValue(profile.mutuelle_code_organisme)}`,
+      ],
+    },
+    {
+      title: "PRESCRIPTEUR",
+      lines: [
+        `${fieldValue(profile.prescripteur)}`,
+        `Date ordonnance: ${fieldValue(profile.date_ordonnance)}`,
+      ],
+    },
+    {
+      title: "CORRECTION",
+      lines: [
+        `OD: Sph ${fieldValue(profile.sphere_od)}  Cyl ${fieldValue(profile.cylinder_od)}  Axe ${fieldValue(profile.axis_od)}  Add ${fieldValue(profile.addition_od)}`,
+        `OG: Sph ${fieldValue(profile.sphere_og)}  Cyl ${fieldValue(profile.cylinder_og)}  Axe ${fieldValue(profile.axis_og)}  Add ${fieldValue(profile.addition_og)}`,
+        `EP: ${fieldValue(profile.ecart_pupillaire)}`,
+      ],
+    },
+    {
+      title: "EQUIPEMENT",
+      lines: [
+        ...(profile.monture ? [`Monture: ${fieldValue(profile.monture)}`] : []),
+        ...(profile.verres ?? []).map((v, i) => `Verre ${i === 0 ? "OD" : "OG"}: ${fieldValue(v)}`),
+      ],
+    },
+    {
+      title: "MONTANTS",
+      lines: [
+        `Total TTC: ${fieldValue(profile.montant_ttc)} EUR`,
+        `Part Securite sociale: ${fieldValue(profile.part_secu)} EUR`,
+        `Part Mutuelle: ${fieldValue(profile.part_mutuelle)} EUR`,
+        `Reste a charge: ${fieldValue(profile.reste_a_charge)} EUR`,
+      ],
+    },
+  ];
+
+  const fullText = sections
+    .map((s) => `=== ${s.title} ===\n${s.lines.join("\n")}`)
+    .join("\n\n");
+
+  const handleCopyAll = async () => {
+    try {
+      await navigator.clipboard.writeText(fullText);
+      setAllCopied(true);
+      setTimeout(() => setAllCopied(false), 2000);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = fullText;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      setAllCopied(true);
+      setTimeout(() => setAllCopied(false), 2000);
+    }
+  };
+
+  return (
     <div className="mt-6 rounded-xl border border-gray-200 bg-white shadow-sm">
       <div className="flex items-center justify-between p-4 border-b border-gray-100">
         <div className="flex items-center gap-2">
@@ -133,24 +193,35 @@ function CopyPasteSummary({ profile }: { profile: ConsolidatedClientProfile }) {
           <span className="text-xs text-gray-500">(pour saisie portail OCAM)</span>
         </div>
         <Button
-          variant={copied ? "primary" : "outline"}
+          variant={allCopied ? "primary" : "outline"}
           size="sm"
-          onClick={handleCopy}
+          onClick={handleCopyAll}
         >
-          {copied ? (
-            <>
-              <ClipboardCheck className="h-4 w-4 mr-1" /> Copie !
-            </>
+          {allCopied ? (
+            <><ClipboardCheck className="h-4 w-4 mr-1" /> Copie !</>
           ) : (
-            <>
-              <Copy className="h-4 w-4 mr-1" /> Copier tout
-            </>
+            <><Copy className="h-4 w-4 mr-1" /> Copier tout</>
           )}
         </Button>
       </div>
-      <pre className="p-4 text-xs text-gray-700 font-mono whitespace-pre-wrap bg-gray-50/50 rounded-b-xl max-h-64 overflow-y-auto">
-        {text}
-      </pre>
+      <div className="divide-y divide-gray-100">
+        {sections.map((section) => {
+          const sectionText = `=== ${section.title} ===\n${section.lines.join("\n")}`;
+          return (
+            <div key={section.title} className="px-4 py-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  {section.title}
+                </span>
+                <SectionCopyButton text={sectionText} label={section.title} />
+              </div>
+              <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap">
+                {section.lines.join("\n")}
+              </pre>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -174,6 +245,7 @@ export default function PecPreparationDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
+  const [auditModalOpen, setAuditModalOpen] = useState(false);
 
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
@@ -224,17 +296,43 @@ export default function PecPreparationDetailPage() {
     }
   };
 
-  const handleCorrect = async (fieldName: string, newValue: string) => {
+  const handleCorrect = async (fieldName: string, newValue: string, reason?: string) => {
     try {
       await fetchJson(`/pec-preparations/${prepId}/correct-field`, {
         method: "POST",
-        body: JSON.stringify({ field_name: fieldName, new_value: newValue }),
+        body: JSON.stringify({ field_name: fieldName, new_value: newValue, reason: reason || null }),
       });
       toast("Champ corrige avec succes", "success");
       mutate();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Erreur lors de la correction", "error");
     }
+  };
+
+  const handleUndoCorrection = async (fieldName: string, originalValue: string) => {
+    try {
+      await fetchJson(`/pec-preparations/${prepId}/correct-field`, {
+        method: "POST",
+        body: JSON.stringify({ field_name: fieldName, new_value: originalValue, reason: "Restauration de la valeur originale" }),
+      });
+      toast("Correction annulee, valeur originale restauree", "success");
+      mutate();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Erreur lors de la restauration", "error");
+    }
+  };
+
+  const getOriginalValue = (fieldName: string): string | null => {
+    const corrections = data?.user_corrections;
+    if (!corrections || !corrections[fieldName]) return null;
+    const orig = corrections[fieldName].original;
+    return orig !== null && orig !== undefined ? String(orig) : null;
+  };
+
+  const getCorrectionReason = (fieldName: string): string | null => {
+    const corrections = data?.user_corrections;
+    if (!corrections || !corrections[fieldName]) return null;
+    return corrections[fieldName].reason ?? null;
   };
 
   const handleRefresh = async () => {
@@ -337,6 +435,19 @@ export default function PecPreparationDetailPage() {
         </div>
       }
     >
+      {/* Pre-control panel */}
+      <PreControlPanel
+        preparationId={prepId}
+        onOpenAudit={() => setAuditModalOpen(true)}
+      />
+
+      {/* Audit trail modal */}
+      <AuditTrailModal
+        preparationId={prepId}
+        open={auditModalOpen}
+        onClose={() => setAuditModalOpen(false)}
+      />
+
       {/* Header with score and status */}
       <div className="rounded-xl border border-border bg-white shadow-sm p-5 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -378,10 +489,10 @@ export default function PecPreparationDetailPage() {
           icon={User}
           status={sectionStatus(identityAlerts.errors, identityAlerts.warnings)}
         >
-          <ConsolidatedFieldDisplay label="Nom" field={profile?.nom ?? null} fieldName="nom" validated={isFieldValidated("nom")} onValidate={handleValidate} onCorrect={handleCorrect} />
-          <ConsolidatedFieldDisplay label="Prenom" field={profile?.prenom ?? null} fieldName="prenom" validated={isFieldValidated("prenom")} onValidate={handleValidate} onCorrect={handleCorrect} />
-          <ConsolidatedFieldDisplay label="Date de naissance" field={profile?.date_naissance ?? null} fieldName="date_naissance" validated={isFieldValidated("date_naissance")} onValidate={handleValidate} onCorrect={handleCorrect} />
-          <ConsolidatedFieldDisplay label="N. Securite sociale" field={profile?.numero_secu ?? null} fieldName="numero_secu" validated={isFieldValidated("numero_secu")} onValidate={handleValidate} onCorrect={handleCorrect} />
+          <ConsolidatedFieldDisplay label="Nom" field={profile?.nom ?? null} fieldName="nom" validated={isFieldValidated("nom")} onValidate={handleValidate} onCorrect={handleCorrect} onUndoCorrection={handleUndoCorrection} originalValue={getOriginalValue("nom")} correctionReason={getCorrectionReason("nom")} />
+          <ConsolidatedFieldDisplay label="Prenom" field={profile?.prenom ?? null} fieldName="prenom" validated={isFieldValidated("prenom")} onValidate={handleValidate} onCorrect={handleCorrect} onUndoCorrection={handleUndoCorrection} originalValue={getOriginalValue("prenom")} correctionReason={getCorrectionReason("prenom")} />
+          <ConsolidatedFieldDisplay label="Date de naissance" field={profile?.date_naissance ?? null} fieldName="date_naissance" validated={isFieldValidated("date_naissance")} onValidate={handleValidate} onCorrect={handleCorrect} onUndoCorrection={handleUndoCorrection} originalValue={getOriginalValue("date_naissance")} correctionReason={getCorrectionReason("date_naissance")} />
+          <ConsolidatedFieldDisplay label="N. Securite sociale" field={profile?.numero_secu ?? null} fieldName="numero_secu" validated={isFieldValidated("numero_secu")} onValidate={handleValidate} onCorrect={handleCorrect} onUndoCorrection={handleUndoCorrection} originalValue={getOriginalValue("numero_secu")} correctionReason={getCorrectionReason("numero_secu")} />
         </PecSection>
 
         {/* Section 2: Mutuelle */}
@@ -390,11 +501,11 @@ export default function PecPreparationDetailPage() {
           icon={Building2}
           status={sectionStatus(mutuelleAlerts.errors, mutuelleAlerts.warnings)}
         >
-          <ConsolidatedFieldDisplay label="Mutuelle" field={profile?.mutuelle_nom ?? null} fieldName="mutuelle_nom" validated={isFieldValidated("mutuelle_nom")} onValidate={handleValidate} onCorrect={handleCorrect} />
-          <ConsolidatedFieldDisplay label="N. Adherent" field={profile?.mutuelle_numero_adherent ?? null} fieldName="mutuelle_numero_adherent" validated={isFieldValidated("mutuelle_numero_adherent")} onValidate={handleValidate} onCorrect={handleCorrect} />
-          <ConsolidatedFieldDisplay label="Code organisme" field={profile?.mutuelle_code_organisme ?? null} fieldName="mutuelle_code_organisme" validated={isFieldValidated("mutuelle_code_organisme")} onValidate={handleValidate} onCorrect={handleCorrect} />
-          <ConsolidatedFieldDisplay label="Beneficiaire" field={profile?.type_beneficiaire ?? null} fieldName="type_beneficiaire" validated={isFieldValidated("type_beneficiaire")} onValidate={handleValidate} onCorrect={handleCorrect} />
-          <ConsolidatedFieldDisplay label="Fin de droits" field={profile?.date_fin_droits ?? null} fieldName="date_fin_droits" validated={isFieldValidated("date_fin_droits")} onValidate={handleValidate} onCorrect={handleCorrect} />
+          <ConsolidatedFieldDisplay label="Mutuelle" field={profile?.mutuelle_nom ?? null} fieldName="mutuelle_nom" validated={isFieldValidated("mutuelle_nom")} onValidate={handleValidate} onCorrect={handleCorrect} onUndoCorrection={handleUndoCorrection} originalValue={getOriginalValue("mutuelle_nom")} correctionReason={getCorrectionReason("mutuelle_nom")} />
+          <ConsolidatedFieldDisplay label="N. Adherent" field={profile?.mutuelle_numero_adherent ?? null} fieldName="mutuelle_numero_adherent" validated={isFieldValidated("mutuelle_numero_adherent")} onValidate={handleValidate} onCorrect={handleCorrect} onUndoCorrection={handleUndoCorrection} originalValue={getOriginalValue("mutuelle_numero_adherent")} correctionReason={getCorrectionReason("mutuelle_numero_adherent")} />
+          <ConsolidatedFieldDisplay label="Code organisme" field={profile?.mutuelle_code_organisme ?? null} fieldName="mutuelle_code_organisme" validated={isFieldValidated("mutuelle_code_organisme")} onValidate={handleValidate} onCorrect={handleCorrect} onUndoCorrection={handleUndoCorrection} originalValue={getOriginalValue("mutuelle_code_organisme")} correctionReason={getCorrectionReason("mutuelle_code_organisme")} />
+          <ConsolidatedFieldDisplay label="Beneficiaire" field={profile?.type_beneficiaire ?? null} fieldName="type_beneficiaire" validated={isFieldValidated("type_beneficiaire")} onValidate={handleValidate} onCorrect={handleCorrect} onUndoCorrection={handleUndoCorrection} originalValue={getOriginalValue("type_beneficiaire")} correctionReason={getCorrectionReason("type_beneficiaire")} />
+          <ConsolidatedFieldDisplay label="Fin de droits" field={profile?.date_fin_droits ?? null} fieldName="date_fin_droits" validated={isFieldValidated("date_fin_droits")} onValidate={handleValidate} onCorrect={handleCorrect} onUndoCorrection={handleUndoCorrection} originalValue={getOriginalValue("date_fin_droits")} correctionReason={getCorrectionReason("date_fin_droits")} />
         </PecSection>
 
         {/* Section 3: Optical Correction */}
@@ -410,7 +521,7 @@ export default function PecPreparationDetailPage() {
           />
           {profile?.ecart_pupillaire && (
             <div className="mt-3">
-              <ConsolidatedFieldDisplay label="Ecart pupillaire" field={profile.ecart_pupillaire} fieldName="ecart_pupillaire" validated={isFieldValidated("ecart_pupillaire")} onValidate={handleValidate} onCorrect={handleCorrect} />
+              <ConsolidatedFieldDisplay label="Ecart pupillaire" field={profile.ecart_pupillaire} fieldName="ecart_pupillaire" validated={isFieldValidated("ecart_pupillaire")} onValidate={handleValidate} onCorrect={handleCorrect} onUndoCorrection={handleUndoCorrection} originalValue={getOriginalValue("ecart_pupillaire")} correctionReason={getCorrectionReason("ecart_pupillaire")} />
             </div>
           )}
         </PecSection>
@@ -422,7 +533,7 @@ export default function PecPreparationDetailPage() {
           status={sectionStatus(financialAlerts.errors, financialAlerts.warnings)}
         >
           {profile?.monture && (
-            <ConsolidatedFieldDisplay label="Monture" field={profile.monture} fieldName="monture" validated={isFieldValidated("monture")} onValidate={handleValidate} onCorrect={handleCorrect} />
+            <ConsolidatedFieldDisplay label="Monture" field={profile.monture} fieldName="monture" validated={isFieldValidated("monture")} onValidate={handleValidate} onCorrect={handleCorrect} onUndoCorrection={handleUndoCorrection} originalValue={getOriginalValue("monture")} correctionReason={getCorrectionReason("monture")} />
           )}
           {profile?.verres && profile.verres.length > 0 && (
             <div className="space-y-1 mt-2">
@@ -435,6 +546,9 @@ export default function PecPreparationDetailPage() {
                   validated={isFieldValidated(`verres_${i}`)}
                   onValidate={handleValidate}
                   onCorrect={handleCorrect}
+                  onUndoCorrection={handleUndoCorrection}
+                  originalValue={getOriginalValue(`verres_${i}`)}
+                  correctionReason={getCorrectionReason(`verres_${i}`)}
                 />
               ))}
             </div>

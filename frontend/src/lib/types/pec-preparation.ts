@@ -81,7 +81,7 @@ export interface PecPreparation {
   warnings_count: number;
   consolidated_data: ConsolidatedClientProfile | null;
   user_validations: Record<string, { validated: boolean; validated_by: number; at: string }> | null;
-  user_corrections: Record<string, { original: unknown; corrected: unknown; by: number; at: string }> | null;
+  user_corrections: Record<string, { original: unknown; corrected: unknown; by: number; at: string; reason?: string }> | null;
   created_at: string | null;
   updated_at: string | null;
   created_by: number | null;
