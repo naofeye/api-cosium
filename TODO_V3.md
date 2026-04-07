@@ -88,10 +88,10 @@
 ## PHASE 6 — MOYEN : TESTS MANQUANTS (Semaine 3-4)
 
 ### 6.1 Tests critiques absents [MOYEN]
-- [ ] Creer `tests/test_pec_preparation.py` — Workflow PEC complet (prepare, validate, correct, precontrol, submit)
+- [x] `tests/test_pec_preparation.py` cree — Workflow PEC (prepare, validate, correct, precontrol, submit)
 - [ ] Creer `tests/test_payment_service.py` — Creation/modification/rapprochement paiements
 - [ ] Creer `tests/test_cosium_invoice_sync.py` — Sync factures Cosium (incremental, full)
-- [ ] Creer `tests/test_transaction_integrity.py` — Verifier que les services commitent correctement (post-migration flush)
+- [x] `tests/test_transaction_integrity.py` cree — Verifie que les services commitent apres write
 
 ### 6.2 Tests qui necessitent Docker [MOYEN]
 - [ ] Tester un deploiement E2E avec docker-compose.prod.yml
@@ -113,9 +113,9 @@
 - [ ] Ajouter slow query logging (queries > 1s)
 
 ### 7.2 Accessibilite frontend [FAIBLE]
-- [ ] `notifications/page.tsx:344` — Ajouter aria-label sur boutons icone-only
-- [ ] `relances/templates/page.tsx:187` — Ajouter label associe au checkbox
-- [ ] `renewals/page.tsx:229` — Ajouter label associe au checkbox
+- [x] `notifications/page.tsx` — aria-label ajoute sur boutons icone-only
+- [x] `relances/templates/page.tsx` — label associe au checkbox ajoute
+- [x] `renewals/page.tsx:229` — Label `htmlFor="useAi"` deja present, accessible
 
 ---
 
