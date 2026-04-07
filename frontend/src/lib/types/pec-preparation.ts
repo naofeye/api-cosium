@@ -1,10 +1,20 @@
 // Types for PEC Preparation (assistance PEC)
 
+export type FieldStatus = "confirmed" | "extracted" | "deduced" | "missing" | "conflict" | "manual";
+
+export interface FieldAlternative {
+  value: string | number | null;
+  source: string;
+  confidence: number;
+}
+
 export interface ConsolidatedField {
   value: string | number | null;
   source: string;
   source_label: string;
   confidence: number;
+  status: FieldStatus;
+  alternatives: FieldAlternative[] | null;
   last_updated: string | null;
 }
 

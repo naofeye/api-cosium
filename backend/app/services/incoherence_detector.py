@@ -1,7 +1,8 @@
 """Incoherence detection engine for consolidated client profiles.
 
 Detects contradictions, anomalies, and missing data that would prevent
-a successful PEC submission.
+a successful PEC submission.  Uses field-level status (FieldStatus) to
+generate richer, more actionable alerts.
 """
 
 from datetime import date, datetime
@@ -9,10 +10,19 @@ from datetime import date, datetime
 from app.core.logging import get_logger
 from app.domain.schemas.consolidation import (
     ConsolidatedClientProfile,
+    ConsolidatedField,
     ConsolidationAlert,
+    FieldStatus,
 )
 
 logger = get_logger("incoherence_detector")
+
+# Optical validation ranges
+SPHERE_MIN, SPHERE_MAX = -25.0, 25.0
+CYLINDER_MIN, CYLINDER_MAX = -10.0, 0.0  # Always negative in minus-cylinder form
+AXIS_MIN, AXIS_MAX = 0, 180
+ADDITION_MIN, ADDITION_MAX = 0.50, 4.00
+PD_MIN, PD_MAX = 50.0, 80.0  # Pupillary distance in mm
 
 
 def _parse_date(value: object) -> date | None:
@@ -40,10 +50,77 @@ def _safe_float(value: object) -> float | None:
         return None
 
 
+def _detect_field_status_alerts(
+    profile: ConsolidatedClientProfile,
+) -> list[ConsolidationAlert]:
+    """Generate alerts based on field-level FieldStatus values."""
+    alerts: list[ConsolidationAlert] = []
+
+    # All fields that are ConsolidatedField instances on the profile
+    field_names = [
+        "nom", "prenom", "date_naissance", "numero_secu",
+        "mutuelle_nom", "mutuelle_numero_adherent", "mutuelle_code_organisme",
+        "type_beneficiaire", "date_fin_droits",
+        "sphere_od", "cylinder_od", "axis_od", "addition_od",
+        "sphere_og", "cylinder_og", "axis_og", "addition_og",
+        "ecart_pupillaire", "prescripteur", "date_ordonnance",
+        "monture", "montant_ttc", "part_secu", "part_mutuelle", "reste_a_charge",
+    ]
+
+    for name in field_names:
+        field: ConsolidatedField | None = getattr(profile, name, None)
+        if field is None:
+            continue
+        if field.status == FieldStatus.CONFLICT:
+            alt_info = ""
+            if field.alternatives:
+                alt_values = ", ".join(str(a.get("value", "?")) for a in field.alternatives)
+                alt_info = f" (alternatives: {alt_values})"
+            alerts.append(
+                ConsolidationAlert(
+                    severity="warning",
+                    field=name,
+                    message=f"Conflit entre sources pour {name}: valeur retenue={field.value}{alt_info}",
+                    sources=[field.source] + [a.get("source", "") for a in (field.alternatives or [])],
+                )
+            )
+        elif field.status == FieldStatus.DEDUCED:
+            alerts.append(
+                ConsolidationAlert(
+                    severity="info",
+                    field=name,
+                    message=f"Ce champ est deduit ({field.source_label}), verifiez sa valeur",
+                    sources=[field.source],
+                )
+            )
+
+    return alerts
+
+
+def _validate_optical_range(
+    value: float | None, field_name: str, label: str,
+    min_val: float, max_val: float, source: str,
+) -> ConsolidationAlert | None:
+    """Validate an optical value is within a valid range."""
+    if value is None:
+        return None
+    if value < min_val or value > max_val:
+        return ConsolidationAlert(
+            severity="error",
+            field=field_name,
+            message=(
+                f"{label} hors plage valide : {value} "
+                f"(attendu entre {min_val} et {max_val})"
+            ),
+            sources=[source] if source else [],
+        )
+    return None
+
+
 def detect_optical_incoherences(
     profile: ConsolidatedClientProfile,
 ) -> list[ConsolidationAlert]:
-    """Detect optical data inconsistencies."""
+    """Detect optical data inconsistencies and validate ranges."""
     alerts: list[ConsolidationAlert] = []
 
     # Check ordonnance date
@@ -97,6 +174,27 @@ def detect_optical_incoherences(
                         ],
                     )
                 )
+
+    # Optical range validations
+    range_checks: list[tuple[ConsolidatedField | None, str, str, float, float]] = [
+        (profile.sphere_od, "sphere_od", "Sphere OD", SPHERE_MIN, SPHERE_MAX),
+        (profile.sphere_og, "sphere_og", "Sphere OG", SPHERE_MIN, SPHERE_MAX),
+        (profile.cylinder_od, "cylinder_od", "Cylindre OD", CYLINDER_MIN, CYLINDER_MAX),
+        (profile.cylinder_og, "cylinder_og", "Cylindre OG", CYLINDER_MIN, CYLINDER_MAX),
+        (profile.axis_od, "axis_od", "Axe OD", AXIS_MIN, AXIS_MAX),
+        (profile.axis_og, "axis_og", "Axe OG", AXIS_MIN, AXIS_MAX),
+        (profile.addition_od, "addition_od", "Addition OD", ADDITION_MIN, ADDITION_MAX),
+        (profile.addition_og, "addition_og", "Addition OG", ADDITION_MIN, ADDITION_MAX),
+        (profile.ecart_pupillaire, "ecart_pupillaire", "Ecart pupillaire", PD_MIN, PD_MAX),
+    ]
+
+    for field, field_name, label, min_v, max_v in range_checks:
+        if field is None:
+            continue
+        val = _safe_float(field.value)
+        alert = _validate_optical_range(val, field_name, label, min_v, max_v, field.source)
+        if alert:
+            alerts.append(alert)
 
     return alerts
 
@@ -265,6 +363,7 @@ def detect_incoherences(
     """
     alerts: list[ConsolidationAlert] = []
 
+    alerts.extend(_detect_field_status_alerts(profile))
     alerts.extend(detect_optical_incoherences(profile))
     alerts.extend(detect_financial_incoherences(profile))
     alerts.extend(detect_identity_incoherences(profile))

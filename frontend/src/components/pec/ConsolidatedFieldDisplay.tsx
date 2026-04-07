@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Pencil, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
+import { Check, Pencil, CheckCircle2, AlertTriangle, XCircle, Info, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
-import type { ConsolidatedField } from "@/lib/types/pec-preparation";
+import type { ConsolidatedField, FieldStatus } from "@/lib/types/pec-preparation";
 
 interface ConsolidatedFieldDisplayProps {
   label: string;
@@ -24,6 +24,24 @@ const SOURCE_COLORS: Record<string, string> = {
   manual: "bg-gray-100 text-gray-600",
 };
 
+/**
+ * Border/background styling per FieldStatus.
+ * - confirmed: green border + checkmark
+ * - extracted: blue border (default)
+ * - deduced: amber border + "deduit" badge
+ * - missing: red dashed border + "manquant" text
+ * - conflict: red border + warning icon + alternatives on hover
+ * - manual: gray border + "modifie manuellement" badge
+ */
+const STATUS_STYLES: Record<FieldStatus, string> = {
+  confirmed: "border-2 border-emerald-400 bg-emerald-50/30",
+  extracted: "border border-blue-200 bg-white",
+  deduced: "border-2 border-amber-300 bg-amber-50/20",
+  missing: "border-2 border-dashed border-red-300 bg-red-50/30",
+  conflict: "border-2 border-red-400 bg-red-50/20",
+  manual: "border-2 border-gray-300 bg-gray-50/30",
+};
+
 function getSourceColor(source: string): string {
   const key = Object.keys(SOURCE_COLORS).find((k) => source.toLowerCase().includes(k));
   return key ? SOURCE_COLORS[key] : "bg-gray-100 text-gray-600";
@@ -33,14 +51,70 @@ function getSourceLabel(source: string, sourceLabel: string): string {
   return sourceLabel || source;
 }
 
-function ConfidenceIcon({ confidence }: { confidence: number }) {
-  if (confidence >= 0.9) {
-    return <CheckCircle2 className="h-4 w-4 text-emerald-500" aria-label="Confiance elevee" />;
+function StatusIcon({ status }: { status: FieldStatus }) {
+  switch (status) {
+    case "confirmed":
+      return <CheckCircle2 className="h-4 w-4 text-emerald-500" aria-label="Confirme" />;
+    case "extracted":
+      return <CheckCircle2 className="h-4 w-4 text-blue-500" aria-label="Extrait" />;
+    case "deduced":
+      return <HelpCircle className="h-4 w-4 text-amber-500" aria-label="Deduit" />;
+    case "missing":
+      return <XCircle className="h-4 w-4 text-red-500" aria-label="Manquant" />;
+    case "conflict":
+      return <AlertTriangle className="h-4 w-4 text-red-500" aria-label="Conflit entre sources" />;
+    case "manual":
+      return <Pencil className="h-4 w-4 text-gray-500" aria-label="Modifie manuellement" />;
+    default:
+      return <Info className="h-4 w-4 text-gray-400" aria-label="Inconnu" />;
   }
-  if (confidence >= 0.6) {
-    return <AlertTriangle className="h-4 w-4 text-amber-500" aria-label="Confiance moyenne" />;
+}
+
+function StatusBadge({ status }: { status: FieldStatus }) {
+  switch (status) {
+    case "confirmed":
+      return <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700">confirme</span>;
+    case "deduced":
+      return <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700">deduit</span>;
+    case "manual":
+      return <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600">modifie manuellement</span>;
+    case "conflict":
+      return <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700">conflit</span>;
+    default:
+      return null;
   }
-  return <XCircle className="h-4 w-4 text-red-500" aria-label="Confiance faible" />;
+}
+
+function AlternativesTooltip({ field }: { field: ConsolidatedField }) {
+  const [showAlternatives, setShowAlternatives] = useState(false);
+
+  if (!field.alternatives || field.alternatives.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="relative inline-block">
+      <button
+        type="button"
+        className="text-xs text-red-600 underline cursor-pointer hover:text-red-800"
+        onClick={() => setShowAlternatives(!showAlternatives)}
+        aria-label="Voir les alternatives"
+      >
+        {field.alternatives.length} alternative{field.alternatives.length > 1 ? "s" : ""}
+      </button>
+      {showAlternatives && (
+        <div className="absolute z-10 mt-1 w-64 rounded-lg border border-gray-200 bg-white shadow-lg p-3 text-sm">
+          <p className="text-xs font-medium text-gray-500 mb-2">Autres sources :</p>
+          {field.alternatives.map((alt, idx) => (
+            <div key={idx} className="flex items-center justify-between py-1 border-b border-gray-100 last:border-0">
+              <span className="text-gray-900 font-medium">{String(alt.value ?? "—")}</span>
+              <span className="text-xs text-gray-500">{alt.source} ({Math.round(alt.confidence * 100)}%)</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function ConsolidatedFieldDisplay({
@@ -54,9 +128,25 @@ export function ConsolidatedFieldDisplay({
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
 
+  const handleConfirmEdit = () => {
+    if (onCorrect) {
+      onCorrect(fieldName, editValue);
+    }
+    setEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditing(false);
+  };
+
+  // Missing field (null) — show empty state with red dashed border
   if (!field) {
     return (
-      <div className="flex items-center justify-between py-2 px-3 border-b border-gray-100 last:border-0 rounded-lg border-2 border-dashed border-red-300 bg-red-50/30 cursor-pointer hover:bg-red-50/60 transition-colors"
+      <div
+        className={cn(
+          "flex items-center justify-between py-2 px-3 rounded-lg cursor-pointer hover:bg-red-50/60 transition-colors",
+          STATUS_STYLES.missing,
+        )}
         onClick={() => {
           if (onCorrect) {
             setEditValue("");
@@ -66,11 +156,9 @@ export function ConsolidatedFieldDisplay({
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            if (onCorrect) {
-              setEditValue("");
-              setEditing(true);
-            }
+          if ((e.key === "Enter" || e.key === " ") && onCorrect) {
+            setEditValue("");
+            setEditing(true);
           }
         }}
       >
@@ -98,40 +186,28 @@ export function ConsolidatedFieldDisplay({
             </Button>
           </div>
         ) : (
-          <span className="text-sm text-red-500 italic">Donnee manquante — cliquer pour completer</span>
+          <div className="flex items-center gap-2">
+            <StatusIcon status="missing" />
+            <span className="text-sm text-red-500 italic">Donnee manquante — cliquer pour completer</span>
+          </div>
         )}
       </div>
     );
   }
 
   const displayValue = field.value !== null && field.value !== "" ? String(field.value) : "—";
+  const fieldStatus: FieldStatus = field.status || "extracted";
 
   const handleStartEdit = () => {
     setEditValue(field.value !== null ? String(field.value) : "");
     setEditing(true);
   };
 
-  const handleConfirmEdit = () => {
-    if (onCorrect) {
-      onCorrect(fieldName, editValue);
-    }
-    setEditing(false);
-  };
-
-  const handleCancelEdit = () => {
-    setEditing(false);
-  };
-
-  // Confidence-based border styling
-  const confidenceBorder =
-    field.confidence < 0.3
-      ? "border-2 border-red-300 bg-red-50/20"
-      : field.confidence < 0.6
-        ? "border-2 border-amber-300 bg-amber-50/20"
-        : "border-b border-gray-100";
+  // Use status-based border styling
+  const borderStyle = validated ? STATUS_STYLES.confirmed : STATUS_STYLES[fieldStatus];
 
   return (
-    <div className={cn("flex items-center justify-between py-2 px-3 rounded-lg last:border-0 gap-3", confidenceBorder)}>
+    <div className={cn("flex items-center justify-between py-2 px-3 rounded-lg gap-3", borderStyle)}>
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <span className="text-sm font-medium text-gray-700 w-36 shrink-0">{label}</span>
         {editing ? (
@@ -162,7 +238,9 @@ export function ConsolidatedFieldDisplay({
             <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium", getSourceColor(field.source))}>
               {getSourceLabel(field.source, field.source_label)}
             </span>
-            <ConfidenceIcon confidence={field.confidence} />
+            <StatusIcon status={fieldStatus} />
+            <StatusBadge status={fieldStatus} />
+            {fieldStatus === "conflict" && <AlternativesTooltip field={field} />}
           </>
         )}
       </div>

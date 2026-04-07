@@ -385,7 +385,7 @@ def correct_field(
 
     # Apply correction to profile
     if hasattr(profile, field_name):
-        from app.domain.schemas.consolidation import ConsolidatedField
+        from app.domain.schemas.consolidation import ConsolidatedField, FieldStatus
 
         setattr(
             profile,
@@ -395,6 +395,7 @@ def correct_field(
                 source="manual",
                 source_label="Correction manuelle",
                 confidence=1.0,
+                status=FieldStatus.MANUAL,
                 last_updated=datetime.now(UTC),
             ),
         )
@@ -450,7 +451,7 @@ def refresh_preparation(
     # Apply any existing user corrections
     if prep.user_corrections:
         corrections = json.loads(prep.user_corrections)
-        from app.domain.schemas.consolidation import ConsolidatedField
+        from app.domain.schemas.consolidation import ConsolidatedField, FieldStatus
 
         for field_name, correction in corrections.items():
             if hasattr(profile, field_name):
@@ -462,6 +463,7 @@ def refresh_preparation(
                         source="manual",
                         source_label="Correction manuelle",
                         confidence=1.0,
+                        status=FieldStatus.MANUAL,
                         last_updated=datetime.now(UTC),
                     ),
                 )

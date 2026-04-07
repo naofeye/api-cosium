@@ -1,13 +1,25 @@
 """Pydantic schemas for the multi-source consolidation engine."""
 
 from datetime import datetime
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class FieldStatus(str, Enum):
+    """Status of a consolidated field indicating its provenance and reliability."""
+
+    CONFIRMED = "confirmed"  # User explicitly validated
+    EXTRACTED = "extracted"  # From a reliable source (Cosium, devis)
+    DEDUCED = "deduced"  # Inferred from related data or OCR
+    MISSING = "missing"  # Required but absent
+    CONFLICT = "conflict"  # Multiple sources disagree
+    MANUAL = "manual"  # User manually entered/corrected
+
+
 class ConsolidatedField(BaseModel):
-    """A single consolidated field with its source and confidence."""
+    """A single consolidated field with its source, confidence, and status."""
 
     value: Any
     source: str = Field(
@@ -22,6 +34,8 @@ class ConsolidatedField(BaseModel):
         description='Human-readable label: "Cosium" | "Ordonnance du 15/03/2026"',
     )
     confidence: float = Field(..., ge=0.0, le=1.0)
+    status: FieldStatus = FieldStatus.EXTRACTED
+    alternatives: list[dict] | None = None
     last_updated: datetime | None = None
 
 
