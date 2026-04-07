@@ -295,7 +295,7 @@ export default function NotificationsPage() {
                       }`}
                     >
                       {/* Icon */}
-                      <div className={`shrink-0 rounded-full p-2 ${typeClass}`}>
+                      <div className={`shrink-0 rounded-full p-2 ${typeClass}`} aria-hidden="true">
                         <Bell className="h-4 w-4" />
                       </div>
 

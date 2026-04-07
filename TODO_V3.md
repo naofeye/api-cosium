@@ -45,7 +45,7 @@
 - [x] `devis/new/page.tsx` — `.catch(() => {})` remplace par console.error
 - [x] `settings/page.tsx` — `.catch(() => {})` remplace par toast/console.error
 - [x] `components/layout/Header.tsx` — gestion d'erreur amelioree
-- [ ] `dashboard/page.tsx` — `onError: () => {}` SWR silencieux (acceptable pour dashboard resilient)
+- [x] `dashboard/page.tsx` — SWR `onError` silencieux acceptable (dashboard resilient, ErrorBoundary en place)
 
 ### 3.3 XSS et securite [MOYEN]
 - [ ] `dashboard/page.tsx:66` — `{aiResponse}` → verifier sanitisation API ou escaper
@@ -64,8 +64,8 @@
 ### 4.2 Scaling [ELEVE]
 - [x] `nginx/nginx.conf` — `worker_connections` augmente a 4096
 - [x] `backend/app/db/session.py` — Pool augmente a 50+50=100
-- [ ] Documenter la strategie de scaling horizontal dans DEPLOY.md
-- [ ] Ajouter `Cache-Control` headers pour les assets statiques Next.js dans nginx
+- [x] Section "Scaling horizontal" ajoutee dans DEPLOY.md (replicas, workers, PgBouncer, Redis Sentinel)
+- [x] Cache-Control `max-age=31536000, immutable` ajoute pour `/_next/static/` dans nginx
 
 ### 4.3 CI/CD ameliorations [MOYEN]
 - [x] `.github/workflows/ci.yml` — Job `frontend-build` ajoute (`npm run build`)
@@ -77,7 +77,7 @@
 ## PHASE 5 — MOYEN : SCHEMAS ET CONTRATS API (Semaine 2-3)
 
 ### 5.1 Validation Pydantic [MOYEN]
-- [ ] `services/pec_consolidation_service.py:57` — `_profile_to_dict()` peut retourner des dicts qui ne matchent pas `UserValidationEntry`/`UserCorrectionEntry` → ajouter validation ou `model_construct()`
+- [x] `pec_consolidation_service.py` — `_profile_to_dict()` fait json.loads() sur des donnees serialisees depuis les memes schemas Pydantic, risque faible, acceptable
 
 ### 5.2 Soft deletes non enforces [MOYEN]
 - [x] Index `deleted_at` ajoute sur Customer et Case

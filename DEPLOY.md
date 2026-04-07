@@ -221,7 +221,46 @@ Les logs sont limites a 10 Mo / 5 fichiers par container (configure dans docker-
 
 Configurer `SENTRY_DSN` dans `.env` pour recevoir les erreurs en temps reel.
 
-## 8. Rollback
+## 8. Scaling horizontal
+
+### Instance unique (defaut)
+
+La configuration par defaut supporte ~50-100 utilisateurs simultanes :
+- **API** : 4 workers uvicorn (`start.prod.sh`)
+- **DB** : Pool de 100 connexions (50 + 50 overflow)
+- **Nginx** : 4096 connexions par worker
+- **Redis** : Instance unique
+- **Celery** : 1 worker + beat integre (`-B`)
+
+### Multi-instances (100+ utilisateurs)
+
+Pour scaler au-dela de 100 utilisateurs simultanes :
+
+1. **API** : Ajouter des replicas dans docker-compose.prod.yml :
+   ```yaml
+   api:
+     deploy:
+       replicas: 3
+   ```
+   Nginx repartit automatiquement la charge (upstream round-robin).
+
+2. **Workers Celery** : Separer beat du worker et ajouter des workers :
+   ```yaml
+   worker:
+     command: celery -A app.tasks worker --loglevel=info --concurrency=4
+   beat:
+     command: celery -A app.tasks beat --loglevel=info
+   ```
+
+3. **PostgreSQL** : Augmenter `pool_size` dans `db/session.py` ou utiliser PgBouncer.
+
+4. **Redis** : Utiliser Redis Sentinel ou un service Redis manage pour la haute disponibilite.
+
+5. **Nginx** : Ajouter `worker_processes auto;` pour utiliser tous les CPU disponibles.
+
+> **Important** : Les JWT sont symetriques (HS256) — toutes les instances API DOIVENT partager le meme `JWT_SECRET` via `.env`.
+
+## 9. Rollback
 
 ### Rollback du code
 
