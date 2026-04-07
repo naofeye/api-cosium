@@ -32,6 +32,7 @@ import {
   Bell,
   Package,
   FolderDown,
+  Briefcase,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -93,6 +94,13 @@ const navGroups: NavGroup[] = [
       { href: "/mutuelles", label: "Mutuelles", icon: Shield },
       { href: "/produits", label: "Produits", icon: Package },
       { href: "/documents-cosium", label: "Documents", icon: FolderDown },
+    ],
+  },
+  {
+    key: "optisante",
+    label: "OptiSante",
+    items: [
+      { href: "/optisante", label: "OptiSante", icon: Briefcase },
     ],
   },
   {

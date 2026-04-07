@@ -38,6 +38,11 @@ const STATUS_COLORS: Record<string, string> = {
   echouee: "bg-red-100 text-red-700",
   failed: "bg-red-100 text-red-700",
   waiting: "bg-amber-100 text-amber-700",
+  pret: "bg-emerald-100 text-emerald-700",
+  incomplet: "bg-amber-100 text-amber-700",
+  conflit: "bg-red-100 text-red-700",
+  erreur: "bg-gray-100 text-gray-700",
+  termine: "bg-emerald-100 text-emerald-700",
 };
 
 const LABELS: Record<string, string> = {
@@ -73,6 +78,11 @@ const LABELS: Record<string, string> = {
   echouee: "Echouee",
   failed: "Echouee",
   waiting: "En attente",
+  pret: "Pret",
+  incomplet: "Incomplet",
+  conflit: "Conflit",
+  erreur: "Erreur",
+  termine: "Termine",
 };
 
 interface StatusBadgeProps {

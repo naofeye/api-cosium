@@ -2,6 +2,7 @@
 # Usage: from app.models import User, Case, etc.
 
 from app.models.ai import AiUsageLog  # noqa: F401
+from app.models.batch_operation import BatchOperation, BatchOperationItem  # noqa: F401
 from app.models.audit import AuditLog  # noqa: F401
 from app.models.case import Case  # noqa: F401
 from app.models.client import Customer  # noqa: F401

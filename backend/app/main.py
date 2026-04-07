@@ -19,6 +19,7 @@ from app.api.routers import (
     audit,
     auth,
     banking,
+    batch_operations,
     billing,
     cases,
     client_360,
@@ -119,6 +120,7 @@ app = FastAPI(
         {"name": "billing", "description": "Facturation et abonnement OptiFlow"},
         {"name": "onboarding", "description": "Inscription et configuration initiale"},
         {"name": "admin", "description": "Administration, sante systeme et gestion utilisateurs"},
+        {"name": "batch", "description": "Operations batch PEC (OptiSante)"},
         {"name": "sse", "description": "Evenements temps reel (Server-Sent Events)"},
     ],
 )
@@ -314,4 +316,5 @@ app.include_router(dashboard.router)
 app.include_router(onboarding.router)
 app.include_router(cosium_reference.router)
 app.include_router(ocam_operators.router)
+app.include_router(batch_operations.router)
 app.include_router(sse.router)
