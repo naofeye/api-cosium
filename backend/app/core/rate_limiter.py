@@ -30,6 +30,7 @@ RATE_LIMIT_RULES: dict[tuple[str, str], tuple[int, int]] = {
     ("/api/v1/banking/import-statement", "POST"): (5, 60),
     ("/api/v1/exports/fec", "GET"): (5, 60),
     ("/api/v1/clients/merge", "POST"): (5, 60),
+    ("/api/v1/clients/import", "POST"): (5, 60),
     ("/api/v1/admin/users", "POST"): (10, 60),
     ("/api/v1/admin/detect-mutuelles", "POST"): (2, 300),
 }
@@ -41,6 +42,8 @@ RATE_LIMIT_PREFIX_RULES: dict[tuple[str, str], tuple[int, int]] = {
     ("/api/v1/sync", "POST"): (3, 300),
     ("/api/v1/pec-preparations", "POST"): (5, 60),
     ("/api/v1/documents", "POST"): (10, 60),
+    ("/api/v1/pec", "PATCH"): (10, 60),
+    ("/api/v1/batch", "POST"): (5, 300),
 }
 
 # In-memory fallback — thread-safe (also exported as _global_attempts for backward compat in tests)

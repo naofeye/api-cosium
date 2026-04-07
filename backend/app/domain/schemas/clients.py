@@ -57,7 +57,6 @@ class ClientResponse(BaseModel):
     avatar_url: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
-    deleted_at: datetime | None = None
     completeness: ClientCompletenessScore | None = None
 
     model_config = ConfigDict(from_attributes=True)

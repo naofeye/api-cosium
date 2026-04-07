@@ -64,8 +64,9 @@ def create_user(
         )
 
     # Create new user
+    # User.role is a global default — real role lives in TenantUser
     new_user = user_repo.create(
-        db, payload.email, hash_password(payload.password), payload.role
+        db, payload.email, hash_password(payload.password), "user"
     )
     new_tu = tenant_user_repo.create(db, new_user.id, tenant_id, payload.role)
     db.commit()

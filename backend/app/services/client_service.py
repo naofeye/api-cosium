@@ -197,13 +197,61 @@ def update_client(db: Session, tenant_id: int, client_id: int, payload: ClientUp
     return ClientResponse.model_validate(updated)
 
 
-def delete_client(db: Session, tenant_id: int, client_id: int, user_id: int) -> None:
+def delete_client(db: Session, tenant_id: int, client_id: int, user_id: int, force: bool = False) -> None:
+    from app.models import Case, Devis, Document, Facture, Payment, PecRequest
+
     customer = client_repo.get_by_id_active(db, client_id=client_id, tenant_id=tenant_id)
     if not customer:
         raise NotFoundError("client", client_id)
+
+    if not force:
+        # Count active related entities
+        active_cases = db.scalar(
+            select(func.count(Case.id)).where(
+                Case.customer_id == client_id,
+                Case.tenant_id == tenant_id,
+                Case.deleted_at.is_(None),
+                Case.status != "archived",
+            )
+        ) or 0
+        documents = db.scalar(
+            select(func.count(Document.id))
+            .join(Case, Case.id == Document.case_id)
+            .where(Case.customer_id == client_id, Document.tenant_id == tenant_id)
+        ) or 0
+        payments = db.scalar(
+            select(func.count(Payment.id))
+            .join(Case, Case.id == Payment.case_id)
+            .where(Case.customer_id == client_id, Payment.tenant_id == tenant_id)
+        ) or 0
+        devis_count = db.scalar(
+            select(func.count(Devis.id))
+            .join(Case, Case.id == Devis.case_id)
+            .where(Case.customer_id == client_id, Devis.tenant_id == tenant_id)
+        ) or 0
+        factures_count = db.scalar(
+            select(func.count(Facture.id))
+            .join(Case, Case.id == Facture.case_id)
+            .where(Case.customer_id == client_id, Facture.tenant_id == tenant_id)
+        ) or 0
+        pec_count = db.scalar(
+            select(func.count(PecRequest.id))
+            .join(Case, Case.id == PecRequest.case_id)
+            .where(Case.customer_id == client_id, PecRequest.tenant_id == tenant_id)
+        ) or 0
+
+        if active_cases > 0:
+            raise BusinessError(
+                "CLIENT_HAS_ACTIVE_ENTITIES",
+                f"Impossible de supprimer ce client : {active_cases} dossiers actifs, "
+                f"{documents} documents, {payments} paiements, {devis_count} devis, "
+                f"{factures_count} factures, {pec_count} demandes PEC. "
+                f"Archivez les dossiers d'abord ou utilisez force=true.",
+            )
+
     client_repo.delete(db, customer)
     audit_service.log_action(db, tenant_id, user_id, "delete", "client", client_id)
-    logger.info("client_deleted", tenant_id=tenant_id, client_id=client_id, user_id=user_id)
+    logger.info("client_deleted", tenant_id=tenant_id, client_id=client_id, user_id=user_id, force=force)
 
 
 def restore_client(db: Session, tenant_id: int, client_id: int, user_id: int) -> ClientResponse:

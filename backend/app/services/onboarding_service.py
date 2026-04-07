@@ -1,6 +1,7 @@
 import re
 from datetime import UTC, datetime, timedelta
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.encryption import encrypt
@@ -63,13 +64,32 @@ def signup(db: Session, payload: SignupRequest) -> TokenResponse:
         trial_ends_at=datetime.now(UTC) + timedelta(days=TRIAL_DAYS),
     )
 
-    tenant_slug = _ensure_unique_slug(db, org_slug)
-    tenant = onboarding_repo.create_tenant(
-        db,
-        organization_id=org.id,
-        name=payload.company_name,
-        slug=tenant_slug,
-    )
+    tenant = None
+    max_slug_attempts = 3
+    for attempt in range(max_slug_attempts):
+        tenant_slug = _ensure_unique_slug(db, org_slug)
+        try:
+            tenant = onboarding_repo.create_tenant(
+                db,
+                organization_id=org.id,
+                name=payload.company_name,
+                slug=tenant_slug,
+            )
+            db.flush()
+            break
+        except IntegrityError:
+            db.rollback()
+            # Re-create org since rollback discarded it
+            org = onboarding_repo.create_organization(
+                db,
+                name=payload.company_name,
+                slug=final_org_slug,
+                contact_email=payload.owner_email,
+                plan="trial",
+                trial_ends_at=datetime.now(UTC) + timedelta(days=TRIAL_DAYS),
+            )
+            if attempt == max_slug_attempts - 1:
+                raise BusinessError("Impossible de créer le magasin, veuillez réessayer.")
 
     user = onboarding_repo.create_user(
         db,

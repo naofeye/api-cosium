@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_tenant_role
@@ -227,7 +228,7 @@ def sync_all(
     full: bool = False,
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
-) -> SyncAllResult:
+):
     lock_key = f"sync:all:{tenant_ctx.tenant_id}"
     if not acquire_lock(lock_key, ttl=1200):
         raise BusinessError("SYNC_IN_PROGRESS", "Une synchronisation complete est deja en cours. Veuillez patienter.")
@@ -275,7 +276,13 @@ def sync_all(
 
         # Invalidate cached data after sync
         _invalidate_tenant_caches(tenant_ctx.tenant_id)
-        return SyncAllResult(**results, has_errors=has_errors)
+        result = SyncAllResult(**results, has_errors=has_errors)
+        if has_errors:
+            return JSONResponse(
+                status_code=207,
+                content=result.model_dump(mode="json"),
+            )
+        return result
     finally:
         release_lock(lock_key)
 

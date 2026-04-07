@@ -195,10 +195,11 @@ def update_client(
 )
 def delete_client(
     client_id: int,
+    force: bool = False,
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> dict[str, str]:
-    client_service.delete_client(db, tenant_id=tenant_ctx.tenant_id, client_id=client_id, user_id=tenant_ctx.user_id)
+    client_service.delete_client(db, tenant_id=tenant_ctx.tenant_id, client_id=client_id, user_id=tenant_ctx.user_id, force=force)
     return {"message": "Client supprime avec succes"}
 
 

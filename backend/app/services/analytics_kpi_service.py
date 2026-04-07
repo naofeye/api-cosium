@@ -6,6 +6,7 @@ Cosium-specific KPIs are in analytics_cosium_service.py (re-exported here).
 """
 
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -62,9 +63,9 @@ def get_financial_kpis(
         q_paid = q_paid.where(Payment.created_at <= date_to)
         q_due = q_due.where(Payment.created_at <= date_to)
 
-    of_montant_facture = float(db.scalar(q_facture) or 0)
-    of_montant_encaisse = float(db.scalar(q_paid) or 0)
-    of_montant_du = float(db.scalar(q_due) or 0)
+    of_montant_facture = Decimal(str(db.scalar(q_facture) or 0))
+    of_montant_encaisse = Decimal(str(db.scalar(q_paid) or 0))
+    of_montant_du = Decimal(str(db.scalar(q_due) or 0))
 
     # --- Cosium data (real ERP data) ---
     q_cosium_ca = select(func.coalesce(func.sum(CosiumInvoice.total_ti), 0)).where(
@@ -82,8 +83,8 @@ def get_financial_kpis(
         q_cosium_ca = q_cosium_ca.where(CosiumInvoice.invoice_date <= date_to)
         q_cosium_outstanding = q_cosium_outstanding.where(CosiumInvoice.invoice_date <= date_to)
 
-    cosium_ca = float(db.scalar(q_cosium_ca) or 0)
-    cosium_outstanding = float(db.scalar(q_cosium_outstanding) or 0)
+    cosium_ca = Decimal(str(db.scalar(q_cosium_ca) or 0))
+    cosium_outstanding = Decimal(str(db.scalar(q_cosium_outstanding) or 0))
     cosium_paid = round(cosium_ca - cosium_outstanding, 2)
 
     cosium_payments_synced = not (cosium_ca > 0 and cosium_outstanding >= cosium_ca)
@@ -123,16 +124,17 @@ def get_aging_balance(db: Session, tenant_id: int) -> AgingBalance:
         .where(Payment.amount_paid < Payment.amount_due)
     ).all()
 
-    buckets_data: dict[str, dict[str, float]] = {
-        "0-30j": {"client": 0, "mutuelle": 0, "secu": 0},
-        "30-60j": {"client": 0, "mutuelle": 0, "secu": 0},
-        "60-90j": {"client": 0, "mutuelle": 0, "secu": 0},
-        "90j+": {"client": 0, "mutuelle": 0, "secu": 0},
+    zero = Decimal("0")
+    buckets_data: dict[str, dict[str, Decimal]] = {
+        "0-30j": {"client": zero, "mutuelle": zero, "secu": zero},
+        "30-60j": {"client": zero, "mutuelle": zero, "secu": zero},
+        "60-90j": {"client": zero, "mutuelle": zero, "secu": zero},
+        "90j+": {"client": zero, "mutuelle": zero, "secu": zero},
     }
 
     for r in rows:
         days = (now - r.created_at).days if r.created_at else 0
-        amount = float(r.amount_due) - float(r.amount_paid)
+        amount = Decimal(str(r.amount_due)) - Decimal(str(r.amount_paid))
         payer = r.payer_type if r.payer_type in ("client", "mutuelle", "secu") else "client"
 
         if days < 30:
@@ -179,8 +181,8 @@ def get_payer_performance(db: Session, tenant_id: int) -> PayerPerformance:
 
         accepted = sum(1 for p in pecs if p.status in ("acceptee", "cloturee") and p.montant_accorde)
         refused = sum(1 for p in pecs if p.status == "refusee")
-        total_requested = sum(float(p.montant_demande) for p in pecs)
-        total_accepted = sum(float(p.montant_accorde or 0) for p in pecs if p.montant_accorde)
+        total_requested = sum(Decimal(str(p.montant_demande)) for p in pecs)
+        total_accepted = sum(Decimal(str(p.montant_accorde or 0)) for p in pecs if p.montant_accorde)
 
         payers.append(
             PayerPerf(
@@ -262,7 +264,7 @@ def get_commercial_kpis(db: Session, tenant_id: int) -> CommercialKPIs:
     avg = db.scalar(
         select(func.avg(Devis.montant_ttc)).where(Devis.tenant_id == tenant_id, Devis.status.in_(["signe", "facture"]))
     )
-    panier_moyen = round(float(avg), 2) if avg else 0
+    panier_moyen = round(Decimal(str(avg)), 2) if avg else 0
 
     ca_mois = []
     now = datetime.now(UTC).replace(tzinfo=None)
@@ -288,7 +290,7 @@ def get_commercial_kpis(db: Session, tenant_id: int) -> CommercialKPIs:
         ca_mois.append(
             {
                 "mois": month_start.strftime("%Y-%m"),
-                "ca": round(float(ca), 2),
+                "ca": round(Decimal(str(ca)), 2),
             }
         )
 

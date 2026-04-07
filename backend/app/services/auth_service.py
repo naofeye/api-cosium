@@ -111,9 +111,10 @@ def authenticate(db: Session, payload: LoginRequest) -> TokenResponse:
     # Revoquer les anciens refresh tokens avant d'en creer un nouveau
     refresh_token_repo.revoke_all_for_user(db, user.id)
 
+    tenant_role = default_tenant["role"]
     access_token = create_access_token(
         user.email,
-        user.role,
+        tenant_role,
         tenant_id=default_tenant["id"],
         is_group_admin=is_admin,
     )
@@ -124,7 +125,7 @@ def authenticate(db: Session, payload: LoginRequest) -> TokenResponse:
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
-        role=user.role,
+        role=tenant_role,
         tenant_id=default_tenant["id"],
         tenant_name=default_tenant["name"],
         available_tenants=tenants,
@@ -145,9 +146,10 @@ def refresh(db: Session, token: str) -> TokenResponse:
     is_admin = _is_group_admin(db, user.id)
 
     refresh_token_repo.revoke(db, token)
+    tenant_role = default_tenant["role"] if default_tenant else user.role
     new_access = create_access_token(
         user.email,
-        user.role,
+        tenant_role,
         tenant_id=default_tenant["id"] if default_tenant else None,
         is_group_admin=is_admin,
     )
@@ -157,7 +159,7 @@ def refresh(db: Session, token: str) -> TokenResponse:
     return TokenResponse(
         access_token=new_access,
         refresh_token=new_refresh,
-        role=user.role,
+        role=tenant_role,
         tenant_id=default_tenant["id"] if default_tenant else None,
         tenant_name=default_tenant["name"] if default_tenant else None,
         available_tenants=tenants,
@@ -185,7 +187,7 @@ def switch_tenant(db: Session, user_id: int, new_tenant_id: int) -> TokenRespons
 
     access_token = create_access_token(
         user.email,
-        user.role,
+        tenant_user.role,
         tenant_id=tenant.id,
         is_group_admin=is_admin,
     )
@@ -195,7 +197,7 @@ def switch_tenant(db: Session, user_id: int, new_tenant_id: int) -> TokenRespons
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
-        role=user.role,
+        role=tenant_user.role,
         tenant_id=tenant.id,
         tenant_name=tenant.name,
         available_tenants=tenants,

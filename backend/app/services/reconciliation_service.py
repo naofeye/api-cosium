@@ -11,6 +11,7 @@ import json
 import re
 import unicodedata
 from datetime import UTC, datetime
+from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
@@ -34,8 +35,8 @@ _MUTUELLE_TYPES = {"TPMV"}
 _CLIENT_TYPES = {"CB", "CHQ", "ESP", "ALMA", "VIR"}
 _AVOIR_TYPES = {"AV"}
 
-# Tolerance for float comparison (euros)
-_TOLERANCE = 0.02
+# Tolerance for financial comparison (euros)
+_TOLERANCE = Decimal("0.02")
 
 
 def _normalize_name(name: str) -> str:
