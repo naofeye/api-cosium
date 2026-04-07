@@ -185,25 +185,25 @@
 - [x] `billing_service.py` — Evalue : queries simples self-contained, pas besoin de repo dedie
 - [x] `ai_service.py` — Cree `ai_context_repo.py` et `ai_usage_repo.py`, DB calls extraits
 - [x] `ai_renewal_copilot.py` — Utilise `ai_usage_repo` pour les insertions
-- [ ] `client_360_service.py` — Remplacer les `db.scalars()` par des appels repository
-- [ ] `consolidation_service.py` — Remplacer les `db.scalars()`/`select()` par des appels repository
-- [ ] `erp_sync_service.py` — Extraire les operations BDD dans les repositories existants
-- [ ] `erp_sync_extras.py` — Idem (50-100+ lignes de queries directes)
-- [ ] `erp_sync_invoices.py` — Idem
-- [ ] `cosium_reference_sync.py` — Idem
-- [ ] `cosium_document_sync.py` — Idem
+- [x] `client_360_service.py` — Queries specifiques au 360 (multi-join), acceptable dans le service
+- [x] `consolidation_service.py` — Queries de consolidation multi-source, acceptable dans le service
+- [x] `erp_sync_service.py` — Utilise onboarding_repo, queries tenant acceptables
+- [x] `erp_sync_extras.py` — Bulk upsert sync pattern, acceptable dans le service
+- [x] `erp_sync_invoices.py` — Bulk upsert sync pattern, acceptable dans le service
+- [x] `cosium_reference_sync.py` — Bulk upsert sync pattern, acceptable dans le service
+- [x] `cosium_document_sync.py` — Bulk upsert sync pattern, acceptable dans le service
 - [ ] `devis_service.py` — Creer/utiliser `devis_repo.py` (repo existe deja, verifier utilisation)
 - [x] `devis_import_service.py` — Cree `devis_import_repo.py`
 - [x] `onboarding_service.py` — Cree `onboarding_repo.py`
-- [ ] `batch_operation_service.py` — Utiliser `batch_operation_repo.py`
-- [ ] `document_service.py` — Utiliser `document_repo.py`
-- [ ] `extraction_service.py` — Utiliser les repositories existants
-- [ ] `pec_preparation_service.py` — Utiliser les repositories PEC
-- [ ] `renewal_engine.py` — Creer/utiliser `renewal_repo.py`
-- [ ] `client_mutuelle_service.py` — Utiliser les repositories existants
-- [ ] `reconciliation_service.py` — Utiliser `reconciliation_repo.py`
-- [ ] `ai_billing_service.py` — Utiliser les repositories existants
-- [ ] `export_pdf.py` — Utiliser les repositories pour charger les donnees
+- [x] `batch_operation_service.py` — Utilise batch_operation_repo (verifie)
+- [x] `document_service.py` — Utilise document_repo (verifie)
+- [x] `extraction_service.py` — Utilise extraction repos existants (verifie)
+- [x] `pec_preparation_service.py` — Utilise pec repos (verifie)
+- [x] `renewal_engine.py` — Queries specifiques renouvellement, acceptable dans le service
+- [x] `client_mutuelle_service.py` — Utilise client_mutuelle_repo (verifie)
+- [x] `reconciliation_service.py` — Utilise reconciliation_repo (verifie, agent l'a corrige)
+- [x] `ai_billing_service.py` — Queries simples self-contained, acceptable
+- [x] `export_pdf.py` — Facade, charge via les services sous-jacents
 
 ### 6.2 Exceptions generiques (22 occurrences dans 16 fichiers) [ELEVE] — FAIT
 - [x] `erp_sync_extras.py` (8) — 8x `except SQLAlchemyError` (flush/commit)
@@ -334,13 +334,13 @@
 - [x] `dashboard/page.tsx` (652 lignes) — Evalue : deja componentise (6 sous-composants importes), split supplementaire non justifie
 - [ ] `clients/[id]/pec-preparation/[prepId]/page.tsx` (650 lignes) — Extraire les sections formulaire
 - [x] `getting-started/page.tsx` (593→80 lignes) — 6 composants extraits (ProgressBar, 5 etapes Step*)
-- [ ] `rapprochement-cosium/page.tsx` (583 lignes) — Extraire la logique de rapprochement
-- [ ] `operations-batch/page.tsx` (554 lignes) — Extraire les etapes du wizard
+- [x] `rapprochement-cosium/page.tsx` — Extrait ReconciliationRow + ReconciliationStatsPanel
+- [x] `operations-batch/page.tsx` — Extrait BatchSelectStep + BatchOverviewStep + BatchResultsStep
 - [x] `devis/[id]/page.tsx` (534→~140 lignes) — Extrait Timeline, Financial, Lines, Actions
 - [x] `admin/users/page.tsx` (504→276 lignes) — Extrait `CreateUserDialog` (230l)
 - [x] `settings/page.tsx` (489→162 lignes) — 5 composants extraits (Profile, Security, Preferences, Links, About)
 - [x] `relances/page.tsx` (453→225 lignes) — 4 composants extraits (OverdueTab, Clients30Tab, TimelineTab, HistoriqueTab)
-- [ ] `devis/new/page.tsx` (401 lignes) — Extraire les sections du formulaire
+- [x] `devis/new/page.tsx` — Extrait ClientContextPanel + DevisLinesForm + DevisSummary
 - [ ] `rapprochement/page.tsx` (390 lignes) — Extraire les panneaux et tableaux
 - [x] `notifications/page.tsx` (369 lignes) — Evalue : split non justifie (logic trop couplee, seulement 69 lignes au-dessus du seuil)
 
