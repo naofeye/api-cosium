@@ -6,8 +6,10 @@ All document content is proxied through the backend — the frontend
 NEVER calls Cosium directly (CORS disabled on Cosium side).
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy import func, or_
 from sqlalchemy import select as sa_select
 from sqlalchemy.orm import Session
 
@@ -92,6 +94,162 @@ def get_sync_status(
 
     status = _get_status(db, tenant_ctx.tenant_id)
     return DocumentSyncStatusResponse(**status)
+
+
+class AllDocumentItem(BaseModel):
+    id: int
+    customer_cosium_id: int
+    customer_id: int | None = None
+    customer_name: str | None = None
+    cosium_document_id: int
+    name: str | None = None
+    content_type: str = "application/pdf"
+    size_bytes: int = 0
+    document_type: str | None = None
+    classification_confidence: float | None = None
+    synced_at: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AllDocumentsResponse(BaseModel):
+    items: list[AllDocumentItem]
+    total: int
+    page: int
+    page_size: int
+    total_size_bytes: int = 0
+    type_counts: dict[str, int] = {}
+
+
+@router.get(
+    "/all",
+    response_model=AllDocumentsResponse,
+    summary="Tous les documents telechargees",
+    description="Liste paginee de tous les documents Cosium telechargees localement, avec informations client et type OCR.",
+)
+def list_all_documents(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
+    search: str | None = Query(None, description="Recherche par nom de document ou client"),
+    doc_type: str | None = Query(None, description="Filtrer par type de document (ex: ordonnance, devis)"),
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager", "operator")),
+) -> AllDocumentsResponse:
+    from app.models.client import Customer
+    from app.models.cosium_data import CosiumDocument
+    from app.models.document_extraction import DocumentExtraction
+
+    # Base query: left join with customer and extraction
+    query = (
+        sa_select(
+            CosiumDocument,
+            Customer.first_name,
+            Customer.last_name,
+            DocumentExtraction.document_type,
+            DocumentExtraction.classification_confidence,
+        )
+        .outerjoin(Customer, (Customer.id == CosiumDocument.customer_id) & (Customer.tenant_id == tenant_ctx.tenant_id))
+        .outerjoin(
+            DocumentExtraction,
+            (DocumentExtraction.cosium_document_id == CosiumDocument.cosium_document_id)
+            & (DocumentExtraction.tenant_id == tenant_ctx.tenant_id),
+        )
+        .where(CosiumDocument.tenant_id == tenant_ctx.tenant_id)
+    )
+
+    count_base = sa_select(func.count(CosiumDocument.id)).where(
+        CosiumDocument.tenant_id == tenant_ctx.tenant_id
+    )
+
+    if search:
+        pattern = f"%{search}%"
+        search_filter = or_(
+            CosiumDocument.name.ilike(pattern),
+            (Customer.first_name + " " + Customer.last_name).ilike(pattern),
+            (Customer.last_name + " " + Customer.first_name).ilike(pattern),
+        )
+        query = query.where(search_filter)
+        # For count with search, need the join too
+        count_base = (
+            sa_select(func.count(CosiumDocument.id))
+            .outerjoin(Customer, (Customer.id == CosiumDocument.customer_id) & (Customer.tenant_id == tenant_ctx.tenant_id))
+            .where(CosiumDocument.tenant_id == tenant_ctx.tenant_id)
+            .where(search_filter)
+        )
+
+    if doc_type:
+        query = query.where(DocumentExtraction.document_type == doc_type)
+        count_base = (
+            sa_select(func.count(CosiumDocument.id))
+            .outerjoin(
+                DocumentExtraction,
+                (DocumentExtraction.cosium_document_id == CosiumDocument.cosium_document_id)
+                & (DocumentExtraction.tenant_id == tenant_ctx.tenant_id),
+            )
+            .where(CosiumDocument.tenant_id == tenant_ctx.tenant_id)
+            .where(DocumentExtraction.document_type == doc_type)
+        )
+
+    total = db.scalar(count_base) or 0
+
+    # Total size
+    size_q = sa_select(func.coalesce(func.sum(CosiumDocument.size_bytes), 0)).where(
+        CosiumDocument.tenant_id == tenant_ctx.tenant_id
+    )
+    total_size = db.scalar(size_q) or 0
+
+    # Type counts
+    type_count_q = (
+        sa_select(DocumentExtraction.document_type, func.count(DocumentExtraction.id))
+        .join(
+            CosiumDocument,
+            (DocumentExtraction.cosium_document_id == CosiumDocument.cosium_document_id)
+            & (DocumentExtraction.tenant_id == CosiumDocument.tenant_id),
+        )
+        .where(DocumentExtraction.tenant_id == tenant_ctx.tenant_id)
+        .where(DocumentExtraction.document_type.isnot(None))
+        .group_by(DocumentExtraction.document_type)
+    )
+    type_counts_raw = db.execute(type_count_q).all()
+    type_counts = {str(row[0]): int(row[1]) for row in type_counts_raw if row[0]}
+
+    # Paginate
+    query = query.order_by(CosiumDocument.synced_at.desc())
+    offset = (page - 1) * page_size
+    rows = db.execute(query.offset(offset).limit(page_size)).all()
+
+    items = []
+    for row in rows:
+        doc = row[0]
+        first_name = row[1] or ""
+        last_name = row[2] or ""
+        d_type = row[3]
+        d_confidence = row[4]
+        customer_name = f"{first_name} {last_name}".strip() or None
+        items.append(
+            AllDocumentItem(
+                id=doc.id,
+                customer_cosium_id=doc.customer_cosium_id,
+                customer_id=doc.customer_id,
+                customer_name=customer_name,
+                cosium_document_id=doc.cosium_document_id,
+                name=doc.name,
+                content_type=doc.content_type,
+                size_bytes=doc.size_bytes,
+                document_type=d_type,
+                classification_confidence=d_confidence,
+                synced_at=doc.synced_at.isoformat() if doc.synced_at else None,
+            )
+        )
+
+    return AllDocumentsResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_size_bytes=int(total_size),
+        type_counts=type_counts,
+    )
 
 
 @router.get(

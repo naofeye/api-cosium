@@ -115,6 +115,41 @@ export interface LocalCosiumDocument {
   source: "local";
 }
 
+// --- Cosium Product ---
+export interface CosiumProduct {
+  id: number;
+  cosium_id: string;
+  label: string;
+  code: string;
+  ean_code: string;
+  price: number;
+  family_type: string;
+}
+
+// --- All Documents Item ---
+export interface AllDocumentItem {
+  id: number;
+  customer_cosium_id: number;
+  customer_id: number | null;
+  customer_name: string | null;
+  cosium_document_id: number;
+  name: string | null;
+  content_type: string;
+  size_bytes: number;
+  document_type: string | null;
+  classification_confidence: number | null;
+  synced_at: string | null;
+}
+
+export interface AllDocumentsResponse {
+  items: AllDocumentItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_size_bytes: number;
+  type_counts: Record<string, number>;
+}
+
 export interface DocumentSyncStatus {
   total_documents: number;
   customers_with_docs: number;

@@ -7,6 +7,8 @@ import type {
   CosiumPaymentItem,
   CosiumMutuelle,
   CosiumDoctor,
+  CosiumProduct,
+  AllDocumentsResponse,
   Customer,
   Devis,
   DevisDetail,
@@ -220,6 +222,36 @@ export function useCosiumDoctors(params?: {
   sp.set("page_size", String(params?.page_size ?? 50));
   if (params?.search) sp.set("search", params.search);
   return useSWR<PaginatedResponse<CosiumDoctor>>(`/cosium/doctors?${sp}`);
+}
+
+// --- Cosium Products ---
+export function useCosiumProducts(params?: {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  family?: string;
+}) {
+  const sp = new URLSearchParams();
+  if (params?.page) sp.set("page", String(params.page));
+  sp.set("page_size", String(params?.page_size ?? 25));
+  if (params?.search) sp.set("search", params.search);
+  if (params?.family) sp.set("family", params.family);
+  return useSWR<PaginatedResponse<CosiumProduct>>(`/cosium/products?${sp}`);
+}
+
+// --- All Cosium Documents ---
+export function useAllCosiumDocuments(params?: {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  doc_type?: string;
+}) {
+  const sp = new URLSearchParams();
+  if (params?.page) sp.set("page", String(params.page));
+  sp.set("page_size", String(params?.page_size ?? 25));
+  if (params?.search) sp.set("search", params.search);
+  if (params?.doc_type) sp.set("doc_type", params.doc_type);
+  return useSWR<AllDocumentsResponse>(`/cosium-documents/all?${sp}`);
 }
 
 // --- Client 360 ---

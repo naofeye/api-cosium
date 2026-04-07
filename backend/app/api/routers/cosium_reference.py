@@ -28,7 +28,7 @@ from app.domain.schemas.cosium_sync import (
     CosiumPaymentResponse,
     CosiumPrescriptionResponse,
 )
-from app.models.cosium_data import CosiumPayment, CosiumPrescription
+from app.models.cosium_data import CosiumPayment, CosiumPrescription, CosiumProduct
 from app.models.cosium_reference import (
     CosiumBank,
     CosiumBrand,
@@ -470,6 +470,74 @@ def list_cosium_payments(
 
     return PaginatedPayments(
         items=[CosiumPaymentResponse.model_validate(i) for i in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+
+
+# --- Products ---
+
+
+class CosiumProductResponse(BaseModel):
+    id: int
+    cosium_id: str
+    label: str = ""
+    code: str = ""
+    ean_code: str = ""
+    price: float = 0
+    family_type: str = ""
+
+    model_config: dict = {"from_attributes": True}  # type: ignore[assignment]
+
+
+class PaginatedProducts(BaseModel):
+    items: list[CosiumProductResponse]
+    total: int
+    page: int
+    page_size: int
+
+
+@router.get(
+    "/products",
+    response_model=PaginatedProducts,
+    summary="Lister les produits",
+    description="Liste paginee des produits synchronises depuis Cosium.",
+)
+def list_products(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
+    search: str | None = Query(None, description="Recherche par libelle, code ou EAN"),
+    family: str | None = Query(None, description="Filtrer par famille de produit"),
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> PaginatedProducts:
+    query = select(CosiumProduct).where(CosiumProduct.tenant_id == tenant_ctx.tenant_id)
+    count_query = select(func.count(CosiumProduct.id)).where(
+        CosiumProduct.tenant_id == tenant_ctx.tenant_id
+    )
+
+    if search:
+        pattern = f"%{search}%"
+        search_filter = or_(
+            CosiumProduct.label.ilike(pattern),
+            CosiumProduct.code.ilike(pattern),
+            CosiumProduct.ean_code.ilike(pattern),
+        )
+        query = query.where(search_filter)
+        count_query = count_query.where(search_filter)
+
+    if family:
+        query = query.where(CosiumProduct.family_type.ilike(f"%{family}%"))
+        count_query = count_query.where(CosiumProduct.family_type.ilike(f"%{family}%"))
+
+    query = query.order_by(CosiumProduct.label)
+    total = db.scalar(count_query) or 0
+    offset = (page - 1) * page_size
+    items = db.scalars(query.offset(offset).limit(page_size)).all()
+
+    return PaginatedProducts(
+        items=[CosiumProductResponse.model_validate(i) for i in items],
         total=total,
         page=page,
         page_size=page_size,

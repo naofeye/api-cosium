@@ -56,9 +56,50 @@ export function ConsolidatedFieldDisplay({
 
   if (!field) {
     return (
-      <div className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+      <div className="flex items-center justify-between py-2 px-3 border-b border-gray-100 last:border-0 rounded-lg border-2 border-dashed border-red-300 bg-red-50/30 cursor-pointer hover:bg-red-50/60 transition-colors"
+        onClick={() => {
+          if (onCorrect) {
+            setEditValue("");
+            setEditing(true);
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            if (onCorrect) {
+              setEditValue("");
+              setEditing(true);
+            }
+          }
+        }}
+      >
         <span className="text-sm text-gray-500">{label}</span>
-        <span className="text-sm text-red-500 italic">Manquant</span>
+        {editing ? (
+          <div className="flex items-center gap-2 flex-1 ml-4">
+            <input
+              type="text"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              autoFocus
+              placeholder="Saisir la valeur manquante..."
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === "Enter") handleConfirmEdit();
+                if (e.key === "Escape") handleCancelEdit();
+              }}
+            />
+            <Button size="sm" variant="primary" onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleConfirmEdit(); }} aria-label="Confirmer">
+              <Check className="h-3 w-3" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleCancelEdit(); }} aria-label="Annuler">
+              Annuler
+            </Button>
+          </div>
+        ) : (
+          <span className="text-sm text-red-500 italic">Donnee manquante — cliquer pour completer</span>
+        )}
       </div>
     );
   }
@@ -81,8 +122,16 @@ export function ConsolidatedFieldDisplay({
     setEditing(false);
   };
 
+  // Confidence-based border styling
+  const confidenceBorder =
+    field.confidence < 0.3
+      ? "border-2 border-red-300 bg-red-50/20"
+      : field.confidence < 0.6
+        ? "border-2 border-amber-300 bg-amber-50/20"
+        : "border-b border-gray-100";
+
   return (
-    <div className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0 gap-3">
+    <div className={cn("flex items-center justify-between py-2 px-3 rounded-lg last:border-0 gap-3", confidenceBorder)}>
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <span className="text-sm font-medium text-gray-700 w-36 shrink-0">{label}</span>
         {editing ? (

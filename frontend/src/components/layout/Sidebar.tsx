@@ -30,6 +30,8 @@ import {
   BarChart3,
   ClipboardCheck,
   Bell,
+  Package,
+  FolderDown,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -89,6 +91,8 @@ const navGroups: NavGroup[] = [
       { href: "/agenda", label: "Agenda", icon: Calendar },
       { href: "/ordonnances", label: "Ordonnances", icon: FileText },
       { href: "/mutuelles", label: "Mutuelles", icon: Shield },
+      { href: "/produits", label: "Produits", icon: Package },
+      { href: "/documents-cosium", label: "Documents", icon: FolderDown },
     ],
   },
   {

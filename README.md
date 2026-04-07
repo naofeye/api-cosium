@@ -33,13 +33,16 @@ docker compose up --build
 
 | Metrique | Valeur |
 |----------|--------|
-| Tests backend | 660+ (74 fichiers) |
-| Pages frontend | 45+ |
-| Routers API | 35+ |
+| Tests backend | 706 (74 fichiers, 100% pass) |
+| Pages frontend | 47+ |
+| Routers API | 37+ |
 | Services metier | 50+ |
 | Enregistrements Cosium | 115k+ |
 | Documents synchronises | 40k+ (~10 GB) |
 | Migrations Alembic | 24+ |
+| Ruff lint | 0 erreur |
+| TypeScript strict | 0 erreur |
+| Next.js build | OK |
 
 ## Fonctionnalites principales
 

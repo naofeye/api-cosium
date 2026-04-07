@@ -15,6 +15,8 @@ import {
   Send,
   ArrowLeft,
   FileDown,
+  Copy,
+  ClipboardCheck,
 } from "lucide-react";
 
 import { PageLayout } from "@/components/layout/PageLayout";
@@ -33,7 +35,7 @@ import { CorrectionTable } from "@/components/pec/CorrectionTable";
 import { DocumentChecklist } from "@/components/pec/DocumentChecklist";
 import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
 
-import type { PecPreparation, PecPreparationDocument, ConsolidatedClientProfile } from "@/lib/types/pec-preparation";
+import type { PecPreparation, PecPreparationDocument, ConsolidatedClientProfile, ConsolidatedField } from "@/lib/types/pec-preparation";
 
 const STATUS_LABELS: Record<string, string> = {
   en_preparation: "En preparation",
@@ -62,6 +64,95 @@ function countSectionAlerts(
     }
   }
   return { errors, warnings };
+}
+
+function fieldValue(field: ConsolidatedField | null | undefined): string {
+  if (!field || field.value === null || field.value === "") return "-";
+  return String(field.value);
+}
+
+function CopyPasteSummary({ profile }: { profile: ConsolidatedClientProfile }) {
+  const [copied, setCopied] = useState(false);
+
+  const lines = [
+    "=== RESUME PEC ===",
+    "",
+    "--- IDENTITE ---",
+    `Nom : ${fieldValue(profile.nom)}`,
+    `Prenom : ${fieldValue(profile.prenom)}`,
+    `Date de naissance : ${fieldValue(profile.date_naissance)}`,
+    `N. Securite sociale : ${fieldValue(profile.numero_secu)}`,
+    "",
+    "--- MUTUELLE / OCAM ---",
+    `Mutuelle : ${fieldValue(profile.mutuelle_nom)}`,
+    `N. Adherent : ${fieldValue(profile.mutuelle_numero_adherent)}`,
+    `Code organisme : ${fieldValue(profile.mutuelle_code_organisme)}`,
+    `Beneficiaire : ${fieldValue(profile.type_beneficiaire)}`,
+    `Fin de droits : ${fieldValue(profile.date_fin_droits)}`,
+    "",
+    "--- CORRECTION OPTIQUE ---",
+    `OD : Sph ${fieldValue(profile.sphere_od)} | Cyl ${fieldValue(profile.cylinder_od)} | Axe ${fieldValue(profile.axis_od)} | Add ${fieldValue(profile.addition_od)}`,
+    `OG : Sph ${fieldValue(profile.sphere_og)} | Cyl ${fieldValue(profile.cylinder_og)} | Axe ${fieldValue(profile.axis_og)} | Add ${fieldValue(profile.addition_og)}`,
+    `Ecart pupillaire : ${fieldValue(profile.ecart_pupillaire)}`,
+    `Prescripteur : ${fieldValue(profile.prescripteur)}`,
+    `Date ordonnance : ${fieldValue(profile.date_ordonnance)}`,
+    "",
+    "--- FINANCIER ---",
+    `Total TTC : ${fieldValue(profile.montant_ttc)}`,
+    `Part Secu : ${fieldValue(profile.part_secu)}`,
+    `Part Mutuelle : ${fieldValue(profile.part_mutuelle)}`,
+    `Reste a charge : ${fieldValue(profile.reste_a_charge)}`,
+  ];
+
+  const text = lines.join("\n");
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <div className="mt-6 rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between p-4 border-b border-gray-100">
+        <div className="flex items-center gap-2">
+          <ClipboardCheck className="h-5 w-5 text-blue-600" />
+          <h3 className="text-sm font-semibold text-gray-900">Resume pour copier-coller</h3>
+          <span className="text-xs text-gray-500">(pour saisie portail OCAM)</span>
+        </div>
+        <Button
+          variant={copied ? "primary" : "outline"}
+          size="sm"
+          onClick={handleCopy}
+        >
+          {copied ? (
+            <>
+              <ClipboardCheck className="h-4 w-4 mr-1" /> Copie !
+            </>
+          ) : (
+            <>
+              <Copy className="h-4 w-4 mr-1" /> Copier tout
+            </>
+          )}
+        </Button>
+      </div>
+      <pre className="p-4 text-xs text-gray-700 font-mono whitespace-pre-wrap bg-gray-50/50 rounded-b-xl max-h-64 overflow-y-auto">
+        {text}
+      </pre>
+    </div>
+  );
 }
 
 export default function PecPreparationDetailPage() {
@@ -398,6 +489,11 @@ export default function PecPreparationDetailPage() {
           />
         </PecSection>
       </div>
+
+      {/* Resume copier-coller */}
+      {profile && (
+        <CopyPasteSummary profile={profile} />
+      )}
 
       {/* Action bar */}
       <div className="sticky bottom-0 bg-white border-t border-gray-200 mt-6 p-4 flex justify-between items-center rounded-b-xl shadow-sm">
