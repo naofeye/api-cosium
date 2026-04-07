@@ -248,7 +248,9 @@ export function Header({ breadcrumb }: HeaderProps) {
                         if (!n.is_read) {
                           fetchJson(`/notifications/${n.id}/read`, { method: "PATCH" })
                             .then(() => mutateNotifs())
-                            .catch(() => {});
+                            .catch((err) => {
+                              logger.error("[Notifications] Erreur lors du marquage comme lu:", err);
+                            });
                         }
                         if (link) {
                           setShowDropdown(false);

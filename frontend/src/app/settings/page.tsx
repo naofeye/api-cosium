@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { useToast } from "@/components/ui/Toast";
 import { fetchJson } from "@/lib/api";
+import { logger } from "@/lib/logger";
 import { ProfileSection } from "./components/ProfileSection";
 import { SecuritySection } from "./components/SecuritySection";
 import { PreferencesSection } from "./components/PreferencesSection";
@@ -83,7 +84,9 @@ export default function SettingsPage() {
         setEditName(p.full_name || "");
         setEditEmail(p.email);
       })
-      .catch(() => {});
+      .catch((err) => {
+        logger.error("[Settings] Impossible de charger le profil:", err);
+      });
   }, []);
 
   useEffect(() => {

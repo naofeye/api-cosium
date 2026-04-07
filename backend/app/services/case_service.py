@@ -70,6 +70,7 @@ def create_case(db: Session, tenant_id: int, payload: CaseCreate, user_id: int) 
             db, tenant_id, user_id, "create", "case", case.id, new_value={"source": payload.source}
         )
     event_service.emit_event(db, tenant_id, "DossierCree", "case", case.id, user_id)
+    db.commit()
     logger.info("case_created", tenant_id=tenant_id, case_id=case.id)
     return CaseResponse(
         id=case.id,

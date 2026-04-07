@@ -26,6 +26,15 @@ docker compose -f "$COMPOSE_FILE" exec -T postgres \
 SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
 echo "Backup termine: $BACKUP_FILE ($SIZE)"
 
-# Supprimer les backups de plus de 30 jours
-find "$BACKUP_DIR" -name "optiflow_*.dump" -mtime +30 -delete 2>/dev/null || true
-echo "Backups > 30 jours supprimes."
+# Verification de l'integrite du backup
+echo "Verification de l'integrite du backup..."
+if pg_restore --list "$BACKUP_FILE" > /dev/null 2>&1; then
+    echo "Backup valide."
+else
+    echo "ERREUR: Le backup est corrompu ou invalide: $BACKUP_FILE"
+    exit 1
+fi
+
+# Supprimer les backups de plus de 90 jours
+find "$BACKUP_DIR" -name "optiflow_*.dump" -mtime +90 -delete 2>/dev/null || true
+echo "Backups > 90 jours supprimes."

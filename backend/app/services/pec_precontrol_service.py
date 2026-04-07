@@ -127,6 +127,7 @@ def add_document(
         field_name=document_role,
         new_value={"document_id": document_id, "document_role": document_role},
     )
+    db.commit()
 
     return PecPreparationDocumentResponse.model_validate(doc)
 
@@ -279,6 +280,7 @@ def create_pec_from_preparation(
         )
         event_service.emit_event(db, tenant_id, "PECSoumise", "pec_request", pec.id, user_id)
 
+    db.commit()
     logger.info("pec_created_from_preparation", preparation_id=preparation_id,
                 pec_id=pec.id, montant=montant)
     return {

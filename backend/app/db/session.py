@@ -10,16 +10,16 @@ _is_celery_worker = "celery" in os.environ.get("_", "") or os.environ.get("CELER
 _statement_timeout = 300000 if _is_celery_worker else 30000
 
 # Pool de connexions PostgreSQL :
-# - pool_size=20 : 20 connexions permanentes
-# - max_overflow=20 : 20 connexions supplementaires en pic (total max = 40)
+# - pool_size=50 : 50 connexions permanentes
+# - max_overflow=50 : 50 connexions supplementaires en pic (total max = 100)
 # - pool_recycle=1800 : recycler les connexions toutes les 30 min
 # - pool_pre_ping=True : verifier la connexion avant chaque utilisation
 engine = create_engine(
     settings.database_url,
     future=True,
     echo=False,
-    pool_size=20,
-    max_overflow=20,
+    pool_size=50,
+    max_overflow=50,
     pool_recycle=1800,
     pool_pre_ping=True,
     pool_timeout=30,

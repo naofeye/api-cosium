@@ -151,6 +151,8 @@ def correct_field(
         source="manual",
     )
 
+    db.commit()
+
     logger.info(
         "pec_field_corrected",
         preparation_id=preparation_id,
@@ -221,6 +223,8 @@ def refresh_preparation(
         user_id=0,
         new_value={"score": profile.score_completude, "errors": errors_count},
     )
+
+    db.commit()
 
     logger.info(
         "pec_preparation_refreshed",

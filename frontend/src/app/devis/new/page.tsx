@@ -8,6 +8,7 @@ import { devisCreateSchema, type DevisCreateFormData } from "@/lib/schemas/devis
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/Button";
 import { fetchJson } from "@/lib/api";
+import { logger } from "@/lib/logger";
 import { ClientContextPanel } from "./components/ClientContextPanel";
 import type { ClientContext } from "./components/ClientContextPanel";
 import { DevisLinesForm, calcLigneHT, calcLigneTTC } from "./components/DevisLinesForm";
@@ -48,7 +49,9 @@ export default function NewDevisPage() {
   useEffect(() => {
     fetchJson<CaseOption[]>("/cases")
       .then(setCases)
-      .catch(() => {});
+      .catch((err) => {
+        logger.error("[Devis] Impossible de charger les dossiers:", err);
+      });
   }, []);
 
   const watchCaseId = watch("case_id");

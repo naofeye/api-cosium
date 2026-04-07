@@ -155,6 +155,8 @@ def prepare_pec(
             new_value={"customer_id": customer_id, "score": score, "docs_attached": docs_attached},
         )
 
+    db.commit()
+
     logger.info(
         "pec_preparation_created",
         tenant_id=tenant_id,
@@ -232,6 +234,8 @@ def validate_field(
         user_id=validated_by,
         field_name=field_name,
     )
+
+    db.commit()
 
     logger.info(
         "pec_field_validated",

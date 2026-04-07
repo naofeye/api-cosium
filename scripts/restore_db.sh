@@ -31,8 +31,13 @@ if [ "$confirm" != "oui" ]; then
 fi
 
 echo "Restauration en cours..."
-docker compose -f "$COMPOSE_FILE" exec -T postgres \
-    pg_restore -U "${POSTGRES_USER:-optiflow}" -d "${POSTGRES_DB:-optiflow}" --clean --if-exists < "$BACKUP_FILE"
+if docker compose -f "$COMPOSE_FILE" exec -T postgres \
+    pg_restore -U "${POSTGRES_USER:-optiflow}" -d "${POSTGRES_DB:-optiflow}" --clean --if-exists --no-owner < "$BACKUP_FILE"; then
+    echo "Restauration terminee."
+else
+    echo "ERREUR: La restauration a echoue (exit code $?)."
+    echo "Verifiez les logs PostgreSQL pour plus de details."
+    exit 1
+fi
 
-echo "Restauration terminee."
 echo "Redemarrer l'API pour appliquer les changements: docker compose -f $COMPOSE_FILE restart api worker"

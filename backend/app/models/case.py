@@ -15,7 +15,7 @@ class Case(Base):
     status: Mapped[str] = mapped_column(String(50), default="draft", nullable=False, index=True)
     source: Mapped[str | None] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
-    deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=None)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=None, index=True)
 
     # Relationships for eager loading (selectinload)
     documents: Mapped[list["Document"]] = relationship("Document", back_populates="case", lazy="noload")  # type: ignore[name-defined]  # noqa: F821

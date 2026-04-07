@@ -34,12 +34,14 @@ def list_action_items(
 
 def update_status(db: Session, tenant_id: int, item_id: int, status: str) -> None:
     action_item_repo.update_status(db, item_id=item_id, tenant_id=tenant_id, status=status)
+    db.commit()
     logger.info("action_item_updated", tenant_id=tenant_id, item_id=item_id, status=status)
 
 
 def generate_action_items(db: Session, tenant_id: int, user_id: int) -> ActionItemListResponse:
     _generate_incomplete_cases(db, tenant_id, user_id)
     _generate_overdue_payments(db, tenant_id, user_id)
+    db.commit()
     logger.info("action_items_generated", tenant_id=tenant_id, user_id=user_id)
     return list_action_items(db, tenant_id, user_id, status="pending")
 

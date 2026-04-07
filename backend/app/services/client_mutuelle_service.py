@@ -46,6 +46,7 @@ def add_client_mutuelle(
     data["customer_id"] = customer_id
 
     record = client_mutuelle_repo.create(db, data)
+    db.commit()
     logger.info(
         "client_mutuelle_created",
         customer_id=customer_id,
@@ -63,6 +64,7 @@ def delete_client_mutuelle(
     if not record or record.customer_id != customer_id:
         raise NotFoundError("client_mutuelle", mutuelle_id)
     deleted = client_mutuelle_repo.delete(db, mutuelle_id, tenant_id)
+    db.commit()
     if deleted:
         logger.info(
             "client_mutuelle_deleted",
@@ -340,6 +342,7 @@ def detect_all_clients_mutuelles(
             )
             result.errors += 1
 
+    db.commit()
     logger.info(
         "batch_mutuelle_detection_complete",
         tenant_id=tenant_id,

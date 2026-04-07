@@ -48,6 +48,7 @@ def create_organization(db: Session, tenant_id: int, payload: PayerOrgCreate, us
     org = pec_repo.create_organization(db, tenant_id, payload.name, payload.type, payload.code, payload.contact_email)
     if user_id:
         audit_service.log_action(db, tenant_id, user_id, "create", "payer_organization", org.id)
+    db.commit()
     logger.info("organization_created", tenant_id=tenant_id, org_id=org.id, name=payload.name)
     return PayerOrgResponse.model_validate(org)
 
@@ -93,6 +94,7 @@ def create_pec(db: Session, tenant_id: int, payload: PecCreate, user_id: int) ->
         )
         event_service.emit_event(db, tenant_id, "PECSoumise", "pec_request", pec.id, user_id)
 
+    db.commit()
     logger.info("pec_created", tenant_id=tenant_id, pec_id=pec.id, org=org.name)
     return PecResponse(
         **{
@@ -191,6 +193,7 @@ def change_status(db: Session, tenant_id: int, pec_id: int, payload: PecStatusUp
         if event_name:
             event_service.emit_event(db, tenant_id, event_name, "pec_request", pec_id, user_id)
 
+    db.commit()
     logger.info("pec_status_changed", tenant_id=tenant_id, pec_id=pec_id, old=old_status, new=payload.status)
     org = pec_repo.get_organization(db, org_id=pec.organization_id, tenant_id=tenant_id)
     return PecResponse(
@@ -234,6 +237,7 @@ def create_relance(db: Session, tenant_id: int, pec_id: int, payload: RelanceCre
         relance.id,
         new_value={"pec_id": pec_id, "type": payload.type},
     )
+    db.commit()
     logger.info("relance_created", tenant_id=tenant_id, pec_id=pec_id, relance_id=relance.id, type=payload.type)
     return RelanceResponse.model_validate(relance)
 

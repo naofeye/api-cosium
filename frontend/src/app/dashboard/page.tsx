@@ -362,31 +362,33 @@ export default function DashboardPage() {
       <OnboardingGuide />
 
       {/* Today's appointments */}
-      <div className="rounded-xl border border-border bg-bg-card p-4 mb-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-3">
-          <Clock className="h-4 w-4 text-primary" aria-hidden="true" />
-          <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide">
-            Rendez-vous du jour
-          </h3>
-        </div>
-        {todayEvents.length === 0 ? (
-          <p className="text-sm text-text-secondary">Aucun rendez-vous aujourd&apos;hui</p>
-        ) : (
-          <div className="space-y-2">
-            {todayEvents.map((ev) => (
-              <div key={ev.id} className="flex items-center gap-3 text-sm">
-                <span className="w-12 font-mono text-text-secondary">{formatTime(ev.start_date)}</span>
-                <span
-                  className="h-2 w-2 rounded-full shrink-0"
-                  style={{ backgroundColor: ev.category_color || "#6b7280" }}
-                />
-                <span className="font-medium text-text-primary">{ev.customer_fullname}</span>
-                <span className="text-text-secondary">{ev.category_name}</span>
-              </div>
-            ))}
+      <ErrorBoundary name="TodayAppointments">
+        <div className="rounded-xl border border-border bg-bg-card p-4 mb-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <Clock className="h-4 w-4 text-primary" aria-hidden="true" />
+            <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide">
+              Rendez-vous du jour
+            </h3>
           </div>
-        )}
-      </div>
+          {todayEvents.length === 0 ? (
+            <p className="text-sm text-text-secondary">Aucun rendez-vous aujourd&apos;hui</p>
+          ) : (
+            <div className="space-y-2">
+              {todayEvents.map((ev) => (
+                <div key={ev.id} className="flex items-center gap-3 text-sm">
+                  <span className="w-12 font-mono text-text-secondary">{formatTime(ev.start_date)}</span>
+                  <span
+                    className="h-2 w-2 rounded-full shrink-0"
+                    style={{ backgroundColor: ev.category_color || "#6b7280" }}
+                  />
+                  <span className="font-medium text-text-primary">{ev.customer_fullname}</span>
+                  <span className="text-text-secondary">{ev.category_name}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </ErrorBoundary>
 
       {/* Period selector + actions */}
       <div className="flex items-center gap-2 mb-6 flex-wrap">
@@ -439,6 +441,7 @@ export default function DashboardPage() {
       </ErrorBoundary>
 
       {/* Intelligence documentaire */}
+      <ErrorBoundary name="IntelligenceDocumentaire">
       {dataQuality?.extractions && dataQuality.extractions.total_extracted > 0 && (
         <div className="rounded-xl border border-border bg-bg-card p-4 mb-6 shadow-sm">
           <div className="flex items-center justify-between">
@@ -490,9 +493,12 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+      </ErrorBoundary>
 
       {/* Rapprochement Cosium summary */}
-      <ReconciliationBanner />
+      <ErrorBoundary name="ReconciliationBanner">
+        <ReconciliationBanner />
+      </ErrorBoundary>
 
       {/* Actions rapides */}
       <div className="mb-8">
@@ -540,46 +546,48 @@ export default function DashboardPage() {
       </div>
 
       {/* Clients a relancer (impayes > 30j) */}
-      {overdueInvoices.length > 0 && (
-        <div className="rounded-xl border border-border bg-bg-card p-4 mb-8 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-danger" aria-hidden="true" />
-              <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide">
-                Clients a relancer
-              </h3>
+      <ErrorBoundary name="OverdueInvoices">
+        {overdueInvoices.length > 0 && (
+          <div className="rounded-xl border border-border bg-bg-card p-4 mb-8 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-danger" aria-hidden="true" />
+                <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide">
+                  Clients a relancer
+                </h3>
+              </div>
+              <Link
+                href="/relances"
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                Voir toutes les relances &rarr;
+              </Link>
             </div>
-            <Link
-              href="/relances"
-              className="text-xs font-medium text-primary hover:underline"
-            >
-              Voir toutes les relances &rarr;
-            </Link>
-          </div>
-          <div className="space-y-2">
-            {overdueInvoices.map((inv) => {
-              const colorClass = inv.days_overdue > 60
-                ? "text-danger"
-                : inv.days_overdue > 30
-                  ? "text-amber-600"
-                  : "text-text-secondary";
-              return (
-                <div key={inv.id} className="flex items-center justify-between text-sm rounded-lg px-3 py-2 hover:bg-gray-50">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="font-medium text-text-primary truncate">{inv.customer_name}</span>
+            <div className="space-y-2">
+              {overdueInvoices.map((inv) => {
+                const colorClass = inv.days_overdue > 60
+                  ? "text-danger"
+                  : inv.days_overdue > 30
+                    ? "text-amber-600"
+                    : "text-text-secondary";
+                return (
+                  <div key={inv.id} className="flex items-center justify-between text-sm rounded-lg px-3 py-2 hover:bg-gray-50">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="font-medium text-text-primary truncate">{inv.customer_name}</span>
+                    </div>
+                    <div className="flex items-center gap-4 shrink-0">
+                      <span className="font-semibold tabular-nums">{formatMoney(inv.montant_ttc)}</span>
+                      <span className={`text-xs font-medium ${colorClass}`}>
+                        {inv.days_overdue}j de retard
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4 shrink-0">
-                    <span className="font-semibold tabular-nums">{formatMoney(inv.montant_ttc)}</span>
-                    <span className={`text-xs font-medium ${colorClass}`}>
-                      {inv.days_overdue}j de retard
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </ErrorBoundary>
 
       {/* Quick links */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
