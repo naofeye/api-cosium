@@ -178,6 +178,16 @@ docker compose -f docker-compose.prod.yml exec minio \
 # Ou simplement sauvegarder le volume Docker minio_data
 ```
 
+> **Note** : MinIO dans `docker-compose.prod.yml` est prevu pour un deploiement self-hosted.
+> Pour une production a grande echelle, utiliser un service S3 manage (AWS S3, OVH Object Storage, etc.)
+> et configurer `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` en consequence.
+
+### Worker Celery et Beat
+
+Le worker en production utilise le flag `-B` pour integrer Celery Beat (planificateur de taches).
+Cela signifie qu'un seul conteneur `worker` gere a la fois l'execution des taches ET la planification.
+C'est le pattern recommande pour les deployments a instance unique.
+
 ## 7. Monitoring
 
 ### Health checks

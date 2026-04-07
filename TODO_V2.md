@@ -53,10 +53,10 @@
 
 ### 3.2 Docker Compose production [ELEVE]
 - [x] `docker-compose.prod.yml` — MinIO restreint a `127.0.0.1:9000:9000` et `127.0.0.1:9001:9001`
-- [ ] Documenter dans DEPLOY.md que MinIO en prod est pour du self-hosted uniquement
+- [x] DEPLOY.md : documente MinIO self-hosted + worker -B beat
 
 ### 3.3 Nginx securite [MOYEN]
-- [ ] `nginx/nginx.conf:32` — CSP avec `unsafe-inline`/`unsafe-eval` necessaire pour Next.js (documenter)
+- [x] `nginx/nginx.conf:32` — CSP documente : unsafe-inline/unsafe-eval requis par Next.js hydration
 - [x] `nginx/nginx.conf` — Commentaire explicite ajoute pour le domaine
 
 ### 3.4 CI/CD corrections [MOYEN]
@@ -67,7 +67,7 @@
 ### 3.5 Documentation [FAIBLE]
 - [x] `CLAUDE.md` — Mis a jour : "Migrations : Alembic (configure, upgrade head)"
 - [x] `.gitignore` — `**/*.pid` et `celerybeat-schedule*` ajoutes
-- [ ] DEPLOY.md — Clarifier que `-B` gere le beat en prod
+- [x] DEPLOY.md — Clarifie que `-B` gere le beat en prod (section Worker Celery ajoutee)
 
 ---
 
@@ -100,7 +100,7 @@
 ### 5.1 Audit des db.commit() dans les repos [MOYEN]
 - [x] Audit fait : 50+ db.commit() dans 19 repos. Top : marketing(6), reminder(5), pec(5), notification(5)
 - [x] Strategie definie : migrer progressivement, commencer par les repos utilises dans des transactions multi-entites
-- [ ] Migrer `client_repo` (4 commits) — utilise dans merge/import qui sont multi-entites
+- [x] `client_repo` migre : 4x db.commit() → db.flush() (create, update, delete, restore)
 - [ ] Migrer les autres repos progressivement au fil des sprints
 
 ---
@@ -144,7 +144,7 @@
 ### 7.3 Celery [FAIBLE]
 - [ ] `reminder_tasks.py` — Deleguer l'envoi d'email via tache email separee
 - [ ] `batch_tasks.py` — Ajouter progression visible (statut BDD tous les 100 items)
-- [ ] `db/session.py:15` — Separer le statement timeout API (30s) vs Celery (300s)
+- [x] `db/session.py` — Statement timeout separe : 30s API, 300s Celery (detection auto via env)
 
 ### 7.4 Securite incrementale [FAIBLE]
 - [x] Idempotence Celery deja implementee via cles Redis (sync, reminders, overdue)

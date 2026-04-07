@@ -52,7 +52,7 @@ def get_by_id_active(db: Session, client_id: int, tenant_id: int) -> Customer | 
 def create(db: Session, tenant_id: int, **kwargs: object) -> Customer:
     customer = Customer(tenant_id=tenant_id, **kwargs)
     db.add(customer)
-    db.commit()
+    db.flush()
     db.refresh(customer)
     return customer
 
@@ -61,19 +61,17 @@ def update(db: Session, customer: Customer, **kwargs: object) -> Customer:
     for key, value in kwargs.items():
         if value is not None:
             setattr(customer, key, value)
-    db.commit()
+    db.flush()
     db.refresh(customer)
     return customer
 
 
 def delete(db: Session, customer: Customer) -> None:
     customer.deleted_at = datetime.now(UTC).replace(tzinfo=None)
-    db.commit()
-    db.refresh(customer)
+    db.flush()
 
 
 def restore(db: Session, customer: Customer) -> Customer:
     customer.deleted_at = None
-    db.commit()
-    db.refresh(customer)
+    db.flush()
     return customer
