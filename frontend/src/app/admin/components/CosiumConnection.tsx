@@ -1,19 +1,9 @@
 import { KPICard } from "@/components/ui/KPICard";
 import { CheckCircle, AlertCircle, Wifi, Calendar, Clock } from "lucide-react";
-
-interface SyncStatus {
-  configured: boolean;
-  authenticated: boolean;
-  tenant: string | null;
-  tenant_name: string | null;
-  base_url: string;
-  last_sync_at: string | null;
-  first_sync_done: boolean;
-  erp_type?: string;
-}
+import type { SyncStatusResponse } from "@/lib/types/admin";
 
 interface CosiumConnectionProps {
-  syncStatus: SyncStatus | undefined;
+  syncStatus: SyncStatusResponse | undefined;
 }
 
 export function CosiumConnection({ syncStatus }: CosiumConnectionProps) {

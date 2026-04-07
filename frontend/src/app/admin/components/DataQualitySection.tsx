@@ -4,28 +4,7 @@ import useSWR from "swr";
 import { CompletionGauge } from "@/components/pec/CompletionGauge";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Database, FileText, CreditCard, FolderOpen, Stethoscope, ScanText } from "lucide-react";
-
-interface DataQualityEntity {
-  total: number;
-  linked: number;
-  orphan: number;
-  link_rate: number;
-}
-
-interface ExtractionStats {
-  total_documents: number;
-  total_extracted: number;
-  extraction_rate: number;
-  by_type: Record<string, number>;
-}
-
-interface DataQualityData {
-  invoices: DataQualityEntity;
-  payments: DataQualityEntity;
-  documents: DataQualityEntity;
-  prescriptions: DataQualityEntity;
-  extractions?: ExtractionStats;
-}
+import type { DataQualityEntity, DataQualityResponse } from "@/lib/types/admin";
 
 function getGaugeColor(rate: number): string {
   if (rate >= 90) return "text-emerald-700";
@@ -68,7 +47,7 @@ function GaugeCard({ label, entity, icon: Icon }: GaugeCardProps) {
 }
 
 export function DataQualitySection() {
-  const { data, error, mutate } = useSWR<DataQualityData>("/admin/data-quality", {
+  const { data, error, mutate } = useSWR<DataQualityResponse>("/admin/data-quality", {
     refreshInterval: 60000,
   });
 

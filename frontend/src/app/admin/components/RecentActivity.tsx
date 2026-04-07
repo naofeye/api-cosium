@@ -1,15 +1,5 @@
 import { Clock, Plus, Pencil, Trash2 } from "lucide-react";
-
-interface AuditLogEntry {
-  id: number;
-  user_id: number;
-  action: string;
-  entity_type: string;
-  entity_id: number;
-  old_value: string | null;
-  new_value: string | null;
-  created_at: string;
-}
+import type { AuditLogEntry } from "@/lib/types/admin";
 
 const ACTION_CONFIG: Record<string, { icon: typeof Plus; color: string; bg: string; label: string }> = {
   create: { icon: Plus, color: "text-emerald-600", bg: "bg-emerald-50", label: "Creation" },

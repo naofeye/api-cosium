@@ -5,13 +5,7 @@ import useSWR from "swr";
 import { Button } from "@/components/ui/Button";
 import { fetchJson } from "@/lib/api";
 import { AlertTriangle, CheckCircle, Key, RefreshCw, Save, ExternalLink } from "lucide-react";
-
-interface ConnectionTest {
-  connected: boolean;
-  error: string | null;
-  tenant: string;
-  customers_total: number | null;
-}
+import type { CosiumConnectionTestResponse, CosiumCookiesResponse } from "@/lib/types/admin";
 
 export function CosiumCookies() {
   const [cookieAccessToken, setCookieAccessToken] = useState("");
@@ -20,7 +14,7 @@ export function CosiumCookies() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Test connexion Cosium automatiquement
-  const { data: connTest, isLoading: testing, mutate: retest } = useSWR<ConnectionTest>(
+  const { data: connTest, isLoading: testing, mutate: retest } = useSWR<CosiumConnectionTestResponse>(
     "/admin/cosium-test",
     { refreshInterval: 0, revalidateOnFocus: false }
   );
@@ -40,7 +34,7 @@ export function CosiumCookies() {
         access_token: cookieAccessToken.trim(),
         device_credential: cookieDeviceCredential.trim() || "G-GREX-__jHvXwYmd6Zgu-n30A0/3",
       };
-      const res = await fetchJson<{ status: string; message: string }>("/admin/cosium-cookies", {
+      const res = await fetchJson<CosiumCookiesResponse>("/admin/cosium-cookies", {
         method: "POST",
         body: JSON.stringify(body),
       });

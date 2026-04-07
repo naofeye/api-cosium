@@ -1,16 +1,12 @@
 "use client";
 
 import { Heart, CheckCircle, AlertCircle, Database, Server, HardDrive } from "lucide-react";
-
-interface HealthData {
-  status: string;
-  services: Record<string, { status: string; response_ms?: number; error?: string }>;
-}
+import type { HealthCheckResponse } from "@/lib/types/admin";
 
 const SERVICE_ICONS: Record<string, typeof Database> = { postgres: Database, redis: Server, minio: HardDrive };
 
 interface HealthStatusProps {
-  health: HealthData | undefined;
+  health: HealthCheckResponse | undefined;
 }
 
 export function HealthStatus({ health }: HealthStatusProps) {

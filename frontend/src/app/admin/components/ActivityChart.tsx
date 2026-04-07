@@ -2,17 +2,7 @@
 
 import { BarChart3 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-
-interface AuditLogEntry {
-  id: number;
-  user_id: number;
-  action: string;
-  entity_type: string;
-  entity_id: number;
-  old_value: string | null;
-  new_value: string | null;
-  created_at: string;
-}
+import type { AuditLogEntry } from "@/lib/types/admin";
 
 interface ActivityChartData {
   date: string;
