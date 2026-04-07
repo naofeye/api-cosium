@@ -67,11 +67,11 @@ const faqItems: FAQItem[] = [
 
 const shortcuts = [
   { keys: "Ctrl + K", description: "Ouvrir la recherche globale / Copilote IA" },
-  { keys: "Ctrl + N", description: "Creer un nouveau dossier" },
-  { keys: "Ctrl + B", description: "Ouvrir/fermer la barre laterale" },
+  { keys: "Ctrl + N", description: "Nouveau client" },
+  { keys: "Ctrl + D", description: "Aller au Dashboard" },
+  { keys: "Ctrl + Shift + S", description: "Aller aux Statistiques" },
   { keys: "Escape", description: "Fermer la modale ou le panneau actif" },
-  { keys: "Alt + D", description: "Aller au Dashboard" },
-  { keys: "Alt + C", description: "Aller aux Clients" },
+  { keys: "?", description: "Afficher l'aide des raccourcis clavier" },
 ];
 
 function FAQAccordion({ item }: { item: FAQItem }) {

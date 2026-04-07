@@ -94,6 +94,7 @@ export default function StatistiquesPage() {
   const [period, setPeriod] = useState<PeriodKey>("30d");
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportingXlsx, setExportingXlsx] = useState(false);
+  const [exportingMonthly, setExportingMonthly] = useState(false);
   const { toast } = useToast();
   const { date_from, date_to } = useMemo(() => getRange(period), [period]);
 
@@ -102,22 +103,17 @@ export default function StatistiquesPage() {
     { refreshInterval: 60000 },
   );
 
-  const handleExport = useCallback(
-    async (format: "pdf" | "xlsx") => {
-      const setLoading = format === "pdf" ? setExportingPdf : setExportingXlsx;
+  const downloadFile = useCallback(
+    async (endpoint: string, filename: string, setLoading: (v: boolean) => void) => {
       setLoading(true);
       try {
-        const endpoint =
-          format === "pdf"
-            ? `/exports/dashboard-pdf?date_from=${date_from}&date_to=${date_to}`
-            : `/exports/balance-clients?date_from=${date_from}&date_to=${date_to}`;
         const resp = await fetch(`${API_BASE}${endpoint}`, { credentials: "include" });
         if (!resp.ok) throw new Error("Erreur export");
         const blob = await resp.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = format === "pdf" ? `statistiques_${date_from}.pdf` : `balance_clients_${date_from}.xlsx`;
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -128,8 +124,32 @@ export default function StatistiquesPage() {
         setLoading(false);
       }
     },
-    [date_from, date_to],
+    [],
   );
+
+  const handleExport = useCallback(
+    async (format: "pdf" | "xlsx") => {
+      const setLoading = format === "pdf" ? setExportingPdf : setExportingXlsx;
+      const endpoint =
+        format === "pdf"
+          ? `/exports/dashboard-pdf?date_from=${date_from}&date_to=${date_to}`
+          : `/exports/balance-clients?date_from=${date_from}&date_to=${date_to}`;
+      const filename = format === "pdf" ? `statistiques_${date_from}.pdf` : `balance_clients_${date_from}.xlsx`;
+      await downloadFile(endpoint, filename, setLoading);
+    },
+    [date_from, date_to, downloadFile],
+  );
+
+  const handleMonthlyReport = useCallback(async () => {
+    const now = new Date();
+    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const monthStr = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, "0")}`;
+    await downloadFile(
+      `/exports/monthly-report?month=${monthStr}`,
+      `rapport_mensuel_${monthStr}.pdf`,
+      setExportingMonthly,
+    );
+  }, [downloadFile]);
 
   if (isLoading)
     return (
@@ -168,6 +188,16 @@ export default function StatistiquesPage() {
           </button>
         ))}
         <div className="ml-auto flex gap-2">
+          <button
+            onClick={handleMonthlyReport}
+            disabled={exportingMonthly}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary text-white px-3 py-1.5 text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+            title="Telecharger le rapport mensuel (mois precedent)"
+            aria-label="Rapport mensuel"
+          >
+            <FileDown className="h-4 w-4" aria-hidden="true" />
+            {exportingMonthly ? "Generation..." : "Rapport mensuel"}
+          </button>
           <button
             onClick={() => handleExport("pdf")}
             disabled={exportingPdf}

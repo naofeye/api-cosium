@@ -279,11 +279,14 @@ def _parse_structured_data(extraction: DocumentExtraction) -> dict | None:
 
 
 def _calculate_completude(profile: ConsolidatedClientProfile) -> float:
-    """Calculate completude score (0-100) based on required fields."""
+    """Calculate completude score (0-100) based on required fields.
+
+    A field counts as filled only if it is a ConsolidatedField with a non-None value.
+    """
     filled = 0
     for field_name in PEC_REQUIRED_FIELDS:
-        val = getattr(profile, field_name, None)
-        if val is not None:
+        field = getattr(profile, field_name, None)
+        if field is not None and isinstance(field, ConsolidatedField) and field.value is not None:
             filled += 1
     total = len(PEC_REQUIRED_FIELDS)
     return round((filled / total) * 100, 1) if total > 0 else 0.0
@@ -656,7 +659,7 @@ def consolidate_client_for_pec(
 
     extractions = _load_document_extractions(db, tenant_id, customer_id)
     ocr_map = _collect_ocr_data(extractions)
-    for doc_type, (_, src, _, _) in ocr_map.items():
+    for _doc_type, (_, src, _, _) in ocr_map.items():
         sources_used.append(src)
 
     # 2. Consolidate per domain with proper priority

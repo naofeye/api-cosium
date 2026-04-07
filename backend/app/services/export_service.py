@@ -476,4 +476,5 @@ from app.services.export_fec import generate_fec  # noqa: E402, F401
 from app.services.export_pdf import (  # noqa: E402, F401
     export_balance_clients_pdf,
     export_dashboard_pdf,
+    export_monthly_report_pdf,
 )

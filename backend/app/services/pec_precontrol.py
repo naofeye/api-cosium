@@ -5,8 +5,6 @@ result indicating readiness, missing pieces, blocking errors, and
 advisory warnings.
 """
 
-import json
-
 from pydantic import BaseModel, Field
 
 from app.core.logging import get_logger
@@ -112,7 +110,7 @@ def _check_documents(prep: PecPreparation) -> tuple[list[str], list[str], list[s
         for doc in prep.documents:
             present_roles.add(doc.document_role)
 
-    pieces_presentes = [r for r in present_roles]
+    pieces_presentes = list(present_roles)
     pieces_manquantes = [r for r in REQUIRED_DOCUMENTS if r not in present_roles]
     pieces_recommandees = [r for r in RECOMMENDED_DOCUMENTS if r not in present_roles]
 
@@ -180,11 +178,16 @@ def run_precontrol(prep: PecPreparation) -> PreControlResult:
             f"Document recommande manquant : {label_map.get(doc_role, doc_role)}"
         )
 
-    # Conflicts from profile alerts
+    # Conflicts from profile alerts (deduplicate with required field checks)
+    # Track fields already reported as missing to avoid duplicates
+    missing_field_names = {f for f in REQUIRED_FIELDS if getattr(profile, f, None) is None or (getattr(profile, f, None) is not None and getattr(profile, f).value is None)}
     for alert in profile.alertes:
+        # Skip missing-data alerts for fields already reported by _check_required_fields
+        if alert.field in missing_field_names and alert.severity == "error":
+            continue
         if alert.severity == "error" and alert.message not in erreurs_bloquantes:
             erreurs_bloquantes.append(alert.message)
-        elif alert.severity == "warning":
+        elif alert.severity == "warning" and alert.message not in alertes_verification:
             alertes_verification.append(alert.message)
         elif alert.severity == "info":
             points_vigilance.append(alert.message)

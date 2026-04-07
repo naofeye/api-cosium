@@ -19,7 +19,7 @@ logger = get_logger("incoherence_detector")
 
 # Optical validation ranges
 SPHERE_MIN, SPHERE_MAX = -25.0, 25.0
-CYLINDER_MIN, CYLINDER_MAX = -10.0, 0.0  # Always negative in minus-cylinder form
+CYLINDER_MIN, CYLINDER_MAX = -10.0, 10.0  # Accept both plus and minus cylinder notation
 AXIS_MIN, AXIS_MAX = 0, 180
 ADDITION_MIN, ADDITION_MAX = 0.50, 4.00
 PD_MIN, PD_MAX = 50.0, 80.0  # Pupillary distance in mm

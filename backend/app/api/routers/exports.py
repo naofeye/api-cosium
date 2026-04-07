@@ -79,6 +79,37 @@ def export_dashboard_pdf(
 
 
 @router.get(
+    "/monthly-report",
+    summary="Export Rapport Mensuel (PDF)",
+    description="Genere un rapport PDF mensuel complet avec KPIs, activite, top clients, balance agee et stats opticiens.",
+)
+def export_monthly_report(
+    month: str = Query(
+        ...,
+        description="Mois au format YYYY-MM (ex: 2026-03)",
+        pattern=r"^\d{4}-\d{2}$",
+    ),
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
+) -> StreamingResponse:
+    parts = month.split("-")
+    year = int(parts[0])
+    month_num = int(parts[1])
+    if month_num < 1 or month_num > 12:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Mois invalide (1-12)")
+    data = export_service.export_monthly_report_pdf(
+        db, tenant_id=tenant_ctx.tenant_id, year=year, month=month_num,
+    )
+    filename = f"rapport_mensuel_{month}.pdf"
+    return StreamingResponse(
+        iter([data]),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@router.get(
     "/fec",
     summary="Export FEC (Fichier des Ecritures Comptables)",
     description="Genere un fichier FEC conforme a la reglementation fiscale francaise.",

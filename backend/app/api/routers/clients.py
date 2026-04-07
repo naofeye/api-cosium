@@ -118,6 +118,19 @@ async def import_file(
 
 
 @router.get(
+    "/{client_id}/quick",
+    summary="Apercu rapide d'un client",
+    description="Retourne un apercu leger du client (pour hover card).",
+)
+def get_client_quick(
+    client_id: int,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> dict:
+    return client_service.get_client_quick(db, tenant_id=tenant_ctx.tenant_id, client_id=client_id)
+
+
+@router.get(
     "/{client_id}",
     response_model=ClientResponse,
     summary="Detail d'un client",

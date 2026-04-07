@@ -12,6 +12,7 @@ import { SWRProvider } from "@/lib/swr";
 import { initTheme } from "@/lib/theme";
 import { initShortcuts } from "@/lib/shortcuts";
 import { SidebarProvider } from "@/lib/sidebar-context";
+import { KeyboardShortcutsHelp } from "@/components/ui/KeyboardShortcuts";
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -43,6 +44,7 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
           <MobileBottomBar currentPath={pathname} />
 
           <StatsFooter />
+          <KeyboardShortcutsHelp />
         </SidebarProvider>
       </ToastProvider>
     </SWRProvider>
