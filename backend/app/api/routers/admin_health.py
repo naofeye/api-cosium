@@ -11,9 +11,10 @@ from sqlalchemy.orm import Session
 from app.core.deps import require_tenant_role
 from app.core.tenant_context import TenantContext
 from app.db.session import get_db
-from app.domain.schemas.admin import DataQualityResponse, HealthCheckResponse, MetricsResponse
+from app.domain.schemas.admin import DataQualityResponse, ExtractionStats, HealthCheckResponse, MetricsResponse
 from app.models import AuditLog, Case, Customer, Facture, Payment
 from app.models.cosium_data import CosiumDocument, CosiumInvoice, CosiumPayment, CosiumPrescription
+from app.models.document_extraction import DocumentExtraction
 from app.services import onboarding_service
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
@@ -171,11 +172,38 @@ def data_quality(
 ) -> DataQualityResponse:
     """Data quality dashboard: link rates for invoices, payments, documents, prescriptions."""
     tid = tenant_ctx.tenant_id
+
+    # Extraction stats from DocumentExtraction table
+    total_documents = db.scalar(
+        select(func.count()).select_from(CosiumDocument).where(CosiumDocument.tenant_id == tid)
+    ) or 0
+    total_extracted = db.scalar(
+        select(func.count()).select_from(DocumentExtraction).where(DocumentExtraction.tenant_id == tid)
+    ) or 0
+    extraction_rate = round((total_extracted / total_documents) * 100, 1) if total_documents > 0 else 0.0
+
+    # Count by document_type
+    type_counts_raw = db.execute(
+        select(DocumentExtraction.document_type, func.count())
+        .where(
+            DocumentExtraction.tenant_id == tid,
+            DocumentExtraction.document_type.isnot(None),
+        )
+        .group_by(DocumentExtraction.document_type)
+    ).all()
+    by_type = {row[0]: row[1] for row in type_counts_raw}
+
     return DataQualityResponse(
         invoices=_entity_quality(db, CosiumInvoice, tid),
         payments=_entity_quality(db, CosiumPayment, tid),
         documents=_entity_quality(db, CosiumDocument, tid),
         prescriptions=_entity_quality(db, CosiumPrescription, tid),
+        extractions=ExtractionStats(
+            total_documents=total_documents,
+            total_extracted=total_extracted,
+            extraction_rate=extraction_rate,
+            by_type=by_type,
+        ),
     )
 
 

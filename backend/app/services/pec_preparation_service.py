@@ -13,7 +13,10 @@ from app.domain.schemas.pec_preparation import (
     PecPreparationResponse,
     PecPreparationSummary,
 )
+from sqlalchemy import select as sa_select
+
 from app.models.client import Customer
+from app.models.document_extraction import DocumentExtraction
 from app.repositories import pec_preparation_repo, pec_repo
 from app.services import audit_service, consolidation_service, event_service
 from app.services.incoherence_detector import detect_incoherences
@@ -60,6 +63,81 @@ def _to_response(prep: object) -> PecPreparationResponse:
         updated_at=prep.updated_at,
         created_by=prep.created_by,
     )
+
+
+def _auto_attach_documents(
+    db: Session,
+    tenant_id: int,
+    customer_id: int,
+    preparation_id: int,
+    devis_id: int | None = None,
+) -> int:
+    """Auto-attach the most recent documents by type for PEC.
+
+    Finds the latest ordonnance, attestation_mutuelle, and devis extractions
+    linked to the customer's cases, and attaches them to the preparation.
+    Returns the number of documents attached.
+    """
+    from app.models.case import Case
+    from app.models.document import Document
+
+    # Map extraction document_type -> document_role for PEC
+    role_map = {
+        "ordonnance": "ordonnance",
+        "attestation_mutuelle": "attestation_mutuelle",
+        "devis": "devis",
+    }
+
+    attached_count = 0
+
+    for doc_type, doc_role in role_map.items():
+        # Build query for most recent extraction of this type
+        stmt = (
+            sa_select(DocumentExtraction)
+            .join(Document, Document.id == DocumentExtraction.document_id)
+            .join(Case, Case.id == Document.case_id)
+            .where(
+                Case.customer_id == customer_id,
+                DocumentExtraction.tenant_id == tenant_id,
+                DocumentExtraction.document_type == doc_type,
+            )
+        )
+
+        # If devis_id specified and we're looking for devis, try to match
+        if doc_type == "devis" and devis_id:
+            from app.models.devis import Devis
+
+            devis_obj = db.scalars(
+                sa_select(Devis).where(
+                    Devis.id == devis_id,
+                    Devis.tenant_id == tenant_id,
+                )
+            ).first()
+            if devis_obj:
+                # Still get the most recent devis extraction for this customer
+                pass
+
+        stmt = stmt.order_by(DocumentExtraction.created_at.desc()).limit(1)
+        extraction = db.scalars(stmt).first()
+
+        if extraction:
+            pec_preparation_repo.add_document(
+                db,
+                preparation_id=preparation_id,
+                document_id=extraction.document_id,
+                cosium_document_id=extraction.cosium_document_id,
+                document_role=doc_role,
+                extraction_id=extraction.id,
+            )
+            attached_count += 1
+            logger.info(
+                "pec_document_auto_attached",
+                preparation_id=preparation_id,
+                document_role=doc_role,
+                extraction_id=extraction.id,
+            )
+
+    return attached_count
 
 
 def _validate_customer(db: Session, tenant_id: int, customer_id: int) -> None:
@@ -183,10 +261,15 @@ def prepare_pec(
         created_by=user_id if user_id else None,
     )
 
+    # Auto-attach supporting documents from OCR extractions
+    docs_attached = _auto_attach_documents(
+        db, tenant_id, customer_id, prep.id, devis_id
+    )
+
     if user_id:
         audit_service.log_action(
             db, tenant_id, user_id, "create", "pec_preparation", prep.id,
-            new_value={"customer_id": customer_id, "score": score},
+            new_value={"customer_id": customer_id, "score": score, "docs_attached": docs_attached},
         )
 
     logger.info(
@@ -197,6 +280,7 @@ def prepare_pec(
         score=score,
         errors=errors_count,
         warnings=warnings_count,
+        docs_attached=docs_attached,
     )
 
     return _to_response(prep)

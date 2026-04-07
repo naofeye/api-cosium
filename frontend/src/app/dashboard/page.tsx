@@ -25,7 +25,7 @@ const DashboardCharts = dynamic(() => import("./components/DashboardCharts").the
   ),
 });
 import { useToast } from "@/components/ui/Toast";
-import { FileDown, Calendar, Eye, RefreshCw as RefreshIcon, Clock, ClipboardCheck, Search, AlertCircle, Settings, Users } from "lucide-react";
+import { FileDown, Calendar, Eye, RefreshCw as RefreshIcon, Clock, ClipboardCheck, Search, AlertCircle, Settings, Users, FileSearch } from "lucide-react";
 import Link from "next/link";
 import { formatMoney } from "@/lib/format";
 
@@ -129,6 +129,15 @@ interface OverdueInvoicesResponse {
   total: number;
 }
 
+interface DataQualityData {
+  extractions?: {
+    total_documents: number;
+    total_extracted: number;
+    extraction_rate: number;
+    by_type: Record<string, number>;
+  } | null;
+}
+
 interface CalendarEvent {
   id: number | string;
   start_date: string;
@@ -225,6 +234,14 @@ export default function DashboardPage() {
       /* ignore renewal errors silently */
     },
   });
+
+  const { data: dataQuality } = useSWR<DataQualityData>(
+    "/admin/data-quality",
+    {
+      refreshInterval: 300000,
+      onError: () => { /* ignore data quality errors silently */ },
+    },
+  );
 
   const { data: overdueData } = useSWR<OverdueInvoicesResponse>(
     "/cosium-invoices?status=impayee&page_size=5",
@@ -345,6 +362,59 @@ export default function DashboardPage() {
           cosium={cosium}
         />
       </ErrorBoundary>
+
+      {/* Intelligence documentaire */}
+      {dataQuality?.extractions && dataQuality.extractions.total_extracted > 0 && (
+        <div className="rounded-xl border border-border bg-bg-card p-4 mb-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileSearch className="h-4 w-4 text-primary" aria-hidden="true" />
+              <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide">
+                Intelligence documentaire
+              </h3>
+            </div>
+            <Link
+              href="/admin/data-quality"
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              Voir le detail &rarr;
+            </Link>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
+            <span className="font-semibold text-text-primary tabular-nums">
+              {dataQuality.extractions.total_extracted.toLocaleString("fr-FR")} documents analyses
+            </span>
+            <span className="text-text-secondary">
+              {Object.entries(dataQuality.extractions.by_type)
+                .map(([type, count]) => {
+                  const labels: Record<string, string> = {
+                    ordonnance: "ordonnances",
+                    devis: "devis",
+                    attestation_mutuelle: "attestations",
+                    facture: "factures",
+                    courrier: "courriers",
+                    autre: "autres",
+                  };
+                  return `${count.toLocaleString("fr-FR")} ${labels[type] || type}`;
+                })
+                .join(" | ")}
+            </span>
+          </div>
+          <div className="mt-2">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${Math.min(dataQuality.extractions.extraction_rate, 100)}%` }}
+                />
+              </div>
+              <span className="text-xs text-text-secondary tabular-nums">
+                {dataQuality.extractions.extraction_rate}% extraits
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Actions rapides */}
       <div className="mb-8">

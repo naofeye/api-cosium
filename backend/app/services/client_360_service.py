@@ -18,6 +18,10 @@ from app.domain.schemas.client_360 import (
     CosiumPrescriptionSummary,
     EquipmentItem,
     FinancialSummary,
+    OcrDataSummary,
+    OcrDocumentCount,
+    OcrInconsistency,
+    OcrMutuelleData,
     PrescriptionWarning,
 )
 from app.domain.schemas.client_mutuelle import ClientMutuelleResponse
@@ -29,8 +33,9 @@ from app.models import (
     MarketingConsent,
 )
 from app.models.client_mutuelle import ClientMutuelle
-from app.models.cosium_data import CosiumInvoice, CosiumPayment, CosiumPrescription
+from app.models.cosium_data import CosiumDocument, CosiumInvoice, CosiumPayment, CosiumPrescription
 from app.models.cosium_reference import CosiumCalendarEvent, CosiumCustomerTag
+from app.models.document_extraction import DocumentExtraction
 
 logger = get_logger("client_360_service")
 
@@ -238,6 +243,9 @@ def _build_cosium_data(
     ).all()
     mutuelles = [ClientMutuelleResponse.model_validate(m) for m in mutuelle_rows]
 
+    # --- OCR extracted data ---
+    ocr_data = _build_ocr_data(db, tenant_id, client_id, cosium_id, prescriptions_raw)
+
     return CosiumDataBundle(
         prescriptions=prescriptions,
         cosium_payments=cosium_payments,
@@ -248,6 +256,116 @@ def _build_cosium_data(
         last_visit_date=last_visit_date,
         customer_tags=customer_tags,
         mutuelles=mutuelles,
+        ocr_data=ocr_data,
+    )
+
+
+def _build_ocr_data(
+    db: Session,
+    tenant_id: int,
+    client_id: int,
+    cosium_id: str | int | None,
+    prescriptions_raw: list,
+) -> OcrDataSummary | None:
+    """Build OCR extraction summary for a client."""
+    if not cosium_id:
+        return None
+
+    # Count extracted documents by type for this customer
+    type_counts = db.execute(
+        select(DocumentExtraction.document_type, sa_func.count()).join(
+            CosiumDocument,
+            (CosiumDocument.cosium_document_id == DocumentExtraction.cosium_document_id)
+            & (CosiumDocument.tenant_id == DocumentExtraction.tenant_id),
+        ).where(
+            DocumentExtraction.tenant_id == tenant_id,
+            CosiumDocument.customer_cosium_id == int(cosium_id),
+            DocumentExtraction.document_type.isnot(None),
+        ).group_by(DocumentExtraction.document_type)
+    ).all()
+
+    if not type_counts:
+        return None
+
+    extraction_counts = [
+        OcrDocumentCount(document_type=row[0], count=row[1])
+        for row in type_counts
+    ]
+    total_extracted = sum(row[1] for row in type_counts)
+
+    # Latest attestation_mutuelle data
+    latest_attestation: OcrMutuelleData | None = None
+    att_extraction = db.scalars(
+        select(DocumentExtraction).join(
+            CosiumDocument,
+            (CosiumDocument.cosium_document_id == DocumentExtraction.cosium_document_id)
+            & (CosiumDocument.tenant_id == DocumentExtraction.tenant_id),
+        ).where(
+            DocumentExtraction.tenant_id == tenant_id,
+            DocumentExtraction.document_type.in_(["attestation_mutuelle", "carte_mutuelle"]),
+            CosiumDocument.customer_cosium_id == int(cosium_id),
+        ).order_by(DocumentExtraction.extracted_at.desc()).limit(1)
+    ).first()
+
+    if att_extraction and att_extraction.structured_data:
+        try:
+            sdata = json.loads(att_extraction.structured_data)
+            if isinstance(sdata, dict):
+                latest_attestation = OcrMutuelleData(
+                    nom_mutuelle=sdata.get("nom_mutuelle") or sdata.get("mutuelle"),
+                    numero_adherent=sdata.get("numero_adherent") or sdata.get("num_adherent"),
+                    code_organisme=sdata.get("code_organisme") or sdata.get("code_amc"),
+                    source_document_type=att_extraction.document_type,
+                    extracted_at=str(att_extraction.extracted_at) if att_extraction.extracted_at else None,
+                )
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    # Check for inconsistencies between OCR and Cosium data
+    inconsistencies: list[OcrInconsistency] = []
+
+    # Compare OCR ordonnance data with Cosium prescriptions
+    ocr_ordonnance = db.scalars(
+        select(DocumentExtraction).join(
+            CosiumDocument,
+            (CosiumDocument.cosium_document_id == DocumentExtraction.cosium_document_id)
+            & (CosiumDocument.tenant_id == DocumentExtraction.tenant_id),
+        ).where(
+            DocumentExtraction.tenant_id == tenant_id,
+            DocumentExtraction.document_type == "ordonnance",
+            CosiumDocument.customer_cosium_id == int(cosium_id),
+            DocumentExtraction.structured_data.isnot(None),
+        ).order_by(DocumentExtraction.extracted_at.desc()).limit(1)
+    ).first()
+
+    if ocr_ordonnance and prescriptions_raw:
+        try:
+            ocr_rx = json.loads(ocr_ordonnance.structured_data)
+            if isinstance(ocr_rx, dict):
+                latest_cosium_rx = prescriptions_raw[0]
+                # Compare prescriber name
+                ocr_prescriber = ocr_rx.get("prescripteur") or ocr_rx.get("medecin") or ""
+                cosium_prescriber = latest_cosium_rx.prescriber_name or ""
+                if (
+                    ocr_prescriber
+                    and cosium_prescriber
+                    and ocr_prescriber.upper().strip() not in cosium_prescriber.upper()
+                    and cosium_prescriber.upper().strip() not in ocr_prescriber.upper()
+                ):
+                    inconsistencies.append(OcrInconsistency(
+                        field="prescripteur",
+                        ocr_value=ocr_prescriber,
+                        cosium_value=cosium_prescriber,
+                        message="Le prescripteur OCR ne correspond pas a celui de Cosium",
+                    ))
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    return OcrDataSummary(
+        extraction_counts=extraction_counts,
+        total_extracted=total_extracted,
+        latest_attestation_mutuelle=latest_attestation,
+        inconsistencies=inconsistencies,
     )
 
 

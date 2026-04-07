@@ -143,6 +143,41 @@ class CorrectionActuelle(BaseModel):
     addition_left: float | None = None
 
 
+class OcrDocumentCount(BaseModel):
+    """Count of OCR-extracted documents by type for a client."""
+
+    document_type: str
+    count: int
+
+
+class OcrMutuelleData(BaseModel):
+    """Mutuelle info extracted from OCR documents."""
+
+    nom_mutuelle: str | None = None
+    numero_adherent: str | None = None
+    code_organisme: str | None = None
+    source_document_type: str | None = None
+    extracted_at: str | None = None
+
+
+class OcrInconsistency(BaseModel):
+    """Data inconsistency between OCR and Cosium."""
+
+    field: str
+    ocr_value: str | None = None
+    cosium_value: str | None = None
+    message: str = ""
+
+
+class OcrDataSummary(BaseModel):
+    """Summary of OCR-extracted data for a client."""
+
+    extraction_counts: list[OcrDocumentCount] = []
+    total_extracted: int = 0
+    latest_attestation_mutuelle: OcrMutuelleData | None = None
+    inconsistencies: list[OcrInconsistency] = []
+
+
 class CosiumDataBundle(BaseModel):
     """All Cosium data for a client in one response."""
 
@@ -155,6 +190,7 @@ class CosiumDataBundle(BaseModel):
     last_visit_date: str | None = None
     customer_tags: list[str] = []
     mutuelles: list[ClientMutuelleResponse] = []
+    ocr_data: OcrDataSummary | None = None
 
 
 class PrescriptionWarning(BaseModel):

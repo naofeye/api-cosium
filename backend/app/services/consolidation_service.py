@@ -366,37 +366,54 @@ def consolidate_client_for_pec(
 
         elif doc_type == "ordonnance":
             # Fill optical data from OCR only if not already from Cosium
-            if not profile.sphere_od and data.get("sphere_od") is not None:
+            # Support both flat keys (sphere_od) and nested OD/OG dicts
+            od_data = data.get("od", {}) if isinstance(data.get("od"), dict) else {}
+            og_data = data.get("og", {}) if isinstance(data.get("og"), dict) else {}
+
+            sphere_od = data.get("sphere_od") or od_data.get("sphere")
+            sphere_og = data.get("sphere_og") or og_data.get("sphere")
+            cylinder_od = data.get("cylinder_od") or od_data.get("cylindre") or od_data.get("cylinder")
+            cylinder_og = data.get("cylinder_og") or og_data.get("cylindre") or og_data.get("cylinder")
+            axis_od = data.get("axis_od") or od_data.get("axe") or od_data.get("axis")
+            axis_og = data.get("axis_og") or og_data.get("axe") or og_data.get("axis")
+            addition_od = data.get("addition_od") or od_data.get("addition")
+            addition_og = data.get("addition_og") or og_data.get("addition")
+
+            if not profile.sphere_od and sphere_od is not None:
                 profile.sphere_od = _make_field(
-                    data["sphere_od"], src, src_label, confidence
+                    sphere_od, src, src_label, confidence
                 )
-            if not profile.sphere_og and data.get("sphere_og") is not None:
+            if not profile.sphere_og and sphere_og is not None:
                 profile.sphere_og = _make_field(
-                    data["sphere_og"], src, src_label, confidence
+                    sphere_og, src, src_label, confidence
                 )
-            if not profile.cylinder_od and data.get("cylinder_od") is not None:
+            if not profile.cylinder_od and cylinder_od is not None:
                 profile.cylinder_od = _make_field(
-                    data["cylinder_od"], src, src_label, confidence
+                    cylinder_od, src, src_label, confidence
                 )
-            if not profile.cylinder_og and data.get("cylinder_og") is not None:
+            if not profile.cylinder_og and cylinder_og is not None:
                 profile.cylinder_og = _make_field(
-                    data["cylinder_og"], src, src_label, confidence
+                    cylinder_og, src, src_label, confidence
                 )
-            if not profile.axis_od and data.get("axis_od") is not None:
+            if not profile.axis_od and axis_od is not None:
                 profile.axis_od = _make_field(
-                    data["axis_od"], src, src_label, confidence
+                    axis_od, src, src_label, confidence
                 )
-            if not profile.axis_og and data.get("axis_og") is not None:
+            if not profile.axis_og and axis_og is not None:
                 profile.axis_og = _make_field(
-                    data["axis_og"], src, src_label, confidence
+                    axis_og, src, src_label, confidence
                 )
-            if not profile.addition_od and data.get("addition_od") is not None:
+            if not profile.addition_od and addition_od is not None:
                 profile.addition_od = _make_field(
-                    data["addition_od"], src, src_label, confidence
+                    addition_od, src, src_label, confidence
                 )
-            if not profile.addition_og and data.get("addition_og") is not None:
+            if not profile.addition_og and addition_og is not None:
                 profile.addition_og = _make_field(
-                    data["addition_og"], src, src_label, confidence
+                    addition_og, src, src_label, confidence
+                )
+            if not profile.ecart_pupillaire and data.get("ecart_pupillaire") is not None:
+                profile.ecart_pupillaire = _make_field(
+                    data["ecart_pupillaire"], src, src_label, confidence
                 )
             if not profile.prescripteur and data.get("prescripteur"):
                 profile.prescripteur = _make_field(
@@ -405,6 +422,25 @@ def consolidate_client_for_pec(
             if not profile.date_ordonnance and data.get("date_ordonnance"):
                 profile.date_ordonnance = _make_field(
                     data["date_ordonnance"], src, src_label, confidence
+                )
+
+        elif doc_type == "devis":
+            # Fill financial data from OCR devis if not already from OptiFlow devis
+            if not profile.montant_ttc and data.get("montant_ttc") is not None:
+                profile.montant_ttc = _make_field(
+                    data["montant_ttc"], src, src_label, confidence
+                )
+            if not profile.part_secu and data.get("part_secu") is not None:
+                profile.part_secu = _make_field(
+                    data["part_secu"], src, src_label, confidence
+                )
+            if not profile.part_mutuelle and data.get("part_mutuelle") is not None:
+                profile.part_mutuelle = _make_field(
+                    data["part_mutuelle"], src, src_label, confidence
+                )
+            if not profile.reste_a_charge and data.get("reste_a_charge") is not None:
+                profile.reste_a_charge = _make_field(
+                    data["reste_a_charge"], src, src_label, confidence
                 )
 
     # 6. Detect missing fields

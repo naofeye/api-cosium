@@ -42,8 +42,16 @@ class DataQualityEntity(BaseModel):
     link_rate: float
 
 
+class ExtractionStats(BaseModel):
+    total_documents: int = 0
+    total_extracted: int = 0
+    extraction_rate: float = 0.0
+    by_type: dict[str, int] = {}
+
+
 class DataQualityResponse(BaseModel):
     invoices: DataQualityEntity
     payments: DataQualityEntity
     documents: DataQualityEntity
     prescriptions: DataQualityEntity
+    extractions: ExtractionStats | None = None

@@ -1,6 +1,8 @@
 """Service for detecting and managing client-mutuelle associations."""
 
-from sqlalchemy import select
+import json
+
+from sqlalchemy import func as sa_func, select
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
@@ -11,8 +13,9 @@ from app.domain.schemas.client_mutuelle import (
     MutuelleDetectionResult,
 )
 from app.models.client import Customer
-from app.models.cosium_data import CosiumInvoice, CosiumThirdPartyPayment
+from app.models.cosium_data import CosiumDocument, CosiumInvoice, CosiumThirdPartyPayment
 from app.models.cosium_reference import CosiumMutuelle
+from app.models.document_extraction import DocumentExtraction
 from app.repositories import client_mutuelle_repo
 
 logger = get_logger("client_mutuelle_service")
@@ -130,11 +133,99 @@ def detect_client_mutuelles(
             },
         })
 
-    # --- Source 3: Try to match with known CosiumMutuelle ---
+    # --- Source 3: OCR extracted documents (attestation_mutuelle, carte_mutuelle) ---
+    ocr_detections = _detect_from_ocr_documents(db, tenant_id, customer_id, cosium_id)
+    detected.extend(ocr_detections)
+
+    # --- Try to match all detections with known CosiumMutuelle ---
     for det in detected:
         _try_match_cosium_mutuelle(db, tenant_id, det)
 
     return detected
+
+
+def _detect_from_ocr_documents(
+    db: Session, tenant_id: int, customer_id: int, cosium_id: str | int | None
+) -> list[dict]:
+    """Detect mutuelles from OCR-extracted attestation_mutuelle and carte_mutuelle documents."""
+    if not cosium_id:
+        return []
+
+    # Find DocumentExtraction rows linked to this customer's CosiumDocuments
+    doc_extractions = db.scalars(
+        select(DocumentExtraction).join(
+            CosiumDocument,
+            (CosiumDocument.cosium_document_id == DocumentExtraction.cosium_document_id)
+            & (CosiumDocument.tenant_id == DocumentExtraction.tenant_id),
+        ).where(
+            DocumentExtraction.tenant_id == tenant_id,
+            DocumentExtraction.document_type.in_(["attestation_mutuelle", "carte_mutuelle"]),
+            CosiumDocument.customer_cosium_id == int(cosium_id),
+        ).order_by(DocumentExtraction.extracted_at.desc())
+    ).all()
+
+    if not doc_extractions:
+        return []
+
+    detected: list[dict] = []
+    seen_mutuelles: set[str] = set()
+
+    for extraction in doc_extractions:
+        structured = _parse_structured_data(extraction.structured_data)
+        if not structured:
+            continue
+
+        nom_mutuelle = (
+            structured.get("nom_mutuelle")
+            or structured.get("mutuelle")
+            or structured.get("organisme")
+            or ""
+        )
+        if not nom_mutuelle:
+            continue
+
+        # Deduplicate by mutuelle name (case-insensitive)
+        key = nom_mutuelle.upper().strip()
+        if key in seen_mutuelles:
+            continue
+        seen_mutuelles.add(key)
+
+        numero_adherent = (
+            structured.get("numero_adherent")
+            or structured.get("num_adherent")
+            or structured.get("numero_contrat")
+        )
+        code_organisme = (
+            structured.get("code_organisme")
+            or structured.get("code_amc")
+        )
+
+        detected.append({
+            "mutuelle_name": nom_mutuelle.strip(),
+            "source": "document_ocr",
+            "confidence": 0.9,
+            "numero_adherent": numero_adherent,
+            "extra": {
+                "document_type": extraction.document_type,
+                "code_organisme": code_organisme,
+                "extraction_id": extraction.id,
+            },
+        })
+
+    return detected
+
+
+def _parse_structured_data(raw: str | None) -> dict | None:
+    """Safely parse JSON structured_data from a DocumentExtraction."""
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+        if isinstance(data, dict):
+            return data
+    except (json.JSONDecodeError, TypeError):
+        pass
+    return None
 
 
 def _try_match_cosium_mutuelle(
@@ -145,13 +236,26 @@ def _try_match_cosium_mutuelle(
     if not mutuelle_name:
         return
 
-    # Try exact match on name
+    # Try ILIKE match on name
     cosium_mut = db.scalars(
         select(CosiumMutuelle).where(
             CosiumMutuelle.tenant_id == tenant_id,
             CosiumMutuelle.hidden.is_(False),
+            sa_func.upper(CosiumMutuelle.name).contains(mutuelle_name.upper().strip()),
         ).limit(1)
     ).first()
+
+    # Fallback: try matching by code_organisme from OCR extra data
+    if not cosium_mut:
+        code_organisme = (detection.get("extra") or {}).get("code_organisme")
+        if code_organisme:
+            cosium_mut = db.scalars(
+                select(CosiumMutuelle).where(
+                    CosiumMutuelle.tenant_id == tenant_id,
+                    CosiumMutuelle.hidden.is_(False),
+                    CosiumMutuelle.code == str(code_organisme),
+                ).limit(1)
+            ).first()
 
     if cosium_mut:
         detection["mutuelle_id"] = cosium_mut.id
@@ -174,7 +278,23 @@ def detect_all_clients_mutuelles(
         .group_by(CosiumInvoice.customer_id)
     ).all()
 
-    unique_customer_ids = list({cid for cid in customer_ids_with_invoices if cid})
+    # Also get customers with OCR-extracted mutuelle documents
+    customer_ids_with_ocr_docs = db.scalars(
+        select(CosiumDocument.customer_id).join(
+            DocumentExtraction,
+            (CosiumDocument.cosium_document_id == DocumentExtraction.cosium_document_id)
+            & (CosiumDocument.tenant_id == DocumentExtraction.tenant_id),
+        ).where(
+            CosiumDocument.tenant_id == tenant_id,
+            CosiumDocument.customer_id.isnot(None),
+            DocumentExtraction.document_type.in_(["attestation_mutuelle", "carte_mutuelle"]),
+        ).group_by(CosiumDocument.customer_id)
+    ).all()
+
+    unique_customer_ids = list(
+        {cid for cid in customer_ids_with_invoices if cid}
+        | {cid for cid in customer_ids_with_ocr_docs if cid}
+    )
     result.total_clients_scanned = len(unique_customer_ids)
 
     for cust_id in unique_customer_ids:
@@ -197,7 +317,7 @@ def detect_all_clients_mutuelles(
                     result.existing_mutuelles_skipped += 1
                     continue
 
-                client_mutuelle_repo.create(db, {
+                create_data: dict = {
                     "tenant_id": tenant_id,
                     "customer_id": cust_id,
                     "mutuelle_id": det.get("mutuelle_id"),
@@ -205,7 +325,10 @@ def detect_all_clients_mutuelles(
                     "source": det["source"],
                     "confidence": det["confidence"],
                     "active": True,
-                })
+                }
+                if det.get("numero_adherent"):
+                    create_data["numero_adherent"] = det["numero_adherent"]
+                client_mutuelle_repo.create(db, create_data)
                 result.new_mutuelles_created += 1
 
         except Exception as exc:
