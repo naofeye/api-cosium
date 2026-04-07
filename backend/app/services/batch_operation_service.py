@@ -1,10 +1,10 @@
-"""Batch PEC operation service — OptiSante bulk processing.
+"""Batch PEC operation service — Journees entreprise bulk processing.
 
 Orchestrates batch creation, consolidation, pre-control, and PEC preparation
 for all clients linked to a marketing code (Cosium tag).
 """
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -20,6 +20,7 @@ from app.domain.schemas.batch_operation import (
 )
 from app.models.batch_operation import BatchOperation, BatchOperationItem
 from app.models.client import Customer
+from app.models.client_mutuelle import ClientMutuelle
 from app.models.cosium_reference import CosiumCustomerTag, CosiumTag
 from app.repositories import batch_operation_repo
 from app.services import consolidation_service, pec_preparation_service
@@ -27,20 +28,83 @@ from app.services import consolidation_service, pec_preparation_service
 logger = get_logger("batch_operation_service")
 
 
+def _apply_date_filter(
+    stmt,
+    tenant_id: int,
+    date_from: date | None,
+    date_to: date | None,
+):
+    """Narrow a Customer query by last invoice date or customer creation date.
+
+    Factures link to customers through cases (facture.case_id -> case.customer_id).
+    """
+    if not date_from and not date_to:
+        return stmt
+
+    from app.models.case import Case
+    from app.models.facture import Facture
+
+    # Sub-query: customers with an invoice in the date range (via case)
+    inv_sq = (
+        select(Case.customer_id)
+        .join(Facture, Facture.case_id == Case.id)
+        .where(Case.tenant_id == tenant_id)
+    )
+    if date_from:
+        inv_sq = inv_sq.where(Facture.date_emission >= datetime.combine(date_from, datetime.min.time()))
+    if date_to:
+        inv_sq = inv_sq.where(Facture.date_emission <= datetime.combine(date_to, datetime.max.time()))
+    inv_sq = inv_sq.distinct().subquery()
+
+    # Also include customers created in the date range (no invoice yet)
+    cust_created = select(Customer.id).where(Customer.tenant_id == tenant_id)
+    if date_from:
+        cust_created = cust_created.where(Customer.created_at >= datetime.combine(date_from, datetime.min.time()))
+    if date_to:
+        cust_created = cust_created.where(Customer.created_at <= datetime.combine(date_to, datetime.max.time()))
+    cust_created = cust_created.subquery()
+
+    stmt = stmt.where(
+        Customer.id.in_(select(inv_sq.c.customer_id))
+        | Customer.id.in_(select(cust_created.c.id))
+    )
+    return stmt
+
+
 def get_available_marketing_codes(
-    db: Session, tenant_id: int
+    db: Session,
+    tenant_id: int,
+    date_from: date | None = None,
+    date_to: date | None = None,
 ) -> list[MarketingCodeResponse]:
-    """List all marketing codes (tags) with client counts."""
-    stmt = (
+    """List all marketing codes (tags) with client counts.
+
+    When date_from/date_to are provided, only count clients who had an invoice
+    or were created within that date range.
+    """
+    base_stmt = (
         select(
             CosiumCustomerTag.tag_code,
             func.count(CosiumCustomerTag.id).label("cnt"),
         )
-        .where(CosiumCustomerTag.tenant_id == tenant_id)
-        .group_by(CosiumCustomerTag.tag_code)
-        .order_by(func.count(CosiumCustomerTag.id).desc())
+        .join(
+            Customer,
+            (CosiumCustomerTag.customer_id == Customer.id)
+            & (CosiumCustomerTag.tenant_id == Customer.tenant_id),
+        )
+        .where(
+            CosiumCustomerTag.tenant_id == tenant_id,
+            Customer.deleted_at.is_(None),
+        )
     )
-    rows = db.execute(stmt).all()
+
+    if date_from or date_to:
+        base_stmt = _apply_date_filter(base_stmt, tenant_id, date_from, date_to)
+
+    base_stmt = base_stmt.group_by(CosiumCustomerTag.tag_code).order_by(
+        func.count(CosiumCustomerTag.id).desc()
+    )
+    rows = db.execute(base_stmt).all()
 
     # Fetch tag descriptions from CosiumTag
     tag_codes = [r[0] for r in rows]
@@ -64,9 +128,17 @@ def get_available_marketing_codes(
 
 
 def find_clients_by_marketing_code(
-    db: Session, tenant_id: int, marketing_code: str
+    db: Session,
+    tenant_id: int,
+    marketing_code: str,
+    date_from: date | None = None,
+    date_to: date | None = None,
 ) -> list[Customer]:
-    """Find all customers linked to a marketing code (Cosium tag)."""
+    """Find all customers linked to a marketing code (Cosium tag).
+
+    When date_from/date_to are provided, only include clients who had an invoice
+    or were created within that date range.
+    """
     stmt = (
         select(Customer)
         .join(
@@ -80,7 +152,21 @@ def find_clients_by_marketing_code(
             Customer.deleted_at.is_(None),
         )
     )
+
+    if date_from or date_to:
+        stmt = _apply_date_filter(stmt, tenant_id, date_from, date_to)
+
     return list(db.scalars(stmt).all())
+
+
+def get_batch_by_id(
+    db: Session, tenant_id: int, batch_id: int
+) -> BatchOperationResponse:
+    """Get a single batch by ID, raising NotFoundError if missing."""
+    batch = batch_operation_repo.get_batch_by_id(db, batch_id, tenant_id)
+    if not batch:
+        raise NotFoundError("batch_operation", batch_id)
+    return BatchOperationResponse.model_validate(batch)
 
 
 def create_batch(
@@ -89,9 +175,13 @@ def create_batch(
     marketing_code: str,
     label: str | None,
     user_id: int,
+    date_from: date | None = None,
+    date_to: date | None = None,
 ) -> BatchOperationResponse:
     """Create a batch operation for a marketing code."""
-    clients = find_clients_by_marketing_code(db, tenant_id, marketing_code)
+    clients = find_clients_by_marketing_code(
+        db, tenant_id, marketing_code, date_from, date_to
+    )
 
     batch = batch_operation_repo.create_batch(
         db,
@@ -305,6 +395,91 @@ def get_batch_summary(
         batch=BatchOperationResponse.model_validate(batch),
         items=item_responses,
     )
+
+
+def get_batch_summary_enriched(
+    db: Session, tenant_id: int, batch_id: int
+) -> dict:
+    """Get batch summary with enriched customer data for Excel export.
+
+    Returns a dict with 'batch' (BatchOperationResponse) and 'items' (list of dicts
+    containing customer_name, phone, email, social_security_number, mutuelle_name,
+    plus standard item fields).
+    """
+    batch = batch_operation_repo.get_batch_by_id(db, batch_id, tenant_id)
+    if not batch:
+        raise NotFoundError("batch_operation", batch_id)
+
+    items = batch_operation_repo.get_items_by_batch(db, batch.id)
+
+    # Fetch customer details
+    customer_ids = [i.customer_id for i in items]
+    customers_map: dict[int, dict] = {}
+    if customer_ids:
+        rows = db.execute(
+            select(
+                Customer.id,
+                Customer.first_name,
+                Customer.last_name,
+                Customer.phone,
+                Customer.email,
+                Customer.social_security_number,
+            ).where(Customer.id.in_(customer_ids))
+        ).all()
+        for cid, fn, ln, phone, email, ssn in rows:
+            customers_map[cid] = {
+                "name": f"{fn} {ln}".strip(),
+                "phone": phone or "",
+                "email": email or "",
+                "social_security_number": ssn or "",
+            }
+
+    # Fetch mutuelle names
+    mutuelle_map: dict[int, str] = {}
+    if customer_ids:
+        mut_rows = db.execute(
+            select(
+                ClientMutuelle.customer_id,
+                ClientMutuelle.mutuelle_name,
+            )
+            .where(
+                ClientMutuelle.customer_id.in_(customer_ids),
+                ClientMutuelle.tenant_id == tenant_id,
+                ClientMutuelle.active.is_(True),
+            )
+            .order_by(ClientMutuelle.customer_id)
+        ).all()
+        for cust_id, mut_name in mut_rows:
+            if cust_id not in mutuelle_map:
+                mutuelle_map[cust_id] = mut_name
+
+    enriched_items = []
+    for i in items:
+        cust = customers_map.get(i.customer_id, {})
+        enriched_items.append({
+            "id": i.id,
+            "batch_id": i.batch_id,
+            "customer_id": i.customer_id,
+            "customer_name": cust.get("name", f"Client #{i.customer_id}"),
+            "phone": cust.get("phone", ""),
+            "email": cust.get("email", ""),
+            "social_security_number": cust.get("social_security_number", ""),
+            "mutuelle_name": mutuelle_map.get(i.customer_id, ""),
+            "status": i.status,
+            "completude_score": i.completude_score,
+            "errors_count": i.errors_count,
+            "warnings_count": i.warnings_count,
+            "pec_preparation_id": i.pec_preparation_id,
+            "error_message": i.error_message,
+            "processed_at": (
+                i.processed_at.strftime("%d/%m/%Y %H:%M") if i.processed_at else ""
+            ),
+        })
+
+    return {
+        "batch": BatchOperationResponse.model_validate(batch),
+        "items": enriched_items,
+    }
 
 
 def list_batches(

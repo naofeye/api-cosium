@@ -105,10 +105,10 @@ export default function BatchDetailPage() {
   if (isLoading) {
     return (
       <PageLayout
-        title="Lot OptiSante"
+        title="Lot operations"
         breadcrumb={[
-          { label: "OptiSante", href: "/optisante" },
-          { label: "Historique", href: "/optisante/historique" },
+          { label: "Journees entreprise", href: "/operations-batch" },
+          { label: "Historique", href: "/operations-batch/historique" },
           { label: `Lot #${batchId}` },
         ]}
       >
@@ -120,10 +120,10 @@ export default function BatchDetailPage() {
   if (fetchError || !batchSummary) {
     return (
       <PageLayout
-        title="Lot OptiSante"
+        title="Lot operations"
         breadcrumb={[
-          { label: "OptiSante", href: "/optisante" },
-          { label: "Historique", href: "/optisante/historique" },
+          { label: "Journees entreprise", href: "/operations-batch" },
+          { label: "Historique", href: "/operations-batch/historique" },
           { label: `Lot #${batchId}` },
         ]}
       >
@@ -147,8 +147,8 @@ export default function BatchDetailPage() {
       title={`Lot #${batch.id} — ${batch.marketing_code}`}
       description={batch.label || undefined}
       breadcrumb={[
-        { label: "OptiSante", href: "/optisante" },
-        { label: "Historique", href: "/optisante/historique" },
+        { label: "Journees entreprise", href: "/operations-batch" },
+        { label: "Historique", href: "/operations-batch/historique" },
         { label: `Lot #${batch.id}` },
       ]}
     >

@@ -26,21 +26,21 @@ function formatDate(dateStr: string | null): string {
   }
 }
 
-export default function OptiSanteHistoriquePage() {
+export default function BatchHistoriquePage() {
   const router = useRouter();
   const { data, error, isLoading } = useSWR<BatchOperation[]>("/batch/operations");
 
   return (
     <PageLayout
-      title="Historique des lots OptiSante"
+      title="Historique des lots Journees entreprise"
       description="Tous les traitements batch passes"
       breadcrumb={[
-        { label: "OptiSante", href: "/optisante" },
+        { label: "Journees entreprise", href: "/operations-batch" },
         { label: "Historique" },
       ]}
       actions={
         <Link
-          href="/optisante"
+          href="/operations-batch"
           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
@@ -63,7 +63,7 @@ export default function OptiSanteHistoriquePage() {
           description="Aucun traitement batch n'a ete effectue pour le moment."
           action={
             <Link
-              href="/optisante"
+              href="/operations-batch"
               className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
             >
               Creer un lot
@@ -90,7 +90,7 @@ export default function OptiSanteHistoriquePage() {
               {data.map((op) => (
                 <tr
                   key={op.id}
-                  onClick={() => router.push(`/optisante/${op.id}`)}
+                  onClick={() => router.push(`/operations-batch/${op.id}`)}
                   className="border-b border-border last:border-0 hover:bg-gray-50 cursor-pointer"
                 >
                   <td className="px-4 py-3 text-text-primary">{formatDate(op.started_at)}</td>

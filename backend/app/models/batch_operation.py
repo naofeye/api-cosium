@@ -1,4 +1,4 @@
-"""Models for batch PEC operations (OptiSante).
+"""Models for batch PEC operations (Journees entreprise).
 
 BatchOperation groups multiple clients for bulk PEC preparation.
 BatchOperationItem tracks per-client status within a batch.
@@ -26,7 +26,7 @@ class BatchOperation(Base):
         ForeignKey("tenants.id"), nullable=False, index=True
     )
     type: Mapped[str] = mapped_column(
-        String(50), nullable=False, default="optisante"
+        String(50), nullable=False, default="batch_entreprise"
     )
     marketing_code: Mapped[str] = mapped_column(
         String(255), nullable=False

@@ -97,10 +97,10 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    key: "optisante",
-    label: "OptiSante",
+    key: "operations-batch",
+    label: "Journees entreprise",
     items: [
-      { href: "/optisante", label: "OptiSante", icon: Briefcase },
+      { href: "/operations-batch", label: "Journees entreprise", icon: Briefcase },
     ],
   },
   {

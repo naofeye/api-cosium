@@ -50,7 +50,7 @@ function CompletionBar({ score }: { score: number }) {
   );
 }
 
-export default function OptiSantePage() {
+export default function BatchOperationsPage() {
   const [step, setStep] = useState<Step>("select");
   const [selectedCode, setSelectedCode] = useState("");
   const [operationLabel, setOperationLabel] = useState("");
@@ -170,12 +170,12 @@ export default function OptiSantePage() {
 
   return (
     <PageLayout
-      title="OptiSante — Journees en entreprise"
+      title="Journees entreprise — Journees en entreprise"
       description="Traitement batch des dossiers PEC par code marketing"
-      breadcrumb={[{ label: "OptiSante", href: "/optisante" }]}
+      breadcrumb={[{ label: "Journees entreprise", href: "/operations-batch" }]}
       actions={
         <Link
-          href="/optisante/historique"
+          href="/operations-batch/historique"
           className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-text-primary hover:bg-gray-50 transition-colors"
         >
           <History className="h-4 w-4" aria-hidden="true" />

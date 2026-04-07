@@ -1,6 +1,6 @@
 """Pydantic schemas for batch PEC operations."""
 
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -10,6 +10,12 @@ class BatchCreateRequest(BaseModel):
 
     marketing_code: str = Field(..., min_length=1, max_length=255, description="Code marketing (tag Cosium)")
     label: str | None = Field(None, max_length=255, description="Label descriptif de l'operation")
+    date_from: date | None = Field(
+        None, description="Date debut pour filtrer les clients (derniere facture ou creation)"
+    )
+    date_to: date | None = Field(
+        None, description="Date fin pour filtrer les clients (derniere facture ou creation)"
+    )
 
 
 class BatchItemResponse(BaseModel):
