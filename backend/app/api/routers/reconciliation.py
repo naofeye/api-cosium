@@ -127,6 +127,7 @@ def list_anomalies(
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> dict:
     import json
+
     from app.repositories import reconciliation_repo
     items, total = reconciliation_repo.get_anomalous_reconciliations(
         db, tenant_ctx.tenant_id, page, page_size,

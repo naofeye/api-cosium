@@ -66,6 +66,6 @@ def process_batch_async(self, tenant_id: int, batch_id: int, user_id: int) -> di
             batch_id=batch_id,
             error=str(exc),
         )
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc
     finally:
         db.close()

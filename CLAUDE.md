@@ -4,8 +4,8 @@
 
 **Au demarrage, TOUJOURS executer l'ETAPE 0 (health check) puis reprendre la prochaine etape non cochee.**
 
-1. **ETAPE 0 OBLIGATOIRE** : Execute d'abord l'etape 0 de `TODO.md` (verification environnement : Docker, services, API, frontend). Meme si l'etape 0 est deja cochee [x], la re-executer a chaque nouvelle session. Si un service echoue, corriger AVANT de continuer.
-2. Ouvre `TODO.md` et cherche la premiere ligne `## ETAPE X : ... [ ]` (prochaine etape non cochee)
+1. **ETAPE 0 OBLIGATOIRE** : Execute un health check (verification environnement : Docker, services, API, frontend). Si un service echoue, corriger AVANT de continuer.
+2. Lis les instructions de l'utilisateur et execute les taches demandees
 3. Lis le bloc de contexte (fichiers a lire, specs de reference)
 4. Execute chaque sous-tache `- [ ]` dans l'ordre
 5. Quand une sous-tache est terminee, coche-la : `- [x]`
@@ -626,7 +626,7 @@ const STATUS_COLORS = {
 ### Specs de reference frontend
 
 - Cadrage frontend : `docs/specs/05_Cadrage_Frontend_Premium_OptiFlow_AI.md`
-- Plan ecrans : `docs/specs/16_Plan_Ecrans_Frontend_OptiFlow_AI.md`
+- Plan ecrans : *(supprime lors du nettoyage — voir docs/specs/ pour les specs restantes)*
 
 ---
 
@@ -643,7 +643,7 @@ const STATUS_COLORS = {
 - ETAPE 15 : reminder_plans, reminders, reminder_templates
 - ETAPE 16 : marketing_consents, segments, segment_memberships, campaigns, message_logs
 
-Schema complet dans : `docs/specs/20_Schema_SQL_Initial_OptiFlow_AI.md`
+Schema complet dans : *(supprime — le schema est defini dans les modeles SQLAlchemy : backend/app/models/)*
 
 ## Etat actuel du code
 
@@ -678,33 +678,18 @@ Schema complet dans : `docs/specs/20_Schema_SQL_Initial_OptiFlow_AI.md`
 
 ## Documentation de reference
 
-### Specs generales
+### Specs disponibles (docs/specs/)
 - Vision produit : `docs/specs/01_Vision_Produit_OptiFlow_AI.md`
 - Cadrage fonctionnel : `docs/specs/02_Cadrage_Metier_Fonctionnel_OptiFlow_AI.md`
 - Architecture : `docs/specs/03_Architecture_Logicielle_Technique_OptiFlow_AI.md`
-- PRD maitre : `docs/specs/13_PRD_Maitre_OptiFlow_AI.md`
-- Specs API : `docs/specs/14_API_Specs_OptiFlow_AI.md`
-
-### Specs par domaine
 - Cadrage frontend : `docs/specs/05_Cadrage_Frontend_Premium_OptiFlow_AI.md`
 - Paiements & rapprochement : `docs/specs/06_Spec_Paiements_Rapprochement_OptiFlow_AI.md`
 - Mutuelles & PEC : `docs/specs/07_Spec_Mutuelles_SecuriteSociale_TiersPayant_OptiFlow_AI.md`
 - Marketing & CRM : `docs/specs/08_Spec_Marketing_CRM_OptiFlow_AI.md`
-- GED & documents : `docs/specs/09_Spec_GED_Documents_OptiFlow_AI.md`
-
-### Donnees et planning
+- GED & documents : `docs/specs/09_Spec_GED_Cosium_Documents_OptiFlow_AI.md`
 - Modele de donnees : `docs/specs/10_Modele_Donnees_Detaille_OptiFlow_AI.md`
-- Schema SQL : `docs/specs/20_Schema_SQL_Initial_OptiFlow_AI.md`
-- Plan ecrans frontend : `docs/specs/16_Plan_Ecrans_Frontend_OptiFlow_AI.md`
-- Backlog sprints : `docs/specs/18_Backlog_Sprint_OptiFlow_AI.md`
-- User stories : `docs/specs/19_User_Stories_Criteres_Acceptation_OptiFlow_AI.md`
 
-### Cosium
-- Base connaissances Cosium : `docs/cosium/BASE_CONNAISSANCES_COSIUM.md`
-- APIs Cosium (PDFs) : `docs/cosium/`
-
-### Directives
-- Directives Claude CLI : `docs/directives/`
+*Note : Les specs 13-23, docs/cosium/, et docs/directives/ ont ete supprimes lors du nettoyage. Le code source fait reference.*
 
 ## Architecture Multi-tenant — Design pour groupe d'opticiens (ETAPE 22)
 

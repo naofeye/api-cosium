@@ -18,7 +18,6 @@ from app.domain.schemas.batch_operation import (
     BatchSummaryResponse,
     MarketingCodeResponse,
 )
-from app.models.batch_operation import BatchOperation, BatchOperationItem
 from app.models.client import Customer
 from app.models.client_mutuelle import ClientMutuelle
 from app.models.cosium_reference import CosiumCustomerTag, CosiumTag

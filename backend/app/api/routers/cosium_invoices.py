@@ -9,8 +9,8 @@ from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.cosium_invoices import (
     CosiumInvoiceListResponse,
-    CosiumInvoiceTotalsByType,
     CosiumInvoiceTotals,
+    CosiumInvoiceTotalsByType,
 )
 from app.services import cosium_invoice_service
 

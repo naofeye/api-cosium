@@ -24,7 +24,7 @@ from app.domain.schemas.reconciliation import (
     PaymentMatch,
     ReconciliationSummary,
 )
-from app.models.cosium_data import CosiumInvoice, CosiumPayment
+from app.models.cosium_data import CosiumPayment
 from app.repositories import reconciliation_repo
 
 logger = get_logger("reconciliation_service")
@@ -172,13 +172,6 @@ def reconcile_customer_dossier(
     payments = reconciliation_repo.get_payments_by_customer(
         db, tenant_id, customer_id=customer_id, customer_cosium_id=cosium_id,
     )
-
-    # Load third-party payment info
-    invoice_cosium_ids = [i.cosium_id for i in invoices]
-    tpp_list = reconciliation_repo.get_third_party_payments_for_invoices(
-        db, tenant_id, invoice_cosium_ids,
-    )
-    tpp_by_invoice = {tpp.invoice_cosium_id: tpp for tpp in tpp_list}
 
     # Group payments by category
     secu_payments = [p for p in payments if _classify_payment(p.type) == "secu"]

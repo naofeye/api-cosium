@@ -3,8 +3,8 @@
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models.cosium_data import CosiumInvoice, CosiumPayment, CosiumThirdPartyPayment
 from app.models.client import Customer
+from app.models.cosium_data import CosiumInvoice, CosiumPayment, CosiumThirdPartyPayment
 from app.models.reconciliation import DossierReconciliation
 
 
