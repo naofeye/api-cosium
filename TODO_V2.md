@@ -11,19 +11,19 @@
 > Objectif : corriger les problemes introduits ou reveles par le refactoring
 
 ### 1.1 db.query restants dans les routers [ELEVE]
-- [ ] `api/routers/auth.py:163` — `logout_all()` utilise `db.query(RefreshToken)` → remplacer par `refresh_token_repo.revoke_all_for_user()`
-- [ ] `api/routers/admin_health.py:38,235` — `_check_cosium_status()` et `test_cosium_connection()` utilisent `db.query(Tenant)` → deplacer dans le service
+- [x] `api/routers/auth.py` — `logout_all()` migre vers `refresh_token_repo.revoke_all_for_user()`
+- [x] `api/routers/admin_health.py` — `db.query(Tenant)` remplace par `onboarding_repo`
 
 ### 1.2 db.query restants dans les tasks [ELEVE]
-- [ ] `tasks/sync_tasks.py:41,175,334` — `db.query(Tenant).filter(...)` → utiliser `onboarding_repo.get_tenant_by_id()` ou creer un `tenant_repo`
-- [ ] `tasks/sync_tasks.py:202,373` — `db.query(TenantUser)` → utiliser `tenant_user_repo`
-- [ ] `tasks/sync_tasks.py:387` — `db.query(Notification)` → creer `notification_repo.exists_recent()` ou laisser (1 query)
+- [x] `tasks/sync_tasks.py` — `db.query(Tenant)` remplace par `onboarding_repo.get_active_cosium_tenants()`
+- [x] `tasks/sync_tasks.py` — `db.query(TenantUser)` remplace par `tenant_user_repo`
+- [x] `tasks/sync_tasks.py:387` — `db.query(Notification)` acceptable (1 query notification, pattern simple)
 
 ### 1.3 Repo avec syntaxe legacy [FAIBLE]
-- [ ] `repositories/refresh_token_repo.py:41` — `db.query(RefreshToken).update()` → migrer vers SQLAlchemy 2.0 `update()` statement
+- [x] `repositories/refresh_token_repo.py` — Modernise vers SQLAlchemy 2.0 `update()` statement
 
 ### 1.4 Composant frontend orphelin [FAIBLE]
-- [ ] `frontend/src/app/dashboard/components/CosiumDataSection.tsx` — Non importe nulle part → supprimer
+- [x] `CosiumDataSection.tsx` supprime (orphelin confirme)
 
 ---
 
@@ -31,15 +31,15 @@
 > Objectif : corriger les textes utilisateur avec accents manquants
 
 ### 2.1 Fichiers frontend avec accents manquants [MOYEN]
-- [ ] `components/ui/ErrorBoundary.tsx` — 8 corrections : rencontree, passe→passe, prevu→prevu, entiere, Reessayer, details
-- [ ] `app/onboarding/steps/StepImport.tsx` — 3 corrections : succes→succes, Reessayer, etape
-- [ ] `app/reset-password/page.tsx` — 4 corrections : caracteres, succes, redirige, Repetez
-- [ ] `app/login/page.tsx` — 1 correction : oublie→oublie
-- [ ] `app/factures/[id]/page.tsx` — 1 correction : entierement
-- [ ] `app/onboarding/helpers.ts` — 1 correction : caracteres
-- [ ] `app/onboarding/steps/StepAccount.tsx` — 1 correction : caracteres
-- [ ] `app/settings/page.tsx` — 1 correction : caracteres
-- [ ] `app/admin/users/components/CreateUserDialog.tsx` — 1 correction : caracteres
+- [x] `components/ui/ErrorBoundary.tsx` — 8 corrections accents
+- [x] `app/onboarding/steps/StepImport.tsx` — 3 corrections
+- [x] `app/reset-password/page.tsx` — 4 corrections
+- [x] `app/login/page.tsx` — 1 correction
+- [x] `app/factures/[id]/page.tsx` — 1 correction
+- [x] `app/onboarding/helpers.ts` — 1 correction
+- [x] `app/onboarding/steps/StepAccount.tsx` — 1 correction
+- [x] `app/settings/page.tsx` — 1 correction
+- [x] `app/admin/users/components/CreateUserDialog.tsx` — 1 correction
 
 ---
 
@@ -47,28 +47,27 @@
 > Objectif : securiser le deploiement en production
 
 ### 3.1 Scripts de deploiement [ELEVE]
-- [ ] `scripts/backup_db.sh:24` — Remplacer `-U optiflow` hardcode par `${POSTGRES_USER:-optiflow}`
-- [ ] `scripts/restore_db.sh:35` — Idem pour les credentials hardcodes
-- [ ] `scripts/deploy.sh` — Ajouter une validation des variables d'environnement obligatoires avant deploiement
-- [ ] `scripts/deploy.sh:17-18` — Utiliser `${POSTGRES_USER}` au lieu de `optiflow` hardcode
+- [x] `scripts/backup_db.sh` — Credentials parametrables `${POSTGRES_USER:-optiflow}`
+- [x] `scripts/restore_db.sh` — Idem
+- [x] `scripts/deploy.sh` — Validation env vars (JWT_SECRET, ENCRYPTION_KEY) + credentials parametrables
 
 ### 3.2 Docker Compose production [ELEVE]
-- [ ] `docker-compose.prod.yml` — MinIO expose sur `0.0.0.0` → restreindre a `127.0.0.1:9000:9000` ou supprimer en faveur de S3 manage
+- [x] `docker-compose.prod.yml` — MinIO restreint a `127.0.0.1:9000:9000` et `127.0.0.1:9001:9001`
 - [ ] Documenter dans DEPLOY.md que MinIO en prod est pour du self-hosted uniquement
 
 ### 3.3 Nginx securite [MOYEN]
-- [ ] `nginx/nginx.conf:32` — CSP avec `unsafe-inline` et `unsafe-eval` → documenter pourquoi (Next.js) ou migrer vers nonces
-- [ ] `nginx/nginx.conf` — Ajouter un commentaire plus explicite : `# CHANGER: your-domain.com -> votre-domaine.com`
+- [ ] `nginx/nginx.conf:32` — CSP avec `unsafe-inline`/`unsafe-eval` necessaire pour Next.js (documenter)
+- [x] `nginx/nginx.conf` — Commentaire explicite ajoute pour le domaine
 
 ### 3.4 CI/CD corrections [MOYEN]
-- [ ] `.github/workflows/ci.yml` — Ajouter `ENCRYPTION_KEY` dans le job `security-check`
-- [ ] `.github/workflows/ci.yml` — Ajouter une etape `alembic upgrade head` dans `backend-tests` pour verifier les migrations
-- [ ] `.github/workflows/ci.yml` — Ajouter une verification `.gitignore` (pas d'artefacts commites)
+- [x] `.github/workflows/ci.yml` — `ENCRYPTION_KEY` ajoute dans `security-check`
+- [x] `.github/workflows/ci.yml` — `alembic upgrade head` ajoute dans `backend-tests`
+- [ ] `.github/workflows/ci.yml` — Verification `.gitignore` (amelioration progressive)
 
 ### 3.5 Documentation [FAIBLE]
-- [ ] `CLAUDE.md:42` — Mettre a jour : "Migrations : Alembic (configure, utilise upgrade head)" au lieu de "a configurer, create_all"
-- [ ] `.gitignore` — Ajouter `**/.env*.local` et `**/*.pid`
-- [ ] DEPLOY.md — Clarifier que `-B` dans le worker gere le beat scheduling en prod
+- [x] `CLAUDE.md` — Mis a jour : "Migrations : Alembic (configure, upgrade head)"
+- [x] `.gitignore` — `**/*.pid` et `celerybeat-schedule*` ajoutes
+- [ ] DEPLOY.md — Clarifier que `-B` gere le beat en prod
 
 ---
 
@@ -157,14 +156,14 @@
 
 | Phase | Description | Taches | Priorite |
 |-------|-------------|--------|----------|
-| Phase 1 | Bugs post-refactoring | 7 | ELEVE |
-| Phase 2 | Accents francais | 9 | MOYEN |
-| Phase 3 | Infrastructure production | 11 | ELEVE |
-| Phase 4 | Services/pages > 300l | 14 | MOYEN |
-| Phase 5 | DB commits dans repos | 4 | MOYEN |
-| Phase 6 | Tests E2E et validation | 10 | MOYEN |
-| Phase 7 | Ameliorations progressives | 12 | FAIBLE |
-| **TOTAL** | | **67** | |
+| Phase 1 | Bugs post-refactoring | 7/7 | **FAIT** |
+| Phase 2 | Accents francais | 9/9 | **FAIT** |
+| Phase 3 | Infrastructure production | 8/11 | 73% |
+| Phase 4 | Services/pages > 300l | 14/14 | **FAIT** |
+| Phase 5 | DB commits dans repos | 2/4 | 50% |
+| Phase 6 | Tests E2E et validation | 0/10 | 0% (Docker) |
+| Phase 7 | Ameliorations progressives | 2/12 | 17% |
+| **TOTAL** | | **42/67** | **63%** |
 
 ---
 
