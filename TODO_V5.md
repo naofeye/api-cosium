@@ -11,17 +11,17 @@
 > Vulnerabilites exploitables trouvees par pentest
 
 ### 1.1 JWT Role Mismatch [CRITIQUE]
-- [ ] `services/auth_service.py:116` — Le JWT encode `user.role` (global) au lieu de `tenant_user.role` (par tenant) → utiliser le role du TenantUser default_tenant
-- [ ] `services/admin_user_service.py:68` — A la creation d'un user, `User.role` prend la valeur du payload mais devrait toujours etre "user" (le role reel est dans TenantUser)
+- [x] `services/auth_service.py:116` — Le JWT encode `user.role` (global) au lieu de `tenant_user.role` (par tenant) → utiliser le role du TenantUser default_tenant
+- [x] `services/admin_user_service.py:68` — A la creation d'un user, `User.role` prend la valeur du payload mais devrait toujours etre "user" (le role reel est dans TenantUser)
 
 ### 1.2 Race condition signup [ELEVE]
-- [ ] `services/onboarding_service.py` — La generation de slug unique n'est pas atomique → ajouter UNIQUE constraint sur tenant.slug + try/catch/retry
+- [x] `services/onboarding_service.py` — La generation de slug unique n'est pas atomique → ajouter UNIQUE constraint sur tenant.slug + try/catch/retry
 
 ### 1.3 File upload magic bytes [MOYEN]
 - [ ] `services/document_service.py` — Validation par extension + MIME seulement → ajouter verification magic bytes avec `python-magic` ou signature manuelle
 
 ### 1.4 Rate limiting manquant [MOYEN]
-- [ ] `core/rate_limiter.py` — Ajouter rate limit sur PEC status change, batch task submission, et bulk import
+- [x] `core/rate_limiter.py` — Ajouter rate limit sur PEC status change, batch task submission, et bulk import
 
 ---
 
@@ -29,21 +29,21 @@
 > Validation metier manquante
 
 ### 2.1 Validation devis mathematique [CRITIQUE]
-- [ ] `domain/schemas/devis.py` — Ajouter validateur : `part_secu + part_mutuelle + reste_a_charge == montant_ttc`
-- [ ] `domain/schemas/devis.py` — Limiter `taux_tva` entre 0 et 30 (pas 150%)
-- [ ] Frontend `devis/new/page.tsx` — Ajouter validation temps reel que les parts = total TTC
+- [x] `domain/schemas/devis.py` — Ajouter validateur : `part_secu + part_mutuelle + reste_a_charge == montant_ttc`
+- [x] `domain/schemas/devis.py` — Limiter `taux_tva` entre 0 et 30 (pas 150%)
+- [x] Frontend `devis/new/page.tsx` — Ajouter validation temps reel que les parts = total TTC
 
 ### 2.2 Protection suppression client [ELEVE]
-- [ ] `services/client_service.py` — Avant soft-delete, verifier s'il y a des cases actives (non archivees) et avertir
-- [ ] Frontend — Ajouter dialog de confirmation listant les entites liees (X cases, Y documents, Z paiements)
+- [x] `services/client_service.py` — Avant soft-delete, verifier s'il y a des cases actives (non archivees) et avertir
+- [x] Frontend — Ajouter dialog de confirmation listant les entites liees (X cases, Y documents, Z paiements)
 
 ### 2.3 Calculs financiers Decimal dans services [ELEVE]
-- [ ] `services/analytics_kpi_service.py` — Remplacer `float()` par `Decimal()` dans tous les calculs financiers
-- [ ] `services/reconciliation_service.py` — Idem
-- [ ] Grep `float(` dans tous les services financiers et convertir
+- [x] `services/analytics_kpi_service.py` — Remplacer `float()` par `Decimal()` dans tous les calculs financiers
+- [x] `services/reconciliation_service.py` — Idem
+- [x] Grep `float(` dans tous les services financiers et convertir
 
 ### 2.4 deleted_at dans l'API response [MOYEN]
-- [ ] `domain/schemas/clients.py` — Retirer `deleted_at` du schema `ClientResponse`
+- [x] `domain/schemas/clients.py` — Retirer `deleted_at` du schema `ClientResponse`
 
 ---
 
@@ -64,8 +64,8 @@
 - [ ] L'API existe deja (`/notifications`), juste le frontend manque
 
 ### 3.4 Sync errors visibles [MOYEN]
-- [ ] Frontend admin sync — Quand `has_errors=True`, afficher un banner rouge "Sync incomplete" avec details
-- [ ] Backend sync router — Retourner HTTP 207 au lieu de 200 quand `has_errors=True`
+- [x] Frontend admin sync — Quand `has_errors=True`, afficher un banner rouge "Sync incomplete" avec details
+- [x] Backend sync router — Retourner HTTP 207 au lieu de 200 quand `has_errors=True`
 
 ---
 
@@ -73,11 +73,11 @@
 > Maintenabilite et patterns
 
 ### 4.1 Constants pour les magic strings [MOYEN]
-- [ ] Creer `core/constants.py` avec STATUS_DRAFT, STATUS_PENDING, ROLE_ADMIN, etc.
+- [x] Creer `core/constants.py` avec STATUS_DRAFT, STATUS_PENDING, ROLE_ADMIN, etc.
 - [ ] Mettre a jour les 30+ fichiers qui hardcodent `"draft"`, `"admin"`, `"pending"`
 
 ### 4.2 Base repository pattern [MOYEN]
-- [ ] Creer `repositories/base_repo.py` avec `get_by_id()`, `create()`, `update()` generiques
+- [x] Creer `repositories/base_repo.py` avec `get_by_id()`, `create()`, `update()` generiques
 - [ ] Refactorer les 10+ repos avec le pattern duplique
 
 ### 4.3 Return type hints manquants [FAIBLE]
@@ -93,12 +93,12 @@
 
 ### 5.1 Undo / Restore client [MOYEN]
 - [ ] Frontend — Page admin pour voir les clients supprimes et les restaurer
-- [ ] Bouton "Restaurer" dans la liste des clients supprimes
+- [x] Bouton "Restaurer" dans la liste des clients supprimes
 
 ### 5.2 Export ameliore [MOYEN]
 - [ ] Export Excel (pas seulement CSV) pour factures et clients
-- [ ] Export FEC (Fichier d'Echanges Comptables) pour l'administration fiscale
-- [ ] Vue impression avec logo/branding pour devis et factures
+- [x] Export FEC (Fichier d'Echanges Comptables) pour l'administration fiscale
+- [x] Vue impression avec logo/branding pour devis et factures
 
 ### 5.3 PEC ameliore [MOYEN]
 - [ ] Precontrol : permettre "exception approuvee" pour overrider un check
