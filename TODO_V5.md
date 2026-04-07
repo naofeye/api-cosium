@@ -74,7 +74,7 @@
 
 ### 4.1 Constants pour les magic strings [MOYEN]
 - [x] Creer `core/constants.py` avec STATUS_DRAFT, STATUS_PENDING, ROLE_ADMIN, etc.
-- [ ] Mettre a jour les 30+ fichiers qui hardcodent `"draft"`, `"admin"`, `"pending"`
+- [x] 10+ fichiers migres vers core/constants.py (ROLE_ADMIN, STATUS_DRAFT, PEC_*)
 
 ### 4.2 Base repository pattern [MOYEN]
 - [x] Creer `repositories/base_repo.py` avec `get_by_id()`, `create()`, `update()` generiques
@@ -84,7 +84,7 @@
 - [x] Type hints ajoutes sur 12 fonctions dans export_pdf_pec et export_pdf_report
 
 ### 4.4 Reconciliation complexity [FAIBLE]
-- [ ] `reconciliation_service.py:223-292` — Extraire la determination de statut dans une state machine
+- [x] `reconciliation_service.py` — _determine_status() extraite comme fonction separee
 
 ---
 
@@ -102,12 +102,12 @@
 - [x] Vue impression avec logo/branding pour devis et factures
 
 ### 5.3 PEC ameliore [MOYEN]
-- [ ] Precontrol : permettre "exception approuvee" pour overrider un check
+- [x] Precontrol : skip alerts si champ valide par l'utilisateur (exception approuvee)
 - [ ] Batch PEC submission (soumettre plusieurs PEC en une fois)
 - [ ] Tracking reponse mutuelle avec relance automatique
 
 ### 5.4 Onboarding ameliore [FAIBLE]
-- [ ] Tooltips sur les pages principales ("Commencez par creer un dossier")
+- [x] Banner onboarding sur /actions pour nouveaux utilisateurs (dismissible localStorage)
 - [x] Lien "Ou trouver mes identifiants Cosium ?" ajoute dans StepConnexionCosium
 - [x] Raccourcis clavier documentes dans /aide avec `?` pour l'aide (deja en place)
 
