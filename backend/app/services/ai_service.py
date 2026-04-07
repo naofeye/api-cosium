@@ -1,23 +1,11 @@
 """Service IA — copilote metier OptiFlow avec 4 modes."""
 
-from sqlalchemy import func, select
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
 from app.integrations.ai.claude_provider import claude_provider
 from app.integrations.ai.rag import search_docs
-from app.models import (
-    Case,
-    Customer,
-    Devis,
-    Document,
-    Facture,
-    PayerOrganization,
-    Payment,
-    PecRequest,
-)
-from app.models.cosium_data import CosiumInvoice, CosiumPayment, CosiumPrescription
+from app.repositories import ai_context_repo, ai_usage_repo
 
 logger = get_logger("ai_service")
 
@@ -56,22 +44,7 @@ def get_client_cosium_context(db: Session, customer_id: int, tenant_id: int) -> 
     parts: list[str] = []
 
     # Cosium invoices
-    invoices = db.execute(
-        select(
-            CosiumInvoice.invoice_number,
-            CosiumInvoice.invoice_date,
-            CosiumInvoice.total_ti,
-            CosiumInvoice.outstanding_balance,
-            CosiumInvoice.type,
-            CosiumInvoice.settled,
-        )
-        .where(
-            CosiumInvoice.customer_id == customer_id,
-            CosiumInvoice.tenant_id == tenant_id,
-        )
-        .order_by(CosiumInvoice.invoice_date.desc())
-        .limit(20)
-    ).all()
+    invoices = ai_context_repo.get_cosium_invoices(db, customer_id, tenant_id)
 
     if invoices:
         total_amount = sum(float(inv.total_ti) for inv in invoices)
@@ -94,26 +67,7 @@ def get_client_cosium_context(db: Session, customer_id: int, tenant_id: int) -> 
             )
 
     # Cosium prescriptions
-    prescriptions = db.execute(
-        select(
-            CosiumPrescription.prescription_date,
-            CosiumPrescription.sphere_right,
-            CosiumPrescription.cylinder_right,
-            CosiumPrescription.axis_right,
-            CosiumPrescription.addition_right,
-            CosiumPrescription.sphere_left,
-            CosiumPrescription.cylinder_left,
-            CosiumPrescription.axis_left,
-            CosiumPrescription.addition_left,
-            CosiumPrescription.prescriber_name,
-        )
-        .where(
-            CosiumPrescription.customer_id == customer_id,
-            CosiumPrescription.tenant_id == tenant_id,
-        )
-        .order_by(CosiumPrescription.file_date.desc())
-        .limit(5)
-    ).all()
+    prescriptions = ai_context_repo.get_cosium_prescriptions(db, customer_id, tenant_id)
 
     if prescriptions:
         parts.append(f"\nORDONNANCES COSIUM ({len(prescriptions)}):")
@@ -147,28 +101,12 @@ def get_client_cosium_context(db: Session, customer_id: int, tenant_id: int) -> 
     # Cosium payments — linked to customer via invoice_cosium_id
     # CosiumPayment doesn't have a direct customer_id, so we go through invoices.
     if invoices:
-        customer_invoice_ids = db.scalars(
-            select(CosiumInvoice.cosium_id).where(
-                CosiumInvoice.customer_id == customer_id,
-                CosiumInvoice.tenant_id == tenant_id,
-            )
-        ).all()
+        customer_invoice_ids = ai_context_repo.get_cosium_invoice_ids(db, customer_id, tenant_id)
 
         if customer_invoice_ids:
-            cosium_payments = db.execute(
-                select(
-                    CosiumPayment.amount,
-                    CosiumPayment.type,
-                    CosiumPayment.due_date,
-                    CosiumPayment.payment_number,
-                )
-                .where(
-                    CosiumPayment.tenant_id == tenant_id,
-                    CosiumPayment.invoice_cosium_id.in_(customer_invoice_ids),
-                )
-                .order_by(CosiumPayment.due_date.desc())
-                .limit(10)
-            ).all()
+            cosium_payments = ai_context_repo.get_cosium_payments_by_invoice_ids(
+                db, customer_invoice_ids, tenant_id
+            )
 
             if cosium_payments:
                 total_paid = sum(float(p.amount) for p in cosium_payments)
@@ -188,20 +126,7 @@ def get_client_cosium_context(db: Session, customer_id: int, tenant_id: int) -> 
 
 def _build_case_context(db: Session, tenant_id: int, case_id: int) -> str:
     """Construit le contexte complet d'un dossier pour le copilote."""
-    case = db.execute(
-        select(
-            Case.id,
-            Case.status,
-            Case.source,
-            Case.created_at,
-            Customer.first_name,
-            Customer.last_name,
-            Customer.phone,
-            Customer.email,
-        )
-        .join(Customer, Customer.id == Case.customer_id)
-        .where(Case.id == case_id, Case.tenant_id == tenant_id)
-    ).first()
+    case = ai_context_repo.get_case_with_customer(db, case_id, tenant_id)
     if not case:
         return f"Dossier #{case_id} introuvable."
 
@@ -214,38 +139,28 @@ def _build_case_context(db: Session, tenant_id: int, case_id: int) -> str:
     ]
 
     # Documents
-    docs = db.execute(
-        select(Document.type, Document.filename, Document.uploaded_at).where(Document.case_id == case_id)
-    ).all()
+    docs = ai_context_repo.get_case_documents(db, case_id)
     if docs:
         parts.append(f"\nDOCUMENTS ({len(docs)}):")
         for d in docs:
             parts.append(f"  - {d.type}: {d.filename} ({d.uploaded_at})")
 
     # Devis
-    devis_list = db.execute(
-        select(Devis.numero, Devis.status, Devis.montant_ttc, Devis.reste_a_charge).where(Devis.case_id == case_id)
-    ).all()
+    devis_list = ai_context_repo.get_case_devis(db, case_id)
     if devis_list:
         parts.append(f"\nDEVIS ({len(devis_list)}):")
         for d in devis_list:
             parts.append(f"  - {d.numero}: {d.status} | TTC: {d.montant_ttc} EUR | RAC: {d.reste_a_charge} EUR")
 
     # Factures
-    factures = db.execute(
-        select(Facture.numero, Facture.status, Facture.montant_ttc).where(Facture.case_id == case_id)
-    ).all()
+    factures = ai_context_repo.get_case_factures(db, case_id)
     if factures:
         parts.append(f"\nFACTURES ({len(factures)}):")
         for f in factures:
             parts.append(f"  - {f.numero}: {f.status} | {f.montant_ttc} EUR")
 
     # Paiements
-    payments = db.execute(
-        select(Payment.payer_type, Payment.amount_due, Payment.amount_paid, Payment.status).where(
-            Payment.case_id == case_id
-        )
-    ).all()
+    payments = ai_context_repo.get_case_payments(db, case_id)
     if payments:
         parts.append(f"\nPAIEMENTS ({len(payments)}):")
         total_due = sum(float(p.amount_due) for p in payments)
@@ -255,17 +170,7 @@ def _build_case_context(db: Session, tenant_id: int, case_id: int) -> str:
         parts.append(f"  TOTAL: du={total_due} EUR, paye={total_paid} EUR, reste={total_due - total_paid} EUR")
 
     # PEC
-    pecs = db.execute(
-        select(
-            PecRequest.id,
-            PecRequest.status,
-            PecRequest.montant_demande,
-            PecRequest.montant_accorde,
-            PayerOrganization.name,
-        )
-        .join(PayerOrganization, PayerOrganization.id == PecRequest.organization_id)
-        .where(PecRequest.case_id == case_id)
-    ).all()
+    pecs = ai_context_repo.get_case_pecs(db, case_id)
     if pecs:
         parts.append(f"\nPEC ({len(pecs)}):")
         for p in pecs:
@@ -274,11 +179,9 @@ def _build_case_context(db: Session, tenant_id: int, case_id: int) -> str:
             )
 
     # Enrich with Cosium data if customer is linked
-    customer_row = db.execute(
-        select(Case.customer_id).where(Case.id == case_id, Case.tenant_id == tenant_id)
-    ).first()
-    if customer_row and customer_row.customer_id:
-        cosium_ctx = get_client_cosium_context(db, customer_row.customer_id, tenant_id)
+    customer_id = ai_context_repo.get_case_customer_id(db, case_id, tenant_id)
+    if customer_id:
+        cosium_ctx = get_client_cosium_context(db, customer_id, tenant_id)
         if cosium_ctx:
             parts.append(f"\n--- DONNEES COSIUM (ERP) ---\n{cosium_ctx}")
 
@@ -310,10 +213,8 @@ def copilot_query(
 
     elif mode == "marketing":
         # Contexte marketing global
-        total_clients = (
-            db.scalar(select(func.count()).select_from(Customer).where(Customer.tenant_id == tenant_id)) or 0
-        )
-        total_cases = db.scalar(select(func.count()).select_from(Case).where(Case.tenant_id == tenant_id)) or 0
+        total_clients = ai_context_repo.count_customers(db, tenant_id)
+        total_cases = ai_context_repo.count_cases(db, tenant_id)
         context = (
             f"CONTEXTE MARKETING:\nNombre total de clients: {total_clients}\nNombre total de dossiers: {total_cases}\n"
         )
@@ -322,22 +223,16 @@ def copilot_query(
     result = claude_provider.query_with_usage(question, context=context, system=system)
 
     # Log AI usage
-    from app.models import AiUsageLog
-
-    try:
-        usage = AiUsageLog(
-            tenant_id=tenant_id,
-            user_id=user_id,
-            copilot_type=mode,
-            model_used=result.get("model", "unknown"),
-            tokens_in=result.get("tokens_in", 0),
-            tokens_out=result.get("tokens_out", 0),
-            cost_usd=_estimate_cost(result.get("tokens_in", 0), result.get("tokens_out", 0)),
-        )
-        db.add(usage)
-        db.commit()
-    except (SQLAlchemyError, ValueError, TypeError) as e:
-        logger.warning("ai_usage_log_failed", error=str(e))
+    ai_usage_repo.create(
+        db,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        copilot_type=mode,
+        model_used=result.get("model", "unknown"),
+        tokens_in=result.get("tokens_in", 0),
+        tokens_out=result.get("tokens_out", 0),
+        cost_usd=_estimate_cost(result.get("tokens_in", 0), result.get("tokens_out", 0)),
+    )
 
     return result["text"]
 

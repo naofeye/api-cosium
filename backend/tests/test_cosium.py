@@ -81,7 +81,7 @@ def test_sync_status(client: TestClient, auth_headers: dict) -> None:
     assert "authenticated" in data
 
 
-@patch("app.services.erp_sync_service.get_connector")
+@patch("app.services.erp_auth_service.get_connector")
 def test_sync_customers_mock(mock_get_connector: MagicMock, client: TestClient, auth_headers: dict) -> None:
     mock_connector = MagicMock()
     mock_connector.erp_type = "cosium"
@@ -103,7 +103,7 @@ def test_sync_customers_mock(mock_get_connector: MagicMock, client: TestClient, 
     assert data["total"] == 2
 
 
-@patch("app.services.erp_sync_service.get_connector")
+@patch("app.services.erp_auth_service.get_connector")
 def test_sync_invoices_mock(mock_get_connector: MagicMock, client: TestClient, auth_headers: dict) -> None:
     mock_connector = MagicMock()
     mock_connector.erp_type = "cosium"
@@ -121,7 +121,7 @@ def test_sync_invoices_mock(mock_get_connector: MagicMock, client: TestClient, a
     assert resp.json()["total"] >= 0
 
 
-@patch("app.services.erp_sync_service.get_connector")
+@patch("app.services.erp_auth_service.get_connector")
 def test_sync_products_mock(mock_get_connector: MagicMock, client: TestClient, auth_headers: dict) -> None:
     mock_connector = MagicMock()
     mock_connector.erp_type = "cosium"

@@ -33,7 +33,7 @@ def _make_mock_connector(erp_customers: list[ERPCustomer]) -> MagicMock:
 
 # ---------- Test 1: batch flush every BATCH_SIZE records ----------
 
-@patch("app.services.erp_sync_service.get_connector")
+@patch("app.services.erp_auth_service.get_connector")
 def test_sync_customers_flushes_in_batches(
     mock_get_connector: MagicMock,
     client: TestClient,
@@ -56,7 +56,7 @@ def test_sync_customers_flushes_in_batches(
 
 # ---------- Test 2: sync continues after single record failure ----------
 
-@patch("app.services.erp_sync_service.get_connector")
+@patch("app.services.erp_auth_service.get_connector")
 def test_sync_continues_after_record_failure(
     mock_get_connector: MagicMock,
     client: TestClient,
@@ -79,7 +79,7 @@ def test_sync_continues_after_record_failure(
 
 # ---------- Test 3: batch_errors counted in service result ----------
 
-@patch("app.services.erp_sync_service.get_connector")
+@patch("app.services.erp_auth_service.get_connector")
 def test_batch_errors_counted_in_service_result(
     mock_get_connector: MagicMock,
     db: Session,
@@ -174,7 +174,7 @@ def test_concurrent_sync_blocked_by_redis_lock(
 
 # ---------- Test 7: sync with empty ERP data returns zeros ----------
 
-@patch("app.services.erp_sync_service.get_connector")
+@patch("app.services.erp_auth_service.get_connector")
 def test_sync_with_empty_erp_data(
     mock_get_connector: MagicMock,
     client: TestClient,
@@ -194,7 +194,7 @@ def test_sync_with_empty_erp_data(
 
 # ---------- Test 8: sync preserves existing data on failure ----------
 
-@patch("app.services.erp_sync_service.get_connector")
+@patch("app.services.erp_auth_service.get_connector")
 def test_sync_preserves_existing_data_on_failure(
     mock_get_connector: MagicMock,
     client: TestClient,

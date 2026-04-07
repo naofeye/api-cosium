@@ -1,12 +1,12 @@
 """Copilote IA pour le renouvellement — generation de messages personnalises."""
 
 from sqlalchemy import func, select
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
 from app.integrations.ai.claude_provider import claude_provider
-from app.models import AiUsageLog, Customer
+from app.models import Customer
+from app.repositories import ai_context_repo, ai_usage_repo
 
 logger = get_logger("ai_renewal_copilot")
 

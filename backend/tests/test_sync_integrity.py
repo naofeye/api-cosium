@@ -16,7 +16,7 @@ def _make_mock_connector(erp_customers: list[ERPCustomer]) -> MagicMock:
     return connector
 
 
-@patch("app.services.erp_sync_service.get_connector")
+@patch("app.services.erp_auth_service.get_connector")
 def test_sync_creates_correct_customers(mock_get_connector: MagicMock, client: TestClient, auth_headers: dict) -> None:
     """After sync, customers should exist in OptiFlow with correct data."""
     erp_customers = [
@@ -36,7 +36,7 @@ def test_sync_creates_correct_customers(mock_get_connector: MagicMock, client: T
     assert data["total"] == 3
 
 
-@patch("app.services.erp_sync_service.get_connector")
+@patch("app.services.erp_auth_service.get_connector")
 def test_sync_no_duplicates(mock_get_connector: MagicMock, client: TestClient, auth_headers: dict) -> None:
     """Running sync twice should not create duplicates."""
     erp_customers = [
@@ -55,7 +55,7 @@ def test_sync_no_duplicates(mock_get_connector: MagicMock, client: TestClient, a
     assert created2 == 0  # No duplicates
 
 
-@patch("app.services.erp_sync_service.get_connector")
+@patch("app.services.erp_auth_service.get_connector")
 def test_sync_updates_missing_fields(mock_get_connector: MagicMock, client: TestClient, auth_headers: dict) -> None:
     """Sync should update empty fields on existing customers."""
     # First sync: create with email only
