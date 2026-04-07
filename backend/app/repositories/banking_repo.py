@@ -36,7 +36,7 @@ def create_payment(
         idempotency_key=idempotency_key,
     )
     db.add(p)
-    db.commit()
+    db.flush()
     db.refresh(p)
     return p
 
@@ -127,7 +127,7 @@ def get_transaction(db: Session, tx_id: int, tenant_id: int) -> BankTransaction 
 def reconcile(db: Session, tx: BankTransaction, payment_id: int) -> None:
     tx.reconciled = True
     tx.reconciled_payment_id = payment_id
-    db.commit()
+    db.flush()
 
 
 def auto_reconcile(db: Session, tenant_id: int) -> tuple[int, int]:

@@ -64,7 +64,7 @@ def list_by_customer_cosium_documents(
 def create(db: Session, **kwargs: object) -> DocumentExtraction:
     extraction = DocumentExtraction(**kwargs)
     db.add(extraction)
-    db.commit()
+    db.flush()
     db.refresh(extraction)
     return extraction
 

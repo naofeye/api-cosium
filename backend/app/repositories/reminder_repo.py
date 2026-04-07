@@ -48,14 +48,14 @@ def create_plan(
         is_active=is_active,
     )
     db.add(plan)
-    db.commit()
+    db.flush()
     db.refresh(plan)
     return plan
 
 
 def toggle_plan(db: Session, plan: ReminderPlan, is_active: bool) -> None:
     plan.is_active = is_active
-    db.commit()
+    db.flush()
 
 
 # --- Reminders ---
@@ -89,7 +89,7 @@ def create_reminder(
         created_by=created_by,
     )
     db.add(r)
-    db.commit()
+    db.flush()
     db.refresh(r)
     return r
 
@@ -109,7 +109,7 @@ def update_status(db: Session, reminder: Reminder, status: str) -> None:
     reminder.status = status
     if status == "sent":
         reminder.sent_at = datetime.now(UTC).replace(tzinfo=None)
-    db.commit()
+    db.flush()
 
 
 def get_reminder(db: Session, reminder_id: int, tenant_id: int) -> Reminder | None:
@@ -189,7 +189,7 @@ def create_template(
         is_default=is_default,
     )
     db.add(t)
-    db.commit()
+    db.flush()
     db.refresh(t)
     return t
 

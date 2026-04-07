@@ -206,24 +206,23 @@ def check_overdue_invoices(self) -> dict[str, int]:
                     user_id=0,
                 )
 
-                # Try to send email
+                # Delegate email delivery to the async email task
                 customer_obj = db.get(Customer, customer_id)
                 if customer_obj and customer_obj.email:
-                    from app.integrations.email_sender import email_sender
-
-                    subject = f"Relance — Solde impaye de {total_due:.2f} EUR"
                     from html import escape
 
+                    from app.tasks.email_tasks import send_email_async
+
+                    subject = f"Relance — Solde impaye de {total_due:.2f} EUR"
                     body_html = escape(content).replace("\n", "<br>")
-                    success = email_sender.send_email(
+                    send_email_async.delay(
                         to=customer_obj.email,
                         subject=subject,
                         body_html=f"<p>{body_html}</p>",
                     )
-                    new_status = "sent" if success else "failed"
-                    reminder_repo.update_status(db, reminder, new_status)
-                    if success:
-                        reminders_created += 1
+                    # Mark as pending — the email task handles delivery and retries
+                    reminder_repo.update_status(db, reminder, "pending")
+                    reminders_created += 1
                 else:
                     # No email available — mark as pending
                     reminder_repo.update_status(db, reminder, "pending")

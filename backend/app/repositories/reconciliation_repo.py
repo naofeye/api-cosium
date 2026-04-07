@@ -123,13 +123,13 @@ def upsert_reconciliation(
     if existing:
         for key, value in data.items():
             setattr(existing, key, value)
-        db.commit()
+        db.flush()
         db.refresh(existing)
         return existing
 
     recon = DossierReconciliation(tenant_id=tenant_id, customer_id=customer_id, **data)
     db.add(recon)
-    db.commit()
+    db.flush()
     db.refresh(recon)
     return recon
 

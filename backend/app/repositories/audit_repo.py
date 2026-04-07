@@ -26,7 +26,7 @@ def create(
         new_value=new_value,
     )
     db.add(log)
-    db.commit()
+    db.flush()
     db.refresh(log)
     return log
 

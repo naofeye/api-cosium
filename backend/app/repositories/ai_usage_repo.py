@@ -31,7 +31,7 @@ def create(
             cost_usd=cost_usd,
         )
         db.add(usage)
-        db.commit()
+        db.flush()
         return usage
     except (SQLAlchemyError, ValueError, TypeError) as e:
         logger.warning("ai_usage_log_failed", error=str(e))

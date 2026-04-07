@@ -38,7 +38,8 @@ def process_batch(
 
     stats = {"prets": 0, "incomplets": 0, "en_conflit": 0, "erreur": 0}
 
-    for item in items:
+    total_items = len(items)
+    for idx, item in enumerate(items, start=1):
         try:
             batch_operation_repo.update_item(db, item.id, status="en_cours")
 
@@ -78,6 +79,25 @@ def process_batch(
             }.get(item_status, "incomplets")
             stats[stats_key] += 1
 
+            # Update batch progress every 100 items so the frontend can poll
+            if idx % 100 == 0 or idx == total_items:
+                batch_operation_repo.update_batch(
+                    db,
+                    batch.id,
+                    status="en_cours",
+                    clients_prets=stats["prets"],
+                    clients_incomplets=stats["incomplets"],
+                    clients_en_conflit=stats["en_conflit"],
+                    clients_erreur=stats["erreur"],
+                )
+                db.commit()
+                logger.debug(
+                    "batch_progress_update",
+                    batch_id=batch_id,
+                    processed=idx,
+                    total=total_items,
+                )
+
         except (SQLAlchemyError, ValueError, KeyError) as exc:
             logger.error(
                 "batch_item_processing_error",
@@ -93,6 +113,19 @@ def process_batch(
                 processed_at=datetime.now(UTC),
             )
             stats["erreur"] += 1
+
+            # Update batch progress every 100 items (also after errors)
+            if idx % 100 == 0 or idx == total_items:
+                batch_operation_repo.update_batch(
+                    db,
+                    batch.id,
+                    status="en_cours",
+                    clients_prets=stats["prets"],
+                    clients_incomplets=stats["incomplets"],
+                    clients_en_conflit=stats["en_conflit"],
+                    clients_erreur=stats["erreur"],
+                )
+                db.commit()
 
     batch_operation_repo.update_batch(
         db,

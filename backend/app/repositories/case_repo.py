@@ -66,6 +66,6 @@ def create_case(
     db.flush()
     case = Case(tenant_id=tenant_id, customer_id=customer.id, status="draft", source=source)
     db.add(case)
-    db.commit()
+    db.flush()
     db.refresh(case)
     return case

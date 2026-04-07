@@ -57,7 +57,7 @@ def create(db: Session, data: dict) -> ClientMutuelle:
     """Create a new client-mutuelle association."""
     record = ClientMutuelle(**data)
     db.add(record)
-    db.commit()
+    db.flush()
     db.refresh(record)
     return record
 
@@ -72,7 +72,7 @@ def update(
     for key, value in data.items():
         setattr(record, key, value)
     record.updated_at = datetime.now(UTC).replace(tzinfo=None)
-    db.commit()
+    db.flush()
     db.refresh(record)
     return record
 
@@ -83,5 +83,5 @@ def delete(db: Session, record_id: int, tenant_id: int) -> bool:
     if not record:
         return False
     db.delete(record)
-    db.commit()
+    db.flush()
     return True

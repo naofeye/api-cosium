@@ -21,49 +21,25 @@ import { ManualSync } from "./components/ManualSync";
 import { RecentActivity } from "./components/RecentActivity";
 import { DataQualitySection } from "./components/DataQualitySection";
 
-interface AuditLogEntry {
-  id: number;
-  user_id: number;
-  action: string;
-  entity_type: string;
-  entity_id: number;
-  old_value: string | null;
-  new_value: string | null;
-  created_at: string;
-}
-
-interface SyncStatus {
-  configured: boolean;
-  authenticated: boolean;
-  tenant: string | null;
-  tenant_name: string | null;
-  base_url: string;
-  last_sync_at: string | null;
-  first_sync_done: boolean;
-}
-
-interface HealthData {
-  status: string;
-  services: Record<string, { status: string; response_ms?: number; error?: string }>;
-}
-
-interface MetricsData {
-  totals: { users: number; clients: number; dossiers: number; factures: number; paiements: number };
-  activity: { actions_last_hour: number; active_users_last_hour: number };
-}
+import type {
+  AuditLogEntry,
+  SyncStatusResponse,
+  HealthCheckResponse,
+  MetricsResponse,
+} from "@/lib/types/admin";
 
 export default function AdminPage() {
-  const { data: syncStatus, isLoading: syncLoading } = useSWR<SyncStatus>("/sync/status", {
+  const { data: syncStatus, isLoading: syncLoading } = useSWR<SyncStatusResponse>("/sync/status", {
     onError: (err: Error) => {
       logger.error("[Admin] Erreur chargement statut sync:", err.message);
     },
   });
-  const { data: health, isLoading: healthLoading } = useSWR<HealthData>("/admin/health", {
+  const { data: health, isLoading: healthLoading } = useSWR<HealthCheckResponse>("/admin/health", {
     onError: (err: Error) => {
       logger.error("[Admin] Erreur chargement sante services:", err.message);
     },
   });
-  const { data: metrics, isLoading: metricsLoading } = useSWR<MetricsData>("/admin/metrics", {
+  const { data: metrics, isLoading: metricsLoading } = useSWR<MetricsResponse>("/admin/metrics", {
     onError: (err: Error) => {
       logger.error("[Admin] Erreur chargement metriques:", err.message);
     },

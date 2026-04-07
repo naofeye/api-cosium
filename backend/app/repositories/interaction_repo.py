@@ -26,7 +26,7 @@ def create(
         created_by=created_by,
     )
     db.add(item)
-    db.commit()
+    db.flush()
     db.refresh(item)
     return item
 
@@ -69,4 +69,4 @@ def get_by_id(db: Session, interaction_id: int, tenant_id: int) -> Interaction |
 
 def delete(db: Session, interaction: Interaction) -> None:
     db.delete(interaction)
-    db.commit()
+    db.flush()

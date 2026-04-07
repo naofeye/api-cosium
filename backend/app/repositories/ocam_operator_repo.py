@@ -56,6 +56,6 @@ def create(
         active=active,
     )
     db.add(operator)
-    db.commit()
+    db.flush()
     db.refresh(operator)
     return operator

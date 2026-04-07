@@ -101,7 +101,7 @@
 - [x] Audit fait : 50+ db.commit() dans 19 repos. Top : marketing(6), reminder(5), pec(5), notification(5)
 - [x] Strategie definie : migrer progressivement, commencer par les repos utilises dans des transactions multi-entites
 - [x] `client_repo` migre : 4x db.commit() → db.flush() (create, update, delete, restore)
-- [ ] Migrer les autres repos progressivement au fil des sprints
+- [x] TOUS les repos migres : 50+ db.commit() → db.flush() dans 19 fichiers (sauf refresh_token_repo: commit necessaire)
 
 ---
 

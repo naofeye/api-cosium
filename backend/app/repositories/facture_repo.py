@@ -169,5 +169,5 @@ def get_detail(db: Session, facture_id: int, tenant_id: int) -> dict | None:
 
 def update_status(db: Session, facture: Facture, status: str) -> None:
     facture.status = status
-    db.commit()
+    db.flush()
     db.refresh(facture)

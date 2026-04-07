@@ -49,7 +49,7 @@ def upsert_consent(
             existing.revoked_at = None
         else:
             existing.revoked_at = now
-        db.commit()
+        db.flush()
         db.refresh(existing)
         return existing
     consent = MarketingConsent(
@@ -61,7 +61,7 @@ def upsert_consent(
         source=source,
     )
     db.add(consent)
-    db.commit()
+    db.flush()
     db.refresh(consent)
     return consent
 
@@ -118,7 +118,7 @@ def get_segment(db: Session, segment_id: int, tenant_id: int) -> Segment | None:
 def create_segment(db: Session, tenant_id: int, name: str, description: str | None, rules_json: str) -> Segment:
     s = Segment(tenant_id=tenant_id, name=name, description=description, rules_json=rules_json)
     db.add(s)
-    db.commit()
+    db.flush()
     db.refresh(s)
     return s
 
@@ -143,7 +143,7 @@ def refresh_segment_members(db: Session, segment_id: int, tenant_id: int, client
     db.execute(delete(SegmentMembership).where(SegmentMembership.segment_id == segment_id))
     for cid in client_ids:
         db.add(SegmentMembership(tenant_id=tenant_id, segment_id=segment_id, client_id=cid))
-    db.commit()
+    db.flush()
 
 
 def evaluate_segment_rules(db: Session, tenant_id: int, rules: dict) -> list[int]:
@@ -212,7 +212,7 @@ def create_campaign(
         template=template,
     )
     db.add(c)
-    db.commit()
+    db.flush()
     db.refresh(c)
     return c
 
@@ -230,7 +230,7 @@ def update_campaign_status(db: Session, campaign: Campaign, status: str) -> None
     campaign.status = status
     if status == "sent":
         campaign.sent_at = datetime.now(UTC).replace(tzinfo=None)
-    db.commit()
+    db.flush()
 
 
 def add_message_log(

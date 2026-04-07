@@ -38,7 +38,7 @@ def create(
         created_by=created_by,
     )
     db.add(prep)
-    db.commit()
+    db.flush()
     db.refresh(prep)
     return prep
 
@@ -121,14 +121,14 @@ def update(db: Session, prep: PecPreparation, **kwargs: object) -> PecPreparatio
     for key, value in kwargs.items():
         if hasattr(prep, key):
             setattr(prep, key, value)
-    db.commit()
+    db.flush()
     db.refresh(prep)
     return prep
 
 
 def delete(db: Session, prep: PecPreparation) -> None:
     db.delete(prep)
-    db.commit()
+    db.flush()
 
 
 # --- PecPreparationDocument ---
@@ -150,7 +150,7 @@ def add_document(
         extraction_id=extraction_id,
     )
     db.add(doc)
-    db.commit()
+    db.flush()
     db.refresh(doc)
     return doc
 

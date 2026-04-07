@@ -166,5 +166,5 @@ def update_totals(
 
 def update_status(db: Session, devis: Devis, status: str) -> None:
     devis.status = status
-    db.commit()
+    db.flush()
     db.refresh(devis)

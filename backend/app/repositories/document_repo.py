@@ -19,6 +19,6 @@ def list_by_case(db: Session, case_id: int, tenant_id: int, limit: int = 500) ->
 def create_document(db: Session, tenant_id: int, case_id: int, type: str, filename: str, storage_key: str) -> Document:
     doc = Document(tenant_id=tenant_id, case_id=case_id, type=type, filename=filename, storage_key=storage_key)
     db.add(doc)
-    db.commit()
+    db.flush()
     db.refresh(doc)
     return doc

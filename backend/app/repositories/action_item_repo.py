@@ -57,7 +57,7 @@ def update_status(db: Session, item_id: int, tenant_id: int, status: str) -> Non
         )
         .values(status=status)
     )
-    db.commit()
+    db.flush()
 
 
 def create(
@@ -84,7 +84,7 @@ def create(
         due_date=due_date,
     )
     db.add(item)
-    db.commit()
+    db.flush()
     db.refresh(item)
     return item
 
@@ -121,4 +121,4 @@ def delete_resolved(db: Session, user_id: int, tenant_id: int, type: str, entity
         )
         .values(status="done")
     )
-    db.commit()
+    db.flush()

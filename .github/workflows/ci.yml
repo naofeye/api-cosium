@@ -82,3 +82,67 @@ jobs:
           python-version: "3.12"
       - run: pip install -r backend/requirements.txt
       - run: cd backend && python -m pytest tests/test_security_regression.py -v
+
+  gitignore-check:
+    name: Gitignore Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check no build artifacts or sensitive files are tracked
+        run: |
+          errors=0
+
+          # Check for .pyc files
+          if git ls-files --cached '*.pyc' | grep -q .; then
+            echo "::error::Found tracked .pyc files:"
+            git ls-files --cached '*.pyc'
+            errors=$((errors + 1))
+          fi
+
+          # Check for __pycache__ directories
+          if git ls-files --cached '*__pycache__*' | grep -q .; then
+            echo "::error::Found tracked __pycache__ files:"
+            git ls-files --cached '*__pycache__*'
+            errors=$((errors + 1))
+          fi
+
+          # Check for .env (but not .env.example)
+          if git ls-files --cached '.env' | grep -q .; then
+            echo "::error::Found tracked .env file (use .env.example instead)"
+            errors=$((errors + 1))
+          fi
+
+          # Check for node_modules
+          if git ls-files --cached '*node_modules*' | grep -q .; then
+            echo "::error::Found tracked node_modules files:"
+            git ls-files --cached '*node_modules*' | head -10
+            errors=$((errors + 1))
+          fi
+
+          # Check for tsconfig.tsbuildinfo
+          if git ls-files --cached 'frontend/tsconfig.tsbuildinfo' | grep -q .; then
+            echo "::error::Found tracked frontend/tsconfig.tsbuildinfo"
+            errors=$((errors + 1))
+          fi
+
+          # Check for celerybeat-schedule
+          if git ls-files --cached '*celerybeat-schedule*' | grep -q .; then
+            echo "::error::Found tracked celerybeat-schedule files:"
+            git ls-files --cached '*celerybeat-schedule*'
+            errors=$((errors + 1))
+          fi
+
+          # Check for .pid files
+          if git ls-files --cached '*.pid' | grep -q .; then
+            echo "::error::Found tracked .pid files:"
+            git ls-files --cached '*.pid'
+            errors=$((errors + 1))
+          fi
+
+          if [ "$errors" -gt 0 ]; then
+            echo ""
+            echo "::error::$errors category(ies) of files should not be tracked. Add them to .gitignore and run: git rm --cached <file>"
+            exit 1
+          fi
+
+          echo "All clear — no build artifacts or sensitive files tracked."

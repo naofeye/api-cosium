@@ -1,4 +1,5 @@
 // Barrel re-export — all types accessible via "@/lib/types"
+export * from "./admin";
 export * from "./batch";
 export * from "./client";
 export * from "./cosium";

@@ -44,7 +44,7 @@ def mark_read(db: Session, notification_id: int, tenant_id: int, user_id: int) -
         )
         .values(is_read=True)
     )
-    db.commit()
+    db.flush()
 
 
 def mark_all_read(db: Session, user_id: int, tenant_id: int) -> None:
@@ -57,7 +57,7 @@ def mark_all_read(db: Session, user_id: int, tenant_id: int) -> None:
         )
         .values(is_read=True)
     )
-    db.commit()
+    db.flush()
 
 
 def delete_notification(db: Session, notification_id: int, tenant_id: int, user_id: int) -> bool:
@@ -68,7 +68,7 @@ def delete_notification(db: Session, notification_id: int, tenant_id: int, user_
             Notification.user_id == user_id,
         )
     )
-    db.commit()
+    db.flush()
     return (result.rowcount or 0) > 0
 
 
@@ -80,7 +80,7 @@ def delete_read_notifications(db: Session, tenant_id: int, user_id: int) -> int:
             Notification.is_read.is_(True),
         )
     )
-    db.commit()
+    db.flush()
     return result.rowcount or 0
 
 
@@ -104,6 +104,6 @@ def create(
         entity_id=entity_id,
     )
     db.add(notif)
-    db.commit()
+    db.flush()
     db.refresh(notif)
     return notif

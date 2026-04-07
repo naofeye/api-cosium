@@ -32,7 +32,7 @@ def create_organization(
 ) -> PayerOrganization:
     org = PayerOrganization(tenant_id=tenant_id, name=name, type=type, code=code, contact_email=contact_email)
     db.add(org)
-    db.commit()
+    db.flush()
     db.refresh(org)
     return org
 
@@ -51,7 +51,7 @@ def create_pec(
         montant_demande=montant_demande,
     )
     db.add(pec)
-    db.commit()
+    db.flush()
     db.refresh(pec)
     return pec
 
@@ -114,7 +114,7 @@ def update_status(db: Session, pec: PecRequest, new_status: str, montant_accorde
     pec.status = new_status
     if montant_accorde is not None:
         pec.montant_accorde = montant_accorde
-    db.commit()
+    db.flush()
     db.refresh(pec)
 
 
@@ -132,7 +132,7 @@ def add_history(
         comment=comment,
     )
     db.add(h)
-    db.commit()
+    db.flush()
     db.refresh(h)
     return h
 
@@ -159,7 +159,7 @@ def create_relance(db: Session, tenant_id: int, pec_id: int, type: str, contenu:
         created_by=user_id,
     )
     db.add(r)
-    db.commit()
+    db.flush()
     db.refresh(r)
     return r
 
