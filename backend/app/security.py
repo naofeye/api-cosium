@@ -53,6 +53,14 @@ def decode_access_token(token: str) -> dict:
     )
 
 
+def _token_blacklist_key(token: str) -> str:
+    """Genere une cle unique pour la blacklist a partir du hash SHA-256 du token."""
+    import hashlib
+
+    token_hash = hashlib.sha256(token.encode()).hexdigest()[:24]
+    return f"blacklist:{token_hash}"
+
+
 def blacklist_access_token(token: str) -> None:
     """Ajoute un access token a la blacklist Redis (TTL = duree restante du token)."""
     try:
@@ -64,7 +72,7 @@ def blacklist_access_token(token: str) -> None:
         payload = jwt.decode(token, options={"verify_signature": False, "verify_exp": False})
         exp = payload.get("exp", 0)
         ttl = max(int(exp - datetime.now(UTC).timestamp()), 60)
-        r.setex(f"blacklist:{token[:32]}", ttl, "1")
+        r.setex(_token_blacklist_key(token), ttl, "1")
     except Exception:
         pass
 
@@ -77,7 +85,7 @@ def is_token_blacklisted(token: str) -> bool:
         r = get_redis_client()
         if r is None:
             return False
-        return bool(r.exists(f"blacklist:{token[:32]}"))
+        return bool(r.exists(_token_blacklist_key(token)))
     except Exception:
         return False
 

@@ -70,7 +70,7 @@ export default function AdminPage() {
 
       {metrics && (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
-          <KPICard icon={Users} label="Utilisateurs" value={metrics.totals.users} color="info" />
+          <KPICard icon={Users} label="Utilisateurs" value={metrics.totals.users ?? 0} color="info" />
           <KPICard icon={Users} label="Clients" value={metrics.totals.clients} color="primary" />
           <KPICard icon={FolderOpen} label="Dossiers" value={metrics.totals.dossiers} color="primary" />
           <KPICard icon={FileText} label="Factures" value={metrics.totals.factures} color="info" />
