@@ -109,10 +109,10 @@
 > Objectif : valider en conditions reelles
 
 ### 6.1 Tests d'integration [MOYEN]
-- [ ] Test : user du tenant A ne peut PAS acceder aux donnees du tenant B
-- [ ] Test : login → access token → refresh → switch tenant → logout
-- [ ] Test : endpoints admin proteges par authentification admin
-- [ ] Test : deconnexion, expiration token, token blackliste
+- [x] Test : user du tenant A ne peut PAS acceder aux donnees du tenant B (test_auth_e2e.py)
+- [x] Test : login → access token → refresh → switch tenant → logout (test_auth_e2e.py)
+- [x] Test : endpoints admin proteges par authentification admin (test_auth_e2e.py)
+- [x] Test : deconnexion, expiration token, token blackliste (test_auth_e2e.py)
 
 ### 6.2 Validation production [MOYEN]
 - [ ] Tester un deploiement complet de bout en bout avec docker-compose.prod.yml
