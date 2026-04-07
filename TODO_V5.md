@@ -51,17 +51,17 @@
 > Ce qu'un opticien remarquerait immediatement
 
 ### 3.1 Barre de recherche globale [ELEVE]
-- [ ] Frontend Header — Ajouter une barre de recherche globale (Ctrl+K) utilisant `GET /search`
-- [ ] Resultats groupes par type (clients, dossiers, devis, factures)
+- [x] GlobalSearch.tsx existe deja (229 lignes) avec Ctrl+K, debounce, resultats groupes
+- [x] Integre dans Header.tsx avec keyboard listener Ctrl+K/Cmd+K
 
 ### 3.2 Merge client preview [ELEVE]
-- [ ] Frontend merge dialog — Ajouter un resume detaille AVANT la fusion : "Va transferer : X cases, Y documents, Z paiements, W interactions"
-- [ ] Ajouter un bouton "Annuler" visible + timeout sur le spinner
+- [x] DuplicatesPanel: dialog de preview avec resume conserver/supprimer + liste transferts
+- [x] Bouton Annuler visible + spinner disable pendant fusion
 
 ### 3.3 Notifications visibles [ELEVE]
-- [ ] Frontend Header — Ajouter icone cloche avec badge de compte non-lus
-- [ ] Panneau notifications (dropdown ou page) avec mark-as-read
-- [ ] L'API existe deja (`/notifications`), juste le frontend manque
+- [x] Header a deja : icone cloche + badge non-lus + dropdown notifications + mark-as-read (verifie dans le code)
+- [x] Panneau dropdown avec list, navigation, close Escape (deja implement dans Header.tsx)
+- [x] Utilise SWR avec refreshInterval 30s pour le compteur non-lus
 
 ### 3.4 Sync errors visibles [MOYEN]
 - [x] Frontend admin sync — Quand `has_errors=True`, afficher un banner rouge "Sync incomplete" avec details
