@@ -50,6 +50,15 @@ def get_third_party_payments_for_invoices(
     )
 
 
+def count_payments(db: Session, tenant_id: int) -> int:
+    """Count all payments for a tenant."""
+    return (
+        db.query(func.count(CosiumPayment.id))
+        .filter(CosiumPayment.tenant_id == tenant_id)
+        .scalar()
+    ) or 0
+
+
 def get_unlinked_payments(db: Session, tenant_id: int) -> list[CosiumPayment]:
     """Get all payments that have no customer_id set."""
     return (

@@ -14,11 +14,10 @@ from app.domain.schemas.client_mutuelle import (
     ClientMutuelleResponse,
     MutuelleDetectionResult,
 )
-from app.models.client import Customer
 from app.models.cosium_data import CosiumDocument, CosiumInvoice, CosiumThirdPartyPayment
 from app.models.cosium_reference import CosiumMutuelle
 from app.models.document_extraction import DocumentExtraction
-from app.repositories import client_mutuelle_repo
+from app.repositories import client_mutuelle_repo, client_repo
 
 logger = get_logger("client_mutuelle_service")
 
@@ -27,8 +26,8 @@ def get_client_mutuelles(
     db: Session, tenant_id: int, customer_id: int
 ) -> list[ClientMutuelleResponse]:
     """Return all mutuelles for a client."""
-    customer = db.get(Customer, customer_id)
-    if not customer or customer.tenant_id != tenant_id:
+    customer = client_repo.get_by_id(db, customer_id, tenant_id)
+    if not customer:
         raise NotFoundError("client", customer_id)
     records = client_mutuelle_repo.get_by_customer(db, customer_id, tenant_id)
     return [ClientMutuelleResponse.model_validate(r) for r in records]
@@ -38,8 +37,8 @@ def add_client_mutuelle(
     db: Session, tenant_id: int, customer_id: int, payload: ClientMutuelleCreate
 ) -> ClientMutuelleResponse:
     """Manually add a mutuelle to a client."""
-    customer = db.get(Customer, customer_id)
-    if not customer or customer.tenant_id != tenant_id:
+    customer = client_repo.get_by_id(db, customer_id, tenant_id)
+    if not customer:
         raise NotFoundError("client", customer_id)
 
     data = payload.model_dump()
@@ -77,8 +76,8 @@ def detect_client_mutuelles(
     db: Session, tenant_id: int, customer_id: int
 ) -> list[dict]:
     """Auto-detect mutuelles for a client from multiple Cosium sources."""
-    customer = db.get(Customer, customer_id)
-    if not customer or customer.tenant_id != tenant_id:
+    customer = client_repo.get_by_id(db, customer_id, tenant_id)
+    if not customer:
         raise NotFoundError("client", customer_id)
 
     detected: list[dict] = []

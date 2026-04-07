@@ -6,7 +6,7 @@ import type { MarketingCode } from "@/lib/types";
 interface BatchSelectStepProps {
   marketingCodes: MarketingCode[] | undefined;
   codesLoading: boolean;
-  codesError: unknown;
+  codesError: Error | undefined;
   selectedCode: string;
   operationLabel: string;
   creating: boolean;

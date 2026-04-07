@@ -8,11 +8,10 @@ import { devisCreateSchema, type DevisCreateFormData } from "@/lib/schemas/devis
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/Button";
 import { fetchJson } from "@/lib/api";
-import { formatMoney } from "@/lib/format";
-
 import { ClientContextPanel } from "./components/ClientContextPanel";
 import type { ClientContext } from "./components/ClientContextPanel";
 import { DevisLinesForm, calcLigneHT, calcLigneTTC } from "./components/DevisLinesForm";
+import { DevisSummary } from "./components/DevisSummary";
 
 interface CaseOption {
   id: number;
@@ -166,35 +165,14 @@ export default function NewDevisPage() {
           onRemove={remove}
         />
 
-        <div className="rounded-xl border border-border bg-bg-card p-6 shadow-sm mb-6">
-          <h3 className="text-lg font-semibold text-text-primary mb-3">Recapitulatif</h3>
-          <div className="space-y-2 text-sm max-w-xs ml-auto">
-            <div className="flex justify-between">
-              <span className="text-text-secondary">Total HT</span>
-              <span className="font-medium tabular-nums">{formatMoney(totalHT)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-text-secondary">TVA</span>
-              <span className="font-medium tabular-nums">{formatMoney(totalTVA)}</span>
-            </div>
-            <div className="flex justify-between border-t border-border pt-2">
-              <span className="font-semibold">Total TTC</span>
-              <span className="font-bold tabular-nums">{formatMoney(totalTTC)}</span>
-            </div>
-            <div className="flex justify-between text-text-secondary">
-              <span>Part Secu</span>
-              <span className="tabular-nums">- {formatMoney(watchPartSecu)}</span>
-            </div>
-            <div className="flex justify-between text-text-secondary">
-              <span>Part Mutuelle</span>
-              <span className="tabular-nums">- {formatMoney(watchPartMutuelle)}</span>
-            </div>
-            <div className="flex justify-between border-t border-border pt-2">
-              <span className="font-semibold text-danger">Reste a charge</span>
-              <span className="font-bold tabular-nums text-danger">{formatMoney(reste)}</span>
-            </div>
-          </div>
-        </div>
+        <DevisSummary
+          totalHT={totalHT}
+          totalTVA={totalTVA}
+          totalTTC={totalTTC}
+          partSecu={Number(watchPartSecu) || 0}
+          partMutuelle={Number(watchPartMutuelle) || 0}
+          reste={reste}
+        />
 
         <div className="sticky bottom-0 rounded-xl border border-border bg-bg-card p-4 shadow-sm flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => router.push("/devis")}>
