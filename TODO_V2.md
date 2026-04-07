@@ -62,7 +62,7 @@
 ### 3.4 CI/CD corrections [MOYEN]
 - [x] `.github/workflows/ci.yml` — `ENCRYPTION_KEY` ajoute dans `security-check`
 - [x] `.github/workflows/ci.yml` — `alembic upgrade head` ajoute dans `backend-tests`
-- [ ] `.github/workflows/ci.yml` — Verification `.gitignore` (amelioration progressive)
+- [x] `.github/workflows/ci.yml` — Job `gitignore-check` ajoute
 
 ### 3.5 Documentation [FAIBLE]
 - [x] `CLAUDE.md` — Mis a jour : "Migrations : Alembic (configure, upgrade head)"
@@ -133,7 +133,7 @@
 ### 7.1 Frontend UX [FAIBLE]
 - [x] `window.confirm()` — 2 occurrences dans `useUnsavedChangesWarning.ts`, contexte synchrone obligatoire (navigation guard), correct
 - [x] `window.open()` — 6 occurrences, toutes pour downloads/PDF/mailto, pattern correct
-- [ ] Ajouter un type TypeScript strict pour chaque reponse admin
+- [x] Types TypeScript stricts pour admin : `lib/types/admin.ts` (health, metrics, data-quality, sync)
 
 ### 7.2 Monitoring [FAIBLE]
 - [ ] Ajouter un endpoint `/metrics` Prometheus-compatible (optionnel)
@@ -142,8 +142,8 @@
 - [ ] Ajouter des alertes sur les erreurs 5xx en production
 
 ### 7.3 Celery [FAIBLE]
-- [ ] `reminder_tasks.py` — Deleguer l'envoi d'email via tache email separee
-- [ ] `batch_tasks.py` — Ajouter progression visible (statut BDD tous les 100 items)
+- [x] `reminder_tasks.py` — Email delegue via `send_email_async.delay()` (async)
+- [x] `batch_tasks.py` — Progression visible en BDD tous les 100 items
 - [x] `db/session.py` — Statement timeout separe : 30s API, 300s Celery (detection auto via env)
 
 ### 7.4 Securite incrementale [FAIBLE]
