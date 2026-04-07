@@ -9,8 +9,11 @@ from app.domain.schemas.reconciliation import (
     BatchReconciliationResult,
     DossierReconciliationResponse,
     LinkPaymentsResult,
+    ReconciliationListItem,
+    ReconciliationListResponse,
     ReconciliationSummary,
 )
+from app.repositories import reconciliation_repo as recon_repo
 from app.services import reconciliation_service
 
 router = APIRouter(prefix="/api/v1/reconciliation", tags=["reconciliation"])
@@ -38,6 +41,48 @@ def run_reconciliation(
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> BatchReconciliationResult:
     return reconciliation_service.reconcile_all_customers(db, tenant_ctx.tenant_id)
+
+
+@router.get(
+    "/list",
+    response_model=ReconciliationListResponse,
+    summary="Liste paginee des rapprochements avec filtres",
+)
+def list_reconciliations(
+    status: str | None = Query(None, description="Filtrer par statut"),
+    confidence: str | None = Query(None, description="Filtrer par niveau de confiance"),
+    search: str | None = Query(None, description="Recherche par nom de client"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> ReconciliationListResponse:
+    rows, total = recon_repo.get_all_reconciliations(
+        db, tenant_ctx.tenant_id, status=status, confidence=confidence,
+        search=search, page=page, page_size=page_size,
+    )
+    items = []
+    for recon, customer in rows:
+        items.append(ReconciliationListItem(
+            customer_id=recon.customer_id,
+            customer_name=f"{customer.last_name} {customer.first_name}",
+            status=recon.status,
+            confidence=recon.confidence,
+            total_facture=recon.total_facture,
+            total_outstanding=recon.total_outstanding,
+            total_paid=recon.total_paid,
+            total_secu=recon.total_secu,
+            total_mutuelle=recon.total_mutuelle,
+            total_client=recon.total_client,
+            total_avoir=recon.total_avoir,
+            invoice_count=recon.invoice_count,
+            has_pec=recon.has_pec,
+            explanation=recon.explanation or "",
+            reconciled_at=recon.reconciled_at,
+        ))
+    return ReconciliationListResponse(
+        items=items, total=total, page=page, page_size=page_size,
+    )
 
 
 @router.get(

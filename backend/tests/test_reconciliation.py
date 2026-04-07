@@ -30,11 +30,21 @@ def _seed_invoice(
     db, tenant_id: int, cosium_id: int, customer_cosium_id: str,
     total_ti: float = 500, outstanding: float = 0, settled: bool = True,
     inv_type: str = "INVOICE", share_ss: float = 0, share_pi: float = 0,
+    customer_id: int | None = None,
 ) -> CosiumInvoice:
+    # Auto-resolve customer_id from cosium_id if not provided
+    if customer_id is None and customer_cosium_id:
+        cust = db.query(Customer).filter(
+            Customer.tenant_id == tenant_id,
+            Customer.cosium_id == customer_cosium_id,
+        ).first()
+        if cust:
+            customer_id = cust.id
     inv = CosiumInvoice(
         tenant_id=tenant_id, cosium_id=cosium_id,
         invoice_number=f"F-{cosium_id}", invoice_date=datetime(2026, 3, 15, tzinfo=UTC),
         customer_name="Dupont Jean", customer_cosium_id=customer_cosium_id,
+        customer_id=customer_id,
         type=inv_type, total_ti=total_ti, outstanding_balance=outstanding,
         share_social_security=share_ss, share_private_insurance=share_pi,
         settled=settled,

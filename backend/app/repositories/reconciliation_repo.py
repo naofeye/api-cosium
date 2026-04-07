@@ -170,6 +170,43 @@ def get_reconciliations_by_status(
     return items, total
 
 
+def get_all_reconciliations(
+    db: Session,
+    tenant_id: int,
+    status: str | None = None,
+    confidence: str | None = None,
+    search: str | None = None,
+    page: int = 1,
+    page_size: int = 25,
+) -> tuple[list[tuple], int]:
+    """Get paginated reconciliations with customer name, optional filters."""
+    q = (
+        db.query(DossierReconciliation, Customer)
+        .join(Customer, Customer.id == DossierReconciliation.customer_id)
+        .filter(
+            DossierReconciliation.tenant_id == tenant_id,
+            Customer.deleted_at.is_(None),
+        )
+    )
+    if status:
+        q = q.filter(DossierReconciliation.status == status)
+    if confidence:
+        q = q.filter(DossierReconciliation.confidence == confidence)
+    if search:
+        pattern = f"%{search}%"
+        q = q.filter(
+            (Customer.last_name.ilike(pattern)) | (Customer.first_name.ilike(pattern))
+        )
+    total = q.count()
+    items = (
+        q.order_by(DossierReconciliation.total_outstanding.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    return items, total
+
+
 def get_anomalous_reconciliations(
     db: Session, tenant_id: int, page: int = 1, page_size: int = 25,
 ) -> tuple[list[DossierReconciliation], int]:

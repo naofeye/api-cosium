@@ -95,6 +95,35 @@ class ReconciliationSummary(BaseModel):
     total_paid: float = 0
 
 
+class ReconciliationListItem(BaseModel):
+    """Single item in the reconciliation list."""
+
+    customer_id: int
+    customer_name: str
+    status: str
+    confidence: str
+    total_facture: float
+    total_outstanding: float
+    total_paid: float
+    total_secu: float
+    total_mutuelle: float
+    total_client: float
+    total_avoir: float
+    invoice_count: int
+    has_pec: bool
+    explanation: str = ""
+    reconciled_at: datetime
+
+
+class ReconciliationListResponse(BaseModel):
+    """Paginated list of reconciliations."""
+
+    items: list[ReconciliationListItem]
+    total: int
+    page: int
+    page_size: int
+
+
 class LinkPaymentsResult(BaseModel):
     """Result of the payment-to-customer linking process."""
 

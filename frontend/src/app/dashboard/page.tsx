@@ -25,7 +25,7 @@ const DashboardCharts = dynamic(() => import("./components/DashboardCharts").the
   ),
 });
 import { useToast } from "@/components/ui/Toast";
-import { FileDown, Calendar, Eye, RefreshCw as RefreshIcon, Clock, ClipboardCheck, Search, AlertCircle, Settings, Users, FileSearch } from "lucide-react";
+import { FileDown, Calendar, Eye, RefreshCw as RefreshIcon, Clock, ClipboardCheck, Search, AlertCircle, Settings, Users, FileSearch, ArrowLeftRight } from "lucide-react";
 import Link from "next/link";
 import { formatMoney } from "@/lib/format";
 
@@ -179,6 +179,72 @@ function formatRelativeTime(date: Date): string {
   if (minutes < 60) return `il y a ${minutes}min`;
   const hours = Math.floor(minutes / 60);
   return `il y a ${hours}h`;
+}
+
+interface ReconciliationSummary {
+  total_customers: number;
+  solde: number;
+  solde_non_rapproche: number;
+  partiellement_paye: number;
+  en_attente: number;
+  incoherent: number;
+  total_facture: number;
+  total_outstanding: number;
+}
+
+function ReconciliationBanner() {
+  const { data } = useSWR<ReconciliationSummary>(
+    "/reconciliation/summary",
+    {
+      refreshInterval: 120000,
+      onError: () => { /* ignore silently */ },
+    },
+  );
+
+  if (!data || data.total_customers === 0) return null;
+
+  const tauxSolde = Math.round(
+    ((data.solde + data.solde_non_rapproche) / data.total_customers) * 100,
+  );
+  const anomalies = data.incoherent;
+
+  return (
+    <div className="rounded-xl border border-border bg-bg-card p-4 mb-6 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <ArrowLeftRight className="h-4 w-4 text-primary" aria-hidden="true" />
+          <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide">
+            Rapprochement Cosium
+          </h3>
+        </div>
+        <Link
+          href="/rapprochement-cosium"
+          className="text-xs font-medium text-primary hover:underline"
+        >
+          Voir le detail &rarr;
+        </Link>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-6 text-sm">
+        <span className="font-semibold text-text-primary tabular-nums">
+          {tauxSolde}% soldes
+        </span>
+        <span className="text-text-secondary">
+          {data.total_customers.toLocaleString("fr-FR")} dossiers analyses
+        </span>
+        {anomalies > 0 && (
+          <span className="inline-flex items-center gap-1 text-red-600 font-medium">
+            <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />
+            {anomalies} anomalie{anomalies > 1 ? "s" : ""}
+          </span>
+        )}
+        {data.total_outstanding > 0 && (
+          <span className="text-text-secondary tabular-nums">
+            Impaye : {formatMoney(data.total_outstanding)}
+          </span>
+        )}
+      </div>
+    </div>
+  );
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
@@ -425,6 +491,9 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Rapprochement Cosium summary */}
+      <ReconciliationBanner />
 
       {/* Actions rapides */}
       <div className="mb-8">

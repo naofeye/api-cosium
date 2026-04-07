@@ -82,6 +82,7 @@ const navGroups: NavGroup[] = [
       { href: "/avoirs", label: "Avoirs", icon: RotateCcw },
       { href: "/paiements", label: "Paiements", icon: CreditCard },
       { href: "/rapprochement", label: "Rapprochement", icon: ArrowLeftRight },
+      { href: "/rapprochement-cosium", label: "Rapprochement Cosium", icon: ArrowLeftRight },
       { href: "/pec", label: "PEC", icon: Shield },
       { href: "/pec-dashboard", label: "Assistance PEC", icon: ClipboardCheck },
     ],
