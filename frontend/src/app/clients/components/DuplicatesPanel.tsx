@@ -14,6 +14,13 @@ export interface DuplicateGroup {
   clients: Customer[];
 }
 
+interface MergePreview {
+  keepId: number;
+  mergeId: number;
+  keepName: string;
+  mergeName: string;
+}
+
 interface MergeResult {
   kept_client: Customer;
   cases_transferred: number;
@@ -70,6 +77,7 @@ export function DuplicatesPanel({ duplicates, onRefresh, onDataChanged }: Duplic
   const { toast } = useToast();
   const [compareGroup, setCompareGroup] = useState<DuplicateGroup | null>(null);
   const [merging, setMerging] = useState(false);
+  const [mergePreview, setMergePreview] = useState<MergePreview | null>(null);
 
   const handleMerge = async (keepId: number, mergeId: number) => {
     setMerging(true);
@@ -98,6 +106,7 @@ export function DuplicatesPanel({ duplicates, onRefresh, onDataChanged }: Duplic
   };
 
   return (
+    <>
     <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
       <h3 className="text-sm font-semibold text-amber-800 mb-3 flex items-center gap-2">
         <AlertTriangle className="h-4 w-4" />
@@ -197,13 +206,12 @@ export function DuplicatesPanel({ duplicates, onRefresh, onDataChanged }: Duplic
                           key={keepClient.id}
                           variant={isRecommended ? "primary" : "outline"}
                           disabled={merging}
-                          onClick={() => {
-                            if (confirm(
-                              `Fusionner #${otherClients[0].id} dans #${keepClient.id} ?\n\nLes dossiers, interactions et donnees de #${otherClients[0].id} seront transferes vers #${keepClient.id}.\n#${otherClients[0].id} sera supprime.`
-                            )) {
-                              handleMerge(keepClient.id, otherClients[0].id);
-                            }
-                          }}
+                          onClick={() => setMergePreview({
+                            keepId: keepClient.id,
+                            mergeId: otherClients[0].id,
+                            keepName: `${keepClient.last_name} ${keepClient.first_name}`,
+                            mergeName: `${otherClients[0].last_name} ${otherClients[0].first_name}`,
+                          })}
                         >
                           {merging ? "Fusion..." : (
                             <>
@@ -229,5 +237,55 @@ export function DuplicatesPanel({ duplicates, onRefresh, onDataChanged }: Duplic
         </div>
       )}
     </div>
+
+      {/* Merge Preview Dialog */}
+      {mergePreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => !merging && setMergePreview(null)}>
+          <div className="bg-bg-card rounded-xl shadow-xl border border-border p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
+              <Merge className="h-5 w-5 text-primary" />
+              Confirmer la fusion
+            </h3>
+
+            <div className="space-y-3 mb-6">
+              <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-3">
+                <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300">Conserver : #{mergePreview.keepId} — {mergePreview.keepName}</p>
+              </div>
+              <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
+                <p className="text-sm font-medium text-red-800 dark:text-red-300">Supprimer : #{mergePreview.mergeId} — {mergePreview.mergeName}</p>
+              </div>
+            </div>
+
+            <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 mb-6">
+              <p className="text-sm text-amber-800 dark:text-amber-300">
+                <strong>Cette action va :</strong>
+              </p>
+              <ul className="text-sm text-amber-700 dark:text-amber-400 mt-1 list-disc list-inside space-y-0.5">
+                <li>Transferer tous les dossiers, documents et paiements</li>
+                <li>Transferer les interactions et donnees PEC</li>
+                <li>Completer les champs manquants du client conserve</li>
+                <li>Supprimer definitivement le client #{mergePreview.mergeId}</li>
+              </ul>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setMergePreview(null)} disabled={merging}>
+                Annuler
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  handleMerge(mergePreview.keepId, mergePreview.mergeId);
+                  setMergePreview(null);
+                }}
+                disabled={merging}
+              >
+                {merging ? "Fusion en cours..." : "Confirmer la fusion"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

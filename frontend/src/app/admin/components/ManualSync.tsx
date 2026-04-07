@@ -69,6 +69,7 @@ export function ManualSync() {
   const [syncAllStep, setSyncAllStep] = useState(0);
   const [syncAllTotal] = useState(SYNC_ALL_STEPS.length);
   const [syncAllStatus, setSyncAllStatus] = useState<Record<string, "pending" | "success" | "error">>({});
+  const [syncSummary, setSyncSummary] = useState<string | null>(null);
 
   const runSync = async (type: string) => {
     setSyncing(type);
@@ -106,8 +107,14 @@ export function ManualSync() {
       setSyncAllStatus({ ...statusMap });
     }
 
+    const errorCount = Object.values(statusMap).filter((s) => s === "error").length;
     setSyncAllRunning(false);
     setSyncing(null);
+    if (errorCount > 0) {
+      setSyncSummary(`Synchronisation incomplete : ${errorCount} etape(s) en erreur.`);
+    } else {
+      setSyncSummary(null);
+    }
   };
 
   const isDisabled = syncing !== null;
@@ -168,9 +175,13 @@ export function ManualSync() {
       )}
 
       {/* Completed sync all summary */}
-      {!syncAllRunning && Object.keys(syncAllStatus).length > 0 && (
-        <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-          <p className="text-sm font-medium text-emerald-800 mb-2">Synchronisation terminee</p>
+      {!syncAllRunning && Object.keys(syncAllStatus).length > 0 && (() => {
+        const hasErrors = Object.values(syncAllStatus).some((s) => s === "error");
+        return (
+        <div className={`mb-4 rounded-lg border p-4 ${hasErrors ? "border-red-200 bg-red-50" : "border-emerald-200 bg-emerald-50"}`}>
+          <p className={`text-sm font-medium mb-2 ${hasErrors ? "text-red-800" : "text-emerald-800"}`}>
+            {hasErrors ? "Synchronisation incomplete — certaines etapes ont echoue" : "Synchronisation terminee avec succes"}
+          </p>
           <div className="space-y-1">
             {SYNC_ALL_STEPS.map((step) => {
               const status = syncAllStatus[step];
@@ -192,7 +203,8 @@ export function ManualSync() {
             })}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       <div className="space-y-3">
         <h4 className="text-sm font-medium text-text-secondary uppercase tracking-wide">Donnees principales</h4>

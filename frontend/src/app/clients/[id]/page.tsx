@@ -45,17 +45,28 @@ export default function ClientDetailPage() {
     return { renewalEligible: months >= 24, renewalMonths: months };
   }, [data]);
 
+  const [forceDelete, setForceDelete] = useState(false);
+
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      await fetchJson(`/clients/${id}`, { method: "DELETE" });
+      const forceParam = forceDelete ? "?force=true" : "";
+      await fetchJson(`/clients/${id}${forceParam}`, { method: "DELETE" });
       toast("Client supprime", "success");
       router.push("/clients");
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Erreur", "error");
+      const msg = e instanceof Error ? e.message : "Erreur";
+      if (msg.includes("dossiers actifs") || msg.includes("ACTIVE_ENTITIES")) {
+        toast(msg + " — Cochez 'Forcer la suppression' pour continuer.", "warning");
+        setForceDelete(true);
+        setDeleting(false);
+        return;
+      }
+      toast(msg, "error");
     } finally {
       setDeleting(false);
       setShowDelete(false);
+      setForceDelete(false);
     }
   };
 
@@ -190,11 +201,15 @@ export default function ClientDetailPage() {
       <ConfirmDialog
         open={showDelete}
         title="Supprimer le client"
-        message={`Etes-vous sur de vouloir supprimer ${data.first_name} ${data.last_name} ? Cette action est irreversible.`}
-        confirmLabel={deleting ? "Suppression..." : "Supprimer"}
+        message={
+          forceDelete
+            ? `ATTENTION : Ce client a des dossiers actifs. La suppression forcee archivera toutes les donnees liees. Continuer ?`
+            : `Etes-vous sur de vouloir supprimer ${data.first_name} ${data.last_name} ? Cette action est irreversible.`
+        }
+        confirmLabel={deleting ? "Suppression..." : (forceDelete ? "Forcer la suppression" : "Supprimer")}
         danger
         onConfirm={handleDelete}
-        onCancel={() => setShowDelete(false)}
+        onCancel={() => { setShowDelete(false); setForceDelete(false); }}
       />
     </PageLayout>
   );
