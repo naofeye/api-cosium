@@ -29,6 +29,11 @@ class ClientUpdate(BaseModel):
     notes: str | None = None
 
 
+class ClientCompletenessScore(BaseModel):
+    score: float = 0.0
+    fields: dict[str, bool] = {}
+
+
 class ClientResponse(BaseModel):
     id: int
     cosium_id: str | None = None
@@ -53,6 +58,7 @@ class ClientResponse(BaseModel):
     created_at: datetime | None = None
     updated_at: datetime | None = None
     deleted_at: datetime | None = None
+    completeness: ClientCompletenessScore | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

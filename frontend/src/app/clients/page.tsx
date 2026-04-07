@@ -319,6 +319,34 @@ export default function ClientsPage() {
     { key: "phone", header: "Telephone", render: (row) => row.phone || "\u2014" },
     { key: "email", header: "Email", render: (row) => row.email || "\u2014" },
     { key: "city", header: "Ville", render: (row) => row.city || "\u2014" },
+    {
+      key: "completeness",
+      header: "Completude",
+      render: (row) => {
+        const score = row.completeness?.score ?? 0;
+        const colorClass =
+          score >= 75 ? "bg-emerald-500" :
+          score >= 50 ? "bg-amber-500" :
+          score >= 25 ? "bg-orange-500" :
+          "bg-red-500";
+        const textColor =
+          score >= 75 ? "text-emerald-700" :
+          score >= 50 ? "text-amber-700" :
+          score >= 25 ? "text-orange-700" :
+          "text-red-700";
+        return (
+          <div className="flex items-center gap-2" title={`Completude : ${score}%`}>
+            <div className="w-16 h-2 rounded-full bg-gray-200 overflow-hidden">
+              <div
+                className={`h-full rounded-full ${colorClass} transition-all`}
+                style={{ width: `${score}%` }}
+              />
+            </div>
+            <span className={`text-xs font-medium ${textColor}`}>{score}%</span>
+          </div>
+        );
+      },
+    },
     { key: "date", header: "Cree le", render: (row) => <DateDisplay date={row.created_at} /> },
   ];
 

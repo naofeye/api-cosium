@@ -26,6 +26,12 @@ export interface User {
   is_active: boolean;
 }
 
+// --- Client Completeness ---
+export interface ClientCompletenessScore {
+  score: number;
+  fields: Record<string, boolean>;
+}
+
 // --- Client ---
 export interface Customer {
   id: number;
@@ -51,6 +57,7 @@ export interface Customer {
   created_at: string | null;
   updated_at: string | null;
   deleted_at: string | null;
+  completeness: ClientCompletenessScore | null;
 }
 
 export interface CustomerCreate {

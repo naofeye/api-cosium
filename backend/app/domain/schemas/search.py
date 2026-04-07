@@ -17,3 +17,4 @@ class SearchResponse(BaseModel):
     factures: list[SearchResultItem] = []
     cosium_factures: list[SearchResultItem] = []
     ordonnances: list[SearchResultItem] = []
+    documents_ocr: list[SearchResultItem] = []

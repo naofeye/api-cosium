@@ -20,6 +20,7 @@ from app.domain.schemas.clients import (
 from app.models.client import Customer
 from app.repositories import client_repo
 from app.services import audit_service
+from app.services.client_completeness_service import calculate_client_completeness
 
 logger = get_logger("client_service")
 
@@ -34,8 +35,13 @@ def search_clients(
 ) -> ClientListResponse:
     items, total = client_repo.search(db, tenant_id, query, page, page_size, include_deleted=include_deleted)
     total_pages = (total + page_size - 1) // page_size if page_size else 0
+    client_responses: list[ClientResponse] = []
+    for c in items:
+        resp = ClientResponse.model_validate(c)
+        resp.completeness = calculate_client_completeness(db, c, tenant_id)
+        client_responses.append(resp)
     return ClientListResponse(
-        items=[ClientResponse.model_validate(c) for c in items],
+        items=client_responses,
         total=total,
         page=page,
         page_size=page_size,
@@ -47,7 +53,9 @@ def get_client(db: Session, tenant_id: int, client_id: int) -> ClientResponse:
     customer = client_repo.get_by_id_active(db, client_id=client_id, tenant_id=tenant_id)
     if not customer:
         raise NotFoundError("client", client_id)
-    return ClientResponse.model_validate(customer)
+    resp = ClientResponse.model_validate(customer)
+    resp.completeness = calculate_client_completeness(db, customer, tenant_id)
+    return resp
 
 
 def create_client(db: Session, tenant_id: int, payload: ClientCreate, user_id: int) -> ClientResponse:

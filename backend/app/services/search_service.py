@@ -5,18 +5,19 @@ from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
 from app.models import Case, Customer, Devis, Facture
-from app.models.cosium_data import CosiumInvoice, CosiumPrescription
+from app.models.cosium_data import CosiumDocument, CosiumInvoice, CosiumPrescription
+from app.models.document_extraction import DocumentExtraction
 
 logger = get_logger("search_service")
 
 
 def global_search(db: Session, tenant_id: int, query: str, limit: int = 10) -> dict:
-    """Recherche dans clients, dossiers, devis, factures, factures Cosium."""
+    """Recherche dans clients, dossiers, devis, factures, factures Cosium, documents OCR."""
     if not query or len(query) < 2:
-        return {"clients": [], "dossiers": [], "devis": [], "factures": [], "cosium_factures": [], "ordonnances": []}
+        return {"clients": [], "dossiers": [], "devis": [], "factures": [], "cosium_factures": [], "ordonnances": [], "documents_ocr": []}
 
     pattern = f"%{query}%"
-    results: dict = {"clients": [], "dossiers": [], "devis": [], "factures": [], "cosium_factures": [], "ordonnances": []}
+    results: dict = {"clients": [], "dossiers": [], "devis": [], "factures": [], "cosium_factures": [], "ordonnances": [], "documents_ocr": []}
 
     # Clients (nom, prenom, email, telephone)
     clients = db.scalars(
@@ -132,6 +133,64 @@ def global_search(db: Session, tenant_id: int, query: str, limit: int = 10) -> d
         }
         for o in ordonnances
     ]
+
+    # Documents OCR — search in extracted text (min 3 chars to avoid noise)
+    if len(query) >= 3:
+        ocr_results = db.execute(
+            select(
+                DocumentExtraction.cosium_document_id,
+                DocumentExtraction.document_type,
+                CosiumDocument.customer_cosium_id,
+                CosiumDocument.name,
+            )
+            .join(
+                CosiumDocument,
+                (CosiumDocument.cosium_document_id == DocumentExtraction.cosium_document_id)
+                & (CosiumDocument.tenant_id == DocumentExtraction.tenant_id),
+            )
+            .where(
+                DocumentExtraction.tenant_id == tenant_id,
+                DocumentExtraction.raw_text.ilike(pattern),
+            )
+            .limit(limit)
+        ).all()
+
+        # Map to customer name for display
+        seen_doc_ids: set[int] = set()
+        for row in ocr_results:
+            doc_id = row[0]
+            if doc_id in seen_doc_ids:
+                continue
+            seen_doc_ids.add(doc_id)
+
+            doc_type = row[1] or "document"
+            customer_cosium_id = row[2]
+            doc_name = row[3] or ""
+
+            # Try to find the customer name
+            customer_label = ""
+            if customer_cosium_id:
+                cust = db.scalars(
+                    select(Customer).where(
+                        Customer.tenant_id == tenant_id,
+                        Customer.cosium_id == str(customer_cosium_id),
+                    ).limit(1)
+                ).first()
+                if cust:
+                    customer_label = f"{cust.last_name} {cust.first_name}"
+
+            detail_parts = [doc_type]
+            if customer_label:
+                detail_parts.append(customer_label)
+            if doc_name:
+                detail_parts.append(doc_name[:60])
+
+            results["documents_ocr"].append({
+                "id": doc_id,
+                "type": "document_ocr",
+                "label": f"Document OCR #{doc_id}",
+                "detail": " — ".join(detail_parts),
+            })
 
     total = sum(len(v) for v in results.values())
     logger.info("global_search", tenant_id=tenant_id, query=query, total_results=total)
