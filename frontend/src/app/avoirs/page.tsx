@@ -12,39 +12,18 @@ import { Button } from "@/components/ui/Button";
 import { useCosiumInvoices, useCosiumInvoiceTotals } from "@/lib/hooks/use-api";
 import { exportToCsv } from "@/lib/export-csv";
 import { formatMoney, formatDate } from "@/lib/format";
-import { Download, Receipt, Euro, AlertCircle, FileText } from "lucide-react";
+import { Download, RotateCcw, Euro, FileText } from "lucide-react";
 import type { CosiumInvoice } from "@/lib/types";
-
-const TYPE_OPTIONS = [
-  { value: "INVOICE", label: "Factures uniquement" },
-  { value: "", label: "Tous les types" },
-  { value: "QUOTE", label: "Devis" },
-  { value: "CREDIT_NOTE", label: "Avoir" },
-];
 
 const SETTLED_OPTIONS = [
   { value: "", label: "Tous les statuts" },
   { value: "true", label: "Solde" },
-  { value: "false", label: "Impaye" },
+  { value: "false", label: "Non solde" },
 ];
 
-function typeLabel(type: string): string {
-  switch (type) {
-    case "INVOICE":
-      return "Facture";
-    case "QUOTE":
-      return "Devis";
-    case "CREDIT_NOTE":
-      return "Avoir";
-    default:
-      return type;
-  }
-}
-
-export default function CosiumFacturesPage() {
+export default function AvoirsPage() {
   const router = useRouter();
   const [page, setPage] = useState(1);
-  const [typeFilter, setTypeFilter] = useState("INVOICE");
   const [settledFilter, setSettledFilter] = useState("");
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -53,7 +32,7 @@ export default function CosiumFacturesPage() {
   const settled = settledFilter === "" ? null : settledFilter === "true";
 
   const filterParams = {
-    type_filter: typeFilter || undefined,
+    type_filter: "CREDIT_NOTE" as string,
     settled: settled ?? undefined,
     search: search || undefined,
     date_from: dateFrom || undefined,
@@ -75,17 +54,16 @@ export default function CosiumFacturesPage() {
 
   const handleExportCsv = () => {
     if (!data?.items?.length) return;
-    const headers = ["Numero", "Date", "Client", "Type", "Montant TTC", "Solde restant", "Statut"];
+    const headers = ["Numero", "Date", "Client", "Montant TTC", "Solde restant", "Statut"];
     const rows = data.items.map((inv) => [
       inv.invoice_number,
       formatDate(inv.invoice_date),
       inv.customer_name || "-",
-      typeLabel(inv.type),
       formatMoney(inv.total_ti),
       formatMoney(inv.outstanding_balance),
-      inv.settled ? "Solde" : "Impaye",
+      inv.settled ? "Solde" : "Non solde",
     ]);
-    exportToCsv("cosium-factures.csv", headers, rows);
+    exportToCsv("avoirs-cosium.csv", headers, rows);
   };
 
   const handleClientClick = (inv: CosiumInvoice) => {
@@ -97,7 +75,7 @@ export default function CosiumFacturesPage() {
   const columns: Column<CosiumInvoice>[] = [
     {
       key: "invoice_number",
-      header: "Numero",
+      header: "N\u00b0 Avoir",
       sortable: true,
       render: (row) => <span className="font-mono font-medium">{row.invoice_number}</span>,
     },
@@ -112,7 +90,7 @@ export default function CosiumFacturesPage() {
       key: "customer_name",
       header: "Client",
       sortable: true,
-      render: (row) => (
+      render: (row) =>
         row.customer_id ? (
           <button
             onClick={(e) => {
@@ -126,18 +104,7 @@ export default function CosiumFacturesPage() {
           </button>
         ) : (
           <span>{row.customer_name || "-"}</span>
-        )
-      ),
-    },
-    {
-      key: "type",
-      header: "Type",
-      render: (row) => (
-        <StatusBadge
-          status={row.type === "INVOICE" ? "facturee" : row.type === "QUOTE" ? "brouillon" : "annulee"}
-          label={typeLabel(row.type)}
-        />
-      ),
+        ),
     },
     {
       key: "total_ti",
@@ -162,31 +129,31 @@ export default function CosiumFacturesPage() {
       key: "settled",
       header: "Statut",
       render: (row) =>
-        row.settled ? <StatusBadge status="payee" label="Solde" /> : <StatusBadge status="impayee" label="Impaye" />,
+        row.settled ? <StatusBadge status="payee" label="Solde" /> : <StatusBadge status="en_attente" label="Non solde" />,
     },
   ];
 
   return (
     <PageLayout
-      title="Factures Cosium"
-      description={`${data?.total ?? 0} documents synchronises depuis Cosium`}
-      breadcrumb={[{ label: "Factures Cosium" }]}
+      title="Avoirs Cosium"
+      description={`${data?.total ?? 0} avoirs synchronises depuis Cosium`}
+      breadcrumb={[{ label: "Avoirs Cosium" }]}
       actions={
         <Button variant="outline" onClick={handleExportCsv} disabled={!data?.items?.length}>
           <Download className="h-4 w-4 mr-1" /> Exporter CSV
         </Button>
       }
     >
-      {/* KPI bar with server-side totals */}
+      {/* KPI bar */}
       {totals && totals.count > 0 && (
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-4 flex items-center gap-3">
-            <div className="rounded-lg bg-blue-50 p-2">
-              <FileText className="h-5 w-5 text-blue-600" />
+            <div className="rounded-lg bg-purple-50 p-2">
+              <FileText className="h-5 w-5 text-purple-600" />
             </div>
             <div>
-              <p className="text-xs text-gray-500">Nombre de documents</p>
-              <p className="text-xl font-bold text-gray-900 tabular-nums">{totals.count}</p>
+              <p className="text-xs text-gray-500">Nombre d&apos;avoirs</p>
+              <p className="text-xl font-bold text-gray-900 tabular-nums">{totals.count.toLocaleString("fr-FR")}</p>
             </div>
           </div>
           <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-4 flex items-center gap-3">
@@ -194,17 +161,17 @@ export default function CosiumFacturesPage() {
               <Euro className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
-              <p className="text-xs text-gray-500">Total TTC</p>
+              <p className="text-xs text-gray-500">Total avoirs TTC</p>
               <p className="text-xl font-bold text-gray-900 tabular-nums">{formatMoney(totals.total_ttc)}</p>
             </div>
           </div>
           <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-4 flex items-center gap-3">
-            <div className="rounded-lg bg-red-50 p-2">
-              <AlertCircle className="h-5 w-5 text-red-600" />
+            <div className="rounded-lg bg-amber-50 p-2">
+              <RotateCcw className="h-5 w-5 text-amber-600" />
             </div>
             <div>
-              <p className="text-xs text-gray-500">Total impaye</p>
-              <p className="text-xl font-bold text-red-600 tabular-nums">{formatMoney(totals.total_impaye)}</p>
+              <p className="text-xs text-gray-500">Solde restant</p>
+              <p className="text-xl font-bold text-amber-600 tabular-nums">{formatMoney(totals.total_impaye)}</p>
             </div>
           </div>
         </div>
@@ -213,21 +180,6 @@ export default function CosiumFacturesPage() {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-4 mb-6">
         <SearchInput placeholder="Rechercher par numero ou client..." onSearch={handleSearch} />
-        <select
-          value={typeFilter}
-          onChange={(e) => {
-            setTypeFilter(e.target.value);
-            setPage(1);
-          }}
-          className="rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-          aria-label="Filtrer par type"
-        >
-          {TYPE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
         <select
           value={settledFilter}
           onChange={(e) => {
@@ -244,25 +196,39 @@ export default function CosiumFacturesPage() {
           ))}
         </select>
         <div className="flex items-center gap-2">
-          <label className="text-sm text-text-secondary" htmlFor="date-from">Du</label>
+          <label className="text-sm text-text-secondary" htmlFor="date-from">
+            Du
+          </label>
           <input
             id="date-from"
             type="date"
             value={dateFrom}
-            onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setDateFrom(e.target.value);
+              setPage(1);
+            }}
             className="rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
           />
-          <label className="text-sm text-text-secondary" htmlFor="date-to">au</label>
+          <label className="text-sm text-text-secondary" htmlFor="date-to">
+            au
+          </label>
           <input
             id="date-to"
             type="date"
             value={dateTo}
-            onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setDateTo(e.target.value);
+              setPage(1);
+            }}
             className="rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
           />
           {(dateFrom || dateTo) && (
             <button
-              onClick={() => { setDateFrom(""); setDateTo(""); setPage(1); }}
+              onClick={() => {
+                setDateFrom("");
+                setDateTo("");
+                setPage(1);
+              }}
               className="text-xs text-blue-600 hover:text-blue-700"
             >
               Effacer dates
@@ -281,9 +247,9 @@ export default function CosiumFacturesPage() {
         pageSize={25}
         total={data?.total}
         onPageChange={setPage}
-        emptyTitle="Aucune facture Cosium"
-        emptyDescription="Lancez une synchronisation depuis Parametres > Connexion ERP pour importer vos factures."
-        emptyIcon={Receipt}
+        emptyTitle="Aucun avoir Cosium"
+        emptyDescription="Les avoirs apparaitront ici apres synchronisation depuis Cosium."
+        emptyIcon={RotateCcw}
       />
     </PageLayout>
   );

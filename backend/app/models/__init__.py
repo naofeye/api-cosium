@@ -46,6 +46,7 @@ from app.models.payment import BankTransaction, Payment  # noqa: F401
 from app.models.pec import PayerContract, PayerOrganization, PecRequest, PecStatusHistory, Relance  # noqa: F401
 from app.models.pec_audit import PecAuditEntry  # noqa: F401
 from app.models.pec_preparation import PecPreparation, PecPreparationDocument  # noqa: F401
+from app.models.reconciliation import DossierReconciliation  # noqa: F401
 from app.models.reminder import Reminder, ReminderPlan, ReminderTemplate  # noqa: F401
 from app.models.tenant import Organization, Tenant, TenantErpCredentials, TenantUser  # noqa: F401
 from app.models.user import PasswordResetToken, RefreshToken, User  # noqa: F401

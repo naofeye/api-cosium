@@ -2,7 +2,7 @@
 
 import { KPICard } from "@/components/ui/KPICard";
 import { formatMoney } from "@/lib/format";
-import { Euro, TrendingUp, CheckCircle, AlertCircle, Users, FileText, ClipboardList, CreditCard } from "lucide-react";
+import { Euro, TrendingUp, CheckCircle, AlertCircle, Users, FileText, ClipboardList, CreditCard, RotateCcw } from "lucide-react";
 
 interface KPIComparison {
   ca_total_delta: number | null;
@@ -30,6 +30,9 @@ export interface DashboardKPIsProps {
     invoice_count: number;
     quote_count: number;
     credit_note_count: number;
+    total_facture_cosium: number;
+    total_devis_cosium: number;
+    total_avoirs_cosium: number;
   } | null;
   comparison?: KPIComparison | null;
 }
@@ -74,8 +77,8 @@ export function DashboardKPIs({ financial, cosiumCounts, cosium, comparison }: D
         />
       </div>
 
-      {/* Row 2: Volume KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Row 2: Volume KPIs — factures, devis, avoirs separated */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <KPICard
           icon={Users}
           label="Clients"
@@ -86,15 +89,21 @@ export function DashboardKPIs({ financial, cosiumCounts, cosium, comparison }: D
         <KPICard
           icon={FileText}
           label="Factures"
-          value={cosium ? cosium.invoice_count.toLocaleString("fr-FR") : "0"}
+          value={cosium ? `${cosium.invoice_count.toLocaleString("fr-FR")} (${formatMoney(cosium.total_facture_cosium)})` : "0"}
           color="primary"
           trend={toTrend(comparison?.factures_delta, "vs semaine derniere")}
         />
         <KPICard
           icon={ClipboardList}
           label="Devis"
-          value={cosium ? cosium.quote_count.toLocaleString("fr-FR") : "0"}
+          value={cosium ? `${cosium.quote_count.toLocaleString("fr-FR")} (${formatMoney(cosium.total_devis_cosium)})` : "0"}
           color="primary"
+        />
+        <KPICard
+          icon={RotateCcw}
+          label="Avoirs"
+          value={cosium ? `${cosium.credit_note_count.toLocaleString("fr-FR")} (${formatMoney(cosium.total_avoirs_cosium)})` : "0"}
+          color="warning"
         />
         <KPICard
           icon={CreditCard}

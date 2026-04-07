@@ -33,6 +33,7 @@ import {
   Package,
   FolderDown,
   Briefcase,
+  RotateCcw,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -77,6 +78,8 @@ const navGroups: NavGroup[] = [
     items: [
       { href: "/devis", label: "Devis", icon: FileText },
       { href: "/factures", label: "Factures", icon: Receipt },
+      { href: "/cosium-factures", label: "Factures Cosium", icon: FileStack },
+      { href: "/avoirs", label: "Avoirs", icon: RotateCcw },
       { href: "/paiements", label: "Paiements", icon: CreditCard },
       { href: "/rapprochement", label: "Rapprochement", icon: ArrowLeftRight },
       { href: "/pec", label: "PEC", icon: Shield },
@@ -87,7 +90,6 @@ const navGroups: NavGroup[] = [
     key: "cosium",
     label: "Cosium",
     items: [
-      { href: "/cosium-factures", label: "Factures Cosium", icon: FileStack },
       { href: "/cosium-paiements", label: "Paiements Cosium", icon: CreditCard },
       { href: "/agenda", label: "Agenda", icon: Calendar },
       { href: "/ordonnances", label: "Ordonnances", icon: FileText },

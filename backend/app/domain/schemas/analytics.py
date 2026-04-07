@@ -71,6 +71,8 @@ class CosiumKPIs(BaseModel):
     invoice_count: int = 0
     quote_count: int = 0
     credit_note_count: int = 0
+    total_devis_cosium: float = 0
+    total_avoirs_cosium: float = 0
 
 
 class CosiumCounts(BaseModel):

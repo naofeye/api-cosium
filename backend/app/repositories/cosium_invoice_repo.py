@@ -89,3 +89,31 @@ def get_totals(
         "total_impaye": float(row.total_impaye),
         "count": int(row.count),
     }
+
+
+def get_totals_by_type(
+    db: Session,
+    tenant_id: int,
+) -> list[dict[str, str | float | int]]:
+    """Return aggregate totals grouped by invoice type."""
+    q = (
+        select(
+            CosiumInvoice.type,
+            func.coalesce(func.sum(CosiumInvoice.total_ti), 0).label("total_ttc"),
+            func.coalesce(func.sum(CosiumInvoice.outstanding_balance), 0).label("total_impaye"),
+            func.count().label("count"),
+        )
+        .select_from(CosiumInvoice)
+        .where(CosiumInvoice.tenant_id == tenant_id)
+        .group_by(CosiumInvoice.type)
+    )
+    rows = db.execute(q).all()
+    return [
+        {
+            "type": row.type,
+            "total_ttc": float(row.total_ttc),
+            "total_impaye": float(row.total_impaye),
+            "count": int(row.count),
+        }
+        for row in rows
+    ]

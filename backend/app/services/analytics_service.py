@@ -367,6 +367,24 @@ def get_cosium_kpis(db: Session, tenant_id: int) -> CosiumKPIs:
         or 0
     )
 
+    total_devis_cosium = float(
+        db.scalar(
+            select(func.coalesce(func.sum(CosiumInvoice.total_ti), 0)).where(
+                CosiumInvoice.tenant_id == tenant_id, CosiumInvoice.type == "QUOTE"
+            )
+        )
+        or 0
+    )
+
+    total_avoirs_cosium = float(
+        db.scalar(
+            select(func.coalesce(func.sum(CosiumInvoice.total_ti), 0)).where(
+                CosiumInvoice.tenant_id == tenant_id, CosiumInvoice.type == "CREDIT_NOTE"
+            )
+        )
+        or 0
+    )
+
     return CosiumKPIs(
         total_facture_cosium=round(total_facture_cosium, 2),
         total_outstanding=round(total_outstanding, 2),
@@ -374,6 +392,8 @@ def get_cosium_kpis(db: Session, tenant_id: int) -> CosiumKPIs:
         invoice_count=invoice_count,
         quote_count=quote_count,
         credit_note_count=credit_note_count,
+        total_devis_cosium=round(total_devis_cosium, 2),
+        total_avoirs_cosium=round(total_avoirs_cosium, 2),
     )
 
 

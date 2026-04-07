@@ -43,6 +43,7 @@ from app.api.routers import (
     payments,
     pec,
     pec_preparation,
+    reconciliation,
     reminders,
     renewals,
     search,
@@ -105,6 +106,7 @@ app = FastAPI(
         {"name": "sync", "description": "Synchronisation ERP Cosium"},
         {"name": "notifications", "description": "Notifications utilisateur"},
         {"name": "action-items", "description": "Actions a traiter (file d'attente)"},
+        {"name": "reconciliation", "description": "Rapprochement paiements-factures et lettrage"},
         {"name": "reminders", "description": "Relances et rappels clients"},
         {"name": "renewals", "description": "Renouvellements d'equipements"},
         {"name": "marketing", "description": "Campagnes marketing et segmentation"},
@@ -301,6 +303,7 @@ app.include_router(notifications.router)
 app.include_router(payments.router)
 app.include_router(pec.router)
 app.include_router(pec_preparation.router)
+app.include_router(reconciliation.router)
 app.include_router(reminders.router)
 app.include_router(renewals.router)
 app.include_router(consents.router)

@@ -100,6 +100,8 @@ interface DashboardData {
     invoice_count: number;
     quote_count: number;
     credit_note_count: number;
+    total_devis_cosium: number;
+    total_avoirs_cosium: number;
   } | null;
   cosium_counts: {
     total_clients: number;
@@ -545,10 +547,10 @@ export default function DashboardPage() {
         >
           <RefreshIcon className="h-5 w-5 text-primary" />
           <div>
-            <p className="text-sm font-semibold text-text-primary">Facturation Cosium</p>
+            <p className="text-sm font-semibold text-text-primary">Factures Cosium</p>
             <p className="text-xs text-text-secondary">
               {cosium
-                ? `${(cosium.invoice_count + cosium.quote_count + cosium.credit_note_count).toLocaleString("fr-FR")} documents`
+                ? `${cosium.invoice_count.toLocaleString("fr-FR")} factures`
                 : "Voir les factures"}
             </p>
           </div>

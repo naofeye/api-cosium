@@ -9,6 +9,8 @@ from app.domain.schemas.cosium_invoices import (
     CosiumInvoiceItem,
     CosiumInvoiceListResponse,
     CosiumInvoiceTotals,
+    CosiumInvoiceTotalsByType,
+    CosiumInvoiceTypeTotals,
 )
 from app.repositories import cosium_invoice_repo
 
@@ -74,3 +76,22 @@ def get_totals(
         total_impaye=data["total_impaye"],
         count=data["count"],
     )
+
+
+def get_totals_by_type(
+    db: Session,
+    tenant_id: int,
+) -> CosiumInvoiceTotalsByType:
+    """Return totals grouped by invoice type (INVOICE, QUOTE, CREDIT_NOTE, etc.)."""
+    rows = cosium_invoice_repo.get_totals_by_type(db, tenant_id=tenant_id)
+    items = [
+        CosiumInvoiceTypeTotals(
+            type=r["type"],
+            total_ttc=r["total_ttc"],
+            total_impaye=r["total_impaye"],
+            count=r["count"],
+        )
+        for r in rows
+    ]
+    logger.info("cosium_invoices_totals_by_type", tenant_id=tenant_id, types=len(items))
+    return CosiumInvoiceTotalsByType(by_type=items)

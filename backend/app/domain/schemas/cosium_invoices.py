@@ -43,3 +43,18 @@ class CosiumInvoiceTotals(BaseModel):
     total_ttc: float
     total_impaye: float
     count: int
+
+
+class CosiumInvoiceTypeTotals(BaseModel):
+    """Totals for a single invoice type."""
+
+    type: str
+    total_ttc: float
+    total_impaye: float
+    count: int
+
+
+class CosiumInvoiceTotalsByType(BaseModel):
+    """Breakdown of totals per invoice type."""
+
+    by_type: list[CosiumInvoiceTypeTotals]
