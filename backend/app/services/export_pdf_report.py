@@ -95,7 +95,7 @@ def export_monthly_report_pdf(
     return output.getvalue()
 
 
-def _append_monthly_kpis(elements, db, tenant_id, month_start, month_end, sec_style, kpi_ts):
+def _append_monthly_kpis(elements: list, db: object, tenant_id: int, month_start: object, month_end: object, sec_style: object, kpi_ts: object) -> None:
     elements.append(Paragraph("1. KPIs du mois", sec_style))
 
     ca_total = float(db.scalar(
@@ -126,7 +126,7 @@ def _append_monthly_kpis(elements, db, tenant_id, month_start, month_end, sec_st
     elements.append(Spacer(1, 6 * mm))
 
 
-def _append_monthly_activity(elements, db, tenant_id, month_start, month_end, sec_style, kpi_ts):
+def _append_monthly_activity(elements: list, db: object, tenant_id: int, month_start: object, month_end: object, sec_style: object, kpi_ts: object) -> None:
     elements.append(Paragraph("2. Activite du mois", sec_style))
 
     dossiers_crees = db.scalar(
@@ -167,7 +167,7 @@ def _append_monthly_activity(elements, db, tenant_id, month_start, month_end, se
     elements.append(Spacer(1, 6 * mm))
 
 
-def _append_top_clients(elements, db, tenant_id, month_start, month_end, sec_style):
+def _append_top_clients(elements: list, db: object, tenant_id: int, month_start: object, month_end: object, sec_style: object) -> None:
     elements.append(Paragraph("3. Top 10 clients par CA", sec_style))
 
     top_clients_q = (
@@ -204,7 +204,7 @@ def _append_top_clients(elements, db, tenant_id, month_start, month_end, sec_sty
     elements.append(Spacer(1, 6 * mm))
 
 
-def _append_aging_balance(elements, db, tenant_id, sec_style):
+def _append_aging_balance(elements: list, db: object, tenant_id: int, sec_style: object) -> None:
     elements.append(Paragraph("4. Balance agee (impayes)", sec_style))
 
     now = datetime.now(UTC).replace(tzinfo=None)
@@ -261,7 +261,7 @@ def _append_aging_balance(elements, db, tenant_id, sec_style):
     elements.append(Spacer(1, 6 * mm))
 
 
-def _append_opticien_stats(elements, db, tenant_id, month_start, month_end, sec_style, styles):
+def _append_opticien_stats(elements: list, db: object, tenant_id: int, month_start: object, month_end: object, sec_style: object, styles: object) -> None:
     elements.append(Paragraph("5. Statistiques opticiens", sec_style))
 
     opticien_q = (

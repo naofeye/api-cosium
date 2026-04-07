@@ -140,14 +140,14 @@ def _append_field_section(
     elements.append(Spacer(1, 4 * mm))
 
 
-def _append_identity(elements, profile, sec_style):
+def _append_identity(elements: list, profile: dict, sec_style: object) -> None:
     _append_field_section(elements, profile, sec_style, "1. Identite du patient", [
         ("Nom", "nom"), ("Prenom", "prenom"),
         ("Date de naissance", "date_naissance"), ("N. Securite sociale", "numero_secu"),
     ])
 
 
-def _append_mutuelle(elements, profile, sec_style):
+def _append_mutuelle(elements: list, profile: dict, sec_style: object) -> None:
     _append_field_section(elements, profile, sec_style, "2. Mutuelle / OCAM", [
         ("Mutuelle", "mutuelle_nom"), ("N. Adherent", "mutuelle_numero_adherent"),
         ("Code organisme", "mutuelle_code_organisme"), ("Beneficiaire", "type_beneficiaire"),
@@ -163,7 +163,7 @@ def _eye_row(profile: dict, eye: str, suffix: str) -> list[str]:
     ]
 
 
-def _append_correction(elements, profile, sec_style):
+def _append_correction(elements: list, profile: dict, sec_style: object) -> None:
     elements.append(Paragraph("3. Correction optique", sec_style))
     corr_header = ["", "Sphere", "Cylindre", "Axe", "Addition"]
     od_row = _eye_row(profile, "OD", "od")
@@ -202,7 +202,7 @@ def _append_correction(elements, profile, sec_style):
     elements.append(Spacer(1, 4 * mm))
 
 
-def _append_equipment(elements, profile, sec_style):
+def _append_equipment(elements: list, profile: dict, sec_style: object) -> None:
     elements.append(Paragraph("4. Equipement (lignes devis)", sec_style))
     equip_rows = [["Element", "Valeur", "Source", "Confiance"]]
     monture = profile.get("monture")
@@ -229,7 +229,7 @@ def _fin_field(field: dict | None) -> tuple[str, str, str]:
     return val, source, conf
 
 
-def _append_financial(elements, profile, sec_style):
+def _append_financial(elements: list, profile: dict, sec_style: object) -> None:
     elements.append(Paragraph("5. Synthese financiere", sec_style))
     fin_rows = [["Poste", "Montant", "Source", "Confiance"]]
     for label, key in [
@@ -244,7 +244,7 @@ def _append_financial(elements, profile, sec_style):
     elements.append(Spacer(1, 4 * mm))
 
 
-def _append_documents(elements, db, tenant_id, preparation_id, sec_style, small):
+def _append_documents(elements: list, db: object, tenant_id: int, preparation_id: int, sec_style: object, small: object) -> None:
     elements.append(Paragraph("6. Pieces justificatives", sec_style))
     from app.services import pec_preparation_service as pps
     try:
@@ -267,7 +267,7 @@ def _append_documents(elements, db, tenant_id, preparation_id, sec_style, small)
     elements.append(Spacer(1, 4 * mm))
 
 
-def _append_alerts(elements, profile, sec_style, small):
+def _append_alerts(elements: list, profile: dict, sec_style: object, small: object) -> None:
     elements.append(Paragraph("7. Alertes et incoherences", sec_style))
     alertes = profile.get("alertes", [])
     if alertes:

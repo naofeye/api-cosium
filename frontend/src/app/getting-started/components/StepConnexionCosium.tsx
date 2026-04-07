@@ -62,11 +62,14 @@ export function StepConnexionCosium({ onNext }: { onNext: () => void }) {
         )}
       </div>
 
-      <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
+      <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 space-y-2">
         <p className="text-sm text-blue-700">
-          <strong>Astuce :</strong> Vous pouvez aussi configurer cela plus tard
-          depuis la page Administration. Vos donnees seront importees lors de la
-          premiere synchronisation.
+          <strong>Ou trouver vos identifiants Cosium ?</strong> Connectez-vous a votre interface Cosium,
+          allez dans <em>Administration &gt; API</em> pour obtenir votre tenant et vos identifiants.
+          Vous pouvez aussi utiliser les cookies de session depuis les DevTools du navigateur.
+        </p>
+        <p className="text-sm text-blue-600">
+          <strong>Astuce :</strong> Vous pouvez configurer cela plus tard depuis la page Administration.
         </p>
       </div>
 

@@ -107,8 +107,8 @@
 
 ### 5.4 Onboarding ameliore [FAIBLE]
 - [ ] Tooltips sur les pages principales ("Commencez par creer un dossier")
-- [ ] Lien "Ou trouver mes identifiants Cosium ?" dans l'etape de connexion
-- [ ] Indication raccourcis clavier (press ? pour voir)
+- [x] Lien "Ou trouver mes identifiants Cosium ?" ajoute dans StepConnexionCosium
+- [x] Raccourcis clavier documentes dans /aide avec `?` pour l'aide (deja en place)
 
 ---
 

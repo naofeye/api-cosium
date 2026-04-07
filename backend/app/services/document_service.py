@@ -48,6 +48,27 @@ def upload_document(db: Session, tenant_id: int, case_id: int, file: UploadFile,
     if len(file_data) > max_size:
         raise ValidationError("file", f"Fichier trop volumineux (max {settings.max_upload_size_mb} MB)")
 
+    # Verification magic bytes pour eviter les fichiers deguises
+    _MAGIC = {
+        b"%PDF": "pdf",
+        b"\xff\xd8\xff": "jpg",
+        b"\x89PNG": "png",
+        b"PK\x03\x04": "docx",  # ZIP-based (docx, xlsx)
+        b"II\x2a\x00": "tiff",
+        b"MM\x00\x2a": "tiff",
+        b"BM": "bmp",
+    }
+    detected_ext = None
+    for magic, magic_ext in _MAGIC.items():
+        if file_data[:len(magic)] == magic:
+            detected_ext = magic_ext
+            break
+    # CSV/text n'ont pas de magic bytes — on les accepte si ext=csv
+    if detected_ext and ext.lower() not in ("csv",) and detected_ext != ext.lower():
+        # docx et xlsx partagent le meme magic (PK/ZIP)
+        if not (detected_ext == "docx" and ext.lower() in ("docx", "xlsx")):
+            raise ValidationError("file", f"Le contenu du fichier ne correspond pas a l'extension .{ext}")
+
     storage.upload_file(
         bucket=settings.s3_bucket,
         key=storage_key,
