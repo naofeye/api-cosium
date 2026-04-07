@@ -34,10 +34,10 @@ sync:
 	docker compose exec api python -c "from app.services import erp_sync_service; from app.db.session import SessionLocal; db=SessionLocal(); erp_sync_service.sync_customers(db,1,1); db.close()"
 
 backup:
-	./scripts/backup.sh
+	./scripts/backup_db.sh
 
 restore:
-	./scripts/restore.sh $(file)
+	./scripts/restore_db.sh $(file)
 
 logs:
 	docker compose logs -f api

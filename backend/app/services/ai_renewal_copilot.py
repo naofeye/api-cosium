@@ -1,6 +1,7 @@
 """Copilote IA pour le renouvellement — generation de messages personnalises."""
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
@@ -158,7 +159,7 @@ def _log_ai_usage(db: Session, tenant_id: int, result: dict, user_id: int = 0) -
         )
         db.add(usage)
         db.commit()
-    except Exception as e:
+    except (SQLAlchemyError, ValueError, TypeError) as e:
         logger.warning("ai_usage_log_failed", error=str(e))
 
 

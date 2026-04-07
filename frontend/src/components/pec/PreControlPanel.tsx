@@ -43,7 +43,7 @@ const STATUS_CONFIG: Record<
     bg: "bg-emerald-50",
     border: "border-emerald-200",
     icon: CheckCircle2,
-    label: "Pret",
+    label: "Prêt",
   },
   incomplet: {
     color: "text-red-700",
@@ -70,7 +70,7 @@ const STATUS_CONFIG: Record<
 
 const DOCUMENT_LABELS: Record<string, string> = {
   ordonnance: "Ordonnance",
-  devis: "Devis signe",
+  devis: "Devis signé",
   attestation_mutuelle: "Attestation mutuelle",
   carte_vitale: "Carte vitale",
   facture: "Facture",
@@ -122,7 +122,7 @@ export function PreControlPanel({ preparationId, onOpenAudit }: PreControlPanelP
   if (error || !data) {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-5 mb-6">
-        <p className="text-sm text-red-700">{error ?? "Impossible de charger le pre-controle"}</p>
+        <p className="text-sm text-red-700">{error ?? "Impossible de charger le pré-contrôle"}</p>
       </div>
     );
   }
@@ -161,7 +161,7 @@ export function PreControlPanel({ preparationId, onOpenAudit }: PreControlPanelP
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-gray-900">Pre-controle PEC</h3>
+                <h3 className="text-sm font-semibold text-gray-900">Pré-contrôle PEC</h3>
                 <span
                   className={cn(
                     "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
@@ -174,8 +174,8 @@ export function PreControlPanel({ preparationId, onOpenAudit }: PreControlPanelP
                 </span>
               </div>
               <p className="text-xs text-gray-500 mt-0.5">
-                Completude : {Math.round(data.completude_score)}% &mdash;{" "}
-                {data.champs_confirmes} confirme(s), {data.champs_extraits} extrait(s),{" "}
+                Complétude : {Math.round(data.completude_score)}% &mdash;{" "}
+                {data.champs_confirmes} confirmé(s), {data.champs_extraits} extrait(s),{" "}
                 {data.champs_manquants > 0 && (
                   <span className="text-red-600 font-medium">{data.champs_manquants} manquant(s)</span>
                 )}
@@ -188,7 +188,7 @@ export function PreControlPanel({ preparationId, onOpenAudit }: PreControlPanelP
           </Button>
         </div>
 
-        {/* Completude gauge */}
+        {/* Complétude gauge */}
         <div className="mt-3">
           <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
             <div
@@ -203,41 +203,41 @@ export function PreControlPanel({ preparationId, onOpenAudit }: PreControlPanelP
         </div>
       </div>
 
-      {/* Section 2: Pieces justificatives */}
+      {/* Section 2: Pièces justificatives */}
       <div className="p-5 border-b border-gray-200/50">
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
           <FileText className="h-3.5 w-3.5 inline mr-1" aria-hidden="true" />
-          Pieces justificatives
+          Pièces justificatives
         </h4>
         <div className="grid grid-cols-2 gap-2">
           {allDocuments.map((doc) => (
             <div key={doc.role} className="flex items-center gap-2 text-sm">
               {doc.present ? (
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" aria-label="Present" />
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" aria-label="Présent" />
               ) : (
                 <XCircle
                   className={cn(
                     "h-4 w-4 shrink-0",
                     doc.required ? "text-red-500" : "text-amber-400",
                   )}
-                  aria-label={doc.required ? "Manquant (requis)" : "Manquant (recommande)"}
+                  aria-label={doc.required ? "Manquant (requis)" : "Manquant (recommandé)"}
                 />
               )}
               <span className={cn(doc.present ? "text-gray-700" : doc.required ? "text-red-600 font-medium" : "text-amber-600")}>
                 {doc.label}
                 {!doc.present && doc.required && " (requis)"}
-                {!doc.present && !doc.required && " (recommande)"}
+                {!doc.present && !doc.required && " (recommandé)"}
               </span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Section 3: Points a verifier */}
+      {/* Section 3: Points à vérifier */}
       {totalIssues > 0 && (
         <div className="p-5">
           <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-            Points a verifier
+            Points à vérifier
           </h4>
           <div className="space-y-2">
             {/* Erreurs bloquantes */}
@@ -277,7 +277,7 @@ export function PreControlPanel({ preparationId, onOpenAudit }: PreControlPanelP
                   aria-expanded={warningsExpanded}
                 >
                   <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  {data.alertes_verification.length} alerte(s) a verifier
+                  {data.alertes_verification.length} alerte(s) à vérifier
                   {warningsExpanded ? (
                     <ChevronUp className="h-3 w-3 ml-auto" />
                   ) : (
@@ -328,7 +328,7 @@ export function PreControlPanel({ preparationId, onOpenAudit }: PreControlPanelP
         <div className="p-5">
           <div className="flex items-center gap-2 text-sm text-emerald-700">
             <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-            Aucun point bloquant detecte. Le dossier est pret pour soumission.
+            Aucun point bloquant détecté. Le dossier est prêt pour soumission.
           </div>
         </div>
       )}

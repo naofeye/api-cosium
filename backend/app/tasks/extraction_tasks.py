@@ -16,6 +16,7 @@ logger = get_logger("extraction_tasks")
     bind=True,
     max_retries=2,
     default_retry_delay=60,
+    time_limit=3600,
 )
 def extract_document(self, tenant_id: int, document_id: int) -> dict:
     """Extract text from a single document (async Celery task)."""
@@ -40,6 +41,7 @@ def extract_document(self, tenant_id: int, document_id: int) -> dict:
     bind=True,
     max_retries=1,
     default_retry_delay=120,
+    time_limit=3600,
 )
 def extract_all_client_documents(self, tenant_id: int, customer_id: int) -> dict:
     """Batch-extract all documents for a customer across all their cases."""

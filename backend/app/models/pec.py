@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, Numeric, String
+from sqlalchemy import DateTime, ForeignKey, Index, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -8,11 +8,14 @@ from app.db.base import Base
 
 class PayerOrganization(Base):
     __tablename__ = "payer_organizations"
+    __table_args__ = (
+        Index("ix_payer_orgs_tenant_code", "tenant_id", "code", unique=True),
+    )
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     type: Mapped[str] = mapped_column(String(30), nullable=False)
-    code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    code: Mapped[str] = mapped_column(String(50), nullable=False)
     contact_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
 

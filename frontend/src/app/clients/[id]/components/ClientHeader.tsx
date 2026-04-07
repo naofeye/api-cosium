@@ -4,11 +4,10 @@ import { KPICard } from "@/components/ui/KPICard";
 import { EmailDialog } from "@/components/ui/EmailDialog";
 import { formatMoney, formatDate } from "@/lib/format";
 import { Euro, CheckCircle, Clock, FolderOpen, Eye, Calendar, AlertTriangle, FileDown, ShieldCheck, Printer, Mail } from "lucide-react";
+import { API_BASE } from "@/lib/api";
 import { AvatarUpload } from "./AvatarUpload";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { useState } from "react";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
 interface CorrectionActuelle {
   prescription_date: string | null;

@@ -28,6 +28,7 @@ import { useToast } from "@/components/ui/Toast";
 import { FileDown, Calendar, Eye, RefreshCw as RefreshIcon, Clock, ClipboardCheck, Search, AlertCircle, Settings, Users, FileSearch, ArrowLeftRight } from "lucide-react";
 import Link from "next/link";
 import { formatMoney } from "@/lib/format";
+import { API_BASE } from "@/lib/api";
 
 type PeriodKey = "today" | "7d" | "30d" | "90d" | "all";
 
@@ -247,8 +248,6 @@ function ReconciliationBanner() {
   );
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
-
 export default function DashboardPage() {
   const [period, setPeriod] = useState<PeriodKey>("all");
   const [exporting, setExporting] = useState(false);
@@ -450,7 +449,7 @@ export default function DashboardPage() {
               </h3>
             </div>
             <Link
-              href="/admin/data-quality"
+              href="/admin#data-quality"
               className="text-xs font-medium text-primary hover:underline"
             >
               Voir le detail &rarr;

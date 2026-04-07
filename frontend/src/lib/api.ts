@@ -1,6 +1,6 @@
 import { refreshAccessToken, clearAuthState } from "./auth";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
+export { API_BASE } from "./config";
+import { API_BASE } from "./config";
 const DEFAULT_TIMEOUT_MS = 10000;
 
 export async function fetchJson<T = unknown>(path: string, options?: RequestInit): Promise<T> {
@@ -39,7 +39,7 @@ export async function fetchJson<T = unknown>(path: string, options?: RequestInit
         if (typeof window !== "undefined") {
           window.location.href = "/login";
         }
-        throw new Error("Session expiree");
+        throw new Error("Session expirée");
       }
     }
 
@@ -74,7 +74,7 @@ export async function fetchJson<T = unknown>(path: string, options?: RequestInit
     return response.json();
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
-      const timeoutMsg = "La requete a expire. Verifiez votre connexion et reessayez.";
+      const timeoutMsg = "La requête a expiré. Vérifiez votre connexion et réessayez.";
       if (typeof window !== "undefined") {
         window.dispatchEvent(
           new CustomEvent("api-error", { detail: { message: timeoutMsg, status: 0 } })

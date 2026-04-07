@@ -1,8 +1,10 @@
-"""Service vue client 360 — agregation complete."""
+"""Service vue client 360 — facade/orchestrateur.
 
-import json
+Delegates to:
+- client_360_documents: prescriptions, equipment, calendar, OCR, tags
+- client_360_finance: invoices, payments, balance, aging
+"""
 
-from sqlalchemy import func as sa_func
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -10,19 +12,7 @@ from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
 from app.domain.schemas.client_360 import (
     Client360Response,
-    CorrectionActuelle,
-    CosiumCalendarSummary,
     CosiumDataBundle,
-    CosiumInvoiceSummary,
-    CosiumPaymentSummary,
-    CosiumPrescriptionSummary,
-    EquipmentItem,
-    FinancialSummary,
-    OcrDataSummary,
-    OcrDocumentCount,
-    OcrInconsistency,
-    OcrMutuelleData,
-    PrescriptionWarning,
 )
 from app.domain.schemas.client_mutuelle import ClientMutuelleResponse
 from app.domain.schemas.interactions import InteractionResponse
@@ -33,9 +23,23 @@ from app.models import (
     MarketingConsent,
 )
 from app.models.client_mutuelle import ClientMutuelle
-from app.models.cosium_data import CosiumDocument, CosiumInvoice, CosiumPayment, CosiumPrescription
-from app.models.cosium_reference import CosiumCalendarEvent, CosiumCustomerTag
-from app.models.document_extraction import DocumentExtraction
+from app.services.client_360_documents import (
+    build_calendar_events,
+    build_correction_actuelle,
+    build_cosium_payments,
+    build_equipments,
+    build_ocr_data,
+    build_prescriptions,
+    get_customer_tags,
+    get_last_visit_date,
+)
+from app.services.client_360_finance import (
+    aggregate_case_financials,
+    build_financial_summary,
+    build_prescription_warning,
+    compute_total_ca_cosium,
+    fetch_cosium_invoices,
+)
 
 logger = get_logger("client_360_service")
 
@@ -51,190 +55,24 @@ def _build_cosium_data(
     client_full_name = f"{customer.last_name} {customer.first_name}".strip()
     cosium_id = getattr(customer, "cosium_id", None)
 
-    # --- Prescriptions ---
-    rx_query = select(CosiumPrescription).where(
-        CosiumPrescription.tenant_id == tenant_id,
+    prescriptions, prescriptions_raw = build_prescriptions(
+        db, tenant_id, client_id, cosium_id
     )
-    if cosium_id:
-        rx_query = rx_query.where(
-            (CosiumPrescription.customer_id == client_id)
-            | (CosiumPrescription.customer_cosium_id == int(cosium_id))
-        )
-    else:
-        rx_query = rx_query.where(CosiumPrescription.customer_id == client_id)
+    correction_actuelle = build_correction_actuelle(prescriptions_raw)
+    equipments = build_equipments(prescriptions_raw)
 
-    prescriptions_raw = db.scalars(
-        rx_query.order_by(CosiumPrescription.file_date.desc().nullslast()).limit(20)
-    ).all()
-
-    prescriptions = [
-        CosiumPrescriptionSummary(
-            id=rx.id,
-            cosium_id=rx.cosium_id,
-            prescription_date=rx.prescription_date,
-            prescriber_name=rx.prescriber_name,
-            sphere_right=rx.sphere_right,
-            cylinder_right=rx.cylinder_right,
-            axis_right=rx.axis_right,
-            addition_right=rx.addition_right,
-            sphere_left=rx.sphere_left,
-            cylinder_left=rx.cylinder_left,
-            axis_left=rx.axis_left,
-            addition_left=rx.addition_left,
-            spectacles_json=rx.spectacles_json,
-        )
-        for rx in prescriptions_raw
-    ]
-
-    # --- Correction actuelle (latest prescription) ---
-    correction_actuelle = None
-    if prescriptions_raw:
-        latest = prescriptions_raw[0]
-        correction_actuelle = CorrectionActuelle(
-            prescription_date=latest.prescription_date,
-            prescriber_name=latest.prescriber_name,
-            sphere_right=latest.sphere_right,
-            cylinder_right=latest.cylinder_right,
-            axis_right=latest.axis_right,
-            addition_right=latest.addition_right,
-            sphere_left=latest.sphere_left,
-            cylinder_left=latest.cylinder_left,
-            axis_left=latest.axis_left,
-            addition_left=latest.addition_left,
-        )
-
-    # --- Equipment from spectacles_json ---
-    equipments: list[EquipmentItem] = []
-    for rx in prescriptions_raw:
-        if not rx.spectacles_json:
-            continue
-        try:
-            specs = json.loads(rx.spectacles_json)
-            if isinstance(specs, list):
-                for spec in specs:
-                    equipments.append(
-                        EquipmentItem(
-                            prescription_id=rx.id,
-                            prescription_date=rx.prescription_date,
-                            label=spec.get("label", spec.get("name", "")),
-                            brand=spec.get("brand", spec.get("marque", "")),
-                            type=spec.get("type", spec.get("famille", "")),
-                        )
-                    )
-            elif isinstance(specs, dict):
-                equipments.append(
-                    EquipmentItem(
-                        prescription_id=rx.id,
-                        prescription_date=rx.prescription_date,
-                        label=specs.get("label", specs.get("name", "")),
-                        brand=specs.get("brand", specs.get("marque", "")),
-                        type=specs.get("type", specs.get("famille", "")),
-                    )
-                )
-        except (json.JSONDecodeError, TypeError) as exc:
-            logger.warning(
-                "malformed_spectacles_json",
-                prescription_id=rx.id,
-                error=str(exc),
-            )
-
-    # --- Cosium Payments (join via invoice cosium_id) ---
     invoice_cosium_ids = [ci.cosium_id for ci in cosium_invoices_raw]
-    cosium_payments: list[CosiumPaymentSummary] = []
-    if invoice_cosium_ids:
-        pay_query = (
-            select(CosiumPayment)
-            .where(
-                CosiumPayment.tenant_id == tenant_id,
-                CosiumPayment.invoice_cosium_id.in_(invoice_cosium_ids),
-            )
-            .order_by(CosiumPayment.due_date.desc().nullslast())
-            .limit(100)
-        )
-        payments_raw = db.scalars(pay_query).all()
-        cosium_payments = [
-            CosiumPaymentSummary(
-                id=p.id,
-                cosium_id=p.cosium_id,
-                amount=p.amount,
-                type=p.type,
-                due_date=str(p.due_date) if p.due_date else None,
-                issuer_name=p.issuer_name,
-                bank=p.bank,
-                site_name=p.site_name,
-                payment_number=p.payment_number,
-                invoice_cosium_id=p.invoice_cosium_id,
-            )
-            for p in payments_raw
-        ]
+    cosium_payments = build_cosium_payments(db, tenant_id, invoice_cosium_ids)
 
-    # --- Calendar Events (fuzzy match on customer_fullname or customer_number) ---
-    cal_query = select(CosiumCalendarEvent).where(
-        CosiumCalendarEvent.tenant_id == tenant_id,
-    )
-    name_upper = client_full_name.upper()
-    if cosium_id:
-        cal_query = cal_query.where(
-            (sa_func.upper(CosiumCalendarEvent.customer_fullname).contains(name_upper))
-            | (CosiumCalendarEvent.customer_number == str(cosium_id))
-        )
-    else:
-        cal_query = cal_query.where(
-            sa_func.upper(CosiumCalendarEvent.customer_fullname).contains(name_upper)
-        )
-    cal_query = cal_query.order_by(
-        CosiumCalendarEvent.start_date.desc().nullslast()
-    ).limit(30)
-    calendar_raw = db.scalars(cal_query).all()
-
-    calendar_events = [
-        CosiumCalendarSummary(
-            id=ev.id,
-            cosium_id=ev.cosium_id,
-            start_date=str(ev.start_date) if ev.start_date else None,
-            end_date=str(ev.end_date) if ev.end_date else None,
-            subject=ev.subject,
-            category_name=ev.category_name,
-            category_color=ev.category_color,
-            status=ev.status,
-            canceled=ev.canceled,
-            missed=ev.missed,
-            observation=ev.observation,
-            site_name=ev.site_name,
-        )
-        for ev in calendar_raw
-    ]
-
-    # --- Total CA Cosium ---
-    total_ca_cosium = sum(
-        ci.total_ti for ci in cosium_invoices_raw
-        if ci.type in ("INVOICE", "CREDIT_NOTE")
+    calendar_events, calendar_raw = build_calendar_events(
+        db, tenant_id, client_full_name, cosium_id
     )
 
-    # --- Last visit date ---
-    last_visit_date: str | None = None
-    for ev in calendar_raw:
-        if not ev.canceled and ev.start_date:
-            last_visit_date = str(ev.start_date)
-            break
-    if not last_visit_date and cosium_invoices_raw:
-        for ci in cosium_invoices_raw:
-            if ci.invoice_date:
-                last_visit_date = str(ci.invoice_date)
-                break
+    total_ca_cosium = compute_total_ca_cosium(cosium_invoices_raw)
+    last_visit_date = get_last_visit_date(calendar_raw, cosium_invoices_raw)
+    customer_tags = get_customer_tags(db, tenant_id, cosium_id)
 
-    # --- Customer tags ---
-    customer_tags: list[str] = []
-    if cosium_id:
-        tag_rows = db.scalars(
-            select(CosiumCustomerTag.tag_code).where(
-                CosiumCustomerTag.tenant_id == tenant_id,
-                CosiumCustomerTag.customer_cosium_id == str(cosium_id),
-            )
-        ).all()
-        customer_tags = list(tag_rows)
-
-    # --- Client mutuelles ---
+    # Client mutuelles
     mutuelle_rows = db.scalars(
         select(ClientMutuelle).where(
             ClientMutuelle.tenant_id == tenant_id,
@@ -243,8 +81,7 @@ def _build_cosium_data(
     ).all()
     mutuelles = [ClientMutuelleResponse.model_validate(m) for m in mutuelle_rows]
 
-    # --- OCR extracted data ---
-    ocr_data = _build_ocr_data(db, tenant_id, client_id, cosium_id, prescriptions_raw)
+    ocr_data = build_ocr_data(db, tenant_id, client_id, cosium_id, prescriptions_raw)
 
     return CosiumDataBundle(
         prescriptions=prescriptions,
@@ -257,115 +94,6 @@ def _build_cosium_data(
         customer_tags=customer_tags,
         mutuelles=mutuelles,
         ocr_data=ocr_data,
-    )
-
-
-def _build_ocr_data(
-    db: Session,
-    tenant_id: int,
-    client_id: int,
-    cosium_id: str | int | None,
-    prescriptions_raw: list,
-) -> OcrDataSummary | None:
-    """Build OCR extraction summary for a client."""
-    if not cosium_id:
-        return None
-
-    # Count extracted documents by type for this customer
-    type_counts = db.execute(
-        select(DocumentExtraction.document_type, sa_func.count()).join(
-            CosiumDocument,
-            (CosiumDocument.cosium_document_id == DocumentExtraction.cosium_document_id)
-            & (CosiumDocument.tenant_id == DocumentExtraction.tenant_id),
-        ).where(
-            DocumentExtraction.tenant_id == tenant_id,
-            CosiumDocument.customer_cosium_id == int(cosium_id),
-            DocumentExtraction.document_type.isnot(None),
-        ).group_by(DocumentExtraction.document_type)
-    ).all()
-
-    if not type_counts:
-        return None
-
-    extraction_counts = [
-        OcrDocumentCount(document_type=row[0], count=row[1])
-        for row in type_counts
-    ]
-    total_extracted = sum(row[1] for row in type_counts)
-
-    # Latest attestation_mutuelle data
-    latest_attestation: OcrMutuelleData | None = None
-    att_extraction = db.scalars(
-        select(DocumentExtraction).join(
-            CosiumDocument,
-            (CosiumDocument.cosium_document_id == DocumentExtraction.cosium_document_id)
-            & (CosiumDocument.tenant_id == DocumentExtraction.tenant_id),
-        ).where(
-            DocumentExtraction.tenant_id == tenant_id,
-            DocumentExtraction.document_type.in_(["attestation_mutuelle", "carte_mutuelle"]),
-            CosiumDocument.customer_cosium_id == int(cosium_id),
-        ).order_by(DocumentExtraction.extracted_at.desc()).limit(1)
-    ).first()
-
-    if att_extraction and att_extraction.structured_data:
-        try:
-            sdata = json.loads(att_extraction.structured_data)
-            if isinstance(sdata, dict):
-                latest_attestation = OcrMutuelleData(
-                    nom_mutuelle=sdata.get("nom_mutuelle") or sdata.get("mutuelle"),
-                    numero_adherent=sdata.get("numero_adherent") or sdata.get("num_adherent"),
-                    code_organisme=sdata.get("code_organisme") or sdata.get("code_amc"),
-                    source_document_type=att_extraction.document_type,
-                    extracted_at=str(att_extraction.extracted_at) if att_extraction.extracted_at else None,
-                )
-        except (json.JSONDecodeError, TypeError):
-            pass
-
-    # Check for inconsistencies between OCR and Cosium data
-    inconsistencies: list[OcrInconsistency] = []
-
-    # Compare OCR ordonnance data with Cosium prescriptions
-    ocr_ordonnance = db.scalars(
-        select(DocumentExtraction).join(
-            CosiumDocument,
-            (CosiumDocument.cosium_document_id == DocumentExtraction.cosium_document_id)
-            & (CosiumDocument.tenant_id == DocumentExtraction.tenant_id),
-        ).where(
-            DocumentExtraction.tenant_id == tenant_id,
-            DocumentExtraction.document_type == "ordonnance",
-            CosiumDocument.customer_cosium_id == int(cosium_id),
-            DocumentExtraction.structured_data.isnot(None),
-        ).order_by(DocumentExtraction.extracted_at.desc()).limit(1)
-    ).first()
-
-    if ocr_ordonnance and prescriptions_raw:
-        try:
-            ocr_rx = json.loads(ocr_ordonnance.structured_data)
-            if isinstance(ocr_rx, dict):
-                latest_cosium_rx = prescriptions_raw[0]
-                # Compare prescriber name
-                ocr_prescriber = ocr_rx.get("prescripteur") or ocr_rx.get("medecin") or ""
-                cosium_prescriber = latest_cosium_rx.prescriber_name or ""
-                if (
-                    ocr_prescriber
-                    and cosium_prescriber
-                    and ocr_prescriber.upper().strip() not in cosium_prescriber.upper()
-                    and cosium_prescriber.upper().strip() not in ocr_prescriber.upper()
-                ):
-                    inconsistencies.append(OcrInconsistency(
-                        field="prescripteur",
-                        ocr_value=ocr_prescriber,
-                        cosium_value=cosium_prescriber,
-                        message="Le prescripteur OCR ne correspond pas a celui de Cosium",
-                    ))
-        except (json.JSONDecodeError, TypeError):
-            pass
-
-    return OcrDataSummary(
-        extraction_counts=extraction_counts,
-        total_extracted=total_extracted,
-        latest_attestation_mutuelle=latest_attestation,
-        inconsistencies=inconsistencies,
     )
 
 
@@ -387,70 +115,24 @@ def get_client_360(db: Session, tenant_id: int, client_id: int) -> Client360Resp
         )
     ).all()
 
-    dossiers = [
-        {"id": c.id, "statut": c.status, "source": c.source, "created_at": str(c.created_at)}
-        for c in cases
-    ]
+    # Documents from cases
     documents = []
-    devis_list = []
-    factures = []
-    paiements = []
-    pec_list = []
-    total_facture = 0.0
-    total_paye = 0.0
-
     for case in cases:
         for d in case.documents:
             documents.append(
                 {"id": d.id, "type": d.type, "filename": d.filename, "uploaded_at": str(d.uploaded_at)}
             )
 
-        for d in case.devis:
-            devis_list.append(
-                {
-                    "id": d.id,
-                    "numero": d.numero,
-                    "statut": d.status,
-                    "montant_ttc": float(d.montant_ttc),
-                    "reste_a_charge": float(d.reste_a_charge),
-                }
-            )
+    # Dossiers summary
+    dossiers = [
+        {"id": c.id, "statut": c.status, "source": c.source, "created_at": str(c.created_at)}
+        for c in cases
+    ]
 
-        for f in case.factures:
-            factures.append(
-                {
-                    "id": f.id,
-                    "numero": f.numero,
-                    "statut": f.status,
-                    "montant_ttc": float(f.montant_ttc),
-                    "date_emission": str(f.date_emission),
-                }
-            )
-            total_facture += float(f.montant_ttc)
+    # Financial aggregation
+    fin = aggregate_case_financials(list(cases))
 
-        for p in case.payments:
-            paiements.append(
-                {
-                    "id": p.id,
-                    "payeur": p.payer_type,
-                    "mode": p.mode_paiement,
-                    "montant_du": float(p.amount_due),
-                    "montant_paye": float(p.amount_paid),
-                    "statut": p.status,
-                }
-            )
-            total_paye += float(p.amount_paid)
-
-        for p in case.pec_requests:
-            pec_list.append(
-                {
-                    "id": p.id,
-                    "statut": p.status,
-                    "montant_demande": float(p.montant_demande),
-                    "montant_accorde": float(p.montant_accorde) if p.montant_accorde else None,
-                }
-            )
-
+    # Consents
     consents = db.scalars(
         select(MarketingConsent).where(
             MarketingConsent.client_id == client_id,
@@ -459,6 +141,7 @@ def get_client_360(db: Session, tenant_id: int, client_id: int) -> Client360Resp
     ).all()
     consentements = [{"canal": c.channel, "consenti": c.consented} for c in consents]
 
+    # Interactions
     interactions = db.scalars(
         select(Interaction)
         .where(Interaction.client_id == client_id, Interaction.tenant_id == tenant_id)
@@ -466,69 +149,25 @@ def get_client_360(db: Session, tenant_id: int, client_id: int) -> Client360Resp
         .limit(50)
     ).all()
 
-    # Cosium invoices: match by customer_id or by customer_name (ILIKE)
+    # Cosium invoices
     client_full_name = f"{customer.last_name} {customer.first_name}".strip()
-    cosium_inv_query = select(CosiumInvoice).where(
-        CosiumInvoice.tenant_id == tenant_id,
+    cosium_invoices_list, cosium_invoices_raw = fetch_cosium_invoices(
+        db, tenant_id, client_id, client_full_name
     )
-    cosium_invoices_raw = db.scalars(
-        cosium_inv_query.where(
-            (CosiumInvoice.customer_id == client_id)
-            | (sa_func.upper(CosiumInvoice.customer_name).contains(client_full_name.upper()))
-        )
-        .order_by(CosiumInvoice.invoice_date.desc())
-        .limit(50)
-    ).all()
 
-    cosium_invoices_list = [
-        CosiumInvoiceSummary(
-            cosium_id=ci.cosium_id,
-            invoice_number=ci.invoice_number,
-            invoice_date=str(ci.invoice_date) if ci.invoice_date else None,
-            type=ci.type,
-            total_ti=ci.total_ti,
-            outstanding_balance=ci.outstanding_balance,
-            share_social_security=ci.share_social_security,
-            share_private_insurance=ci.share_private_insurance,
-            settled=ci.settled,
-        )
-        for ci in cosium_invoices_raw
-    ]
-
-    # Build Cosium data bundle
+    # Cosium data bundle
     cosium_data = _build_cosium_data(
         db, tenant_id, client_id, customer, cosium_invoices_raw
     )
 
-    reste_du = round(max(total_facture - total_paye, 0), 2)
-    taux = round(total_paye / total_facture * 100, 1) if total_facture > 0 else 0
+    # Financial summary
+    resume_financier = build_financial_summary(fin["total_facture"], fin["total_paye"])
+    reste_du = resume_financier.reste_du
+
+    # Prescription warning
+    prescription_warning = build_prescription_warning(cosium_data.prescriptions)
 
     customer_cosium_id = getattr(customer, "cosium_id", None)
-
-    # --- Prescription warning (> 2 years) ---
-    prescription_warning = None
-    if cosium_data.prescriptions:
-        latest_rx_date_str = cosium_data.prescriptions[0].prescription_date
-        if latest_rx_date_str:
-            try:
-                from datetime import UTC, datetime
-
-                latest_rx_date = datetime.strptime(latest_rx_date_str[:10], "%Y-%m-%d")
-                days_since = (datetime.now(UTC).replace(tzinfo=None) - latest_rx_date).days
-                if days_since > 730:
-                    prescription_warning = PrescriptionWarning(
-                        expired=True,
-                        latest_date=latest_rx_date_str[:10],
-                        days_since=days_since,
-                        message=(
-                            f"Ordonnance de plus de 2 ans "
-                            f"(derniere : {latest_rx_date.strftime('%d/%m/%Y')}, "
-                            f"il y a {days_since} jours). "
-                            f"Pensez a contacter le client pour un renouvellement."
-                        ),
-                    )
-            except (ValueError, TypeError):
-                pass
 
     return Client360Response(
         id=customer.id,
@@ -545,21 +184,16 @@ def get_client_360(db: Session, tenant_id: int, client_id: int) -> Client360Resp
         cosium_id=str(customer_cosium_id) if customer_cosium_id else None,
         created_at=customer.created_at,
         dossiers=dossiers,
-        devis=devis_list,
-        factures=factures,
-        paiements=paiements,
+        devis=fin["devis"],
+        factures=fin["factures"],
+        paiements=fin["paiements"],
         documents=documents,
-        pec=pec_list,
+        pec=fin["pec"],
         consentements=consentements,
         interactions=[InteractionResponse.model_validate(i) for i in interactions],
         cosium_invoices=cosium_invoices_list,
         cosium_data=cosium_data,
-        resume_financier=FinancialSummary(
-            total_facture=round(total_facture, 2),
-            total_paye=round(total_paye, 2),
-            reste_du=reste_du,
-            taux_recouvrement=taux,
-        ),
+        resume_financier=resume_financier,
         prescription_warning=prescription_warning,
     )
 
@@ -571,16 +205,8 @@ def get_client_cosium_data(db: Session, tenant_id: int, client_id: int) -> Cosiu
         raise NotFoundError("client", client_id)
 
     client_full_name = f"{customer.last_name} {customer.first_name}".strip()
-    cosium_inv_query = select(CosiumInvoice).where(
-        CosiumInvoice.tenant_id == tenant_id,
+    _, cosium_invoices_raw = fetch_cosium_invoices(
+        db, tenant_id, client_id, client_full_name
     )
-    cosium_invoices_raw = db.scalars(
-        cosium_inv_query.where(
-            (CosiumInvoice.customer_id == client_id)
-            | (sa_func.upper(CosiumInvoice.customer_name).contains(client_full_name.upper()))
-        )
-        .order_by(CosiumInvoice.invoice_date.desc())
-        .limit(50)
-    ).all()
 
     return _build_cosium_data(db, tenant_id, client_id, customer, cosium_invoices_raw)

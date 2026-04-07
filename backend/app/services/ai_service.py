@@ -1,6 +1,7 @@
 """Service IA — copilote metier OptiFlow avec 4 modes."""
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
@@ -335,7 +336,7 @@ def copilot_query(
         )
         db.add(usage)
         db.commit()
-    except Exception as e:
+    except (SQLAlchemyError, ValueError, TypeError) as e:
         logger.warning("ai_usage_log_failed", error=str(e))
 
     return result["text"]

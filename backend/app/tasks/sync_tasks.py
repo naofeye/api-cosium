@@ -27,9 +27,11 @@ logger = get_logger("sync_tasks")
     bind=True,
     max_retries=2,
     default_retry_delay=300,
+    time_limit=3600,
+    soft_time_limit=3300,
 )
 def sync_all_tenants(self) -> dict[str, int]:
-    """Sync all active tenants with their ERP (daily full sync)."""
+    """Sync all active tenants with their ERP (daily incremental sync)."""
     from app.db.session import SessionLocal
     from app.models import Tenant
 
@@ -43,9 +45,26 @@ def sync_all_tenants(self) -> dict[str, int]:
         synced = 0
         failed = 0
 
-        from app.core.redis_cache import acquire_lock, release_lock
+        from app.core.redis_cache import acquire_lock, get_redis_client, release_lock
+
+        today = datetime.now(UTC).strftime("%Y-%m-%d")
 
         for tenant in tenants:
+            # Idempotency: skip if this tenant was already synced today
+            idempotency_key = f"sync:{tenant.id}:{today}"
+            redis_client = get_redis_client()
+            if redis_client:
+                try:
+                    if redis_client.exists(idempotency_key):
+                        logger.info(
+                            "tenant_sync_skipped_already_done",
+                            tenant_id=tenant.id,
+                            idempotency_key=idempotency_key,
+                        )
+                        continue
+                except Exception:
+                    pass  # Redis unavailable — proceed without idempotency check
+
             lock_key = f"sync:tenant:{tenant.id}"
             if not acquire_lock(lock_key, ttl=1200):
                 logger.warning("tenant_sync_skipped_locked", tenant_id=tenant.id)
@@ -54,6 +73,12 @@ def sync_all_tenants(self) -> dict[str, int]:
                 _sync_single_tenant(db, tenant.id)
                 logger.info("tenant_sync_done", tenant_id=tenant.id, tenant_name=tenant.name)
                 synced += 1
+                # Mark tenant as synced today (TTL = time_limit = 3600s)
+                if redis_client:
+                    try:
+                        redis_client.setex(idempotency_key, 3600, "1")
+                    except Exception:
+                        pass
             except Exception as e:
                 logger.error("tenant_sync_failed", tenant_id=tenant.id, error=str(e))
                 db.rollback()
@@ -66,8 +91,22 @@ def sync_all_tenants(self) -> dict[str, int]:
 
         if failed > 0:
             logger.error("sync_all_tenants_partial_failure", failed=failed, total=total)
-            # Don't retry (data is partially committed), but raise to mark task as FAILURE
-            # so monitoring can detect it
+            # Creer une notification admin pour chaque tenant actif
+            try:
+                from app.models import Notification
+
+                for tenant in tenants:
+                    notif = Notification(
+                        tenant_id=tenant.id,
+                        type="error",
+                        title="Echec de synchronisation",
+                        message=f"Synchronisation Cosium echouee pour {failed}/{total} tenants. Verifiez les logs.",
+                        created_at=datetime.now(UTC).replace(tzinfo=None),  # naive datetime for DB compatibility
+                    )
+                    db.add(notif)
+                db.commit()
+            except Exception:
+                pass  # Ne pas bloquer si la notification echoue
             raise RuntimeError(
                 f"sync_all_tenants partial failure: {failed}/{total} tenants failed"
             )
@@ -189,7 +228,7 @@ def test_cosium_connection(self) -> dict[str, int]:
                         message=message,
                         entity_type="tenant",
                         entity_id=tenant.id,
-                        created_at=datetime.now(UTC).replace(tzinfo=None),
+                        created_at=datetime.now(UTC).replace(tzinfo=None),  # naive datetime for DB compatibility
                     )
                     db.add(notification)
 
@@ -298,7 +337,7 @@ def check_expiring_prescriptions(self) -> dict[str, int]:
         )
 
         total_notified = 0
-        two_years_ago = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=730)
+        two_years_ago = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=730)  # naive datetime for DB compatibility
 
         for tenant in tenants:
             # Subquery: latest prescription date per customer
@@ -350,7 +389,7 @@ def check_expiring_prescriptions(self) -> dict[str, int]:
                         Notification.user_id == uid,
                         Notification.entity_type == "prescription_expiry",
                         Notification.entity_id == client_id,
-                        Notification.created_at > datetime.now(UTC).replace(tzinfo=None) - timedelta(days=7),
+                        Notification.created_at > datetime.now(UTC).replace(tzinfo=None) - timedelta(days=7),  # naive datetime for DB compatibility
                     ).first()
 
                     if existing:
@@ -368,7 +407,7 @@ def check_expiring_prescriptions(self) -> dict[str, int]:
                         ),
                         entity_type="prescription_expiry",
                         entity_id=client_id,
-                        created_at=datetime.now(UTC).replace(tzinfo=None),
+                        created_at=datetime.now(UTC).replace(tzinfo=None),  # naive datetime for DB compatibility
                     )
                     db.add(notification)
                     total_notified += 1

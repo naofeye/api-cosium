@@ -5,6 +5,7 @@ import { DateDisplay } from "@/components/ui/DateDisplay";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { Upload, Download } from "lucide-react";
+import { API_BASE } from "@/lib/api";
 import type { CaseDocument } from "./types";
 
 interface TabDocumentsProps {
@@ -49,7 +50,7 @@ export function TabDocuments({ documents }: TabDocumentsProps) {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <a
-                    href={`${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1"}/documents/${doc.id}/download`}
+                    href={`${API_BASE}/documents/${doc.id}/download`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-primary hover:underline text-sm"

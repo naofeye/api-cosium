@@ -7,11 +7,25 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import AuthenticationError, ForbiddenError
 from app.db.session import get_db
-from app.models import User
+from app.models import TenantUser, User
 from app.repositories import user_repo
 from app.security import decode_access_token
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
+
+
+def _extract_token_payload(request: Request, token: str | None) -> dict:
+    """Extrait et valide le payload JWT depuis le header ou le cookie."""
+    if not token:
+        token = request.cookies.get("optiflow_token")
+    if not token:
+        raise AuthenticationError("Token manquant")
+    try:
+        return decode_access_token(token)
+    except jwt.ExpiredSignatureError:
+        raise AuthenticationError("Token expiré") from None
+    except jwt.InvalidTokenError:
+        raise AuthenticationError("Token invalide") from None
 
 
 def get_current_user(
@@ -19,17 +33,8 @@ def get_current_user(
     token: str | None = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ) -> User:
-    # Prefer Authorization header, fallback to httpOnly cookie
-    if not token:
-        token = request.cookies.get("optiflow_token")
-    if not token:
-        raise AuthenticationError("Token manquant")
-    try:
-        payload = decode_access_token(token)
-    except jwt.ExpiredSignatureError:
-        raise AuthenticationError("Token expiré") from None
-    except jwt.InvalidTokenError:
-        raise AuthenticationError("Token invalide") from None
+    """Authentifie l'utilisateur et verifie son acces au tenant du token."""
+    payload = _extract_token_payload(request, token)
 
     email: str | None = payload.get("sub")
     if email is None:
@@ -38,14 +43,33 @@ def get_current_user(
     user = user_repo.get_user_by_email(db, email)
     if user is None or not user.is_active:
         raise AuthenticationError("Utilisateur introuvable ou désactivé")
+
+    # Verifier que l'utilisateur a acces au tenant du token
+    tenant_id: int | None = payload.get("tenant_id")
+    if tenant_id is not None:
+        tenant_user = (
+            db.query(TenantUser)
+            .filter(
+                TenantUser.user_id == user.id,
+                TenantUser.tenant_id == tenant_id,
+                TenantUser.is_active.is_(True),
+            )
+            .first()
+        )
+        if tenant_user is None:
+            raise AuthenticationError("Accès refusé : pas d'accès à ce magasin")
+
     return user
 
 
 def require_role(*roles: str) -> Callable:
-    def role_checker(current_user: User = Depends(get_current_user)) -> User:
-        if current_user.role not in roles:
+    """Verifie le role au niveau du tenant (pas le role global)."""
+    from app.core.tenant_context import TenantContext, get_tenant_context
+
+    def role_checker(tenant_ctx: TenantContext = Depends(get_tenant_context)) -> TenantContext:
+        if tenant_ctx.role not in roles:
             raise ForbiddenError("Acces refuse : role insuffisant")
-        return current_user
+        return tenant_ctx
 
     return role_checker
 

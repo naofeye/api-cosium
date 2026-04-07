@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -8,10 +8,13 @@ from app.db.base import Base
 
 class Devis(Base):
     __tablename__ = "devis"
+    __table_args__ = (
+        Index("ix_devis_tenant_numero", "tenant_id", "numero", unique=True),
+    )
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
     case_id: Mapped[int] = mapped_column(ForeignKey("cases.id"), nullable=False, index=True)
-    numero: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    numero: Mapped[str] = mapped_column(String(50), nullable=False)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="brouillon", index=True)
     montant_ht: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     tva: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0)

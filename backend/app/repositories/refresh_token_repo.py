@@ -1,6 +1,7 @@
 import hashlib
 from datetime import UTC, datetime
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import RefreshToken
@@ -19,23 +20,29 @@ def create(db: Session, token: str, user_id: int, expires_at: datetime) -> Refre
 
 
 def get_by_token(db: Session, token: str) -> RefreshToken | None:
-    return (
-        db.query(RefreshToken)
-        .filter(
+    return db.scalars(
+        select(RefreshToken).where(
             RefreshToken.token == _hash_token(token),
             RefreshToken.revoked.is_(False),
         )
-        .first()
-    )
+    ).first()
 
 
 def revoke(db: Session, token: str) -> None:
-    rt = db.query(RefreshToken).filter(RefreshToken.token == _hash_token(token)).first()
+    rt = db.scalars(
+        select(RefreshToken).where(RefreshToken.token == _hash_token(token))
+    ).first()
     if rt:
         rt.revoked = True
         db.commit()
 
 
+def revoke_all_for_user(db: Session, user_id: int) -> None:
+    db.query(RefreshToken).filter(
+        RefreshToken.user_id == user_id, RefreshToken.revoked.is_(False)
+    ).update({"revoked": True})
+
+
 def is_valid(rt: RefreshToken) -> bool:
-    now = datetime.now(UTC).replace(tzinfo=None)
-    return not rt.revoked and rt.expires_at > now
+    now = datetime.now(UTC)  # naive datetime for DB compatibility
+    return not rt.revoked and rt.expires_at > now.replace(tzinfo=None)

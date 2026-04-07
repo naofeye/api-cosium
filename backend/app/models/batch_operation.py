@@ -64,9 +64,13 @@ class BatchOperationItem(Base):
     __tablename__ = "batch_operation_items"
     __table_args__ = (
         Index("ix_batch_items_batch_status", "batch_id", "status"),
+        Index("ix_batch_items_tenant_id", "tenant_id"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int] = mapped_column(
+        ForeignKey("tenants.id"), nullable=False, index=True
+    )
     batch_id: Mapped[int] = mapped_column(
         ForeignKey("batch_operations.id", ondelete="CASCADE"),
         nullable=False,

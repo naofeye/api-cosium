@@ -7,6 +7,7 @@ linking them to existing cases or creating new ones as needed.
 from datetime import UTC, datetime
 
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
@@ -194,7 +195,7 @@ def import_cosium_quotes_as_devis(
                     imported=stats["imported"],
                 )
 
-        except Exception as exc:
+        except (SQLAlchemyError, ValueError, TypeError) as exc:
             logger.error(
                 "devis_import_error",
                 tenant_id=tenant_id,
@@ -207,7 +208,7 @@ def import_cosium_quotes_as_devis(
     # Final commit
     try:
         db.commit()
-    except Exception as exc:
+    except SQLAlchemyError as exc:
         logger.error("devis_import_final_commit_error", error=str(exc))
         db.rollback()
         stats["errors"] += 1

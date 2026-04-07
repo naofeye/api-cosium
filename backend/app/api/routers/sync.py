@@ -7,7 +7,10 @@ from app.core.redis_cache import acquire_lock, cache_delete_pattern, release_loc
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.sync import ERPTypeItem, SeedDemoResponse, SyncAllResult, SyncResultResponse, SyncStatusResponse
+from app.core.logging import get_logger
 from app.services import erp_sync_service
+
+logger = get_logger("sync")
 
 router = APIRouter(prefix="/api/v1/sync", tags=["sync"])
 
@@ -78,9 +81,14 @@ def sync_customers(
     "/invoices",
     response_model=SyncResultResponse,
     summary="Synchroniser les factures",
-    description="Lance une synchronisation des factures depuis l'ERP.",
+    description=(
+        "Lance une synchronisation des factures depuis l'ERP. "
+        "Par defaut, sync incrementale (uniquement les recentes). "
+        "Passer full=true pour re-telecharger tout."
+    ),
 )
 def sync_invoices(
+    full: bool = False,
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> SyncResultResponse:
@@ -88,6 +96,7 @@ def sync_invoices(
         db,
         tenant_id=tenant_ctx.tenant_id,
         user_id=tenant_ctx.user_id,
+        full=full,
     )
     _invalidate_tenant_caches(tenant_ctx.tenant_id)
     return result
@@ -114,9 +123,13 @@ def sync_products(
     "/payments",
     response_model=SyncResultResponse,
     summary="Synchroniser les paiements",
-    description="Lance une synchronisation des paiements de factures depuis l'ERP.",
+    description=(
+        "Lance une synchronisation des paiements depuis l'ERP. "
+        "Par defaut, sync incrementale. Passer full=true pour tout re-telecharger."
+    ),
 )
 def sync_payments(
+    full: bool = False,
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> SyncResultResponse:
@@ -124,6 +137,7 @@ def sync_payments(
         db,
         tenant_id=tenant_ctx.tenant_id,
         user_id=tenant_ctx.user_id,
+        full=full,
     )
     _invalidate_tenant_caches(tenant_ctx.tenant_id)
     return result
@@ -150,9 +164,13 @@ def sync_third_party_payments(
     "/prescriptions",
     response_model=SyncResultResponse,
     summary="Synchroniser les ordonnances",
-    description="Lance une synchronisation des ordonnances optiques depuis l'ERP.",
+    description=(
+        "Lance une synchronisation des ordonnances optiques depuis l'ERP. "
+        "Par defaut, sync incrementale. Passer full=true pour tout re-telecharger."
+    ),
 )
 def sync_prescriptions(
+    full: bool = False,
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> SyncResultResponse:
@@ -160,6 +178,7 @@ def sync_prescriptions(
         db,
         tenant_id=tenant_ctx.tenant_id,
         user_id=tenant_ctx.user_id,
+        full=full,
     )
 
 
@@ -197,10 +216,15 @@ def enrich_clients(
 @router.post(
     "/all",
     response_model=SyncAllResult,
-    summary="Synchroniser tout",
-    description="Lance une synchronisation complete de toutes les donnees ERP.",
+    summary="Synchroniser tout (incremental)",
+    description=(
+        "Lance une synchronisation incrementale de toutes les donnees ERP. "
+        "Seules les nouvelles donnees sont telechargees. "
+        "Passer full=true pour forcer un re-telechargement complet."
+    ),
 )
 def sync_all(
+    full: bool = False,
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> SyncAllResult:
@@ -210,17 +234,30 @@ def sync_all(
     try:
         results: dict[str, object] = {}
         has_errors = False
+
+        # Customers sync (deja incremental par nature — upsert par cosium_id)
         for sync_name, sync_fn in [
             ("customers", erp_sync_service.sync_customers),
+        ]:
+            try:
+                results[sync_name] = sync_fn(db, tenant_id=tenant_ctx.tenant_id, user_id=tenant_ctx.user_id)
+            except Exception as e:
+                logger.error("sync_domain_failed", domain=sync_name, error=str(e))
+                results[sync_name] = {"error": "Echec de la synchronisation. Consultez les logs pour plus de details."}
+                has_errors = True
+
+        # Sync with incremental support
+        for sync_name, sync_fn in [
             ("invoices", erp_sync_service.sync_invoices),
             ("payments", erp_sync_service.sync_payments),
             ("prescriptions", erp_sync_service.sync_prescriptions),
         ]:
             try:
-                results[sync_name] = sync_fn(db, tenant_id=tenant_ctx.tenant_id, user_id=tenant_ctx.user_id)
+                results[sync_name] = sync_fn(
+                    db, tenant_id=tenant_ctx.tenant_id, user_id=tenant_ctx.user_id, full=full,
+                )
             except Exception as e:
-                from app.core.logging import get_logger
-                get_logger("sync").error("sync_domain_failed", domain=sync_name, error=str(e))
+                logger.error("sync_domain_failed", domain=sync_name, error=str(e))
                 results[sync_name] = {"error": "Echec de la synchronisation. Consultez les logs pour plus de details."}
                 has_errors = True
 

@@ -53,6 +53,7 @@ from app.api.routers import (
 from app.core.exceptions import (
     AuthenticationError,
     BusinessError,
+    ExternalServiceError,
     ForbiddenError,
     NotFoundError,
     ValidationError,
@@ -156,7 +157,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Idempotency-Key"],
 )
 
@@ -193,6 +194,12 @@ async def validation_error_handler(request: Request, exc: ValidationError) -> JS
     return JSONResponse(status_code=422, content=body)
 
 
+@app.exception_handler(ExternalServiceError)
+async def external_service_error_handler(request: Request, exc: ExternalServiceError) -> JSONResponse:
+    body = _inject_request_id(request, exc.to_dict())
+    return JSONResponse(status_code=502, content=body)
+
+
 @app.exception_handler(BusinessError)
 async def business_error_handler(request: Request, exc: BusinessError) -> JSONResponse:
     body = _inject_request_id(request, exc.to_dict())
@@ -201,10 +208,13 @@ async def business_error_handler(request: Request, exc: BusinessError) -> JSONRe
 
 @app.exception_handler(Exception)
 async def unhandled_error_handler(request: Request, exc: Exception) -> JSONResponse:
-    logger.error("unhandled_exception", path=request.url.path, error=str(exc), exc_type=type(exc).__name__)
+    exc_type = type(exc).__name__
+    sanitized_msg = str(exc)[:200]
+    logger.error("unhandled_exception", path=request.url.path, exc_type=exc_type, error_truncated=sanitized_msg)
+    rid = request.headers.get("X-Request-ID", "")
     body = {"error": {"code": "INTERNAL_ERROR", "message": "Une erreur interne est survenue"}}
     body = _inject_request_id(request, body)
-    return JSONResponse(status_code=500, content=body)
+    return JSONResponse(status_code=500, content=body, headers={"X-Request-ID": rid})
 
 
 @app.middleware("http")
@@ -237,13 +247,34 @@ def api_version() -> dict:
 
 @app.on_event("startup")
 def startup() -> None:
-    # Security check: refuse to start with default secret in production
-    if settings.app_env in ("production", "staging") and settings.jwt_secret == "change-me-super-secret":
-        raise RuntimeError(
-            "FATAL: JWT_SECRET is set to default value. Change it in .env before starting in production."
-        )
+    # La validation des secrets production est geree par le model_validator de Settings.
+    # Si on arrive ici, les secrets sont acceptables pour l'environnement courant.
 
-    # Verify all model tables exist, create missing ones
+    # Verifier les migrations Alembic pending
+    try:
+        from alembic.config import Config as AlembicConfig
+        from alembic.runtime.migration import MigrationContext
+        from alembic.script import ScriptDirectory
+
+        from app.db.session import engine
+
+        alembic_cfg = AlembicConfig("alembic.ini")
+        script = ScriptDirectory.from_config(alembic_cfg)
+        with engine.connect() as conn:
+            context = MigrationContext.configure(conn)
+            current_rev = context.get_current_revision()
+            head_rev = script.get_current_head()
+            if current_rev != head_rev:
+                logger.warning(
+                    "alembic_migrations_pending",
+                    current=current_rev,
+                    head=head_rev,
+                    hint="Executer 'alembic upgrade head'",
+                )
+    except Exception as e:
+        logger.warning("alembic_check_skipped", error=str(e)[:100])
+
+    # Verifier les tables manquantes (WARNING seulement, pas de create_all)
     from app.db.base import Base
     from app.db.session import engine
 
@@ -255,31 +286,72 @@ def startup() -> None:
         model_tables = set(Base.metadata.tables.keys())
         missing = model_tables - db_tables
         if missing:
-            logger.warning("missing_tables_detected", missing=sorted(missing), count=len(missing))
-            Base.metadata.create_all(bind=engine)
-            logger.info("missing_tables_created", tables=sorted(missing))
+            logger.error(
+                "missing_tables_detected",
+                missing=sorted(missing),
+                count=len(missing),
+                hint="Executer 'alembic upgrade head' pour creer les tables manquantes",
+            )
+            if settings.app_env in ("production", "staging"):
+                raise RuntimeError(
+                    f"Tables manquantes en {settings.app_env}: {sorted(missing)}. "
+                    "Executer 'alembic upgrade head' avant de demarrer."
+                )
         else:
             logger.info("all_model_tables_present", count=len(model_tables))
+    except RuntimeError:
+        raise
     except Exception as e:
         logger.error("table_verification_failed", error=str(e))
 
-    db = SessionLocal()
-    try:
-        seed_data(db)
-    finally:
-        db.close()
+    # Seeding conditionnel — uniquement en dev/local et si demande explicitement
+    import os
+
+    if settings.app_env in ("local", "development") and os.environ.get("SEED_ON_STARTUP", "true").lower() == "true":
+        db = SessionLocal()
+        try:
+            seed_data(db)
+        finally:
+            db.close()
+
     from app.integrations.storage import storage
 
     try:
         storage.ensure_bucket(settings.s3_bucket)
     except Exception as e:
         logger.error("minio_bucket_init_failed", error=str(e))
-    logger.info("application_started")
+    logger.info("application_started", env=settings.app_env)
 
 
-@app.get("/health", summary="Health check", description="Verification rapide que l'API est en ligne.")
+@app.get("/health", summary="Liveness check", description="Verification rapide que l'API est en ligne (pour load balancer).")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/health/ready", summary="Readiness check", description="Verifie que PostgreSQL et Redis sont accessibles.")
+def health_ready() -> dict:
+    from sqlalchemy import text
+
+    checks: dict[str, str] = {}
+    db = SessionLocal()
+    try:
+        db.execute(text("SELECT 1"))
+        checks["database"] = "ok"
+    except Exception:
+        checks["database"] = "error"
+    finally:
+        db.close()
+
+    try:
+        import redis as redis_lib
+        r = redis_lib.Redis.from_url(settings.redis_url, socket_timeout=2)
+        r.ping()
+        checks["redis"] = "ok"
+    except Exception:
+        checks["redis"] = "error"
+
+    all_ok = all(v == "ok" for v in checks.values())
+    return {"status": "ready" if all_ok else "not_ready", "checks": checks}
 
 
 app.include_router(action_items.router)

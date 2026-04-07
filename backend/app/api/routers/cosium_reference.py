@@ -1,11 +1,6 @@
-"""Routes pour les donnees de reference Cosium (calendrier, mutuelles, medecins, etc.).
-
-Endpoints de lecture depuis la base locale + declenchement de synchronisation.
-"""
+"""Routes de lecture des donnees de reference Cosium."""
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
-from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_tenant_role
@@ -14,11 +9,15 @@ from app.db.session import get_db
 from app.domain.schemas.cosium_reference import (
     BrandResponse,
     CalendarEventResponse,
+    CosiumProductResponse,
     DoctorResponse,
     MutuelleResponse,
     PaginatedCalendarEvents,
     PaginatedDoctors,
     PaginatedMutuelles,
+    PaginatedPayments,
+    PaginatedPrescriptions,
+    PaginatedProducts,
     ReferenceSyncAllResult,
     SiteResponse,
     SupplierResponse,
@@ -43,21 +42,13 @@ from app.models.cosium_reference import (
     CosiumTag,
     CosiumUser,
 )
-
-
-class PaginatedPrescriptions(BaseModel):
-    items: list[CosiumPrescriptionResponse]
-    total: int
-    page: int
-    page_size: int
-
-
-class PaginatedPayments(BaseModel):
-    items: list[CosiumPaymentResponse]
-    total: int
-    page: int
-    page_size: int
 from app.services import cosium_reference_sync
+from app.services.cosium_reference_query_service import (
+    ilike_filter,
+    list_all,
+    multi_ilike_filter,
+    paginated_query,
+)
 
 router = APIRouter(prefix="/api/v1/cosium", tags=["cosium-reference"])
 
@@ -66,7 +57,6 @@ router = APIRouter(prefix="/api/v1/cosium", tags=["cosium-reference"])
     "/sync-reference",
     response_model=ReferenceSyncAllResult,
     summary="Synchroniser toutes les donnees de reference",
-    description="Lance la synchronisation des donnees de reference depuis Cosium (calendrier, mutuelles, medecins, marques, fournisseurs, tags, sites).",
 )
 def sync_reference(
     db: Session = Depends(get_db),
@@ -78,51 +68,25 @@ def sync_reference(
     return ReferenceSyncAllResult(**result)
 
 
-# --- Calendar Events ---
-
-@router.get(
-    "/calendar-events",
-    response_model=PaginatedCalendarEvents,
-    summary="Lister les evenements calendrier",
-    description="Liste paginee des evenements calendrier synchronises depuis Cosium.",
-)
+@router.get("/calendar-events", response_model=PaginatedCalendarEvents, summary="Lister les evenements calendrier")
 def list_calendar_events(
-    page: int = Query(1, ge=1, description="Numero de page (commence a 1)"),
-    page_size: int = Query(25, ge=1, le=100, description="Nombre d'elements par page"),
-    status: str | None = Query(None, description="Filtrer par statut (ex: CONFIRMED)"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
+    status: str | None = Query(None, description="Filtrer par statut"),
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> PaginatedCalendarEvents:
-    query = select(CosiumCalendarEvent).where(CosiumCalendarEvent.tenant_id == tenant_ctx.tenant_id)
-    count_query = select(func.count(CosiumCalendarEvent.id)).where(
-        CosiumCalendarEvent.tenant_id == tenant_ctx.tenant_id
+    filters = [CosiumCalendarEvent.status == status] if status else []
+    data = paginated_query(
+        db, CosiumCalendarEvent, tenant_ctx.tenant_id, page, page_size,
+        order_by=[CosiumCalendarEvent.start_date.desc()],
+        filters=filters,
+        response_schema=CalendarEventResponse,
     )
-
-    if status:
-        query = query.where(CosiumCalendarEvent.status == status)
-        count_query = count_query.where(CosiumCalendarEvent.status == status)
-
-    query = query.order_by(CosiumCalendarEvent.start_date.desc())
-    total = db.scalar(count_query) or 0
-    offset = (page - 1) * page_size
-    items = db.scalars(query.offset(offset).limit(page_size)).all()
-
-    return PaginatedCalendarEvents(
-        items=[CalendarEventResponse.model_validate(i) for i in items],
-        total=total,
-        page=page,
-        page_size=page_size,
-    )
+    return PaginatedCalendarEvents(**data)
 
 
-# --- Mutuelles ---
-
-@router.get(
-    "/mutuelles",
-    response_model=PaginatedMutuelles,
-    summary="Lister les mutuelles",
-    description="Liste paginee des mutuelles synchronisees depuis Cosium.",
-)
+@router.get("/mutuelles", response_model=PaginatedMutuelles, summary="Lister les mutuelles")
 def list_mutuelles(
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
@@ -130,37 +94,17 @@ def list_mutuelles(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> PaginatedMutuelles:
-    query = select(CosiumMutuelle).where(CosiumMutuelle.tenant_id == tenant_ctx.tenant_id)
-    count_query = select(func.count(CosiumMutuelle.id)).where(
-        CosiumMutuelle.tenant_id == tenant_ctx.tenant_id
+    filters = [ilike_filter(CosiumMutuelle.name, search)] if search else []
+    data = paginated_query(
+        db, CosiumMutuelle, tenant_ctx.tenant_id, page, page_size,
+        order_by=[CosiumMutuelle.name],
+        filters=filters,
+        response_schema=MutuelleResponse,
     )
-
-    if search:
-        pattern = f"%{search}%"
-        query = query.where(CosiumMutuelle.name.ilike(pattern))
-        count_query = count_query.where(CosiumMutuelle.name.ilike(pattern))
-
-    query = query.order_by(CosiumMutuelle.name)
-    total = db.scalar(count_query) or 0
-    offset = (page - 1) * page_size
-    items = db.scalars(query.offset(offset).limit(page_size)).all()
-
-    return PaginatedMutuelles(
-        items=[MutuelleResponse.model_validate(i) for i in items],
-        total=total,
-        page=page,
-        page_size=page_size,
-    )
+    return PaginatedMutuelles(**data)
 
 
-# --- Doctors ---
-
-@router.get(
-    "/doctors",
-    response_model=PaginatedDoctors,
-    summary="Lister les medecins",
-    description="Liste paginee des medecins/prescripteurs synchronises depuis Cosium.",
-)
+@router.get("/doctors", response_model=PaginatedDoctors, summary="Lister les medecins")
 def list_doctors(
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
@@ -168,151 +112,66 @@ def list_doctors(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> PaginatedDoctors:
-    query = select(CosiumDoctor).where(CosiumDoctor.tenant_id == tenant_ctx.tenant_id)
-    count_query = select(func.count(CosiumDoctor.id)).where(
-        CosiumDoctor.tenant_id == tenant_ctx.tenant_id
+    filters = [multi_ilike_filter([CosiumDoctor.lastname, CosiumDoctor.firstname], search)] if search else []
+    data = paginated_query(
+        db, CosiumDoctor, tenant_ctx.tenant_id, page, page_size,
+        order_by=[CosiumDoctor.lastname, CosiumDoctor.firstname],
+        filters=filters,
+        response_schema=DoctorResponse,
     )
-
-    if search:
-        pattern = f"%{search}%"
-        query = query.where(
-            (CosiumDoctor.lastname.ilike(pattern)) | (CosiumDoctor.firstname.ilike(pattern))
-        )
-        count_query = count_query.where(
-            (CosiumDoctor.lastname.ilike(pattern)) | (CosiumDoctor.firstname.ilike(pattern))
-        )
-
-    query = query.order_by(CosiumDoctor.lastname, CosiumDoctor.firstname)
-    total = db.scalar(count_query) or 0
-    offset = (page - 1) * page_size
-    items = db.scalars(query.offset(offset).limit(page_size)).all()
-
-    return PaginatedDoctors(
-        items=[DoctorResponse.model_validate(i) for i in items],
-        total=total,
-        page=page,
-        page_size=page_size,
-    )
+    return PaginatedDoctors(**data)
 
 
-# --- Brands ---
-
-@router.get(
-    "/brands",
-    response_model=list[BrandResponse],
-    summary="Lister les marques",
-    description="Liste de toutes les marques synchronisees depuis Cosium.",
-)
+@router.get("/brands", response_model=list[BrandResponse], summary="Lister les marques")
 def list_brands(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> list[BrandResponse]:
-    items = db.scalars(
-        select(CosiumBrand)
-        .where(CosiumBrand.tenant_id == tenant_ctx.tenant_id)
-        .order_by(CosiumBrand.name)
-    ).all()
-    return [BrandResponse.model_validate(i) for i in items]
+    return list_all(db, CosiumBrand, tenant_ctx.tenant_id, order_by=[CosiumBrand.name], response_schema=BrandResponse)
 
 
-# --- Suppliers ---
-
-@router.get(
-    "/suppliers",
-    response_model=list[SupplierResponse],
-    summary="Lister les fournisseurs",
-    description="Liste de tous les fournisseurs synchronises depuis Cosium.",
-)
+@router.get("/suppliers", response_model=list[SupplierResponse], summary="Lister les fournisseurs")
 def list_suppliers(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> list[SupplierResponse]:
-    items = db.scalars(
-        select(CosiumSupplier)
-        .where(CosiumSupplier.tenant_id == tenant_ctx.tenant_id)
-        .order_by(CosiumSupplier.name)
-    ).all()
-    return [SupplierResponse.model_validate(i) for i in items]
+    return list_all(db, CosiumSupplier, tenant_ctx.tenant_id, order_by=[CosiumSupplier.name], response_schema=SupplierResponse)
 
 
-# --- Tags ---
-
-@router.get(
-    "/tags",
-    response_model=list[TagResponse],
-    summary="Lister les tags",
-    description="Liste de tous les tags synchronises depuis Cosium.",
-)
+@router.get("/tags", response_model=list[TagResponse], summary="Lister les tags")
 def list_tags(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> list[TagResponse]:
-    items = db.scalars(
-        select(CosiumTag)
-        .where(CosiumTag.tenant_id == tenant_ctx.tenant_id)
-        .order_by(CosiumTag.code)
-    ).all()
-    return [TagResponse.model_validate(i) for i in items]
+    return list_all(db, CosiumTag, tenant_ctx.tenant_id, order_by=[CosiumTag.code], response_schema=TagResponse)
 
 
-# --- Sites ---
-
-@router.get(
-    "/sites",
-    response_model=list[SiteResponse],
-    summary="Lister les sites",
-    description="Liste de tous les sites/magasins synchronises depuis Cosium.",
-)
+@router.get("/sites", response_model=list[SiteResponse], summary="Lister les sites")
 def list_sites(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> list[SiteResponse]:
-    items = db.scalars(
-        select(CosiumSite)
-        .where(CosiumSite.tenant_id == tenant_ctx.tenant_id)
-        .order_by(CosiumSite.name)
-    ).all()
-    return [SiteResponse.model_validate(i) for i in items]
+    return list_all(db, CosiumSite, tenant_ctx.tenant_id, order_by=[CosiumSite.name], response_schema=SiteResponse)
 
 
-# --- Banks ---
-
-@router.get(
-    "/banks",
-    summary="Lister les banques",
-    description="Liste de toutes les banques synchronisees depuis Cosium.",
-)
+@router.get("/banks", summary="Lister les banques")
 def list_banks(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> list[dict]:
-    items = db.scalars(
-        select(CosiumBank)
-        .where(CosiumBank.tenant_id == tenant_ctx.tenant_id)
-        .order_by(CosiumBank.name)
-    ).all()
+    items = list_all(db, CosiumBank, tenant_ctx.tenant_id, order_by=[CosiumBank.name])
     return [
         {"id": i.id, "name": i.name, "address": i.address, "city": i.city, "post_code": i.post_code}
         for i in items
     ]
 
 
-# --- Companies ---
-
-@router.get(
-    "/companies",
-    summary="Lister les societes",
-    description="Liste des societes synchronisees depuis Cosium.",
-)
+@router.get("/companies", summary="Lister les societes")
 def list_companies(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> list[dict]:
-    items = db.scalars(
-        select(CosiumCompany)
-        .where(CosiumCompany.tenant_id == tenant_ctx.tenant_id)
-        .order_by(CosiumCompany.name)
-    ).all()
+    items = list_all(db, CosiumCompany, tenant_ctx.tenant_id, order_by=[CosiumCompany.name])
     return [
         {
             "id": i.id, "name": i.name, "siret": i.siret, "ape_code": i.ape_code,
@@ -323,22 +182,12 @@ def list_companies(
     ]
 
 
-# --- Users/Employees ---
-
-@router.get(
-    "/users",
-    summary="Lister les employes Cosium",
-    description="Liste des employes/utilisateurs synchronises depuis Cosium.",
-)
+@router.get("/users", summary="Lister les employes Cosium")
 def list_cosium_users(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> list[dict]:
-    items = db.scalars(
-        select(CosiumUser)
-        .where(CosiumUser.tenant_id == tenant_ctx.tenant_id)
-        .order_by(CosiumUser.lastname, CosiumUser.firstname)
-    ).all()
+    items = list_all(db, CosiumUser, tenant_ctx.tenant_id, order_by=[CosiumUser.lastname, CosiumUser.firstname])
     return [
         {
             "id": i.id, "cosium_id": i.cosium_id, "alias": i.alias,
@@ -349,52 +198,25 @@ def list_cosium_users(
     ]
 
 
-# --- Equipment types ---
-
-@router.get(
-    "/equipment-types",
-    summary="Lister les types d'equipement",
-    description="Liste des types de famille d'equipement synchronises depuis Cosium.",
-)
+@router.get("/equipment-types", summary="Lister les types d'equipement")
 def list_equipment_types(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> list[dict]:
-    items = db.scalars(
-        select(CosiumEquipmentType)
-        .where(CosiumEquipmentType.tenant_id == tenant_ctx.tenant_id)
-        .order_by(CosiumEquipmentType.label)
-    ).all()
+    items = list_all(db, CosiumEquipmentType, tenant_ctx.tenant_id, order_by=[CosiumEquipmentType.label])
     return [{"id": i.id, "label": i.label, "label_code": i.label_code} for i in items]
 
 
-# --- Frame materials ---
-
-@router.get(
-    "/frame-materials",
-    summary="Lister les materiaux de monture",
-    description="Liste des materiaux de monture synchronises depuis Cosium.",
-)
+@router.get("/frame-materials", summary="Lister les materiaux de monture")
 def list_frame_materials(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> list[dict]:
-    items = db.scalars(
-        select(CosiumFrameMaterial)
-        .where(CosiumFrameMaterial.tenant_id == tenant_ctx.tenant_id)
-        .order_by(CosiumFrameMaterial.code)
-    ).all()
+    items = list_all(db, CosiumFrameMaterial, tenant_ctx.tenant_id, order_by=[CosiumFrameMaterial.code])
     return [{"id": i.id, "code": i.code, "description": i.description} for i in items]
 
 
-# --- Prescriptions ---
-
-@router.get(
-    "/prescriptions",
-    response_model=PaginatedPrescriptions,
-    summary="Lister les ordonnances",
-    description="Liste paginee des ordonnances synchronisees depuis Cosium.",
-)
+@router.get("/prescriptions", response_model=PaginatedPrescriptions, summary="Lister les ordonnances")
 def list_prescriptions(
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
@@ -402,37 +224,17 @@ def list_prescriptions(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> PaginatedPrescriptions:
-    query = select(CosiumPrescription).where(CosiumPrescription.tenant_id == tenant_ctx.tenant_id)
-    count_query = select(func.count(CosiumPrescription.id)).where(
-        CosiumPrescription.tenant_id == tenant_ctx.tenant_id
+    filters = [ilike_filter(CosiumPrescription.prescriber_name, search)] if search else []
+    data = paginated_query(
+        db, CosiumPrescription, tenant_ctx.tenant_id, page, page_size,
+        order_by=[CosiumPrescription.file_date.desc().nullslast()],
+        filters=filters,
+        response_schema=CosiumPrescriptionResponse,
     )
-
-    if search:
-        pattern = f"%{search}%"
-        query = query.where(CosiumPrescription.prescriber_name.ilike(pattern))
-        count_query = count_query.where(CosiumPrescription.prescriber_name.ilike(pattern))
-
-    query = query.order_by(CosiumPrescription.file_date.desc().nullslast())
-    total = db.scalar(count_query) or 0
-    offset = (page - 1) * page_size
-    items = db.scalars(query.offset(offset).limit(page_size)).all()
-
-    return PaginatedPrescriptions(
-        items=[CosiumPrescriptionResponse.model_validate(i) for i in items],
-        total=total,
-        page=page,
-        page_size=page_size,
-    )
+    return PaginatedPrescriptions(**data)
 
 
-# --- Payments ---
-
-@router.get(
-    "/payments",
-    response_model=PaginatedPayments,
-    summary="Lister les paiements Cosium",
-    description="Liste paginee des paiements synchronises depuis Cosium.",
-)
+@router.get("/payments", response_model=PaginatedPayments, summary="Lister les paiements Cosium")
 def list_cosium_payments(
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
@@ -442,68 +244,23 @@ def list_cosium_payments(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> PaginatedPayments:
-    query = select(CosiumPayment).where(CosiumPayment.tenant_id == tenant_ctx.tenant_id)
-    count_query = select(func.count(CosiumPayment.id)).where(
-        CosiumPayment.tenant_id == tenant_ctx.tenant_id
-    )
-
+    filters = []
     if search:
-        pattern = f"%{search}%"
-        search_filter = or_(
-            CosiumPayment.issuer_name.ilike(pattern),
-            CosiumPayment.payment_number.ilike(pattern),
-        )
-        query = query.where(search_filter)
-        count_query = count_query.where(search_filter)
-
+        filters.append(multi_ilike_filter([CosiumPayment.issuer_name, CosiumPayment.payment_number], search))
     if date_from:
-        query = query.where(CosiumPayment.due_date >= date_from)
-        count_query = count_query.where(CosiumPayment.due_date >= date_from)
+        filters.append(CosiumPayment.due_date >= date_from)
     if date_to:
-        query = query.where(CosiumPayment.due_date <= date_to)
-        count_query = count_query.where(CosiumPayment.due_date <= date_to)
-
-    query = query.order_by(CosiumPayment.due_date.desc().nullslast())
-    total = db.scalar(count_query) or 0
-    offset = (page - 1) * page_size
-    items = db.scalars(query.offset(offset).limit(page_size)).all()
-
-    return PaginatedPayments(
-        items=[CosiumPaymentResponse.model_validate(i) for i in items],
-        total=total,
-        page=page,
-        page_size=page_size,
+        filters.append(CosiumPayment.due_date <= date_to)
+    data = paginated_query(
+        db, CosiumPayment, tenant_ctx.tenant_id, page, page_size,
+        order_by=[CosiumPayment.due_date.desc().nullslast()],
+        filters=filters,
+        response_schema=CosiumPaymentResponse,
     )
+    return PaginatedPayments(**data)
 
 
-# --- Products ---
-
-
-class CosiumProductResponse(BaseModel):
-    id: int
-    cosium_id: str
-    label: str = ""
-    code: str = ""
-    ean_code: str = ""
-    price: float = 0
-    family_type: str = ""
-
-    model_config: dict = {"from_attributes": True}  # type: ignore[assignment]
-
-
-class PaginatedProducts(BaseModel):
-    items: list[CosiumProductResponse]
-    total: int
-    page: int
-    page_size: int
-
-
-@router.get(
-    "/products",
-    response_model=PaginatedProducts,
-    summary="Lister les produits",
-    description="Liste paginee des produits synchronises depuis Cosium.",
-)
+@router.get("/products", response_model=PaginatedProducts, summary="Lister les produits")
 def list_products(
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
@@ -512,45 +269,21 @@ def list_products(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> PaginatedProducts:
-    query = select(CosiumProduct).where(CosiumProduct.tenant_id == tenant_ctx.tenant_id)
-    count_query = select(func.count(CosiumProduct.id)).where(
-        CosiumProduct.tenant_id == tenant_ctx.tenant_id
-    )
-
+    filters = []
     if search:
-        pattern = f"%{search}%"
-        search_filter = or_(
-            CosiumProduct.label.ilike(pattern),
-            CosiumProduct.code.ilike(pattern),
-            CosiumProduct.ean_code.ilike(pattern),
-        )
-        query = query.where(search_filter)
-        count_query = count_query.where(search_filter)
-
+        filters.append(multi_ilike_filter([CosiumProduct.label, CosiumProduct.code, CosiumProduct.ean_code], search))
     if family:
-        query = query.where(CosiumProduct.family_type.ilike(f"%{family}%"))
-        count_query = count_query.where(CosiumProduct.family_type.ilike(f"%{family}%"))
-
-    query = query.order_by(CosiumProduct.label)
-    total = db.scalar(count_query) or 0
-    offset = (page - 1) * page_size
-    items = db.scalars(query.offset(offset).limit(page_size)).all()
-
-    return PaginatedProducts(
-        items=[CosiumProductResponse.model_validate(i) for i in items],
-        total=total,
-        page=page,
-        page_size=page_size,
+        filters.append(ilike_filter(CosiumProduct.family_type, family))
+    data = paginated_query(
+        db, CosiumProduct, tenant_ctx.tenant_id, page, page_size,
+        order_by=[CosiumProduct.label],
+        filters=filters,
+        response_schema=CosiumProductResponse,
     )
+    return PaginatedProducts(**data)
 
 
-# --- Sync customer tags (separate endpoint — slow operation) ---
-
-@router.post(
-    "/sync-customer-tags",
-    summary="Synchroniser les tags par client",
-    description="Itere tous les clients et recupere leurs tags depuis Cosium. Operation lente (~0.3s/client).",
-)
+@router.post("/sync-customer-tags", summary="Synchroniser les tags par client")
 def sync_customer_tags_endpoint(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),

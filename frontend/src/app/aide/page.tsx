@@ -24,44 +24,44 @@ interface FAQItem {
 
 const faqItems: FAQItem[] = [
   {
-    question: "Comment creer un nouveau dossier client ?",
+    question: "Comment créer un nouveau dossier client ?",
     answer:
-      'Rendez-vous dans la section Dossiers via le menu lateral, puis cliquez sur le bouton "Nouveau dossier" en haut a droite. Remplissez les informations du client (nom, prenom, coordonnees) et validez. Le dossier sera automatiquement lie au client dans le CRM.',
+      'Rendez-vous dans la section Dossiers via le menu latéral, puis cliquez sur le bouton "Nouveau dossier" en haut à droite. Remplissez les informations du client (nom, prénom, coordonnées) et validez. Le dossier sera automatiquement lié au client dans le CRM.',
   },
   {
-    question: "Comment generer un devis ?",
+    question: "Comment générer un devis ?",
     answer:
-      'Depuis un dossier client, allez dans l\'onglet "Devis" et cliquez sur "Nouveau devis". Ajoutez les lignes de produits (montures, verres, options), les remises eventuelles, et le systeme calculera automatiquement les montants HT, TTC et le reste a charge. Vous pouvez ensuite envoyer le devis par email ou le telecharger en PDF.',
+      'Depuis un dossier client, allez dans l\'onglet "Devis" et cliquez sur "Nouveau devis". Ajoutez les lignes de produits (montures, verres, options), les remises éventuelles, et le système calculera automatiquement les montants HT, TTC et le reste à charge. Vous pouvez ensuite envoyer le devis par email ou le télécharger en PDF.',
   },
   {
     question: "Comment importer des clients depuis un fichier CSV ?",
     answer:
-      'Allez dans la section Clients, puis cliquez sur "Importer CSV". Le fichier doit contenir les colonnes : nom, prenom, email, telephone. Un apercu vous sera montre avant l\'import definitif. Les doublons potentiels seront detectes automatiquement.',
+      'Allez dans la section Clients, puis cliquez sur "Importer CSV". Le fichier doit contenir les colonnes : nom, prénom, email, téléphone. Un aperçu vous sera montré avant l\'import définitif. Les doublons potentiels seront détectés automatiquement.',
   },
   {
     question: "Comment rapprocher les paiements bancaires ?",
     answer:
-      "Dans la section Rapprochement, importez votre releve bancaire au format CSV. Le systeme proposera automatiquement des correspondances entre les transactions bancaires et les factures en attente. Vous pouvez valider ou corriger les suggestions, puis glisser-deposer manuellement les transactions non matchees.",
+      "Dans la section Rapprochement, importez votre relevé bancaire au format CSV. Le système proposera automatiquement des correspondances entre les transactions bancaires et les factures en attente. Vous pouvez valider ou corriger les suggestions, puis glisser-déposer manuellement les transactions non matchées.",
   },
   {
     question: "Qu'est-ce que le copilote IA ?",
     answer:
-      "Le copilote IA est un assistant intelligent integre a OptiFlow. Il peut analyser vos dossiers, suggerer des actions commerciales, verifier la completude documentaire, et repondre a vos questions sur les donnees financieres. Accedez-y via l'icone IA dans la barre laterale ou avec le raccourci Ctrl+K.",
+      "Le copilote IA est un assistant intelligent intégré à OptiFlow. Il peut analyser vos dossiers, suggérer des actions commerciales, vérifier la complétude documentaire, et répondre à vos questions sur les données financières. Accédez-y via l'icône IA dans la barre latérale ou avec le raccourci Ctrl+K.",
   },
   {
     question: "Comment fonctionne la synchronisation Cosium ?",
     answer:
-      "OptiFlow se connecte a votre ERP Cosium en lecture seule pour recuperer les donnees clients, factures, paiements, ordonnances et rendez-vous. La synchronisation est declenchee depuis la page Administration. Aucune donnee n'est modifiee dans Cosium : la synchronisation est unidirectionnelle (Cosium vers OptiFlow uniquement).",
+      "OptiFlow se connecte à votre ERP Cosium en lecture seule pour récupérer les données clients, factures, paiements, ordonnances et rendez-vous. La synchronisation est déclenchée depuis la page Administration. Aucune donnée n'est modifiée dans Cosium : la synchronisation est unidirectionnelle (Cosium vers OptiFlow uniquement).",
   },
   {
     question: "Comment preparer une prise en charge (PEC) ?",
     answer:
-      "Allez dans Assistance PEC via le menu lateral. Selectionnez un client, puis lancez la preparation. Le systeme consolide automatiquement les donnees depuis toutes les sources (Cosium, documents, devis) et detecte les incoherences. Verifiez chaque champ, corrigez si necessaire, puis soumettez la PEC.",
+      "Allez dans Assistance PEC via le menu latéral. Sélectionnez un client, puis lancez la préparation. Le système consolide automatiquement les données depuis toutes les sources (Cosium, documents, devis) et détecte les incohérences. Vérifiez chaque champ, corrigez si nécessaire, puis soumettez la PEC.",
   },
   {
     question: "Comment contacter le support ?",
     answer:
-      "Pour toute question technique ou demande d'assistance, envoyez un email a support@optiflow.ai. Notre equipe repond sous 24h ouvrables. Pour les urgences (blocage complet), appelez le 01 23 45 67 89.",
+      "Pour toute question technique ou demande d'assistance, envoyez un email à support@optiflow.ai. Notre équipe répond sous 24h ouvrables. Pour les urgences (blocage complet), appelez le 01 23 45 67 89.",
   },
 ];
 
@@ -116,7 +116,7 @@ export default function AidePage() {
           <HelpCircle className="h-7 w-7 text-blue-600" />
           <h1 className="text-2xl font-bold text-gray-900">Centre d&apos;aide</h1>
         </div>
-        <p className="mt-2 text-sm text-gray-500">Trouvez rapidement des reponses a vos questions sur OptiFlow AI.</p>
+        <p className="mt-2 text-sm text-gray-500">Trouvez rapidement des réponses à vos questions sur OptiFlow AI.</p>
       </div>
 
       {/* Quick links */}
@@ -130,7 +130,7 @@ export default function AidePage() {
               <BookOpen className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">Questions frequentes</p>
+              <p className="text-sm font-semibold text-gray-900">Questions fréquentes</p>
               <p className="text-xs text-gray-500">{faqItems.length} questions</p>
             </div>
           </a>
@@ -163,7 +163,7 @@ export default function AidePage() {
 
       {/* FAQ Section */}
       <section id="faq">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">Questions frequentes</h2>
+        <h2 className="text-lg font-semibold text-gray-800 mb-4">Questions fréquentes</h2>
         <div className="space-y-2">
           {faqItems.map((item, index) => (
             <FAQAccordion key={index} item={item} />
@@ -184,7 +184,7 @@ export default function AidePage() {
               <div>
                 <h2 className="text-lg font-semibold text-gray-800">Comment renouveler le cookie Cosium</h2>
                 <p className="text-sm text-gray-600 mt-0.5">
-                  Guide pas a pas pour maintenir la connexion avec votre ERP Cosium
+                  Guide pas à pas pour maintenir la connexion avec votre ERP Cosium
                 </p>
               </div>
             </div>
@@ -197,11 +197,11 @@ export default function AidePage() {
           {cosiumGuideOpen && (
             <div className="px-6 pb-6 space-y-4">
               <div className="bg-white rounded-lg border border-amber-200 p-4">
-                <h3 className="text-sm font-semibold text-gray-800 mb-3">Etapes de renouvellement</h3>
+                <h3 className="text-sm font-semibold text-gray-800 mb-3">Étapes de renouvellement</h3>
                 <ol className="space-y-3 text-sm text-gray-700">
                   <li className="flex gap-3">
                     <span className="shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">1</span>
-                    <span>Connectez-vous a votre espace Cosium via votre navigateur : <strong>https://c1.cosium.biz/votre-tenant</strong></span>
+                    <span>Connectez-vous à votre espace Cosium via votre navigateur : <strong>https://c1.cosium.biz/votre-tenant</strong></span>
                   </li>
                   <li className="flex gap-3">
                     <span className="shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">2</span>
@@ -209,21 +209,21 @@ export default function AidePage() {
                   </li>
                   <li className="flex gap-3">
                     <span className="shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">3</span>
-                    <span>Une fois connecte, allez dans <strong>Administration &gt; Connexion ERP</strong> dans OptiFlow</span>
+                    <span>Une fois connecté, allez dans <strong>Administration &gt; Connexion ERP</strong> dans OptiFlow</span>
                   </li>
                   <li className="flex gap-3">
                     <span className="shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">4</span>
-                    <span>Cliquez sur <strong>&quot;Tester la connexion&quot;</strong> pour verifier que le cookie est valide</span>
+                    <span>Cliquez sur <strong>&quot;Tester la connexion&quot;</strong> pour vérifier que le cookie est valide</span>
                   </li>
                   <li className="flex gap-3">
                     <span className="shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">5</span>
-                    <span>Si la connexion echoue, cliquez sur <strong>&quot;Rafraichir le token&quot;</strong> pour re-authentifier</span>
+                    <span>Si la connexion échoue, cliquez sur <strong>&quot;Rafraîchir le token&quot;</strong> pour ré-authentifier</span>
                   </li>
                 </ol>
               </div>
               <div className="flex items-start gap-2 text-xs text-amber-700">
                 <Info className="h-4 w-4 shrink-0 mt-0.5" />
-                <p>Le cookie Cosium expire regulierement pour des raisons de securite. Si la synchronisation cesse de fonctionner, c&apos;est probablement que le cookie a expire. Renouvelez-le en suivant les etapes ci-dessus.</p>
+                <p>Le cookie Cosium expire régulièrement pour des raisons de sécurité. Si la synchronisation cesse de fonctionner, c&apos;est probablement que le cookie a expiré. Renouvelez-le en suivant les étapes ci-dessus.</p>
               </div>
             </div>
           )}
@@ -270,7 +270,7 @@ export default function AidePage() {
             <div>
               <h2 className="text-lg font-semibold text-gray-800">Documentation</h2>
               <p className="mt-1 text-sm text-gray-600">
-                Consultez la documentation complete pour decouvrir toutes les fonctionnalites d&apos;OptiFlow AI.
+                Consultez la documentation complète pour découvrir toutes les fonctionnalités d&apos;OptiFlow AI.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <a
@@ -302,9 +302,9 @@ export default function AidePage() {
         <div className="flex items-start gap-4">
           <Mail className="h-6 w-6 text-blue-600 mt-0.5" />
           <div>
-            <h2 className="text-lg font-semibold text-gray-800">Besoin d&apos;aide supplementaire ?</h2>
+            <h2 className="text-lg font-semibold text-gray-800">Besoin d&apos;aide supplémentaire ?</h2>
             <p className="mt-1 text-sm text-gray-600">
-              Notre equipe support est disponible du lundi au vendredi, de 9h a 18h.
+              Notre équipe support est disponible du lundi au vendredi, de 9h à 18h.
             </p>
             <div className="mt-3 flex flex-wrap gap-3">
               <a

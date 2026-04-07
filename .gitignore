@@ -43,5 +43,12 @@ logs/
 # MinIO data
 minio_data/
 
+# Build artifacts (ne pas tracker)
+frontend/tsconfig.tsbuildinfo
+backend/celerybeat-schedule
+
+# Backups
+backups/
+
 # Cosium scraped pages (filenames too long for Git)
 docs/cosium/pages/

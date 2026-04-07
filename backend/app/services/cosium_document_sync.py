@@ -57,7 +57,7 @@ def sync_customer_documents(
     # 1. List documents from Cosium API
     try:
         docs = connector.get_customer_documents(customer_cosium_id)
-    except Exception as e:
+    except (ConnectionError, TimeoutError, OSError) as e:
         logger.error(
             "cosium_docs_list_failed",
             tenant_id=tenant_id,
@@ -153,7 +153,7 @@ def sync_customer_documents(
                 size_bytes=len(content),
             )
 
-        except Exception as e:
+        except (ConnectionError, TimeoutError, OSError, ValueError) as e:
             db.rollback()
             logger.error(
                 "cosium_doc_download_failed",

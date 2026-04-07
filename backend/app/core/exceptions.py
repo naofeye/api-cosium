@@ -38,3 +38,51 @@ class ValidationError(BusinessError):
 
     def to_dict(self) -> dict:
         return {"error": {"code": self.code, "message": self.message, "field": self.field}}
+
+
+class SyncError(BusinessError):
+    """Erreur lors de la synchronisation ERP."""
+
+    def __init__(self, message: str, source: str = "") -> None:
+        self.source = source
+        super().__init__(message=message, code="SYNC_ERROR")
+
+
+class ExtractionError(BusinessError):
+    """Erreur lors de l'extraction de donnees d'un document."""
+
+    def __init__(self, message: str, document_id: int | str = "") -> None:
+        self.document_id = document_id
+        super().__init__(message=message, code="EXTRACTION_ERROR")
+
+
+class ImportError_(BusinessError):
+    """Erreur lors de l'import de donnees."""
+
+    def __init__(self, message: str, source: str = "") -> None:
+        self.source = source
+        super().__init__(message=message, code="IMPORT_ERROR")
+
+
+class ExportError(BusinessError):
+    """Erreur lors de l'export de donnees."""
+
+    def __init__(self, message: str, format: str = "") -> None:
+        self.format = format
+        super().__init__(message=message, code="EXPORT_ERROR")
+
+
+class MergeConflictError(BusinessError):
+    """Conflit lors de la fusion de deux entites."""
+
+    def __init__(self, message: str, entity_type: str = "") -> None:
+        self.entity_type = entity_type
+        super().__init__(message=message, code="MERGE_CONFLICT")
+
+
+class ExternalServiceError(BusinessError):
+    """Erreur lors d'un appel a un service externe."""
+
+    def __init__(self, message: str, service: str = "") -> None:
+        self.service = service
+        super().__init__(message=message, code="EXTERNAL_SERVICE_ERROR")

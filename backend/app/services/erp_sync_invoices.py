@@ -3,11 +3,16 @@ Service de synchronisation des factures ERP -> OptiFlow.
 
 SYNCHRONISATION UNIDIRECTIONNELLE : ERP -> OptiFlow uniquement.
 Aucune ecriture vers l'ERP.
+
+Par defaut, la sync est INCREMENTALE : seules les factures recentes
+(depuis la derniere facture en base - 7 jours de marge) sont fetchees.
+Passer full=True pour forcer un re-fetch complet.
 """
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger, log_operation
@@ -15,47 +20,81 @@ from app.integrations.erp_models import ERPInvoice
 from app.models import Customer
 from app.models.cosium_data import CosiumInvoice
 from app.services import audit_service
-from app.services.erp_sync_service import (
-    BATCH_SIZE,
+from app.services.erp_auth_service import (
     _authenticate_connector,
     _get_connector_for_tenant,
+)
+from app.services.erp_matching_service import (
     _match_customer_by_name,
     _normalize_name,
 )
 
+BATCH_SIZE = 500
+
 logger = get_logger("erp_sync_invoices")
+
+# Marge de securite pour la sync incrementale (jours)
+INCREMENTAL_MARGIN_DAYS = 7
 
 
 @log_operation("sync_invoices")
-def sync_invoices(db: Session, tenant_id: int, user_id: int = 0) -> dict:
+def sync_invoices(db: Session, tenant_id: int, user_id: int = 0, *, full: bool = False) -> dict:
     """Synchronise les factures depuis l'ERP vers cosium_invoices (lecture seule).
 
-    Uses date-range pagination (month by month, 24 months back) to bypass
-    the Cosium 50-item offset limit.
+    Par defaut (full=False), sync incrementale : ne fetch que les factures
+    depuis la derniere date en base moins une marge de 7 jours.
+    Avec full=True, re-fetch toutes les factures (sync complete).
     """
     if not user_id:
         logger.warning("operation_without_user_id", action="sync_invoices", entity="invoice")
     connector, tenant = _get_connector_for_tenant(db, tenant_id)
     _authenticate_connector(connector, tenant)
 
-    # Collect all invoices via direct pagination (no offset limit on invoices)
+    # Collect invoices
     all_invoices: list[ERPInvoice] = []
     seen_ids: set[str] = set()
 
     try:
-        # Invoices endpoint supports full pagination (unlike customers)
-        # Use max_pages=600 to cover ~30000 invoices at 50/page
-        batch = connector.get_invoices(page=0, page_size=50)
-        for inv in batch:
-            if inv.erp_id not in seen_ids:
-                seen_ids.add(inv.erp_id)
-                all_invoices.append(inv)
-    except Exception as e:
+        if full:
+            # Sync complete : re-fetch tout (505 pages, ~25k factures)
+            logger.info("sync_invoices_full_mode", tenant_id=tenant_id)
+            batch = connector.get_invoices(page=0, page_size=50)
+            for inv in batch:
+                if inv.erp_id not in seen_ids:
+                    seen_ids.add(inv.erp_id)
+                    all_invoices.append(inv)
+        else:
+            # Sync incrementale : depuis la derniere facture en base - marge
+            last_date = db.scalar(
+                select(func.max(CosiumInvoice.invoice_date)).where(
+                    CosiumInvoice.tenant_id == tenant_id
+                )
+            )
+            if last_date:
+                date_from = last_date - timedelta(days=INCREMENTAL_MARGIN_DAYS)
+                date_from_str = date_from.strftime("%Y-%m-%dT00:00:00.000Z")
+                date_to_str = datetime.now(UTC).strftime("%Y-%m-%dT23:59:59.999Z")
+                logger.info(
+                    "sync_invoices_incremental",
+                    tenant_id=tenant_id,
+                    date_from=date_from_str,
+                    date_to=date_to_str,
+                )
+                batch = connector.get_invoices_by_date_range(date_from_str, date_to_str)
+            else:
+                # Premiere sync : fetch tout
+                logger.info("sync_invoices_first_sync", tenant_id=tenant_id)
+                batch = connector.get_invoices(page=0, page_size=50)
+            for inv in batch:
+                if inv.erp_id not in seen_ids:
+                    seen_ids.add(inv.erp_id)
+                    all_invoices.append(inv)
+    except (ConnectionError, TimeoutError, ValueError) as e:
         logger.error("sync_invoices_failed", error=str(e), exc_info=True)
         if "auth" in str(e).lower() or "connect" in str(e).lower() or "timeout" in str(e).lower():
             raise ValueError(f"Erreur critique lors de la synchronisation des factures: {e}") from e
 
-    logger.info("sync_invoices_fetched", tenant_id=tenant_id, total=len(all_invoices))
+    logger.info("sync_invoices_fetched", tenant_id=tenant_id, total=len(all_invoices), mode="full" if full else "incremental")
 
     # Build customer lookup maps for matching (normalized for accent/hyphen tolerance)
     all_customers = db.scalars(select(Customer).where(Customer.tenant_id == tenant_id)).all()
@@ -151,14 +190,14 @@ def sync_invoices(db: Session, tenant_id: int, user_id: int = 0) -> dict:
         if processed % BATCH_SIZE == 0:
             try:
                 db.flush()
-            except Exception as e:
+            except SQLAlchemyError as e:
                 db.rollback()
                 batch_errors += 1
                 logger.error("sync_invoices_batch_error", batch=processed // BATCH_SIZE, error=str(e))
 
     try:
         db.commit()
-    except Exception as e:
+    except SQLAlchemyError as e:
         db.rollback()
         logger.error("sync_invoices_commit_failed", tenant_id=tenant_id, error=str(e))
         raise

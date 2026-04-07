@@ -267,9 +267,9 @@ class CosiumConnector(ERPConnector):
                 )
         return stocks
 
-    def get_invoice_payments(self, page: int = 0, page_size: int = 50) -> list[dict]:
+    def get_invoice_payments(self, page: int = 0, page_size: int = 50, max_pages: int = 600) -> list[dict]:
         """GET /invoice-payments — paiements de factures (lecture seule)."""
-        items = self._client.get_paginated("/invoice-payments", page_size=page_size, max_pages=600)
+        items = self._client.get_paginated("/invoice-payments", page_size=page_size, max_pages=max_pages)
         result: list[dict] = []
         for raw in items:
             mapped = cosium_payment_to_optiflow(raw)
@@ -290,9 +290,9 @@ class CosiumConnector(ERPConnector):
         logger.info("cosium_tpp_fetched", total=len(result))
         return result
 
-    def get_optical_prescriptions(self, page: int = 0, page_size: int = 50) -> list[dict]:
+    def get_optical_prescriptions(self, page: int = 0, page_size: int = 50, max_pages: int = 600) -> list[dict]:
         """GET /optical-prescriptions — ordonnances optiques (lecture seule)."""
-        items = self._client.get_paginated("/optical-prescriptions", page_size=page_size, max_pages=600)
+        items = self._client.get_paginated("/optical-prescriptions", page_size=page_size, max_pages=max_pages)
         result: list[dict] = []
         for raw in items:
             mapped = cosium_prescription_to_optiflow(raw)

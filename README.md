@@ -34,14 +34,14 @@ docker compose up --build
 
 | Metrique | Valeur |
 |----------|--------|
-| Tests backend | 740 (98 fichiers, 100% pass) |
-| Tests frontend | 133 (28 fichiers, 100% pass) |
+| Tests backend | ~103 fichiers |
+| Tests frontend | 28 fichiers |
 | Pages frontend | 49 |
-| Routers API | 38 |
-| Services metier | 53 |
-| Repositories | 25 |
-| Schemas Pydantic | 35 |
-| Modeles SQLAlchemy | 23 |
+| Routers API | 40 |
+| Services metier | 54 |
+| Repositories | 27 |
+| Schemas Pydantic | 37 |
+| Modeles SQLAlchemy | 25 |
 | Commits | 66+ |
 | Migrations Alembic | 30 |
 | Enregistrements Cosium | 115k+ |
@@ -114,10 +114,10 @@ Separation en couches stricte :
 
 ```
 backend/app/
-  api/routers/       # 38 routes FastAPI
-  services/          # 53 services metier
-  repositories/      # 25 acces BDD
-  domain/schemas/    # 35 schemas Pydantic
+  api/routers/       # 40 routes FastAPI
+  services/          # 54 services metier
+  repositories/      # 27 acces BDD
+  domain/schemas/    # 37 schemas Pydantic
   models/            # 23 modeles SQLAlchemy
   integrations/      # Cosium, MinIO, Stripe, Email, IA, templates Jinja2
   core/              # Config, auth, logging, exceptions, middleware

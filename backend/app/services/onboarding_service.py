@@ -123,7 +123,7 @@ def connect_cosium(db: Session, tenant_id: int, payload: ConnectCosiumRequest) -
             login=payload.cosium_login,
             password=payload.cosium_password,
         )
-    except Exception as e:
+    except (ConnectionError, TimeoutError, OSError, ValueError) as e:
         logger.warning("erp_connection_failed", tenant_id=tenant_id, error=str(e))
         raise BusinessError("Connexion ERP echouee. Verifiez vos identifiants et reessayez.") from e
 
@@ -152,7 +152,7 @@ def trigger_first_sync(db: Session, tenant_id: int) -> dict:
         db.commit()
         logger.info("first_sync_completed", tenant_id=tenant_id)
         return result
-    except Exception as e:
+    except (ConnectionError, TimeoutError, OSError, ValueError) as e:
         logger.error("first_sync_failed", tenant_id=tenant_id, error=str(e))
         raise BusinessError("Synchronisation echouee. Verifiez la connexion ERP et reessayez.") from e
 

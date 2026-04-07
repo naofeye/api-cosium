@@ -9,7 +9,7 @@ import { KPICard } from "@/components/ui/KPICard";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { fetchJson } from "@/lib/api";
+import { fetchJson, API_BASE } from "@/lib/api";
 import type { BatchSummary, BatchItem } from "@/lib/types";
 import {
   Users,
@@ -82,8 +82,6 @@ export default function BatchDetailPage() {
 
   const handleExport = useCallback(async () => {
     try {
-      const API_BASE =
-        process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
       const response = await fetch(`${API_BASE}/batch/${batchId}/export`, {
         credentials: "include",
       });

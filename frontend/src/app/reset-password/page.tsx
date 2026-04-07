@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/Button";
 import { FormField, FormInput } from "@/components/form/FormField";
+import { API_BASE } from "@/lib/api";
 
 const resetSchema = z
   .object({
@@ -24,8 +25,6 @@ const resetSchema = z
   });
 
 type ResetFormData = z.infer<typeof resetSchema>;
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
 function ResetPasswordForm() {
   const router = useRouter();

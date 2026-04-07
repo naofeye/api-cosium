@@ -3,6 +3,13 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
 
+# Pool de connexions PostgreSQL :
+# - pool_size=20 : 20 connexions permanentes
+# - max_overflow=20 : 20 connexions supplementaires en pic (total max = 40)
+# - pool_recycle=1800 : recycler les connexions toutes les 30 min
+# - pool_pre_ping=True : verifier la connexion avant chaque utilisation
+# - statement_timeout=30s : eviter les requetes longues (API)
+# Note: les workers Celery partagent ce pool — augmenter si necessaire
 engine = create_engine(
     settings.database_url,
     future=True,

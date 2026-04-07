@@ -6,10 +6,9 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
+import { API_BASE } from "@/lib/api";
 import { Download, FileText, HardDrive, Cloud, ChevronDown, ChevronRight, Eye } from "lucide-react";
 import type { LocalCosiumDocument, CosiumDocument } from "@/lib/types";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
 interface TabCosiumDocumentsProps {
   cosiumId: string | number | null;

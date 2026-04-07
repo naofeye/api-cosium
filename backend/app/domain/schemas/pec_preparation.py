@@ -1,9 +1,11 @@
 """Pydantic schemas for PEC preparation (assistance PEC)."""
 
 from datetime import datetime
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
+
+# Type pour les valeurs de champs heterogenes
+FieldValue = str | int | float | bool | None
 
 
 class PecPreparationCreate(BaseModel):
@@ -23,7 +25,7 @@ class FieldCorrection(BaseModel):
     """Request to correct a field in a PEC preparation."""
 
     field_name: str = Field(..., min_length=1)
-    new_value: Any
+    new_value: FieldValue
     reason: str | None = Field(None, max_length=500, description="Raison de la correction")
 
 
@@ -63,8 +65,8 @@ class UserValidationEntry(BaseModel):
 class UserCorrectionEntry(BaseModel):
     """A single user correction record."""
 
-    original: Any
-    corrected: Any
+    original: FieldValue
+    corrected: FieldValue
     by: int
     at: datetime
 
@@ -78,13 +80,13 @@ class PecPreparationResponse(BaseModel):
     devis_id: int | None = None
     pec_request_id: int | None = None
     ocam_operator_id: int | None = None
-    consolidated_data: dict | None = None
+    consolidated_data: dict[str, FieldValue | dict] | None = None
     status: str
     completude_score: float = 0.0
     errors_count: int = 0
     warnings_count: int = 0
-    user_validations: dict | None = None
-    user_corrections: dict | None = None
+    user_validations: dict[str, UserValidationEntry] | None = None
+    user_corrections: dict[str, UserCorrectionEntry] | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
     created_by: int | None = None

@@ -16,6 +16,7 @@ logger = get_logger("batch_tasks")
     bind=True,
     max_retries=1,
     default_retry_delay=60,
+    time_limit=7200,
 )
 def process_batch_async(self, tenant_id: int, batch_id: int, user_id: int) -> dict:
     """Process a batch operation asynchronously via Celery.

@@ -4,6 +4,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from app.domain.schemas.cosium_sync import CosiumPaymentResponse, CosiumPrescriptionResponse
+
 # --- Calendar Events ---
 
 class CalendarEventResponse(BaseModel):
@@ -145,6 +147,41 @@ class PaginatedMutuelles(BaseModel):
 
 class PaginatedDoctors(BaseModel):
     items: list[DoctorResponse]
+    total: int
+    page: int
+    page_size: int
+
+
+# --- Prescriptions / Payments / Products paginated ---
+
+class PaginatedPrescriptions(BaseModel):
+    items: list[CosiumPrescriptionResponse]
+    total: int
+    page: int
+    page_size: int
+
+
+class PaginatedPayments(BaseModel):
+    items: list[CosiumPaymentResponse]
+    total: int
+    page: int
+    page_size: int
+
+
+class CosiumProductResponse(BaseModel):
+    id: int
+    cosium_id: str
+    label: str = ""
+    code: str = ""
+    ean_code: str = ""
+    price: float = 0
+    family_type: str = ""
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PaginatedProducts(BaseModel):
+    items: list[CosiumProductResponse]
     total: int
     page: int
     page_size: int

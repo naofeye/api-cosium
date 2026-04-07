@@ -30,11 +30,11 @@ class ERPTypeItem(BaseModel):
 class SyncAllResult(BaseModel):
     """Result of a full sync across all ERP domains."""
 
-    customers: SyncResultResponse | dict | None = None
-    invoices: SyncResultResponse | dict | None = None
-    payments: SyncResultResponse | dict | None = None
-    prescriptions: SyncResultResponse | dict | None = None
-    reference: dict | None = None
+    customers: SyncResultResponse | None = None
+    invoices: SyncResultResponse | None = None
+    payments: SyncResultResponse | None = None
+    prescriptions: SyncResultResponse | None = None
+    reference: SyncResultResponse | None = None
     has_errors: bool = False
 
 

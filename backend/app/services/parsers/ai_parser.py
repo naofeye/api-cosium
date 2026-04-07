@@ -83,7 +83,7 @@ def parse_with_ai(text: str, document_type: str) -> dict[str, Any] | None:
 
     try:
         result = claude_provider.query_with_usage(full_prompt, system=_SYSTEM)
-    except Exception:
+    except (ConnectionError, TimeoutError, ValueError):
         logger.exception("ai_parser_query_failed", document_type=document_type)
         return None
 

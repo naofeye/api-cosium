@@ -5,9 +5,8 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { DateDisplay } from "@/components/ui/DateDisplay";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
+import { API_BASE } from "@/lib/api";
 import { Eye, Download, X } from "lucide-react";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
 interface Document {
   id: number;

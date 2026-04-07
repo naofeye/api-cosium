@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
+import { API_BASE } from "./config";
 
 export async function downloadPdf(path: string, filename: string): Promise<void> {
   const response = await fetch(`${API_BASE}${path}`, { credentials: "include" });

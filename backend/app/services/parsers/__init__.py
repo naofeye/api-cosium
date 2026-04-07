@@ -45,7 +45,7 @@ def parse_document(
             if ai_result is not None:
                 logger.info("ai_extraction_used", document_type=document_type)
                 return ai_result
-        except Exception:
+        except (ConnectionError, TimeoutError, ValueError):
             logger.exception("ai_extraction_fallback", document_type=document_type)
         logger.info("ai_extraction_fallback_to_regex", document_type=document_type)
 

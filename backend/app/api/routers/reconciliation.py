@@ -134,7 +134,10 @@ def list_anomalies(
     )
     results = []
     for recon in items:
-        anomalies = json.loads(recon.anomalies) if recon.anomalies else []
+        try:
+            anomalies = json.loads(recon.anomalies) if recon.anomalies else []
+        except (json.JSONDecodeError, TypeError):
+            anomalies = []
         results.append({
             "customer_id": recon.customer_id,
             "status": recon.status,
@@ -155,26 +158,6 @@ def list_unsettled(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> dict:
-    from app.repositories import reconciliation_repo
-    # Get all non-solde statuses
-    unsettled_statuses = ["partiellement_paye", "en_attente", "incoherent"]
-    all_items = []
-    total = 0
-    for status in unsettled_statuses:
-        items, count = reconciliation_repo.get_reconciliations_by_status(
-            db, tenant_ctx.tenant_id, status, page, page_size,
-        )
-        all_items.extend(items)
-        total += count
-
-    results = []
-    for recon in all_items[:page_size]:
-        results.append({
-            "customer_id": recon.customer_id,
-            "status": recon.status,
-            "total_facture": recon.total_facture,
-            "total_outstanding": recon.total_outstanding,
-            "total_paid": recon.total_paid,
-            "explanation": recon.explanation,
-        })
-    return {"items": results, "total": total, "page": page, "page_size": page_size}
+    return reconciliation_service.get_unsettled_reconciliations(
+        db, tenant_ctx.tenant_id, page, page_size,
+    )

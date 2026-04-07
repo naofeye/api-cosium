@@ -1,9 +1,17 @@
 """Pydantic schemas for OCAM operators."""
 
 from datetime import datetime
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class OcamSpecificRule(BaseModel):
+    """Une regle specifique d'un operateur OCAM."""
+
+    field: str
+    rule_type: str  # "required", "format", "max_length", etc.
+    value: str | int | bool | None = None
+    message: str | None = None
 
 
 class OcamOperatorCreate(BaseModel):
@@ -14,7 +22,7 @@ class OcamOperatorCreate(BaseModel):
     portal_url: str | None = Field(None, max_length=500)
     required_fields: list[str] | None = None
     required_documents: list[str] | None = None
-    specific_rules: dict[str, Any] | None = None
+    specific_rules: list[OcamSpecificRule] | None = None
     active: bool = True
 
 
@@ -28,7 +36,7 @@ class OcamOperatorResponse(BaseModel):
     portal_url: str | None = None
     required_fields: list[str] | None = None
     required_documents: list[str] | None = None
-    specific_rules: dict[str, Any] | None = None
+    specific_rules: list[OcamSpecificRule] | None = None
     active: bool = True
     created_at: datetime | None = None
     updated_at: datetime | None = None

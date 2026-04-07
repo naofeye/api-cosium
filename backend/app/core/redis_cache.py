@@ -30,6 +30,11 @@ def _get_redis() -> redis.Redis | None:
     return _redis
 
 
+def get_redis_client() -> redis.Redis | None:
+    """Public accessor for the Redis client (used by lockout, etc.)."""
+    return _get_redis()
+
+
 def _reset_on_connection_error() -> None:
     """Reset the global Redis reference so the next call attempts to reconnect."""
     global _redis
@@ -81,14 +86,20 @@ def cache_delete_pattern(pattern: str) -> None:
 
 
 def acquire_lock(key: str, ttl: int = 300) -> bool:
-    """Try to acquire a distributed lock. Returns True if acquired."""
+    """Try to acquire a distributed lock. Returns True if acquired, False otherwise.
+
+    IMPORTANT: retourne False si Redis est indisponible pour eviter les
+    operations concurrentes non protegees (sync, import, etc.).
+    """
     r = _get_redis()
     if not r:
-        return True  # No Redis = no locking, allow operation
+        logger.warning("acquire_lock_no_redis", key=key, hint="Operation refusee sans verrou distribue")
+        return False
     try:
         return bool(r.set(key, "1", nx=True, ex=ttl))
-    except Exception:
-        return True  # On Redis error, allow operation
+    except Exception as exc:
+        logger.warning("acquire_lock_redis_error", key=key, error=str(exc))
+        return False
 
 
 def release_lock(key: str) -> None:

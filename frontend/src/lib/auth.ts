@@ -1,10 +1,10 @@
 import Cookies from "js-cookie";
 import { logger } from "@/lib/logger";
+import { API_BASE } from "./config";
 
 const TENANT_ID_KEY = "optiflow_tenant_id";
 const TENANT_NAME_KEY = "optiflow_tenant_name";
 const TENANTS_KEY = "optiflow_tenants";
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
 export interface AvailableTenant {
   id: number;

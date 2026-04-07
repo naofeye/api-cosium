@@ -52,7 +52,7 @@ def get_tenant_context(
         .filter(
             TenantUser.user_id == user.id,
             TenantUser.tenant_id == tenant_id,
-            TenantUser.is_active,
+            TenantUser.is_active.is_(True),
         )
         .first()
     )

@@ -50,7 +50,7 @@ export function AlertPanel({ alerts, dismissedAlerts, onDismiss }: AlertPanelPro
     return (
       <div className="flex items-center gap-2 py-4 text-emerald-600">
         <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
-        <span className="text-sm font-medium">Aucune alerte. Toutes les donnees sont coherentes.</span>
+        <span className="text-sm font-medium">Aucune alerte. Toutes les données sont cohérentes.</span>
       </div>
     );
   }
@@ -87,15 +87,15 @@ export function AlertPanel({ alerts, dismissedAlerts, onDismiss }: AlertPanelPro
                 size="sm"
                 variant="ghost"
                 onClick={() => onDismiss(key)}
-                aria-label="Marquer comme verifie"
+                aria-label="Marquer comme vérifié"
               >
                 <CheckCircle2 className="h-3 w-3 mr-1" />
-                {"J'ai verifie"}
+                {"J'ai vérifié"}
               </Button>
             )}
             {isDismissed && (
               <span className="text-xs text-emerald-600 font-medium shrink-0 flex items-center gap-1">
-                <CheckCircle2 className="h-3 w-3" /> Verifie
+                <CheckCircle2 className="h-3 w-3" /> Vérifié
               </span>
             )}
           </div>

@@ -80,3 +80,16 @@ def search_logs(
         page_size=page_size,
         total_pages=total_pages,
     )
+
+
+def get_recent_activity(db: Session, tenant_id: int, limit: int = 20) -> list[AuditLogResponse]:
+    """Retourne les dernieres actions pour le fil d'activite."""
+    from app.models.audit import AuditLog
+
+    logs = db.scalars(
+        select(AuditLog)
+        .where(AuditLog.tenant_id == tenant_id)
+        .order_by(AuditLog.created_at.desc())
+        .limit(limit)
+    ).all()
+    return [AuditLogResponse.model_validate(log) for log in logs]

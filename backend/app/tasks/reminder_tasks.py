@@ -27,28 +27,55 @@ logger = get_logger("reminder_tasks")
     bind=True,
     max_retries=2,
     default_retry_delay=300,
+    time_limit=1800,
 )
 def auto_generate_reminders(self) -> dict[str, int]:
     """Execute all active reminder plans against overdue items.
 
     Returns a summary of created reminders per plan.
     """
+    from app.core.redis_cache import get_redis_client
+
     db = SessionLocal()
     try:
         # Iterate over all tenants
         tenants = db.scalars(select(Tenant).where(Tenant.is_active.is_(True))).all()
         total_created = 0
         plan_results: dict[str, int] = {}
+        today = datetime.now(UTC).strftime("%Y-%m-%d")
+        redis_client = get_redis_client()
 
         for tenant in tenants:
             plans = reminder_repo.list_plans(db, tenant.id)
             active_plans = [p for p in plans if p.is_active]
 
             for plan in active_plans:
+                # Idempotency: skip if this plan was already executed today
+                idem_key = f"reminder:{tenant.id}:{plan.id}:{today}"
+                if redis_client:
+                    try:
+                        if redis_client.exists(idem_key):
+                            logger.info(
+                                "reminder_plan_skipped_already_done",
+                                tenant_id=tenant.id,
+                                plan_id=plan.id,
+                                idempotency_key=idem_key,
+                            )
+                            continue
+                    except Exception:
+                        pass  # Redis unavailable — proceed without check
+
                 created = reminder_service.execute_plan(db, tenant.id, plan.id, user_id=0)
                 count = len(created)
                 plan_results[f"{tenant.slug}:{plan.name}"] = count
                 total_created += count
+
+                # Mark plan as executed today (24h TTL)
+                if redis_client:
+                    try:
+                        redis_client.setex(idem_key, 86400, "1")
+                    except Exception:
+                        pass
 
                 # Auto-send email reminders
                 for r in created:
@@ -73,6 +100,7 @@ def auto_generate_reminders(self) -> dict[str, int]:
     bind=True,
     max_retries=1,
     default_retry_delay=600,
+    time_limit=1800,
 )
 def check_overdue_invoices(self) -> dict[str, int]:
     """Check for Cosium invoices overdue > 30 days and create reminders.
@@ -83,12 +111,28 @@ def check_overdue_invoices(self) -> dict[str, int]:
 
     Runs weekly (Monday 9 AM) via Celery Beat.
     """
+    from app.core.redis_cache import get_redis_client
     from app.models import Reminder
 
     db = SessionLocal()
     try:
+        # Idempotency: prevent running multiple times per day
+        today = datetime.now(UTC).strftime("%Y-%m-%d")
+        overdue_idem_key = f"overdue_check:{today}"
+        redis_client = get_redis_client()
+        if redis_client:
+            try:
+                if redis_client.exists(overdue_idem_key):
+                    logger.info(
+                        "check_overdue_skipped_already_done",
+                        idempotency_key=overdue_idem_key,
+                    )
+                    return {"skipped": True, "reason": "already_executed_today"}
+            except Exception:
+                pass  # Redis unavailable — proceed without check
+
         tenants = db.scalars(select(Tenant).where(Tenant.is_active.is_(True))).all()
-        thirty_days_ago = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=30)
+        thirty_days_ago = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=30)  # naive datetime for DB compatibility
         results: dict[str, int] = {}
 
         for tenant in tenants:
@@ -112,7 +156,7 @@ def check_overdue_invoices(self) -> dict[str, int]:
                 .having(func.sum(CosiumInvoice.outstanding_balance) > 0)
             ).all()
 
-            for row in overdue_rows:
+            for row in overdue_rows[:1000]:  # Limiter a 1000 pour eviter OOM
                 customer_id = row.customer_id
                 customer_name = row.customer_name or "Client inconnu"
                 total_due = float(row.total_due or 0)
@@ -135,7 +179,7 @@ def check_overdue_invoices(self) -> dict[str, int]:
 
                 # Calculate days overdue
                 oldest_date = row.oldest_date
-                days_overdue = (datetime.now(UTC).replace(tzinfo=None) - oldest_date).days if oldest_date else 30
+                days_overdue = (datetime.now(UTC).replace(tzinfo=None) - oldest_date).days if oldest_date else 30  # naive datetime for DB compatibility
 
                 # Build reminder content
                 content = (
@@ -168,7 +212,9 @@ def check_overdue_invoices(self) -> dict[str, int]:
                     from app.integrations.email_sender import email_sender
 
                     subject = f"Relance — Solde impaye de {total_due:.2f} EUR"
-                    body_html = content.replace("\n", "<br>")
+                    from html import escape
+
+                    body_html = escape(content).replace("\n", "<br>")
                     success = email_sender.send_email(
                         to=customer_obj.email,
                         subject=subject,
@@ -193,6 +239,14 @@ def check_overdue_invoices(self) -> dict[str, int]:
 
         total = sum(results.values())
         logger.info("check_overdue_complete", tenants_processed=len(tenants), total_reminders=total)
+
+        # Mark as done for today (24h TTL)
+        if redis_client:
+            try:
+                redis_client.setex(overdue_idem_key, 86400, "1")
+            except Exception:
+                pass
+
         return results
     except Exception as exc:
         logger.error("check_overdue_failed", error=str(exc))

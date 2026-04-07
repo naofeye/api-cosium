@@ -1,4 +1,10 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Valeurs par defaut UNIQUEMENT pour dev local — jamais en production
+_DEV_DB_URL = "postgresql+psycopg://optiflow:optiflow@postgres:5432/optiflow"
+_DEV_JWT_SECRET = "dev-only-change-me-super-secret"
+_DEV_S3_KEY = "minioadmin"
 
 
 class Settings(BaseSettings):
@@ -6,10 +12,10 @@ class Settings(BaseSettings):
     app_env: str = "local"
 
     # Database
-    database_url: str = "postgresql+psycopg://optiflow:optiflow@postgres:5432/optiflow"
+    database_url: str = _DEV_DB_URL
 
     # Auth
-    jwt_secret: str = "change-me-super-secret"
+    jwt_secret: str = _DEV_JWT_SECRET
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
 
@@ -18,8 +24,8 @@ class Settings(BaseSettings):
 
     # Storage (MinIO/S3)
     s3_endpoint: str = "http://minio:9000"
-    s3_access_key: str = "minioadmin"
-    s3_secret_key: str = "minioadmin"
+    s3_access_key: str = _DEV_S3_KEY
+    s3_secret_key: str = _DEV_S3_KEY
     s3_bucket: str = "optiflow-docs"
 
     # Redis / Celery
@@ -60,6 +66,27 @@ class Settings(BaseSettings):
     cosium_device_credential: str = ""  # Cookie device-credential from browser
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    @model_validator(mode="after")
+    def _validate_production_secrets(self) -> "Settings":
+        """Refuse les valeurs par defaut dangereuses en production/staging."""
+        if self.app_env in ("production", "staging"):
+            errors: list[str] = []
+            if self.jwt_secret == _DEV_JWT_SECRET or "change-me" in self.jwt_secret:
+                errors.append("JWT_SECRET doit etre defini avec une valeur securisee")
+            if self.s3_access_key == _DEV_S3_KEY:
+                errors.append("S3_ACCESS_KEY/S3_SECRET_KEY ne doivent pas etre 'minioadmin'")
+            if not self.encryption_key:
+                errors.append("ENCRYPTION_KEY est obligatoire (generer avec: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\")")
+            if self.database_url == _DEV_DB_URL:
+                errors.append("DATABASE_URL doit utiliser des credentials securises")
+            if "*" in self.cors_origins:
+                errors.append("CORS_ORIGINS ne doit pas contenir '*' en production")
+            if errors:
+                raise ValueError(
+                    f"Configuration invalide pour {self.app_env} :\n- " + "\n- ".join(errors)
+                )
+        return self
 
 
 settings = Settings()

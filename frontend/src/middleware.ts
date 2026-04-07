@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
-  // httpOnly cookie readable server-side, or fallback to auth flag
-  const token = request.cookies.get("optiflow_token")?.value || request.cookies.get("optiflow_authenticated")?.value;
+  // Utiliser uniquement le cookie httpOnly (pas le flag optiflow_authenticated)
+  const token = request.cookies.get("optiflow_token")?.value;
   const pathname = request.nextUrl.pathname;
   const isLoginPage = pathname === "/login";
   const isPublicPage =

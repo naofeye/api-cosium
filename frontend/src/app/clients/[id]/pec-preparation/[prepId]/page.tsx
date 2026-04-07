@@ -25,7 +25,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useToast } from "@/components/ui/Toast";
-import { fetchJson } from "@/lib/api";
+import { fetchJson, API_BASE } from "@/lib/api";
 
 import { CompletionGauge } from "@/components/pec/CompletionGauge";
 import { PecSection } from "@/components/pec/PecSection";
@@ -255,8 +255,6 @@ export default function PecPreparationDetailPage() {
     hasPendingWork,
     "Vous avez des modifications non enregistrees. Voulez-vous quitter sans sauvegarder ?",
   );
-
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
   const handleExportPDF = async () => {
     setExporting(true);

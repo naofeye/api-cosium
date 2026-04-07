@@ -21,6 +21,7 @@ import {
   FolderOpen,
   Target,
 } from "lucide-react";
+import { API_BASE } from "@/lib/api";
 
 const StatistiquesCharts = dynamic(
   () => import("./components/StatistiquesCharts").then((m) => ({ default: m.StatistiquesCharts })),
@@ -87,8 +88,6 @@ interface DashboardData {
     credit_note_count: number;
   } | null;
 }
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
 export default function StatistiquesPage() {
   const [period, setPeriod] = useState<PeriodKey>("30d");

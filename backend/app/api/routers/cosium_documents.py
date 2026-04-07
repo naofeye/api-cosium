@@ -6,11 +6,9 @@ All document content is proxied through the backend — the frontend
 NEVER calls Cosium directly (CORS disabled on Cosium side).
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import func, or_
-from sqlalchemy import select as sa_select
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_tenant_role
@@ -26,12 +24,45 @@ from app.domain.schemas.cosium_sync import (
     LocalCosiumDocumentResponse,
 )
 from app.domain.schemas.ocr import DocumentExtractionResponse
-from app.integrations.cosium.cosium_connector import CosiumConnector
-from app.services.erp_sync_service import _authenticate_connector, _get_connector_for_tenant
+from app.services.cosium_document_query_service import (
+    download_document_with_fallback,
+    get_customer_extraction_ids,
+    get_local_document_content,
+    list_all_documents_paginated,
+    list_customer_documents_from_cosium,
+)
 
 logger = get_logger("cosium_documents_router")
 
 router = APIRouter(prefix="/api/v1/cosium-documents", tags=["cosium-documents"])
+
+
+# --- Pydantic models for /all endpoint ---
+
+
+class AllDocumentItem(BaseModel):
+    id: int
+    customer_cosium_id: int
+    customer_id: int | None = None
+    customer_name: str | None = None
+    cosium_document_id: int
+    name: str | None = None
+    content_type: str = "application/pdf"
+    size_bytes: int = 0
+    document_type: str | None = None
+    classification_confidence: float | None = None
+    synced_at: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AllDocumentsResponse(BaseModel):
+    items: list[AllDocumentItem]
+    total: int
+    page: int
+    page_size: int
+    total_size_bytes: int = 0
+    type_counts: dict[str, int] = {}
 
 
 # --- Local document endpoints (MinIO-backed) ---
@@ -96,31 +127,6 @@ def get_sync_status(
     return DocumentSyncStatusResponse(**status)
 
 
-class AllDocumentItem(BaseModel):
-    id: int
-    customer_cosium_id: int
-    customer_id: int | None = None
-    customer_name: str | None = None
-    cosium_document_id: int
-    name: str | None = None
-    content_type: str = "application/pdf"
-    size_bytes: int = 0
-    document_type: str | None = None
-    classification_confidence: float | None = None
-    synced_at: str | None = None
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class AllDocumentsResponse(BaseModel):
-    items: list[AllDocumentItem]
-    total: int
-    page: int
-    page_size: int
-    total_size_bytes: int = 0
-    type_counts: dict[str, int] = {}
-
-
 @router.get(
     "/all",
     response_model=AllDocumentsResponse,
@@ -135,120 +141,21 @@ def list_all_documents(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager", "operator")),
 ) -> AllDocumentsResponse:
-    from app.models.client import Customer
-    from app.models.cosium_data import CosiumDocument
-    from app.models.document_extraction import DocumentExtraction
-
-    # Base query: left join with customer and extraction
-    query = (
-        sa_select(
-            CosiumDocument,
-            Customer.first_name,
-            Customer.last_name,
-            DocumentExtraction.document_type,
-            DocumentExtraction.classification_confidence,
-        )
-        .outerjoin(Customer, (Customer.id == CosiumDocument.customer_id) & (Customer.tenant_id == tenant_ctx.tenant_id))
-        .outerjoin(
-            DocumentExtraction,
-            (DocumentExtraction.cosium_document_id == CosiumDocument.cosium_document_id)
-            & (DocumentExtraction.tenant_id == tenant_ctx.tenant_id),
-        )
-        .where(CosiumDocument.tenant_id == tenant_ctx.tenant_id)
-    )
-
-    count_base = sa_select(func.count(CosiumDocument.id)).where(
-        CosiumDocument.tenant_id == tenant_ctx.tenant_id
-    )
-
-    if search:
-        pattern = f"%{search}%"
-        search_filter = or_(
-            CosiumDocument.name.ilike(pattern),
-            (Customer.first_name + " " + Customer.last_name).ilike(pattern),
-            (Customer.last_name + " " + Customer.first_name).ilike(pattern),
-        )
-        query = query.where(search_filter)
-        # For count with search, need the join too
-        count_base = (
-            sa_select(func.count(CosiumDocument.id))
-            .outerjoin(Customer, (Customer.id == CosiumDocument.customer_id) & (Customer.tenant_id == tenant_ctx.tenant_id))
-            .where(CosiumDocument.tenant_id == tenant_ctx.tenant_id)
-            .where(search_filter)
-        )
-
-    if doc_type:
-        query = query.where(DocumentExtraction.document_type == doc_type)
-        count_base = (
-            sa_select(func.count(CosiumDocument.id))
-            .outerjoin(
-                DocumentExtraction,
-                (DocumentExtraction.cosium_document_id == CosiumDocument.cosium_document_id)
-                & (DocumentExtraction.tenant_id == tenant_ctx.tenant_id),
-            )
-            .where(CosiumDocument.tenant_id == tenant_ctx.tenant_id)
-            .where(DocumentExtraction.document_type == doc_type)
-        )
-
-    total = db.scalar(count_base) or 0
-
-    # Total size
-    size_q = sa_select(func.coalesce(func.sum(CosiumDocument.size_bytes), 0)).where(
-        CosiumDocument.tenant_id == tenant_ctx.tenant_id
-    )
-    total_size = db.scalar(size_q) or 0
-
-    # Type counts
-    type_count_q = (
-        sa_select(DocumentExtraction.document_type, func.count(DocumentExtraction.id))
-        .join(
-            CosiumDocument,
-            (DocumentExtraction.cosium_document_id == CosiumDocument.cosium_document_id)
-            & (DocumentExtraction.tenant_id == CosiumDocument.tenant_id),
-        )
-        .where(DocumentExtraction.tenant_id == tenant_ctx.tenant_id)
-        .where(DocumentExtraction.document_type.isnot(None))
-        .group_by(DocumentExtraction.document_type)
-    )
-    type_counts_raw = db.execute(type_count_q).all()
-    type_counts = {str(row[0]): int(row[1]) for row in type_counts_raw if row[0]}
-
-    # Paginate
-    query = query.order_by(CosiumDocument.synced_at.desc())
-    offset = (page - 1) * page_size
-    rows = db.execute(query.offset(offset).limit(page_size)).all()
-
-    items = []
-    for row in rows:
-        doc = row[0]
-        first_name = row[1] or ""
-        last_name = row[2] or ""
-        d_type = row[3]
-        d_confidence = row[4]
-        customer_name = f"{first_name} {last_name}".strip() or None
-        items.append(
-            AllDocumentItem(
-                id=doc.id,
-                customer_cosium_id=doc.customer_cosium_id,
-                customer_id=doc.customer_id,
-                customer_name=customer_name,
-                cosium_document_id=doc.cosium_document_id,
-                name=doc.name,
-                content_type=doc.content_type,
-                size_bytes=doc.size_bytes,
-                document_type=d_type,
-                classification_confidence=d_confidence,
-                synced_at=doc.synced_at.isoformat() if doc.synced_at else None,
-            )
-        )
-
-    return AllDocumentsResponse(
-        items=items,
-        total=total,
+    result = list_all_documents_paginated(
+        db,
+        tenant_ctx.tenant_id,
         page=page,
         page_size=page_size,
-        total_size_bytes=int(total_size),
-        type_counts=type_counts,
+        search=search,
+        doc_type=doc_type,
+    )
+    return AllDocumentsResponse(
+        items=[AllDocumentItem(**item) for item in result["items"]],
+        total=result["total"],
+        page=result["page"],
+        page_size=result["page_size"],
+        total_size_bytes=result["total_size_bytes"],
+        type_counts=result["type_counts"],
     )
 
 
@@ -278,29 +185,13 @@ def download_local_document(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager", "operator")),
 ) -> Response:
-    from app.integrations.storage import storage
-    from app.models.cosium_data import CosiumDocument
-    from app.services.cosium_document_sync import BUCKET
-
-    doc = (
-        db.query(CosiumDocument)
-        .filter(CosiumDocument.id == document_id, CosiumDocument.tenant_id == tenant_ctx.tenant_id)
-        .first()
+    content, content_type, filename = get_local_document_content(
+        db, tenant_ctx.tenant_id, document_id,
     )
-    if not doc or not doc.minio_key:
-        raise HTTPException(status_code=404, detail="Document introuvable localement.")
-
-    try:
-        content = storage.download_file(BUCKET, doc.minio_key)
-    except Exception as e:
-        logger.error("local_doc_download_failed", document_id=document_id, error=str(e))
-        raise HTTPException(status_code=500, detail="Erreur lors du telechargement du document.") from e
-
-    safe_name = doc.name or f"document_{doc.cosium_document_id}"
     return Response(
         content=content,
-        media_type=doc.content_type or "application/octet-stream",
-        headers={"Content-Disposition": f'attachment; filename="{safe_name}"'},
+        media_type=content_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
@@ -318,20 +209,11 @@ def list_customer_extractions(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager", "operator")),
 ) -> list[DocumentExtractionResponse]:
-    from app.models.cosium_data import CosiumDocument
     from app.repositories import document_extraction_repo
 
-    # Get all local document IDs for this customer
-    cosium_doc_ids = [
-        row[0]
-        for row in db.execute(
-            sa_select(CosiumDocument.cosium_document_id).where(
-                CosiumDocument.tenant_id == tenant_ctx.tenant_id,
-                CosiumDocument.customer_cosium_id == customer_cosium_id,
-            )
-        ).all()
-    ]
-
+    cosium_doc_ids = get_customer_extraction_ids(
+        db, tenant_ctx.tenant_id, customer_cosium_id,
+    )
     extractions = document_extraction_repo.list_by_customer_cosium_documents(
         db, cosium_doc_ids, tenant_ctx.tenant_id,
     )
@@ -352,18 +234,7 @@ def list_customer_documents(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager", "operator")),
 ) -> CosiumDocumentList:
-    connector, tenant = _get_connector_for_tenant(db, tenant_ctx.tenant_id)
-    _authenticate_connector(connector, tenant)
-
-    if not isinstance(connector, CosiumConnector):
-        raise HTTPException(status_code=400, detail="Le connecteur ERP ne supporte pas les documents Cosium.")
-
-    try:
-        docs = connector.get_customer_documents(customer_cosium_id)
-    except Exception as e:
-        logger.error("cosium_documents_fetch_failed", customer_id=customer_cosium_id, error=str(e))
-        raise HTTPException(status_code=502, detail="Impossible de recuperer les documents depuis Cosium.") from e
-
+    docs = list_customer_documents_from_cosium(db, tenant_ctx.tenant_id, customer_cosium_id)
     items = [CosiumDocumentResponse(**d) for d in docs]
     return CosiumDocumentList(items=items, total=len(items))
 
@@ -379,56 +250,11 @@ def download_document(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager", "operator")),
 ) -> Response:
-    # Check local cache first
-    from app.models.cosium_data import CosiumDocument
-
-    local_doc = (
-        db.query(CosiumDocument)
-        .filter(
-            CosiumDocument.tenant_id == tenant_ctx.tenant_id,
-            CosiumDocument.customer_cosium_id == customer_cosium_id,
-            CosiumDocument.cosium_document_id == document_id,
-        )
-        .first()
+    content, content_type, filename = download_document_with_fallback(
+        db, tenant_ctx.tenant_id, customer_cosium_id, document_id,
     )
-
-    if local_doc and local_doc.minio_key:
-        # Serve from MinIO
-        try:
-            from app.integrations.storage import storage
-            from app.services.cosium_document_sync import BUCKET
-
-            content = storage.download_file(BUCKET, local_doc.minio_key)
-            safe_name = local_doc.name or f"cosium_doc_{document_id}.pdf"
-            return Response(
-                content=content,
-                media_type=local_doc.content_type or "application/octet-stream",
-                headers={"Content-Disposition": f'attachment; filename="{safe_name}"'},
-            )
-        except Exception:
-            logger.warning("local_doc_fallback_to_cosium", document_id=document_id)
-            # Fall through to Cosium proxy
-
-    # Proxy from Cosium
-    connector, tenant = _get_connector_for_tenant(db, tenant_ctx.tenant_id)
-    _authenticate_connector(connector, tenant)
-
-    if not isinstance(connector, CosiumConnector):
-        raise HTTPException(status_code=400, detail="Le connecteur ERP ne supporte pas les documents Cosium.")
-
-    try:
-        content = connector.get_document_content(customer_cosium_id, document_id)
-    except Exception as e:
-        logger.error(
-            "cosium_document_download_failed",
-            customer_id=customer_cosium_id,
-            document_id=document_id,
-            error=str(e),
-        )
-        raise HTTPException(status_code=502, detail="Impossible de telecharger le document depuis Cosium.") from e
-
     return Response(
         content=content,
-        media_type="application/octet-stream",
-        headers={"Content-Disposition": f"attachment; filename=cosium_doc_{document_id}.pdf"},
+        media_type=content_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

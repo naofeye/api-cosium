@@ -142,6 +142,29 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)) 
     response.delete_cookie("optiflow_authenticated", path="/")
 
 
+@router.post(
+    "/logout-all",
+    status_code=204,
+    summary="Deconnexion de toutes les sessions",
+    description="Revoque tous les refresh tokens de l'utilisateur connecte.",
+)
+def logout_all(
+    response: Response,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    from app.models import RefreshToken
+
+    db.query(RefreshToken).filter(
+        RefreshToken.user_id == current_user.id,
+        RefreshToken.revoked.is_(False),
+    ).update({"revoked": True})
+    db.commit()
+    response.delete_cookie("optiflow_token", path="/")
+    response.delete_cookie("optiflow_refresh", path="/")
+    response.delete_cookie("optiflow_authenticated", path="/")
+
+
 @router.get(
     "/me",
     response_model=UserMeResponse,

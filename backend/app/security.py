@@ -8,6 +8,10 @@ from app.core.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# Durees de vie des tokens :
+# - Access token : 30 min par defaut (configurable via ACCESS_TOKEN_EXPIRE_MINUTES)
+# - Refresh token : 7 jours par defaut (configurable via REFRESH_TOKEN_EXPIRE_DAYS)
+# - Les refresh tokens sont revoques au login, switch tenant, et change-password
 REFRESH_TOKEN_EXPIRE_DAYS = settings.refresh_token_expire_days
 
 
@@ -29,6 +33,8 @@ def create_access_token(
         "sub": subject,
         "role": role,
         "exp": datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes),
+        "iss": "optiflow",
+        "aud": "optiflow-api",
     }
     if tenant_id is not None:
         payload["tenant_id"] = tenant_id
@@ -38,7 +44,13 @@ def create_access_token(
 
 
 def decode_access_token(token: str) -> dict:
-    return jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+    return jwt.decode(
+        token,
+        settings.jwt_secret,
+        algorithms=["HS256"],
+        issuer="optiflow",
+        audience="optiflow-api",
+    )
 
 
 def generate_refresh_token() -> str:

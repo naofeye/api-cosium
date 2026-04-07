@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import BusinessError, NotFoundError
 from app.core.logging import get_logger
 from app.domain.schemas.admin_users import AdminUserCreate, AdminUserResponse, AdminUserUpdate
-from app.models import TenantUser, User
+from app.repositories import tenant_user_repo, user_repo
 from app.security import hash_password
 from app.services import audit_service
 
@@ -14,14 +14,10 @@ logger = get_logger("admin_user_service")
 
 def list_users(db: Session, tenant_id: int) -> list[AdminUserResponse]:
     """List all users for a given tenant."""
-    tenant_users = (
-        db.query(TenantUser)
-        .filter(TenantUser.tenant_id == tenant_id)
-        .all()
-    )
+    tenant_users = tenant_user_repo.list_by_tenant(db, tenant_id)
     result: list[AdminUserResponse] = []
     for tu in tenant_users:
-        user = db.query(User).filter(User.id == tu.user_id).first()
+        user = user_repo.get_user_by_id(db, tu.user_id)
         if user:
             result.append(
                 AdminUserResponse(
@@ -40,27 +36,14 @@ def create_user(
     db: Session, tenant_id: int, payload: AdminUserCreate, admin_user_id: int
 ) -> AdminUserResponse:
     """Create a new user and associate to the tenant."""
-    existing = db.query(User).filter(User.email == payload.email).first()
+    existing = user_repo.get_user_by_email(db, payload.email)
     if existing:
         # Check if already in this tenant
-        tu = (
-            db.query(TenantUser)
-            .filter(
-                TenantUser.user_id == existing.id,
-                TenantUser.tenant_id == tenant_id,
-            )
-            .first()
-        )
+        tu = tenant_user_repo.get_by_user_and_tenant(db, existing.id, tenant_id)
         if tu:
             raise BusinessError("Un utilisateur avec cet email existe deja dans ce magasin.")
         # Add existing user to tenant
-        new_tu = TenantUser(
-            user_id=existing.id,
-            tenant_id=tenant_id,
-            role=payload.role,
-            is_active=True,
-        )
-        db.add(new_tu)
+        new_tu = tenant_user_repo.create(db, existing.id, tenant_id, payload.role)
         db.commit()
         audit_service.log_action(
             db, tenant_id, admin_user_id, "create", "tenant_user", new_tu.id
@@ -81,22 +64,10 @@ def create_user(
         )
 
     # Create new user
-    new_user = User(
-        email=payload.email,
-        password_hash=hash_password(payload.password),
-        role=payload.role,
-        is_active=True,
+    new_user = user_repo.create(
+        db, payload.email, hash_password(payload.password), payload.role
     )
-    db.add(new_user)
-    db.flush()
-
-    new_tu = TenantUser(
-        user_id=new_user.id,
-        tenant_id=tenant_id,
-        role=payload.role,
-        is_active=True,
-    )
-    db.add(new_tu)
+    new_tu = tenant_user_repo.create(db, new_user.id, tenant_id, payload.role)
     db.commit()
     db.refresh(new_user)
 
@@ -127,18 +98,11 @@ def update_user(
     admin_user_id: int,
 ) -> AdminUserResponse:
     """Update a user's role or active status within the tenant."""
-    tu = (
-        db.query(TenantUser)
-        .filter(
-            TenantUser.user_id == user_id,
-            TenantUser.tenant_id == tenant_id,
-        )
-        .first()
-    )
+    tu = tenant_user_repo.get_by_user_and_tenant(db, user_id, tenant_id)
     if not tu:
         raise NotFoundError("Utilisateur", user_id)
 
-    user = db.query(User).filter(User.id == user_id).first()
+    user = user_repo.get_user_by_id(db, user_id)
     if not user:
         raise NotFoundError("Utilisateur", user_id)
 
@@ -176,18 +140,11 @@ def deactivate_user(
     if user_id == admin_user_id:
         raise BusinessError("Vous ne pouvez pas desactiver votre propre compte.")
 
-    tu = (
-        db.query(TenantUser)
-        .filter(
-            TenantUser.user_id == user_id,
-            TenantUser.tenant_id == tenant_id,
-        )
-        .first()
-    )
+    tu = tenant_user_repo.get_by_user_and_tenant(db, user_id, tenant_id)
     if not tu:
         raise NotFoundError("Utilisateur", user_id)
 
-    user = db.query(User).filter(User.id == user_id).first()
+    user = user_repo.get_user_by_id(db, user_id)
     if not user:
         raise NotFoundError("Utilisateur", user_id)
 

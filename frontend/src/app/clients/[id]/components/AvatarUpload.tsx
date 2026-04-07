@@ -5,9 +5,7 @@ import { Camera } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { InlineEdit } from "@/components/ui/InlineEdit";
-import { fetchJson } from "@/lib/api";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
+import { fetchJson, API_BASE } from "@/lib/api";
 
 interface AvatarUploadProps {
   clientId: string;

@@ -1,31 +1,56 @@
 """Admin health check, metrics, and Cosium cookie management endpoints."""
 
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.deps import require_tenant_role
 from app.core.tenant_context import TenantContext
 from app.db.session import get_db
 from app.domain.schemas.admin import DataQualityResponse, ExtractionStats, HealthCheckResponse, MetricsResponse
-from app.models import AuditLog, Case, Customer, Facture, Payment
+from app.models.tenant import Tenant
 from app.models.cosium_data import CosiumDocument, CosiumInvoice, CosiumPayment, CosiumPrescription
 from app.models.document_extraction import DocumentExtraction
-from app.services import onboarding_service
+from app.services import admin_metrics_service, onboarding_service
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
 
-def _check_cosium_status() -> dict:
-    """Quick Cosium connectivity check (cookie-based, no heavy call)."""
+def _check_cosium_status(db: Session, tenant_id: int | None = None) -> dict:
+    """Quick Cosium connectivity check using tenant-scoped credentials.
+
+    If tenant_id is provided, uses tenant-stored cookies/credentials.
+    Otherwise falls back to global settings.
+    """
     try:
+        from app.core.encryption import decrypt
         from app.integrations.cosium.client import CosiumClient
 
         client = CosiumClient()
+        client.base_url = settings.cosium_base_url
+
+        if tenant_id is not None:
+            tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+            if not tenant:
+                return {"status": "error", "error": "tenant introuvable"}
+
+            client.tenant = tenant.cosium_tenant or settings.cosium_tenant or ""
+
+            # Try tenant-stored cookies first
+            tenant_at = getattr(tenant, "cosium_cookie_access_token_enc", None)
+            tenant_dc = getattr(tenant, "cosium_cookie_device_credential_enc", None)
+            if tenant_at and tenant_dc:
+                at_plain = decrypt(tenant_at)
+                dc_plain = decrypt(tenant_dc)
+                client._authenticate_cookie(access_token=at_plain, device_credential=dc_plain)
+                return {"status": "ok"}
+
+        # Fallback to global settings
         client.authenticate()
         return {"status": "ok"}
     except Exception as exc:
@@ -60,7 +85,7 @@ def health_check(db: Session = Depends(get_db)) -> HealthCheckResponse:
         import redis as redis_lib
 
         start = time.time()
-        r = redis_lib.Redis.from_url("redis://redis:6379/0", socket_timeout=2)
+        r = redis_lib.Redis.from_url(settings.redis_url, socket_timeout=2)
         r.ping()
         checks["redis"] = {"status": "ok", "response_ms": round((time.time() - start) * 1000, 1)}
     except Exception:
@@ -80,15 +105,16 @@ def health_check(db: Session = Depends(get_db)) -> HealthCheckResponse:
         checks["minio"] = {"status": "error", "error": "unavailable"}
 
     # Cosium
-    checks["cosium"] = _check_cosium_status()
+    checks["cosium"] = _check_cosium_status(db)
 
     all_ok = all(c["status"] == "ok" for c in checks.values())
     uptime_seconds = int(time.time() - _APP_START_TIME)
 
     return {
-        "status": "ok" if all_ok else "degraded",
+        "status": "healthy" if all_ok else "degraded",
         "version": _APP_VERSION,
-        "components": checks,
+        "services": checks,
+        "components": checks,  # backward compat
         "uptime_seconds": uptime_seconds,
     }
 
@@ -112,61 +138,9 @@ def metrics(
     if cached:
         return MetricsResponse(**cached)
 
-    one_hour_ago = datetime.now(UTC).replace(tzinfo=None) - timedelta(hours=1)
-
-    total_clients = db.scalar(select(func.count()).select_from(Customer).where(Customer.tenant_id == tid)) or 0
-    total_cases = db.scalar(select(func.count()).select_from(Case).where(Case.tenant_id == tid)) or 0
-    total_factures = db.scalar(select(func.count()).select_from(Facture).where(Facture.tenant_id == tid)) or 0
-    total_payments = db.scalar(select(func.count()).select_from(Payment).where(Payment.tenant_id == tid)) or 0
-
-    recent_actions = (
-        db.scalar(
-            select(func.count())
-            .select_from(AuditLog)
-            .where(AuditLog.tenant_id == tid, AuditLog.created_at >= one_hour_ago)
-        )
-        or 0
-    )
-
-    active_users = (
-        db.scalar(
-            select(func.count(func.distinct(AuditLog.user_id))).where(
-                AuditLog.tenant_id == tid, AuditLog.created_at >= one_hour_ago
-            )
-        )
-        or 0
-    )
-
-    result = {
-        "totals": {
-            "clients": total_clients,
-            "dossiers": total_cases,
-            "factures": total_factures,
-            "paiements": total_payments,
-        },
-        "activity": {
-            "actions_last_hour": recent_actions,
-            "active_users_last_hour": active_users,
-        },
-    }
+    result = admin_metrics_service.get_tenant_metrics(db, tid)
     cache_set(cache_key, result, ttl=300)
     return result
-
-
-def _entity_quality(db: Session, model: type, tenant_id: int) -> dict:
-    """Compute link stats for a cosium data model."""
-    total = db.scalar(
-        select(func.count()).select_from(model).where(model.tenant_id == tenant_id)
-    ) or 0
-    linked = db.scalar(
-        select(func.count()).select_from(model).where(
-            model.tenant_id == tenant_id,
-            model.customer_id.isnot(None),
-        )
-    ) or 0
-    orphan = total - linked
-    link_rate = round((linked / total) * 100, 1) if total > 0 else 0.0
-    return {"total": total, "linked": linked, "orphan": orphan, "link_rate": link_rate}
 
 
 @router.get(
@@ -209,10 +183,10 @@ def data_quality(
     by_type = {row[0]: row[1] for row in type_counts_raw}
 
     result = DataQualityResponse(
-        invoices=_entity_quality(db, CosiumInvoice, tid),
-        payments=_entity_quality(db, CosiumPayment, tid),
-        documents=_entity_quality(db, CosiumDocument, tid),
-        prescriptions=_entity_quality(db, CosiumPrescription, tid),
+        invoices=admin_metrics_service.get_entity_quality(db, CosiumInvoice, tid),
+        payments=admin_metrics_service.get_entity_quality(db, CosiumPayment, tid),
+        documents=admin_metrics_service.get_entity_quality(db, CosiumDocument, tid),
+        prescriptions=admin_metrics_service.get_entity_quality(db, CosiumPrescription, tid),
         extractions=ExtractionStats(
             total_documents=total_documents,
             total_extracted=total_extracted,
@@ -250,14 +224,31 @@ class CosiumConnectionTest(BaseModel):
     description="Verifie si les cookies Cosium sont valides en faisant un appel API test.",
 )
 def test_cosium_connection(
+    db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> CosiumConnectionTest:
-    """Test Cosium connection. Returns connected=False if cookie expired (401)."""
+    """Test Cosium connection using tenant-scoped credentials."""
     try:
+        from app.core.encryption import decrypt
         from app.integrations.cosium.client import CosiumClient
 
+        tenant = db.query(Tenant).filter(Tenant.id == tenant_ctx.tenant_id).first()
         client = CosiumClient()
-        client.authenticate()
+        client.base_url = settings.cosium_base_url
+
+        if tenant:
+            client.tenant = tenant.cosium_tenant or settings.cosium_tenant or ""
+            tenant_at = getattr(tenant, "cosium_cookie_access_token_enc", None)
+            tenant_dc = getattr(tenant, "cosium_cookie_device_credential_enc", None)
+            if tenant_at and tenant_dc:
+                at_plain = decrypt(tenant_at)
+                dc_plain = decrypt(tenant_dc)
+                client._authenticate_cookie(access_token=at_plain, device_credential=dc_plain)
+            else:
+                client.authenticate()
+        else:
+            client.authenticate()
+
         data = client.get("/customers", {"page_size": 1, "page_number": 0})
         total = data.get("page", {}).get("totalElements") or data.get("totalElements", 0)
         return CosiumConnectionTest(

@@ -4,6 +4,7 @@ import json
 
 from sqlalchemy import func as sa_func
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
@@ -332,7 +333,7 @@ def detect_all_clients_mutuelles(
                 client_mutuelle_repo.create(db, create_data)
                 result.new_mutuelles_created += 1
 
-        except Exception as exc:
+        except (SQLAlchemyError, ValueError, KeyError) as exc:
             logger.warning(
                 "mutuelle_detection_error",
                 customer_id=cust_id,

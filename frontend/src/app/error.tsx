@@ -11,13 +11,13 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
       </div>
       <h1 className="mt-6 text-xl font-bold text-text-primary">Une erreur est survenue</h1>
       <p className="mt-2 max-w-md text-sm text-text-secondary">
-        {error.message || "Un probleme inattendu s'est produit. Veuillez reessayer."}
+        {error.message || "Un problème inattendu s'est produit. Veuillez réessayer."}
       </p>
       <div className="mt-6 flex gap-3">
         <Button variant="outline" onClick={() => (window.location.href = "/actions")}>
-          Retour a l&apos;accueil
+          Retour à l&apos;accueil
         </Button>
-        <Button onClick={reset}>Reessayer</Button>
+        <Button onClick={reset}>Réessayer</Button>
       </div>
     </div>
   );

@@ -422,6 +422,33 @@ def get_reconciliation_summary(db: Session, tenant_id: int) -> ReconciliationSum
     return summary
 
 
+def get_unsettled_reconciliations(
+    db: Session, tenant_id: int, page: int = 1, page_size: int = 25,
+) -> dict:
+    """Return paginated list of non-settled reconciliations (partiellement_paye, en_attente, incoherent)."""
+    unsettled_statuses = ["partiellement_paye", "en_attente", "incoherent"]
+    all_items = []
+    total = 0
+    for status in unsettled_statuses:
+        items, count = reconciliation_repo.get_reconciliations_by_status(
+            db, tenant_id, status, page, page_size,
+        )
+        all_items.extend(items)
+        total += count
+
+    results = []
+    for recon in all_items[:page_size]:
+        results.append({
+            "customer_id": recon.customer_id,
+            "status": recon.status,
+            "total_facture": recon.total_facture,
+            "total_outstanding": recon.total_outstanding,
+            "total_paid": recon.total_paid,
+            "explanation": recon.explanation,
+        })
+    return {"items": results, "total": total, "page": page, "page_size": page_size}
+
+
 def get_customer_reconciliation(
     db: Session, tenant_id: int, customer_id: int,
 ) -> DossierReconciliationResponse | None:

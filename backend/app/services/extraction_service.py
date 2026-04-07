@@ -48,7 +48,7 @@ def extract_document(
     # Download file from MinIO
     try:
         file_bytes = storage.download_file(bucket=settings.s3_bucket, key=doc.storage_key)
-    except Exception as exc:
+    except (ConnectionError, TimeoutError, OSError) as exc:
         logger.error("file_download_failed", document_id=document_id, error=str(exc))
         raise ValidationError("document", f"Impossible de telecharger le fichier: {exc}") from exc
 
@@ -116,7 +116,7 @@ def extract_cosium_document(
     # Download from MinIO
     try:
         file_bytes = storage.download_file(bucket="optiflow-docs", key=doc.minio_key)
-    except Exception as exc:
+    except (ConnectionError, TimeoutError, OSError) as exc:
         logger.error("cosium_file_download_failed", cosium_document_id=cosium_document_id, error=str(exc))
         raise ValidationError("cosium_document", f"Impossible de telecharger: {exc}") from exc
 

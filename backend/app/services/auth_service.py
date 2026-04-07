@@ -8,8 +8,8 @@ from app.core.config import settings
 from app.core.exceptions import AuthenticationError, NotFoundError
 from app.core.logging import get_logger
 from app.domain.schemas.auth import LoginRequest, TokenResponse
-from app.models import PasswordResetToken, RefreshToken, TenantUser, User
-from app.repositories import refresh_token_repo, user_repo
+from app.models import PasswordResetToken, Tenant, User
+from app.repositories import refresh_token_repo, tenant_user_repo, user_repo
 from app.security import (
     create_access_token,
     generate_refresh_token,
@@ -21,11 +21,64 @@ from app.services import audit_service
 
 logger = get_logger("auth_service")
 
+# Account lockout: max 5 failed attempts, lockout 30 minutes
+_MAX_LOGIN_ATTEMPTS = 5
+_LOCKOUT_SECONDS = 1800
+
+
+def _check_account_lockout(email: str) -> None:
+    """Verifie si le compte est bloque apres trop de tentatives echouees."""
+    try:
+        from app.core.redis_cache import get_redis_client
+
+        r = get_redis_client()
+        if r is None:
+            return
+        key = f"login_attempts:{email}"
+        attempts = r.get(key)
+        if attempts and int(attempts) >= _MAX_LOGIN_ATTEMPTS:
+            ttl = r.ttl(key)
+            minutes = max(1, (ttl or _LOCKOUT_SECONDS) // 60)
+            raise AuthenticationError(
+                f"Compte temporairement bloque apres {_MAX_LOGIN_ATTEMPTS} tentatives echouees. "
+                f"Reessayez dans {minutes} minutes."
+            )
+    except AuthenticationError:
+        raise
+    except Exception:
+        pass
+
+
+def _record_failed_login(email: str) -> None:
+    """Enregistre une tentative de login echouee."""
+    try:
+        from app.core.redis_cache import get_redis_client
+
+        r = get_redis_client()
+        if r is None:
+            return
+        key = f"login_attempts:{email}"
+        current = r.incr(key)
+        if current == 1:
+            r.expire(key, _LOCKOUT_SECONDS)
+    except Exception:
+        pass
+
+
+def _clear_login_attempts(email: str) -> None:
+    """Reinitialise les tentatives apres un login reussi."""
+    try:
+        from app.core.redis_cache import get_redis_client
+
+        r = get_redis_client()
+        if r is not None:
+            r.delete(f"login_attempts:{email}")
+    except Exception:
+        pass
+
 
 def _get_user_tenants(db: Session, user_id: int) -> list[dict]:
-    rows = db.query(TenantUser).filter(TenantUser.user_id == user_id, TenantUser.is_active).all()
-    from app.models import Tenant
-
+    rows = tenant_user_repo.list_active_by_user(db, user_id)
     result = []
     for tu in rows:
         t = db.query(Tenant).filter(Tenant.id == tu.tenant_id, Tenant.is_active).first()
@@ -35,17 +88,16 @@ def _get_user_tenants(db: Session, user_id: int) -> list[dict]:
 
 
 def _is_group_admin(db: Session, user_id: int) -> bool:
-    rows = (
-        db.query(TenantUser)
-        .filter(TenantUser.user_id == user_id, TenantUser.role == "admin", TenantUser.is_active)
-        .all()
-    )
+    rows = tenant_user_repo.list_admin_active_by_user(db, user_id)
     return len(rows) > 1
 
 
 def authenticate(db: Session, payload: LoginRequest) -> TokenResponse:
+    _check_account_lockout(payload.email)
+
     user = user_repo.get_user_by_email(db, payload.email)
     if not user or not verify_password(payload.password, user.password_hash):
+        _record_failed_login(payload.email)
         logger.warning("authentication_failed", email=payload.email)
         raise AuthenticationError()
 
@@ -56,6 +108,9 @@ def authenticate(db: Session, payload: LoginRequest) -> TokenResponse:
     default_tenant = tenants[0]
     is_admin = _is_group_admin(db, user.id)
 
+    # Revoquer les anciens refresh tokens avant d'en creer un nouveau
+    refresh_token_repo.revoke_all_for_user(db, user.id)
+
     access_token = create_access_token(
         user.email,
         user.role,
@@ -64,6 +119,7 @@ def authenticate(db: Session, payload: LoginRequest) -> TokenResponse:
     )
     refresh_token = generate_refresh_token()
     refresh_token_repo.create(db, refresh_token, user.id, get_refresh_token_expiry())
+    _clear_login_attempts(payload.email)
     logger.info("authentication_success", user_id=user.id, email=user.email, tenant_id=default_tenant["id"])
     return TokenResponse(
         access_token=access_token,
@@ -113,15 +169,9 @@ def switch_tenant(db: Session, user_id: int, new_tenant_id: int) -> TokenRespons
     if not user or not user.is_active:
         raise AuthenticationError("Utilisateur introuvable ou désactivé")
 
-    tenant_user = (
-        db.query(TenantUser)
-        .filter(TenantUser.user_id == user_id, TenantUser.tenant_id == new_tenant_id, TenantUser.is_active)
-        .first()
-    )
+    tenant_user = tenant_user_repo.get_active_by_user_and_tenant(db, user_id, new_tenant_id)
     if not tenant_user:
         raise AuthenticationError("Accès refusé : pas d'accès à ce magasin")
-
-    from app.models import Tenant
 
     tenant = db.query(Tenant).filter(Tenant.id == new_tenant_id, Tenant.is_active).first()
     if not tenant:
@@ -129,6 +179,9 @@ def switch_tenant(db: Session, user_id: int, new_tenant_id: int) -> TokenRespons
 
     tenants = _get_user_tenants(db, user.id)
     is_admin = _is_group_admin(db, user.id)
+
+    # Revoquer les anciens refresh tokens lors du switch tenant
+    refresh_token_repo.revoke_all_for_user(db, user.id)
 
     access_token = create_access_token(
         user.email,
@@ -150,18 +203,18 @@ def switch_tenant(db: Session, user_id: int, new_tenant_id: int) -> TokenRespons
 
 
 def change_password(db: Session, user_id: int, old_password: str, new_password: str) -> None:
-    user = db.query(User).filter(User.id == user_id).first()
+    user = user_repo.get_user_by_id(db, user_id)
     if not user:
         raise NotFoundError("user", user_id)
     if not verify_password(old_password, user.password_hash):
         raise AuthenticationError("Ancien mot de passe incorrect")
     user.password_hash = hash_password(new_password)
     # Revoke all refresh tokens
-    db.query(RefreshToken).filter(RefreshToken.user_id == user_id).update({"revoked": True})
+    refresh_token_repo.revoke_all_for_user(db, user_id)
     db.commit()
-    tu = db.query(TenantUser).filter(TenantUser.user_id == user_id, TenantUser.is_active).first()
-    tenant_id = tu.tenant_id if tu else 1
-    audit_service.log_action(db, tenant_id, user_id, "update", "user", user_id)
+    tu = tenant_user_repo.get_first_active_by_user(db, user_id)
+    if tu:
+        audit_service.log_action(db, tu.tenant_id, user_id, "update", "user", user_id)
     logger.info("password_changed", user_id=user_id)
 
 
@@ -214,16 +267,16 @@ def reset_password(db: Session, token: str, new_password: str) -> None:
     if reset.expires_at < datetime.now(UTC).replace(tzinfo=None):
         raise AuthenticationError("Lien de reinitialisation expire")
 
-    user = db.query(User).filter(User.id == reset.user_id).first()
+    user = user_repo.get_user_by_id(db, reset.user_id)
     if not user:
         raise AuthenticationError("Utilisateur introuvable")
 
     user.password_hash = hash_password(new_password)
     reset.used = True
-    db.query(RefreshToken).filter(RefreshToken.user_id == user.id).update({"revoked": True})
+    refresh_token_repo.revoke_all_for_user(db, user.id)
     db.commit()
 
-    tu = db.query(TenantUser).filter(TenantUser.user_id == user.id, TenantUser.is_active).first()
-    tenant_id = tu.tenant_id if tu else 1
-    audit_service.log_action(db, tenant_id, user.id, "update", "password_reset", user.id)
+    tu = tenant_user_repo.get_first_active_by_user(db, user.id)
+    if tu:
+        audit_service.log_action(db, tu.tenant_id, user.id, "update", "password_reset", user.id)
     logger.info("password_reset_completed", user_id=user.id)

@@ -1,12 +1,10 @@
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_tenant_role
 from app.core.tenant_context import TenantContext
 from app.db.session import get_db
 from app.domain.schemas.audit import AuditLogListResponse, AuditLogResponse
-from app.models.audit import AuditLog
 from app.services import audit_service
 
 router = APIRouter(prefix="/api/v1/audit-logs", tags=["audit"])
@@ -55,11 +53,4 @@ def recent_activity(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> list[AuditLogResponse]:
-    """Get the most recent audit logs for the activity feed."""
-    logs = db.scalars(
-        select(AuditLog)
-        .where(AuditLog.tenant_id == tenant_ctx.tenant_id)
-        .order_by(AuditLog.created_at.desc())
-        .limit(limit)
-    ).all()
-    return [AuditLogResponse.model_validate(log) for log in logs]
+    return audit_service.get_recent_activity(db, tenant_ctx.tenant_id, limit)

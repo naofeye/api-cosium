@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { DateDisplay } from "@/components/ui/DateDisplay";
 import { Button } from "@/components/ui/Button";
 import { useAllCosiumDocuments } from "@/lib/hooks/use-api";
+import { API_BASE } from "@/lib/api";
 import { Download, FileStack, FileText, HardDrive, Layers } from "lucide-react";
 import type { AllDocumentItem } from "@/lib/types";
 
@@ -62,8 +63,6 @@ export default function DocumentsCosiumPage() {
       router.push(`/clients/${item.customer_id}`);
     }
   };
-
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
   const handleDownload = (item: AllDocumentItem) => {
     const url = `${API_BASE}/cosium-documents/local/${item.id}/download`;

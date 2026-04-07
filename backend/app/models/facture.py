@@ -8,12 +8,16 @@ from app.db.base import Base
 
 class Facture(Base):
     __tablename__ = "factures"
-    __table_args__ = (Index("ix_factures_tenant_id", "tenant_id"),)
+    __table_args__ = (
+        Index("ix_factures_tenant_id", "tenant_id"),
+        Index("ix_factures_tenant_numero", "tenant_id", "numero", unique=True),
+        Index("ix_factures_tenant_status", "tenant_id", "status"),
+    )
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False)
     case_id: Mapped[int] = mapped_column(ForeignKey("cases.id"), nullable=False, index=True)
     devis_id: Mapped[int] = mapped_column(ForeignKey("devis.id"), nullable=False, index=True)
-    numero: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    numero: Mapped[str] = mapped_column(String(50), nullable=False)
     date_emission: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
     montant_ht: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     tva: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0)

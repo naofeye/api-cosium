@@ -9,7 +9,7 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { fetchJson } from "@/lib/api";
+import { fetchJson, API_BASE } from "@/lib/api";
 import type { MarketingCode, BatchSummary, BatchItem } from "@/lib/types";
 import {
   Users,
@@ -141,8 +141,6 @@ export default function BatchOperationsPage() {
   const handleExport = useCallback(async () => {
     if (!batchSummary) return;
     try {
-      const API_BASE =
-        process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
       const response = await fetch(
         `${API_BASE}/batch/${batchSummary.batch.id}/export`,
         { credentials: "include" }

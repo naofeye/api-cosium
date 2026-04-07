@@ -77,8 +77,14 @@ class PecPreparationDocument(Base):
     """Link between a PEC preparation and its supporting documents."""
 
     __tablename__ = "pec_preparation_documents"
+    __table_args__ = (
+        Index("ix_pec_prep_docs_tenant_id", "tenant_id"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int] = mapped_column(
+        ForeignKey("tenants.id"), nullable=False, index=True
+    )
     preparation_id: Mapped[int] = mapped_column(
         ForeignKey("pec_preparations.id", ondelete="CASCADE"),
         nullable=False,

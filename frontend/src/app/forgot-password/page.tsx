@@ -7,14 +7,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/Button";
 import { FormField, FormInput } from "@/components/form/FormField";
+import { API_BASE } from "@/lib/api";
 
 const forgotSchema = z.object({
   email: z.string().min(1, "L'adresse email est obligatoire").email("Adresse email invalide"),
 });
 
 type ForgotFormData = z.infer<typeof forgotSchema>;
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
 export default function ForgotPasswordPage() {
   const [submitted, setSubmitted] = useState(false);
@@ -39,7 +38,7 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email: data.email }),
       });
       if (!res.ok && res.status !== 204) {
-        throw new Error("Une erreur est survenue. Veuillez reessayer.");
+        throw new Error("Une erreur est survenue. Veuillez réessayer.");
       }
       setSubmitted(true);
     } catch (err) {
@@ -55,21 +54,21 @@ export default function ForgotPasswordPage() {
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-white text-xl font-bold">
               O
             </div>
-            <h1 className="text-2xl font-bold text-text-primary">Mot de passe oublie</h1>
+            <h1 className="text-2xl font-bold text-text-primary">Mot de passe oublié</h1>
             <p className="mt-1 text-sm text-text-secondary">
-              Entrez votre adresse email pour recevoir un lien de reinitialisation.
+              Entrez votre adresse email pour recevoir un lien de réinitialisation.
             </p>
           </div>
 
           {submitted ? (
             <div className="space-y-4">
               <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700">
-                Si un compte existe avec cet email, un lien de reinitialisation a ete envoye. Verifiez votre boite de
-                reception.
+                Si un compte existe avec cet email, un lien de réinitialisation a été envoyé. Vérifiez votre boîte de
+                réception.
               </div>
               <div className="text-center">
                 <Link href="/login" className="text-sm text-primary hover:underline">
-                  Retour a la connexion
+                  Retour à la connexion
                 </Link>
               </div>
             </div>
@@ -93,12 +92,12 @@ export default function ForgotPasswordPage() {
               )}
 
               <Button type="submit" disabled={!isValid} loading={isSubmitting} className="w-full">
-                Envoyer le lien de reinitialisation
+                Envoyer le lien de réinitialisation
               </Button>
 
               <div className="text-center">
                 <Link href="/login" className="text-sm text-primary hover:underline">
-                  Retour a la connexion
+                  Retour à la connexion
                 </Link>
               </div>
             </form>

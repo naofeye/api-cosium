@@ -96,8 +96,8 @@ def export_monthly_report(
     year = int(parts[0])
     month_num = int(parts[1])
     if month_num < 1 or month_num > 12:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=400, detail="Mois invalide (1-12)")
+        from app.core.exceptions import ValidationError
+        raise ValidationError("month", "Mois invalide (1-12)")
     data = export_service.export_monthly_report_pdf(
         db, tenant_id=tenant_ctx.tenant_id, year=year, month=month_num,
     )

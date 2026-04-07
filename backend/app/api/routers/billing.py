@@ -62,21 +62,15 @@ def create_checkout(
     summary="Webhook Stripe",
     description="Recoit et traite les webhooks Stripe (pas d'authentification JWT).",
 )
-async def stripe_webhook(request: Request) -> MessageResponse:
+async def stripe_webhook(request: Request, db: Session = Depends(get_db)) -> MessageResponse:
     """Reçoit et traite les webhooks Stripe (public, pas d'auth JWT)."""
-    from app.db.session import SessionLocal
     from app.integrations.stripe_client import construct_webhook_event
 
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature", "")
 
     event = construct_webhook_event(payload=payload, sig_header=sig_header)
-
-    db = SessionLocal()
-    try:
-        billing_service.handle_webhook(db, event=event)
-    finally:
-        db.close()
+    billing_service.handle_webhook(db, event=event)
 
     return MessageResponse(message="ok")
 

@@ -1,3 +1,4 @@
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessError, NotFoundError
@@ -156,7 +157,7 @@ def update_devis(db: Session, tenant_id: int, devis_id: int, payload: DevisUpdat
 
     try:
         db.commit()
-    except Exception:
+    except SQLAlchemyError:
         db.rollback()
         raise
     db.refresh(devis)

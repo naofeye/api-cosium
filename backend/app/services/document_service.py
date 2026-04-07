@@ -1,6 +1,7 @@
 import uuid
 
 from fastapi import UploadFile
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -63,11 +64,11 @@ def upload_document(db: Session, tenant_id: int, case_id: int, file: UploadFile,
             filename=filename,
             storage_key=storage_key,
         )
-    except Exception:
+    except SQLAlchemyError:
         # DB record creation failed — remove orphaned file from storage
         try:
             storage.delete_file(bucket=settings.s3_bucket, key=storage_key)
-        except Exception as cleanup_err:
+        except (ConnectionError, TimeoutError, OSError) as cleanup_err:
             logger.warning("orphan_file_cleanup_failed", key=storage_key, error=str(cleanup_err))
         raise
 

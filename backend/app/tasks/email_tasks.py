@@ -16,7 +16,7 @@ def send_email_async(self, to: str, subject: str, body_html: str) -> None:
             raise RuntimeError("Email send returned False")
         logger.info("email_sent_async", to=to, subject=subject)
     except Exception as exc:
-        backoff = 60 * (2 ** self.request.retries)  # 60s, 120s, 240s
+        backoff = [60, 300, 900][min(self.request.retries, 2)]  # 1min, 5min, 15min
         logger.warning(
             "email_retry",
             to=to,

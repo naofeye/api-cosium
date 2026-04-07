@@ -2,9 +2,11 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
+
+# Type pour les valeurs de champs heterogenes (noms, montants, dates, etc.)
+FieldValue = str | int | float | bool | None
 
 
 class FieldStatus(str, Enum):
@@ -21,7 +23,7 @@ class FieldStatus(str, Enum):
 class ConsolidatedField(BaseModel):
     """A single consolidated field with its source, confidence, and status."""
 
-    value: Any
+    value: FieldValue
     source: str = Field(
         ...,
         description=(
@@ -35,7 +37,7 @@ class ConsolidatedField(BaseModel):
     )
     confidence: float = Field(..., ge=0.0, le=1.0)
     status: FieldStatus = FieldStatus.EXTRACTED
-    alternatives: list[dict] | None = None
+    alternatives: list[dict[str, FieldValue]] | None = None
     last_updated: datetime | None = None
 
 
