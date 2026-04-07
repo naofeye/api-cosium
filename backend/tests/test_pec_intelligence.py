@@ -572,6 +572,14 @@ class TestPecPreparation:
             pec_preparation_repo.update(test_db, db_prep, status="prete")
             prep = pec_preparation_service.get_preparation(test_db, tenant_id, prep.id)
 
+        # Attach required documents for submission
+        pec_preparation_service.add_document(
+            test_db, tenant_id, prep.id, document_role="ordonnance",
+        )
+        pec_preparation_service.add_document(
+            test_db, tenant_id, prep.id, document_role="devis",
+        )
+
         result = pec_preparation_service.create_pec_from_preparation(
             test_db, tenant_id, prep.id, user_id,
         )

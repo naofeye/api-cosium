@@ -390,6 +390,20 @@ class TestPecFullFlow:
         if db_prep and db_prep.status != "prete":
             pec_preparation_repo.update(db, db_prep, status="prete")
 
+        # Attach required documents for submission validation
+        resp_doc1 = client.post(
+            f"/api/v1/pec-preparations/{prep_id}/documents",
+            json={"document_role": "ordonnance"},
+            headers=auth_headers,
+        )
+        assert resp_doc1.status_code == 201
+        resp_doc2 = client.post(
+            f"/api/v1/pec-preparations/{prep_id}/documents",
+            json={"document_role": "devis"},
+            headers=auth_headers,
+        )
+        assert resp_doc2.status_code == 201
+
         resp = client.post(
             f"/api/v1/pec-preparations/{prep_id}/submit",
             headers=auth_headers,

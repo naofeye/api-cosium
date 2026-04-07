@@ -250,6 +250,46 @@ def attach_document(
         cosium_document_id=payload.cosium_document_id,
         document_role=payload.document_role,
         extraction_id=payload.extraction_id,
+        user_id=tenant_ctx.user_id,
+    )
+
+
+@router.get(
+    "/pec-preparations/{preparation_id}/audit",
+    summary="Historique d'audit PEC",
+    description="Retourne le journal d'audit structure de toutes les actions sur cette preparation.",
+)
+def get_audit_trail(
+    preparation_id: int,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(100, ge=1, le=500),
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> list[dict]:
+    offset = (page - 1) * page_size
+    return pec_preparation_service.get_audit_trail(
+        db,
+        tenant_id=tenant_ctx.tenant_id,
+        preparation_id=preparation_id,
+        limit=page_size,
+        offset=offset,
+    )
+
+
+@router.get(
+    "/pec-preparations/{preparation_id}/precontrol",
+    summary="Pre-controle PEC",
+    description="Execute un pre-controle complet avant soumission : documents, champs, coherence.",
+)
+def run_precontrol(
+    preparation_id: int,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> dict:
+    return pec_preparation_service.run_precontrol_for_preparation(
+        db,
+        tenant_id=tenant_ctx.tenant_id,
+        preparation_id=preparation_id,
     )
 
 

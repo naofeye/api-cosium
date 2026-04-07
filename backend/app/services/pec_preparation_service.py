@@ -16,7 +16,7 @@ from app.domain.schemas.pec_preparation import (
 )
 from app.models.client import Customer
 from app.models.document_extraction import DocumentExtraction
-from app.repositories import pec_preparation_repo, pec_repo
+from app.repositories import pec_audit_repo, pec_preparation_repo, pec_repo
 from app.services import audit_service, consolidation_service, event_service
 from app.services.incoherence_detector import detect_incoherences
 
@@ -265,6 +265,16 @@ def prepare_pec(
         db, tenant_id, customer_id, prep.id, devis_id
     )
 
+    # PEC audit trail: log creation
+    pec_audit_repo.create(
+        db,
+        tenant_id=tenant_id,
+        preparation_id=prep.id,
+        action="created",
+        user_id=user_id or 0,
+        new_value={"customer_id": customer_id, "score": score, "docs_attached": docs_attached},
+    )
+
     if user_id:
         audit_service.log_action(
             db, tenant_id, user_id, "create", "pec_preparation", prep.id,
@@ -338,6 +348,16 @@ def validate_field(
 
     pec_preparation_repo.update(
         db, prep, user_validations=json.dumps(validations)
+    )
+
+    # PEC audit trail: log field validation
+    pec_audit_repo.create(
+        db,
+        tenant_id=tenant_id,
+        preparation_id=preparation_id,
+        action="field_validated",
+        user_id=validated_by,
+        field_name=field_name,
     )
 
     logger.info(
@@ -423,6 +443,19 @@ def correct_field(
         status=status,
     )
 
+    # PEC audit trail: log field correction
+    pec_audit_repo.create(
+        db,
+        tenant_id=tenant_id,
+        preparation_id=preparation_id,
+        action="field_corrected",
+        user_id=corrected_by,
+        field_name=field_name,
+        old_value=original_value,
+        new_value=new_value,
+        source="manual",
+    )
+
     logger.info(
         "pec_field_corrected",
         preparation_id=preparation_id,
@@ -489,6 +522,16 @@ def refresh_preparation(
         status=status,
     )
 
+    # PEC audit trail: log refresh
+    pec_audit_repo.create(
+        db,
+        tenant_id=tenant_id,
+        preparation_id=preparation_id,
+        action="refreshed",
+        user_id=0,
+        new_value={"score": profile.score_completude, "errors": errors_count},
+    )
+
     logger.info(
         "pec_preparation_refreshed",
         preparation_id=preparation_id,
@@ -518,6 +561,24 @@ def create_pec_from_preparation(
             "PREPARATION_NOT_READY",
             f"La preparation est en statut '{prep.status}' — "
             "elle doit etre 'prete' pour soumettre une PEC",
+        )
+
+    # FIX 3: Validate required documents before submission
+    doc_roles = {d.document_role for d in (prep.documents or [])}
+    if "ordonnance" not in doc_roles:
+        raise BusinessError(
+            "MISSING_ORDONNANCE",
+            "L'ordonnance est obligatoire pour soumettre une PEC optique",
+        )
+    if "devis" not in doc_roles:
+        raise BusinessError(
+            "MISSING_DEVIS",
+            "Le devis signe est obligatoire pour soumettre une PEC",
+        )
+    if "attestation_mutuelle" not in doc_roles:
+        logger.warning(
+            "pec_submit_missing_attestation",
+            preparation_id=preparation_id,
         )
 
     if not prep.consolidated_data:
@@ -602,6 +663,16 @@ def create_pec_from_preparation(
         db, prep, pec_request_id=pec.id, status="soumise"
     )
 
+    # PEC audit trail: log submission
+    pec_audit_repo.create(
+        db,
+        tenant_id=tenant_id,
+        preparation_id=preparation_id,
+        action="submitted",
+        user_id=user_id,
+        new_value={"pec_request_id": pec.id, "montant": montant},
+    )
+
     if user_id:
         audit_service.log_action(
             db, tenant_id, user_id, "create", "pec_request", pec.id,
@@ -648,6 +719,7 @@ def add_document(
     cosium_document_id: int | None = None,
     document_role: str = "autre",
     extraction_id: int | None = None,
+    user_id: int = 0,
 ) -> PecPreparationDocumentResponse:
     """Attach a document to a preparation."""
     prep = pec_preparation_repo.get_by_id(db, preparation_id, tenant_id)
@@ -661,4 +733,72 @@ def add_document(
         document_role=document_role,
         extraction_id=extraction_id,
     )
+
+    # PEC audit trail: log document attachment
+    pec_audit_repo.create(
+        db,
+        tenant_id=tenant_id,
+        preparation_id=preparation_id,
+        action="document_attached",
+        user_id=user_id,
+        field_name=document_role,
+        new_value={"document_id": document_id, "document_role": document_role},
+    )
+
     return PecPreparationDocumentResponse.model_validate(doc)
+
+
+# --- Audit trail ---
+
+
+def get_audit_trail(
+    db: Session,
+    tenant_id: int,
+    preparation_id: int,
+    limit: int = 100,
+    offset: int = 0,
+) -> list[dict]:
+    """Get structured audit trail for a PEC preparation."""
+    prep = pec_preparation_repo.get_by_id(db, preparation_id, tenant_id)
+    if not prep:
+        raise NotFoundError("pec_preparation", preparation_id)
+
+    entries = pec_audit_repo.list_by_preparation(
+        db, preparation_id, tenant_id, limit=limit, offset=offset
+    )
+
+    import json as _json
+
+    return [
+        {
+            "id": e.id,
+            "preparation_id": e.preparation_id,
+            "action": e.action,
+            "field_name": e.field_name,
+            "old_value": _json.loads(e.old_value) if e.old_value else None,
+            "new_value": _json.loads(e.new_value) if e.new_value else None,
+            "source": e.source,
+            "user_id": e.user_id,
+            "created_at": e.created_at.isoformat() if e.created_at else None,
+        }
+        for e in entries
+    ]
+
+
+# --- Pre-control ---
+
+
+def run_precontrol_for_preparation(
+    db: Session,
+    tenant_id: int,
+    preparation_id: int,
+) -> dict:
+    """Run pre-submission control and return result as dict."""
+    from app.services.pec_precontrol import run_precontrol
+
+    prep = pec_preparation_repo.get_by_id(db, preparation_id, tenant_id)
+    if not prep:
+        raise NotFoundError("pec_preparation", preparation_id)
+
+    result = run_precontrol(prep)
+    return result.model_dump()

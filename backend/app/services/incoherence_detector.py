@@ -5,7 +5,7 @@ a successful PEC submission.  Uses field-level status (FieldStatus) to
 generate richer, more actionable alerts.
 """
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from app.core.logging import get_logger
 from app.domain.schemas.consolidation import (
@@ -115,6 +115,125 @@ def _validate_optical_range(
             sources=[source] if source else [],
         )
     return None
+
+
+def _calculate_age(date_naissance: date) -> int:
+    """Calculate age in years from a birth date."""
+    today = date.today()
+    return today.year - date_naissance.year - (
+        (today.month, today.day) < (date_naissance.month, date_naissance.day)
+    )
+
+
+def detect_temporal_incoherences(
+    profile: ConsolidatedClientProfile,
+) -> list[ConsolidationAlert]:
+    """Detect temporal incoherences between dates."""
+    alerts: list[ConsolidationAlert] = []
+
+    ordo_date = None
+    if profile.date_ordonnance:
+        ordo_date = _parse_date(profile.date_ordonnance.value)
+
+    # Devis date vs ordonnance date
+    if ordo_date and profile.montant_ttc and profile.montant_ttc.last_updated:
+        devis_date = profile.montant_ttc.last_updated.date() if hasattr(profile.montant_ttc.last_updated, "date") else None
+        if devis_date and devis_date < ordo_date - timedelta(days=30):
+            alerts.append(
+                ConsolidationAlert(
+                    severity="warning",
+                    field="montant_ttc",
+                    message="Devis anterieur a l'ordonnance de plus de 30 jours",
+                    sources=[profile.montant_ttc.source],
+                )
+            )
+
+    # Client age-based checks
+    client_age = None
+    if profile.date_naissance:
+        dob = _parse_date(profile.date_naissance.value)
+        if dob:
+            client_age = _calculate_age(dob)
+
+    if client_age is not None:
+        # Minor with addition
+        add_od = _safe_float(profile.addition_od.value) if profile.addition_od else None
+        add_og = _safe_float(profile.addition_og.value) if profile.addition_og else None
+        has_addition = (add_od is not None and add_od > 0) or (add_og is not None and add_og > 0)
+
+        if client_age < 16 and has_addition:
+            alerts.append(
+                ConsolidationAlert(
+                    severity="warning",
+                    field="addition",
+                    message=f"Addition inhabituelle pour un mineur ({client_age} ans)",
+                    sources=[],
+                )
+            )
+
+        # Presbyopia age without addition
+        if client_age > 50 and not has_addition:
+            alerts.append(
+                ConsolidationAlert(
+                    severity="info",
+                    field="addition",
+                    message=f"Pas d'addition declaree pour un presbyte probable ({client_age} ans)",
+                    sources=[],
+                )
+            )
+
+    return alerts
+
+
+def detect_equipment_incoherences(
+    profile: ConsolidatedClientProfile,
+) -> list[ConsolidationAlert]:
+    """Detect equipment-related incoherences from devis lines."""
+    alerts: list[ConsolidationAlert] = []
+
+    has_monture = profile.monture is not None and profile.monture.value
+    has_verres = len(profile.verres) > 0
+
+    if not has_monture and profile.montant_ttc:
+        alerts.append(
+            ConsolidationAlert(
+                severity="warning",
+                field="monture",
+                message="Pas de monture dans le devis",
+                sources=[],
+            )
+        )
+
+    if not has_verres and profile.montant_ttc:
+        alerts.append(
+            ConsolidationAlert(
+                severity="warning",
+                field="verres",
+                message="Pas de verres dans le devis",
+                sources=[],
+            )
+        )
+
+    # Check addition vs unifocal incoherence
+    add_od = _safe_float(profile.addition_od.value) if profile.addition_od else None
+    add_og = _safe_float(profile.addition_og.value) if profile.addition_og else None
+    has_addition = (add_od is not None and add_od > 0) or (add_og is not None and add_og > 0)
+
+    if has_addition and has_verres:
+        for verre in profile.verres:
+            verre_val = str(verre.value).lower() if verre.value else ""
+            if "unifocal" in verre_val:
+                alerts.append(
+                    ConsolidationAlert(
+                        severity="warning",
+                        field="verres",
+                        message="Incoherence : addition prescrite mais verre unifocal dans le devis",
+                        sources=[verre.source],
+                    )
+                )
+                break
+
+    return alerts
 
 
 def detect_optical_incoherences(
@@ -233,6 +352,24 @@ def detect_financial_incoherences(
                 )
             )
 
+    # reste_a_charge > montant_ttc
+    if rac is not None and montant_ttc is not None and rac > montant_ttc + 0.01:
+        alerts.append(
+            ConsolidationAlert(
+                severity="error",
+                field="reste_a_charge",
+                message=(
+                    f"Le reste a charge ({rac:.2f} EUR) depasse le montant TTC ({montant_ttc:.2f} EUR)"
+                ),
+                sources=[
+                    s for s in [
+                        profile.reste_a_charge.source if profile.reste_a_charge else None,
+                        profile.montant_ttc.source if profile.montant_ttc else None,
+                    ] if s
+                ],
+            )
+        )
+
     # reste_a_charge < 0
     if rac is not None and rac < -0.01:
         alerts.append(
@@ -243,6 +380,43 @@ def detect_financial_incoherences(
                 sources=[profile.reste_a_charge.source] if profile.reste_a_charge else [],
             )
         )
+
+    # part_secu > 60% of montant_ttc
+    if part_secu is not None and montant_ttc is not None and montant_ttc > 0:
+        ratio = part_secu / montant_ttc
+        if ratio > 0.60:
+            alerts.append(
+                ConsolidationAlert(
+                    severity="warning",
+                    field="part_secu",
+                    message=(
+                        f"Part securite sociale ({part_secu:.2f} EUR) superieure a "
+                        f"60% du montant TTC ({montant_ttc:.2f} EUR)"
+                    ),
+                    sources=[profile.part_secu.source] if profile.part_secu else [],
+                )
+            )
+
+    # Unusually low/high amounts
+    if montant_ttc is not None:
+        if montant_ttc < 50:
+            alerts.append(
+                ConsolidationAlert(
+                    severity="warning",
+                    field="montant_ttc",
+                    message=f"Montant inhabituellement bas ({montant_ttc:.2f} EUR)",
+                    sources=[profile.montant_ttc.source] if profile.montant_ttc else [],
+                )
+            )
+        elif montant_ttc > 5000:
+            alerts.append(
+                ConsolidationAlert(
+                    severity="warning",
+                    field="montant_ttc",
+                    message=f"Montant inhabituellement eleve ({montant_ttc:.2f} EUR)",
+                    sources=[profile.montant_ttc.source] if profile.montant_ttc else [],
+                )
+            )
 
     # part_mutuelle > 0 but no mutuelle identified
     if part_mut is not None and part_mut > 0 and not profile.mutuelle_nom:
@@ -364,9 +538,11 @@ def detect_incoherences(
     alerts: list[ConsolidationAlert] = []
 
     alerts.extend(_detect_field_status_alerts(profile))
+    alerts.extend(detect_temporal_incoherences(profile))
     alerts.extend(detect_optical_incoherences(profile))
     alerts.extend(detect_financial_incoherences(profile))
     alerts.extend(detect_identity_incoherences(profile))
+    alerts.extend(detect_equipment_incoherences(profile))
     alerts.extend(detect_missing_data(profile))
 
     # Sort: errors first, then warnings, then info
