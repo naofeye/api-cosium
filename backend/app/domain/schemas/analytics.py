@@ -85,6 +85,15 @@ class CosiumMonthlyCa(BaseModel):
     ca: float = 0
 
 
+class KPIComparison(BaseModel):
+    ca_total_delta: float | None = None
+    montant_encaisse_delta: float | None = None
+    reste_a_encaisser_delta: float | None = None
+    taux_recouvrement_delta: float | None = None
+    clients_delta: float | None = None
+    factures_delta: float | None = None
+
+
 class DashboardFull(BaseModel):
     financial: FinancialKPIs
     aging: AgingBalance
@@ -95,3 +104,4 @@ class DashboardFull(BaseModel):
     cosium: CosiumKPIs | None = None
     cosium_counts: CosiumCounts | None = None
     cosium_ca_par_mois: list[CosiumMonthlyCa] = []
+    comparison: KPIComparison | None = None

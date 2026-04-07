@@ -8,6 +8,7 @@ NEVER calls Cosium directly (CORS disabled on Cosium side).
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
+from sqlalchemy import select as sa_select
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_tenant_role
@@ -22,6 +23,7 @@ from app.domain.schemas.cosium_sync import (
     LocalCosiumDocumentList,
     LocalCosiumDocumentResponse,
 )
+from app.domain.schemas.ocr import DocumentExtractionResponse
 from app.integrations.cosium.cosium_connector import CosiumConnector
 from app.services.erp_sync_service import _authenticate_connector, _get_connector_for_tenant
 
@@ -142,6 +144,40 @@ def download_local_document(
         media_type=doc.content_type or "application/octet-stream",
         headers={"Content-Disposition": f'attachment; filename="{safe_name}"'},
     )
+
+
+# --- Extractions endpoint ---
+
+
+@router.get(
+    "/{customer_cosium_id}/extractions",
+    response_model=list[DocumentExtractionResponse],
+    summary="Extractions OCR des documents d'un client",
+    description="Retourne les extractions de texte (OCR) et classifications pour les documents d'un client Cosium.",
+)
+def list_customer_extractions(
+    customer_cosium_id: int,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager", "operator")),
+) -> list[DocumentExtractionResponse]:
+    from app.models.cosium_data import CosiumDocument
+    from app.repositories import document_extraction_repo
+
+    # Get all local document IDs for this customer
+    cosium_doc_ids = [
+        row[0]
+        for row in db.execute(
+            sa_select(CosiumDocument.cosium_document_id).where(
+                CosiumDocument.tenant_id == tenant_ctx.tenant_id,
+                CosiumDocument.customer_cosium_id == customer_cosium_id,
+            )
+        ).all()
+    ]
+
+    extractions = document_extraction_repo.list_by_customer_cosium_documents(
+        db, cosium_doc_ids, tenant_ctx.tenant_id,
+    )
+    return [DocumentExtractionResponse.model_validate(e) for e in extractions]
 
 
 # --- Cosium proxy endpoints (fallback when not cached locally) ---

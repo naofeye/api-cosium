@@ -31,6 +31,36 @@ def get_by_cosium_document_id(db: Session, cosium_document_id: int, tenant_id: i
     ).first()
 
 
+def list_by_customer_cosium_id(
+    db: Session, customer_cosium_id: int, tenant_id: int
+) -> list[DocumentExtraction]:
+    """Return all extractions linked to a customer's Cosium documents."""
+    return list(
+        db.scalars(
+            select(DocumentExtraction).where(
+                DocumentExtraction.cosium_document_id == customer_cosium_id,
+                DocumentExtraction.tenant_id == tenant_id,
+            )
+        ).all()
+    )
+
+
+def list_by_customer_cosium_documents(
+    db: Session, cosium_document_ids: list[int], tenant_id: int
+) -> list[DocumentExtraction]:
+    """Return all extractions for a list of Cosium document IDs."""
+    if not cosium_document_ids:
+        return []
+    return list(
+        db.scalars(
+            select(DocumentExtraction).where(
+                DocumentExtraction.cosium_document_id.in_(cosium_document_ids),
+                DocumentExtraction.tenant_id == tenant_id,
+            )
+        ).all()
+    )
+
+
 def create(db: Session, **kwargs: object) -> DocumentExtraction:
     extraction = DocumentExtraction(**kwargs)
     db.add(extraction)

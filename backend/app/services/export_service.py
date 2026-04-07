@@ -333,6 +333,140 @@ def export_clients_complet_xlsx(
     return output.getvalue()
 
 
+@log_operation("export_pec_preparations_xlsx")
+def export_pec_preparations_xlsx(
+    db: Session,
+    tenant_id: int,
+    status: str | None = None,
+) -> bytes:
+    """Export PEC preparations as an Excel file.
+
+    Columns: Client, Mutuelle, N Adherent, Correction OD/OG,
+    Montant TTC, Part Secu, Part Mutuelle, RAC, Score, Documents.
+    """
+    import json
+
+    from app.models.client import Customer as CustomerModel
+    from app.models.pec_preparation import PecPreparation
+
+    stmt = select(PecPreparation).where(PecPreparation.tenant_id == tenant_id)
+    if status:
+        stmt = stmt.where(PecPreparation.status == status)
+    stmt = stmt.order_by(PecPreparation.created_at.desc())
+    preps = list(db.scalars(stmt).all())
+
+    # Fetch customer names
+    customer_ids = list({p.customer_id for p in preps})
+    customers_map: dict[int, str] = {}
+    if customer_ids:
+        rows = db.execute(
+            select(CustomerModel.id, CustomerModel.first_name, CustomerModel.last_name).where(
+                CustomerModel.id.in_(customer_ids),
+            )
+        ).all()
+        for cid, fn, ln in rows:
+            customers_map[cid] = f"{fn or ''} {ln or ''}".strip()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Preparations PEC"
+
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    header_fill = PatternFill(start_color="2563EB", end_color="2563EB", fill_type="solid")
+    thin_border = Border(
+        left=Side(style="thin"),
+        right=Side(style="thin"),
+        top=Side(style="thin"),
+        bottom=Side(style="thin"),
+    )
+
+    headers = [
+        "Client",
+        "Mutuelle",
+        "N. Adherent",
+        "OD (Sph/Cyl/Axe/Add)",
+        "OG (Sph/Cyl/Axe/Add)",
+        "Montant TTC",
+        "Part Secu",
+        "Part Mutuelle",
+        "RAC",
+        "Score (%)",
+        "Statut",
+        "Documents",
+    ]
+    for col_idx, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_idx, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center")
+        cell.border = thin_border
+
+    def _get_pec_field(profile: dict, key: str) -> str:
+        field = profile.get(key)
+        if isinstance(field, dict):
+            return str(field.get("value", "-"))
+        return str(field) if field else "-"
+
+    def _correction_str(profile: dict, prefix: str) -> str:
+        sph = _get_pec_field(profile, f"sphere_{prefix}")
+        cyl = _get_pec_field(profile, f"cylinder_{prefix}")
+        axe = _get_pec_field(profile, f"axis_{prefix}")
+        add = _get_pec_field(profile, f"addition_{prefix}")
+        return f"{sph} / {cyl} / {axe} / {add}"
+
+    for row_idx, prep in enumerate(preps, 2):
+        profile: dict = {}
+        if prep.consolidated_data:
+            try:
+                profile = json.loads(prep.consolidated_data)
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+        customer_name = customers_map.get(prep.customer_id, f"Client #{prep.customer_id}")
+        mutuelle = _get_pec_field(profile, "mutuelle_nom")
+        num_adherent = _get_pec_field(profile, "mutuelle_numero_adherent")
+        od_str = _correction_str(profile, "od")
+        og_str = _correction_str(profile, "og")
+
+        montant_ttc = _get_pec_field(profile, "montant_ttc")
+        part_secu = _get_pec_field(profile, "part_secu")
+        part_mutuelle = _get_pec_field(profile, "part_mutuelle")
+        rac = _get_pec_field(profile, "reste_a_charge")
+        score = prep.completude_score
+
+        doc_count = len(prep.documents) if prep.documents else 0
+
+        row_data = [
+            customer_name,
+            mutuelle,
+            num_adherent,
+            od_str,
+            og_str,
+            montant_ttc,
+            part_secu,
+            part_mutuelle,
+            rac,
+            round(score, 1),
+            prep.status,
+            f"{doc_count} doc(s)",
+        ]
+        for col_idx, val in enumerate(row_data, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            cell.border = thin_border
+
+    # Column widths
+    widths = [30, 25, 18, 25, 25, 14, 14, 14, 14, 10, 15, 12]
+    for i, w in enumerate(widths):
+        ws.column_dimensions[chr(65 + i)].width = w
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    logger.info("pec_preparations_xlsx_exported", tenant_id=tenant_id, count=len(preps))
+    return output.getvalue()
+
+
 # ---------------------------------------------------------------------------
 # Re-exports for backward compatibility.
 # Callers that do `export_service.generate_fec(...)` or

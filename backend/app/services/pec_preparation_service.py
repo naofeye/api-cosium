@@ -3,6 +3,7 @@
 import json
 from datetime import UTC, datetime
 
+from sqlalchemy import select as sa_select
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessError, NotFoundError
@@ -13,8 +14,6 @@ from app.domain.schemas.pec_preparation import (
     PecPreparationResponse,
     PecPreparationSummary,
 )
-from sqlalchemy import select as sa_select
-
 from app.models.client import Customer
 from app.models.document_extraction import DocumentExtraction
 from app.repositories import pec_preparation_repo, pec_repo

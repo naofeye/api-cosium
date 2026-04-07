@@ -17,6 +17,7 @@ import {
   ListChecks,
   ChevronLeft,
   ChevronRight,
+  FileDown,
 } from "lucide-react";
 
 interface PecPreparationItem {
@@ -69,11 +70,39 @@ function formatDate(dateStr: string | null): string {
   }
 }
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
+
 export default function PecDashboardPage() {
   const router = useRouter();
   const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
+  const [exporting, setExporting] = useState(false);
   const pageSize = 25;
+
+  const handleExportXlsx = async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (statusFilter) params.set("status", statusFilter);
+      const resp = await fetch(`${API_BASE}/pec-preparations/export?${params.toString()}`, {
+        credentials: "include",
+      });
+      if (!resp.ok) throw new Error("Erreur lors de l'export");
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `pec_preparations_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      // Silent fail - user sees button reset
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
@@ -129,7 +158,7 @@ export default function PecDashboardPage() {
         />
       </div>
 
-      {/* Filter */}
+      {/* Filter + Export */}
       <div className="flex items-center gap-4 mb-4">
         <label htmlFor="status-filter" className="text-sm font-medium text-text-secondary">
           Filtrer par statut
@@ -149,6 +178,17 @@ export default function PecDashboardPage() {
             </option>
           ))}
         </select>
+        <div className="ml-auto">
+          <button
+            onClick={handleExportXlsx}
+            disabled={exporting}
+            className="inline-flex items-center gap-2 rounded-lg bg-bg-card border border-border px-3 py-2 text-sm font-medium text-text-secondary hover:bg-gray-100 transition-colors disabled:opacity-50"
+            aria-label="Exporter les preparations PEC en Excel"
+          >
+            <FileDown className="h-4 w-4" aria-hidden="true" />
+            {exporting ? "Export en cours..." : "Exporter Excel"}
+          </button>
+        </div>
       </div>
 
       {/* Table / states */}

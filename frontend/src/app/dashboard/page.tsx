@@ -108,6 +108,14 @@ interface DashboardData {
     total_payments: number;
   } | null;
   cosium_ca_par_mois: { mois: string; ca: number }[];
+  comparison: {
+    ca_total_delta: number | null;
+    montant_encaisse_delta: number | null;
+    reste_a_encaisser_delta: number | null;
+    taux_recouvrement_delta: number | null;
+    clients_delta: number | null;
+    factures_delta: number | null;
+  } | null;
 }
 
 interface RenewalData {
@@ -279,7 +287,7 @@ export default function DashboardPage() {
       </PageLayout>
     );
 
-  const { financial, aging, payers, operational, commercial, marketing, cosium, cosium_counts, cosium_ca_par_mois } =
+  const { financial, aging, payers, operational, commercial, marketing, cosium, cosium_counts, cosium_ca_par_mois, comparison } =
     data;
 
   return (
@@ -350,7 +358,7 @@ export default function DashboardPage() {
 
       {/* Main KPIs (financial + volume) */}
       <ErrorBoundary name="DashboardKPIs">
-        <DashboardKPIs financial={financial} cosiumCounts={cosium_counts} cosium={cosium} />
+        <DashboardKPIs financial={financial} cosiumCounts={cosium_counts} cosium={cosium} comparison={comparison} />
       </ErrorBoundary>
 
       {/* Charts: CA par mois + document distribution */}

@@ -1,7 +1,9 @@
 """API router for PEC preparation (assistance PEC)."""
 
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Depends, Query
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.tenant_context import TenantContext, get_tenant_context
@@ -40,6 +42,29 @@ def list_all_preparations(
         status=status,
         limit=page_size,
         offset=offset,
+    )
+
+
+@router.get(
+    "/pec-preparations/export",
+    summary="Exporter les preparations PEC en Excel",
+    description="Genere un fichier Excel de toutes les preparations PEC, filtrable par statut.",
+)
+def export_preparations_xlsx(
+    status: str | None = Query(None, description="Filtrer par statut (ex: prete)"),
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> StreamingResponse:
+    from app.services import export_service
+
+    data = export_service.export_pec_preparations_xlsx(
+        db, tenant_id=tenant_ctx.tenant_id, status=status,
+    )
+    filename = f"pec_preparations_{datetime.now(UTC).strftime('%Y%m%d')}.xlsx"
+    return StreamingResponse(
+        iter([data]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
 

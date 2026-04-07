@@ -93,6 +93,7 @@ def extract_cosium_document(
 ) -> DocumentExtractionResponse:
     """Extract text from a Cosium document stored in MinIO."""
     from sqlalchemy import select
+
     from app.models.cosium_data import CosiumDocument
 
     doc = db.scalars(
