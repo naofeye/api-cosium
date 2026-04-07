@@ -237,7 +237,7 @@ export function ClientHeader({
       )}
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5 mb-8">
         <KPICard icon={Euro} label="CA Cosium" value={formatMoney(totalCaCosium)} color="primary" />
         <KPICard icon={Euro} label="Total facture" value={formatMoney(fin.total_facture)} color="primary" />
         <KPICard icon={CheckCircle} label="Total paye" value={formatMoney(fin.total_paye)} color="success" />

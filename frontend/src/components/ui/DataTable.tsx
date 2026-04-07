@@ -174,13 +174,13 @@ export function DataTable<T extends { id: number | string }>({
       <div className="overflow-x-auto rounded-xl border border-border bg-bg-card">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border bg-gray-50 dark:bg-gray-800/50">
+            <tr className="border-b-2 border-border bg-gray-100/80 dark:bg-gray-800/60">
               {visibleColumns.map((col) => (
                 <th
                   key={col.key}
                   scope="col"
                   className={cn(
-                    "px-4 py-3 text-left font-medium text-text-secondary",
+                    "px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary",
                     col.sortable && "cursor-pointer select-none hover:text-text-primary",
                     col.className,
                   )}

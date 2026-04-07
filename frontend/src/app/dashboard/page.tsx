@@ -505,10 +505,10 @@ export default function DashboardPage() {
         <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-3">
           Actions rapides
         </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
           <Link
             href="/pec-dashboard"
-            className="flex flex-col items-center gap-2 rounded-xl border border-border bg-bg-card p-4 shadow-sm hover:border-primary hover:shadow-md transition-all text-center"
+            className="flex flex-col items-center gap-3 rounded-xl border border-border bg-bg-card p-5 shadow-sm hover:border-primary hover:shadow-md transition-all text-center group"
           >
             <ClipboardCheck className="h-6 w-6 text-primary" aria-hidden="true" />
             <span className="text-sm font-semibold text-text-primary">Nouvelle PEC</span>
@@ -520,7 +520,7 @@ export default function DashboardPage() {
               const event = new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true });
               document.dispatchEvent(event);
             }}
-            className="flex flex-col items-center gap-2 rounded-xl border border-border bg-bg-card p-4 shadow-sm hover:border-primary hover:shadow-md transition-all text-center"
+            className="flex flex-col items-center gap-3 rounded-xl border border-border bg-bg-card p-5 shadow-sm hover:border-primary hover:shadow-md transition-all text-center group"
           >
             <Search className="h-6 w-6 text-primary" aria-hidden="true" />
             <span className="text-sm font-semibold text-text-primary">Rechercher un client</span>
@@ -528,7 +528,7 @@ export default function DashboardPage() {
           </button>
           <Link
             href="/cosium-factures?status=impayee"
-            className="flex flex-col items-center gap-2 rounded-xl border border-border bg-bg-card p-4 shadow-sm hover:border-primary hover:shadow-md transition-all text-center"
+            className="flex flex-col items-center gap-3 rounded-xl border border-border bg-bg-card p-5 shadow-sm hover:border-primary hover:shadow-md transition-all text-center group"
           >
             <AlertCircle className="h-6 w-6 text-danger" aria-hidden="true" />
             <span className="text-sm font-semibold text-text-primary">Voir les impayes</span>
@@ -536,7 +536,7 @@ export default function DashboardPage() {
           </Link>
           <Link
             href="/admin"
-            className="flex flex-col items-center gap-2 rounded-xl border border-border bg-bg-card p-4 shadow-sm hover:border-primary hover:shadow-md transition-all text-center"
+            className="flex flex-col items-center gap-3 rounded-xl border border-border bg-bg-card p-5 shadow-sm hover:border-primary hover:shadow-md transition-all text-center group"
           >
             <Settings className="h-6 w-6 text-primary" aria-hidden="true" />
             <span className="text-sm font-semibold text-text-primary">Sync Cosium</span>
@@ -570,8 +570,13 @@ export default function DashboardPage() {
                   : inv.days_overdue > 30
                     ? "text-amber-600"
                     : "text-text-secondary";
+                const borderColor = inv.days_overdue > 60
+                  ? "border-l-red-500"
+                  : inv.days_overdue > 30
+                    ? "border-l-amber-500"
+                    : "border-l-gray-300";
                 return (
-                  <div key={inv.id} className="flex items-center justify-between text-sm rounded-lg px-3 py-2 hover:bg-gray-50">
+                  <div key={inv.id} className={`flex items-center justify-between text-sm rounded-lg px-4 py-3 border-l-4 ${borderColor} bg-gray-50/50 dark:bg-gray-800/20 hover:bg-gray-100/80 dark:hover:bg-gray-700/30 transition-colors`}>
                     <div className="flex items-center gap-3 min-w-0">
                       <span className="font-medium text-text-primary truncate">{inv.customer_name}</span>
                     </div>

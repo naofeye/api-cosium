@@ -208,10 +208,10 @@ function SidebarGroupComponent({
   }
 
   return (
-    <div className="mb-1">
+    <div className="mb-1 mt-3">
       <button
         onClick={() => onToggleGroup(group.key)}
-        className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 hover:text-gray-300 transition-colors duration-150"
+        className="flex w-full items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-gray-200 transition-colors duration-150 border-b border-gray-700/50 pb-2"
         aria-expanded={!effectiveCollapsed}
         aria-label={`${effectiveCollapsed ? "Ouvrir" : "Fermer"} la section ${group.label}`}
       >

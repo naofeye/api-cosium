@@ -33,7 +33,7 @@ export function DevisFinancialSummary({ devis }: { devis: DevisDetail }) {
       </div>
 
       {/* Financial summary */}
-      <div className="lg:col-span-2 rounded-xl border border-border bg-bg-card p-6 shadow-sm">
+      <div className="lg:col-span-2 rounded-xl border border-border bg-bg-card p-6 shadow-md">
         <h3 className="text-lg font-semibold text-text-primary mb-3">Recapitulatif financier</h3>
         <div className="space-y-2 text-sm max-w-sm ml-auto">
           <div className="flex justify-between">
@@ -46,7 +46,7 @@ export function DevisFinancialSummary({ devis }: { devis: DevisDetail }) {
           </div>
           <div className="flex justify-between border-t border-border pt-2">
             <span className="font-semibold">Total TTC</span>
-            <span className="font-bold tabular-nums">{formatMoney(devis.montant_ttc)}</span>
+            <span className="font-bold text-lg tabular-nums">{formatMoney(devis.montant_ttc)}</span>
           </div>
           <div className="flex justify-between text-text-secondary">
             <span>Part Secu</span>
@@ -58,7 +58,7 @@ export function DevisFinancialSummary({ devis }: { devis: DevisDetail }) {
           </div>
           <div className="flex justify-between border-t border-border pt-2">
             <span className="font-semibold text-danger">Reste a charge</span>
-            <span className="font-bold tabular-nums text-danger">{formatMoney(devis.reste_a_charge)}</span>
+            <span className="font-bold text-lg tabular-nums text-danger">{formatMoney(devis.reste_a_charge)}</span>
           </div>
         </div>
       </div>

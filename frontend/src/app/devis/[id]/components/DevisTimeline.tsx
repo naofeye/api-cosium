@@ -88,7 +88,7 @@ export function DevisTimeline({ devis }: { devis: DevisDetail }) {
               <div key={step.key} className="flex items-center flex-1 last:flex-none">
                 <div className="flex flex-col items-center min-w-0">
                   <div
-                    className={`flex items-center justify-center w-9 h-9 rounded-full border-2 transition-colors ${
+                    className={`flex items-center justify-center w-10 h-10 rounded-full border-[3px] shadow-sm transition-colors ${
                       isCompleted
                         ? "bg-emerald-600 border-emerald-600"
                         : isCurrent
@@ -105,7 +105,7 @@ export function DevisTimeline({ devis }: { devis: DevisDetail }) {
                     )}
                   </div>
                   <p
-                    className={`mt-2 text-xs font-medium ${
+                    className={`mt-2 text-sm font-semibold ${
                       isCompleted ? "text-emerald-700" : isCurrent ? "text-blue-700" : "text-text-secondary"
                     }`}
                   >

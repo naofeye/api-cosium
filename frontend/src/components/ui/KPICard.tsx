@@ -21,17 +21,17 @@ const colorMap = {
 };
 
 const iconColorMap = {
-  primary: "text-primary bg-blue-50",
-  success: "text-success bg-emerald-50",
-  warning: "text-warning bg-amber-50",
-  danger: "text-danger bg-red-50",
-  info: "text-info bg-sky-50",
+  primary: "text-primary bg-blue-100 dark:bg-blue-900/30",
+  success: "text-success bg-emerald-100 dark:bg-emerald-900/30",
+  warning: "text-warning bg-amber-100 dark:bg-amber-900/30",
+  danger: "text-danger bg-red-100 dark:bg-red-900/30",
+  info: "text-info bg-sky-100 dark:bg-sky-900/30",
 };
 
 export function KPICard({ icon: Icon, label, value, trend, color = "primary", className }: KPICardProps) {
   return (
     <div
-      className={cn("rounded-xl border border-border bg-bg-card p-6 shadow-sm border-t-4", colorMap[color], className)}
+      className={cn("rounded-xl border border-border bg-bg-card p-6 shadow-sm border-t-[6px] transition-shadow hover:shadow-md", colorMap[color], className)}
     >
       <div className="flex items-center justify-between">
         <div className={cn("rounded-lg p-2", iconColorMap[color])}>
@@ -49,7 +49,7 @@ export function KPICard({ icon: Icon, label, value, trend, color = "primary", cl
         )}
       </div>
       <div className="mt-4">
-        <p className="text-2xl font-bold tabular-nums">{value}</p>
+        <p className="text-3xl font-bold tabular-nums leading-tight">{value}</p>
         <p className="mt-1 text-sm text-text-secondary">{label}</p>
       </div>
     </div>
