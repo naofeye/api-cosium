@@ -1,6 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.constants import STATUS_DRAFT
 from app.models import Case, Customer
 
 
@@ -64,7 +65,7 @@ def create_case(
     customer = Customer(tenant_id=tenant_id, first_name=first_name, last_name=last_name, phone=phone, email=email)
     db.add(customer)
     db.flush()
-    case = Case(tenant_id=tenant_id, customer_id=customer.id, status="draft", source=source)
+    case = Case(tenant_id=tenant_id, customer_id=customer.id, status=STATUS_DRAFT, source=source)
     db.add(case)
     db.flush()
     db.refresh(case)

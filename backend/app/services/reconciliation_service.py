@@ -15,6 +15,18 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from app.core.constants import (
+    CONFIDENCE_CERTAIN,
+    CONFIDENCE_INCERTAIN,
+    CONFIDENCE_PARTIEL,
+    CONFIDENCE_PROBABLE,
+    RECON_EN_ATTENTE,
+    RECON_INCOHERENT,
+    RECON_INFO_INSUFFISANTE,
+    RECON_PARTIELLEMENT_PAYE,
+    RECON_SOLDE,
+    RECON_SOLDE_NON_RAPPROCHE,
+)
 from app.core.logging import get_logger
 from app.domain.schemas.reconciliation import (
     AnomalyItem,
@@ -78,6 +90,39 @@ def _classify_payment(payment_type: str) -> str:
     if upper in _AVOIR_TYPES:
         return "avoir"
     return "client"
+
+
+def _determine_reconciliation_status(
+    *,
+    total_facture: float,
+    total_paid: float,
+    total_outstanding: float,
+    has_invoices: bool,
+    has_payments: bool,
+    has_unmatched: bool,
+    has_anomalies: bool,
+) -> tuple[str, str]:
+    """Determine global reconciliation status and confidence level.
+
+    Returns a (status, confidence) tuple based on financial totals and flags.
+    Extracted from reconcile_customer_dossier for clarity and testability.
+    """
+    if not has_invoices:
+        return RECON_INFO_INSUFFISANTE, CONFIDENCE_INCERTAIN
+
+    if abs(total_outstanding) < _TOLERANCE:
+        if has_unmatched:
+            return RECON_SOLDE_NON_RAPPROCHE, CONFIDENCE_PROBABLE
+        return RECON_SOLDE, CONFIDENCE_CERTAIN
+
+    if total_paid > _TOLERANCE and total_outstanding > _TOLERANCE:
+        confidence = CONFIDENCE_PROBABLE if not has_anomalies else CONFIDENCE_PARTIEL
+        return RECON_PARTIELLEMENT_PAYE, confidence
+
+    if total_paid < _TOLERANCE:
+        return RECON_EN_ATTENTE, CONFIDENCE_CERTAIN
+
+    return RECON_INCOHERENT, CONFIDENCE_INCERTAIN
 
 
 def link_payments_to_customers(db: Session, tenant_id: int) -> LinkPaymentsResult:
@@ -223,13 +268,13 @@ def reconcile_customer_dossier(
 
         # Determine invoice status
         if inv.settled or abs(inv.outstanding_balance) < _TOLERANCE:
-            inv_status = "solde"
+            inv_status = RECON_SOLDE
         elif inv_paid > _TOLERANCE and inv.outstanding_balance > _TOLERANCE:
-            inv_status = "partiellement_paye"
+            inv_status = RECON_PARTIELLEMENT_PAYE
         elif inv_paid < _TOLERANCE and inv.total_ti > _TOLERANCE:
-            inv_status = "en_attente"
+            inv_status = RECON_EN_ATTENTE
         else:
-            inv_status = "en_attente"
+            inv_status = RECON_EN_ATTENTE
 
         # Detect anomalies
         inv_anomalies: list[AnomalyItem] = []
@@ -241,7 +286,7 @@ def reconcile_customer_dossier(
                 invoice_number=inv.invoice_number,
                 amount=inv_paid - inv.total_ti,
             ))
-            inv_status = "incoherent"
+            inv_status = RECON_INCOHERENT
 
         invoice_details.append(InvoiceReconciliation(
             invoice_id=inv.id, cosium_id=inv.cosium_id,
@@ -268,29 +313,16 @@ def reconcile_customer_dossier(
             amount=unmatched_total,
         ))
 
-    # Determine global status
-    if not invoices and not payments:
-        global_status = "info_insuffisante"
-        confidence = "incertain"
-    elif not invoices:
-        global_status = "info_insuffisante"
-        confidence = "incertain"
-    elif abs(total_outstanding) < _TOLERANCE:
-        if unmatched_payments:
-            global_status = "solde_non_rapproche"
-            confidence = "probable"
-        else:
-            global_status = "solde"
-            confidence = "certain"
-    elif total_paid > _TOLERANCE and total_outstanding > _TOLERANCE:
-        global_status = "partiellement_paye"
-        confidence = "probable" if not all_anomalies else "partiel"
-    elif total_paid < _TOLERANCE:
-        global_status = "en_attente"
-        confidence = "certain"
-    else:
-        global_status = "incoherent"
-        confidence = "incertain"
+    # Determine global status via state machine
+    global_status, confidence = _determine_reconciliation_status(
+        total_facture=total_facture,
+        total_paid=total_paid,
+        total_outstanding=total_outstanding,
+        has_invoices=bool(invoices),
+        has_payments=bool(payments),
+        has_unmatched=bool(unmatched_payments),
+        has_anomalies=bool(all_anomalies),
+    )
 
     # Check for global anomalies
     if total_paid > total_facture + _TOLERANCE and invoices:
@@ -300,8 +332,8 @@ def reconcile_customer_dossier(
             message=f"Total paye ({total_paid:.2f} EUR) superieur au total facture ({total_facture:.2f} EUR)",
             amount=total_paid - total_facture,
         ))
-        global_status = "incoherent"
-        confidence = "incertain"
+        global_status = RECON_INCOHERENT
+        confidence = CONFIDENCE_INCERTAIN
 
     # Build explanation
     explanation_parts = []
@@ -419,7 +451,7 @@ def get_unsettled_reconciliations(
     db: Session, tenant_id: int, page: int = 1, page_size: int = 25,
 ) -> dict:
     """Return paginated list of non-settled reconciliations (partiellement_paye, en_attente, incoherent)."""
-    unsettled_statuses = ["partiellement_paye", "en_attente", "incoherent"]
+    unsettled_statuses = [RECON_PARTIELLEMENT_PAYE, RECON_EN_ATTENTE, RECON_INCOHERENT]
     all_items = []
     total = 0
     for status in unsettled_statuses:

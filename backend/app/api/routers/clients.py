@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, File, Query, UploadFile
 from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session
 
+from app.core.constants import ROLE_ADMIN
 from app.core.deps import require_tenant_role
 from app.core.exceptions import BusinessError, ValidationError
 from app.core.redis_cache import acquire_lock, release_lock
@@ -36,7 +37,7 @@ def list_clients(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> ClientListResponse:
-    effective_include_deleted = include_deleted and tenant_ctx.role == "admin"
+    effective_include_deleted = include_deleted and tenant_ctx.role == ROLE_ADMIN
     return client_service.search_clients(
         db,
         tenant_id=tenant_ctx.tenant_id,

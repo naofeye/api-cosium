@@ -8,6 +8,7 @@ import json
 from sqlalchemy import select as sa_select
 from sqlalchemy.orm import Session
 
+from app.core.constants import PEC_PRETE, PEC_SOUMISE
 from app.core.exceptions import BusinessError, NotFoundError
 from app.core.logging import get_logger, log_operation
 from app.domain.schemas.pec_preparation import PecPreparationDocumentResponse
@@ -196,7 +197,7 @@ def create_pec_from_preparation(
     if not prep:
         raise NotFoundError("pec_preparation", preparation_id)
 
-    if prep.status not in ("prete",):
+    if prep.status not in (PEC_PRETE,):
         raise BusinessError(
             "PREPARATION_NOT_READY",
             f"La preparation est en statut '{prep.status}' — "
@@ -264,9 +265,9 @@ def create_pec_from_preparation(
         db, tenant_id=tenant_id, case_id=case.id,
         organization_id=org.id, facture_id=None, montant_demande=montant,
     )
-    pec_repo.add_history(db, tenant_id, pec.id, "", "soumise",
+    pec_repo.add_history(db, tenant_id, pec.id, "", PEC_SOUMISE,
                          "PEC creee depuis preparation assistee")
-    pec_preparation_repo.update(db, prep, pec_request_id=pec.id, status="soumise")
+    pec_preparation_repo.update(db, prep, pec_request_id=pec.id, status=PEC_SOUMISE)
 
     pec_audit_repo.create(
         db, tenant_id=tenant_id, preparation_id=preparation_id,

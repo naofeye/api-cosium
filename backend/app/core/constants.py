@@ -30,8 +30,30 @@ FACTURE_PAYEE = "payee"
 # Statuts PEC (PecRequest.status)
 # ---------------------------------------------------------------------------
 PEC_SOUMISE = "soumise"
+PEC_EN_ATTENTE = "en_attente"
 PEC_ACCEPTEE = "acceptee"
 PEC_REFUSEE = "refusee"
+PEC_PARTIELLE = "partielle"
+PEC_CLOTUREE = "cloturee"
+PEC_PRETE = "prete"
+
+# ---------------------------------------------------------------------------
+# Statuts reconciliation
+# ---------------------------------------------------------------------------
+RECON_SOLDE = "solde"
+RECON_SOLDE_NON_RAPPROCHE = "solde_non_rapproche"
+RECON_PARTIELLEMENT_PAYE = "partiellement_paye"
+RECON_EN_ATTENTE = "en_attente"
+RECON_INCOHERENT = "incoherent"
+RECON_INFO_INSUFFISANTE = "info_insuffisante"
+
+# ---------------------------------------------------------------------------
+# Niveaux de confiance reconciliation
+# ---------------------------------------------------------------------------
+CONFIDENCE_CERTAIN = "certain"
+CONFIDENCE_PROBABLE = "probable"
+CONFIDENCE_PARTIEL = "partiel"
+CONFIDENCE_INCERTAIN = "incertain"
 
 # ---------------------------------------------------------------------------
 # Roles utilisateur

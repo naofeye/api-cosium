@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { logger } from "@/lib/logger";
@@ -23,6 +23,8 @@ import {
   RefreshCw,
   ArrowRight,
   AlertCircle,
+  X,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -98,6 +100,22 @@ export default function ActionsPage() {
     mutate: mutateActions,
   } = useSWR<ActionItemList>("/action-items?status=pending", { refreshInterval: 30000 });
   const [refreshing, setRefreshing] = useState(false);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(true);
+
+  useEffect(() => {
+    const dismissed = localStorage.getItem("optiflow_onboarding_dismissed");
+    setOnboardingDismissed(dismissed === "true");
+  }, []);
+
+  const dismissOnboarding = () => {
+    localStorage.setItem("optiflow_onboarding_dismissed", "true");
+    setOnboardingDismissed(true);
+  };
+
+  const showOnboarding =
+    !onboardingDismissed &&
+    dashboard &&
+    dashboard.cases_count === 0;
 
   const isLoading = dashLoading || actLoading;
   const error = dashErr?.message ?? actErr?.message ?? null;
@@ -182,6 +200,28 @@ export default function ActionsPage() {
         </Button>
       }
     >
+      {showOnboarding && (
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
+          <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" aria-label="Bienvenue" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-blue-900">Bienvenue sur OptiFlow AI !</p>
+            <p className="mt-1 text-sm text-blue-800">
+              Commencez par synchroniser vos donnees Cosium ou{" "}
+              <Link href="/cases/new" className="font-medium underline hover:text-blue-900">
+                creer votre premier dossier client
+              </Link>.
+            </p>
+          </div>
+          <button
+            onClick={dismissOnboarding}
+            className="shrink-0 rounded-lg p-1 text-blue-400 hover:bg-blue-100 hover:text-blue-600 transition-colors"
+            aria-label="Fermer le message de bienvenue"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <KPICard icon={FolderOpen} label="Dossiers actifs" value={dashboard.cases_count} color="primary" />
         <KPICard icon={FileText} label="Documents" value={dashboard.documents_count} color="info" />

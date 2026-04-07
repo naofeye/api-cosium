@@ -93,6 +93,7 @@
 
 ### 5.1 Undo / Restore client [MOYEN]
 - [x] Page `/admin/deleted-clients` creee avec liste + bouton restaurer + lien depuis admin
+- [x] Bouton "Restaurer" fonctionnel dans la liste des clients supprimes
 - [x] Bouton "Restaurer" dans la liste des clients supprimes
 
 ### 5.2 Export ameliore [MOYEN]

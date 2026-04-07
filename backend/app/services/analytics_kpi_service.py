@@ -11,6 +11,7 @@ from decimal import Decimal
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.constants import DEVIS_BROUILLON, DEVIS_ENVOYE, DEVIS_SIGNE, PEC_ACCEPTEE, PEC_CLOTUREE, PEC_REFUSEE
 from app.core.logging import get_logger
 from app.domain.schemas.analytics import (
     AgingBalance,
@@ -179,8 +180,8 @@ def get_payer_performance(db: Session, tenant_id: int) -> PayerPerformance:
         if total == 0:
             continue
 
-        accepted = sum(1 for p in pecs if p.status in ("acceptee", "cloturee") and p.montant_accorde)
-        refused = sum(1 for p in pecs if p.status == "refusee")
+        accepted = sum(1 for p in pecs if p.status in (PEC_ACCEPTEE, PEC_CLOTUREE) and p.montant_accorde)
+        refused = sum(1 for p in pecs if p.status == PEC_REFUSEE)
         total_requested = sum(Decimal(str(p.montant_demande)) for p in pecs)
         total_accepted = sum(Decimal(str(p.montant_accorde or 0)) for p in pecs if p.montant_accorde)
 
@@ -247,7 +248,7 @@ def get_commercial_kpis(db: Session, tenant_id: int) -> CommercialKPIs:
         db.scalar(
             select(func.count())
             .select_from(Devis)
-            .where(Devis.tenant_id == tenant_id, Devis.status.in_(["brouillon", "envoye"]))
+            .where(Devis.tenant_id == tenant_id, Devis.status.in_([DEVIS_BROUILLON, DEVIS_ENVOYE]))
         )
         or 0
     )
@@ -255,14 +256,14 @@ def get_commercial_kpis(db: Session, tenant_id: int) -> CommercialKPIs:
         db.scalar(
             select(func.count())
             .select_from(Devis)
-            .where(Devis.tenant_id == tenant_id, Devis.status.in_(["signe", "facture"]))
+            .where(Devis.tenant_id == tenant_id, Devis.status.in_([DEVIS_SIGNE, "facture"]))
         )
         or 0
     )
     taux = round(devis_signes / devis_total * 100, 1) if devis_total > 0 else 0
 
     avg = db.scalar(
-        select(func.avg(Devis.montant_ttc)).where(Devis.tenant_id == tenant_id, Devis.status.in_(["signe", "facture"]))
+        select(func.avg(Devis.montant_ttc)).where(Devis.tenant_id == tenant_id, Devis.status.in_([DEVIS_SIGNE, "facture"]))
     )
     panier_moyen = round(Decimal(str(avg)), 2) if avg else 0
 

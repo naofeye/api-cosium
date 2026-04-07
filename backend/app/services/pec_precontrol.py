@@ -117,22 +117,27 @@ def _check_documents(prep: PecPreparation) -> tuple[list[str], list[str], list[s
     return pieces_presentes, pieces_manquantes, pieces_recommandees
 
 
-def _check_required_fields(
-    profile: ConsolidatedClientProfile,
-) -> list[str]:
-    """Return list of blocking errors for missing required fields."""
-    errors: list[str] = []
-    for field_name, label in REQUIRED_FIELDS.items():
-        field: ConsolidatedField | None = getattr(profile, field_name, None)
-        if field is None or field.value is None:
-            errors.append(f"{label} manquant(e)")
-    return errors
+def _parse_user_validations(prep: PecPreparation) -> set[str]:
+    """Extract the set of field names explicitly validated by the user."""
+    import json as _json
+
+    if not prep.user_validations:
+        return set()
+    try:
+        data = _json.loads(prep.user_validations)
+    except (ValueError, TypeError):
+        return set()
+    if not isinstance(data, dict):
+        return set()
+    return {k for k, v in data.items() if isinstance(v, dict) and v.get("validated")}
 
 
 def run_precontrol(prep: PecPreparation) -> PreControlResult:
     """Run pre-submission control on a PEC preparation.
 
     Analyzes field statuses, documents, alerts, and determines readiness.
+    Fields explicitly validated by the user (present in ``user_validations``)
+    are excluded from blocking errors and warnings.
     """
     # Parse consolidated data
     if not prep.consolidated_data:
@@ -145,6 +150,9 @@ def run_precontrol(prep: PecPreparation) -> PreControlResult:
 
     profile = ConsolidatedClientProfile.model_validate_json(prep.consolidated_data)
 
+    # Fields the user has explicitly approved — skip alerts for these
+    validated_fields = _parse_user_validations(prep)
+
     # Count fields by status
     counts = _count_field_statuses(profile)
 
@@ -156,8 +164,13 @@ def run_precontrol(prep: PecPreparation) -> PreControlResult:
     alertes_verification: list[str] = []
     points_vigilance: list[str] = []
 
-    # Missing required fields
-    erreurs_bloquantes.extend(_check_required_fields(profile))
+    # Missing required fields (skip user-validated ones)
+    for field_name, label in REQUIRED_FIELDS.items():
+        if field_name in validated_fields:
+            continue
+        field: ConsolidatedField | None = getattr(profile, field_name, None)
+        if field is None or field.value is None:
+            erreurs_bloquantes.append(f"{label} manquant(e)")
 
     # Missing required documents
     for doc_role in pieces_manquantes:
@@ -182,7 +195,10 @@ def run_precontrol(prep: PecPreparation) -> PreControlResult:
     # Track fields already reported as missing to avoid duplicates
     missing_field_names = {f for f in REQUIRED_FIELDS if getattr(profile, f, None) is None or (getattr(profile, f, None) is not None and getattr(profile, f).value is None)}
     for alert in profile.alertes:
-        # Skip missing-data alerts for fields already reported by _check_required_fields
+        # Skip alerts for fields the user explicitly validated
+        if alert.field in validated_fields:
+            continue
+        # Skip missing-data alerts for fields already reported by required-field check
         if alert.field in missing_field_names and alert.severity == "error":
             continue
         if alert.severity == "error" and alert.message not in erreurs_bloquantes:

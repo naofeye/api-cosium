@@ -1,6 +1,14 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.constants import (
+    PEC_ACCEPTEE,
+    PEC_CLOTUREE,
+    PEC_EN_ATTENTE,
+    PEC_PARTIELLE,
+    PEC_REFUSEE,
+    PEC_SOUMISE,
+)
 from app.core.exceptions import BusinessError, NotFoundError
 from app.core.logging import get_logger
 from app.domain.schemas.pec import (
@@ -21,18 +29,18 @@ from app.services import audit_service, event_service
 logger = get_logger("pec_service")
 
 VALID_TRANSITIONS: dict[str, list[str]] = {
-    "soumise": ["en_attente", "acceptee", "refusee", "partielle"],
-    "en_attente": ["acceptee", "refusee", "partielle"],
-    "acceptee": ["cloturee"],
-    "refusee": ["cloturee"],
-    "partielle": ["cloturee"],
-    "cloturee": [],
+    PEC_SOUMISE: [PEC_EN_ATTENTE, PEC_ACCEPTEE, PEC_REFUSEE, PEC_PARTIELLE],
+    PEC_EN_ATTENTE: [PEC_ACCEPTEE, PEC_REFUSEE, PEC_PARTIELLE],
+    PEC_ACCEPTEE: [PEC_CLOTUREE],
+    PEC_REFUSEE: [PEC_CLOTUREE],
+    PEC_PARTIELLE: [PEC_CLOTUREE],
+    PEC_CLOTUREE: [],
 }
 
 EVENT_MAP: dict[str, str] = {
-    "soumise": "PECSoumise",
-    "acceptee": "PECAcceptee",
-    "refusee": "PECRefusee",
+    PEC_SOUMISE: "PECSoumise",
+    PEC_ACCEPTEE: "PECAcceptee",
+    PEC_REFUSEE: "PECRefusee",
 }
 
 
@@ -80,7 +88,7 @@ def create_pec(db: Session, tenant_id: int, payload: PecCreate, user_id: int) ->
         facture_id=payload.facture_id,
         montant_demande=payload.montant_demande,
     )
-    pec_repo.add_history(db, tenant_id, pec.id, "", "soumise", "Demande de PEC soumise")
+    pec_repo.add_history(db, tenant_id, pec.id, "", PEC_SOUMISE, "Demande de PEC soumise")
 
     if user_id:
         audit_service.log_action(

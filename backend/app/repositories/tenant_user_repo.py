@@ -3,6 +3,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.constants import ROLE_ADMIN
 from app.models import TenantUser
 
 
@@ -60,7 +61,7 @@ def list_admin_active_by_user(db: Session, user_id: int) -> list[TenantUser]:
         db.scalars(
             select(TenantUser).where(
                 TenantUser.user_id == user_id,
-                TenantUser.role == "admin",
+                TenantUser.role == ROLE_ADMIN,
                 TenantUser.is_active.is_(True),
             )
         ).all()
