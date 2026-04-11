@@ -2,16 +2,17 @@
 # OptiFlow — Restauration de la base de donnees PostgreSQL
 set -e
 
-cd "$(dirname "$0")/.."
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
 
-COMPOSE_FILE="${1:-docker-compose.prod.yml}"
+COMPOSE_FILE="${1:-docker-compose.yml}"
 BACKUP_FILE="${2}"
 
 if [ -z "$BACKUP_FILE" ]; then
     echo "Usage: ./scripts/restore_db.sh [compose-file] <backup-file>"
     echo ""
     echo "Backups disponibles:"
-    ls -lh backups/optiflow_*.dump 2>/dev/null || echo "  Aucun backup trouve."
+    ls -lh runtime/backups/optiflow_*.dump 2>/dev/null || echo "  Aucun backup trouve."
     exit 1
 fi
 

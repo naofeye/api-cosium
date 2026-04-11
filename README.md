@@ -1,179 +1,78 @@
 # OptiFlow AI
 
-Plateforme metier pour opticiens — CRM, GED, devis, factures, PEC, paiements, relances, marketing, IA.
-Branchee sur l'ERP Cosium (lecture seule, 115k+ enregistrements synchronises).
+Plateforme metier pour opticiens avec backend FastAPI, frontend Next.js et stack Docker prete pour un depot GitHub prive et un deploiement futur sur VPS Linux.
 
-## Demarrage rapide
+## Structure
+
+- `apps/api` : backend FastAPI, migrations Alembic, tests Python
+- `apps/web` : frontend Next.js, tests Vitest
+- `config/nginx` : configuration reverse proxy
+- `scripts` : scripts Bash de setup, demarrage, checks, sauvegarde
+- `docs` : documentation d'exploitation et de deploiement
+
+## Installation locale
 
 ```bash
-# Prerequis : Docker Desktop installe et lance
 cp .env.example .env
-docker compose up --build
+npm install
+bash scripts/setup.sh
 ```
 
-| Service | URL |
-|---------|-----|
-| Frontend | http://localhost:3000 |
-| API Swagger | http://localhost:8000/docs |
-| MinIO Console | http://localhost:9001 (minioadmin/minioadmin) |
-| Mailhog | http://localhost:8025 |
-
-**Login demo** : `admin@optiflow.local` / `Admin123`
-
-## Stack technique
-
-- **Backend** : Python 3.12, FastAPI, SQLAlchemy 2.x, PostgreSQL 16, Alembic, Celery + Redis
-- **Frontend** : Next.js 15, React 19, TypeScript (strict), Tailwind CSS 4, shadcn/ui, Recharts
-- **Infra** : Docker Compose (PostgreSQL, Redis, MinIO, Mailhog, API, Web, Worker, Beat)
-- **Tests** : pytest + httpx (backend, 740 tests), vitest + testing-library (frontend, 133 tests)
-- **Lint** : ruff (backend), tsc strict (frontend)
-- **OCR** : Tesseract OCR + pdfplumber + poppler-utils
-- **CI** : GitHub Actions
-
-## Chiffres cles
-
-| Metrique | Valeur |
-|----------|--------|
-| Tests backend | ~103 fichiers |
-| Tests frontend | 28 fichiers |
-| Pages frontend | 49 |
-| Routers API | 40 |
-| Services metier | 54 |
-| Repositories | 27 |
-| Schemas Pydantic | 37 |
-| Modeles SQLAlchemy | 25 |
-| Commits | 66+ |
-| Migrations Alembic | 30 |
-| Enregistrements Cosium | 115k+ |
-| Documents synchronises | 40k+ (~10 GB) |
-| Ruff lint | 0 erreur |
-| TypeScript strict | 0 erreur |
-
-## Fonctionnalites principales
-
-- **CRM Client** : CRUD, recherche paginee, vue 360, import/export CSV, detection doublons, fusion clients
-- **GED** : upload MinIO, categorisation, completude documentaire, drag & drop
-- **OCR + Parsers** : extraction texte (pdfplumber + Tesseract), classification auto (ordonnance, devis, attestation mutuelle, facture), parsers specialises par type de document
-- **Consolidation PEC** : moteur multi-sources (Cosium, OCR, devis, mutuelles) pour profil client PEC-ready avec score de completude
-- **PEC Intelligence** : soumission tiers payant, workflow complet, historique, relances automatiques, detection mutuelles, operateurs OCAM, preparation PEC guidee
-- **Devis & Factures** : creation avec lignes, calculs automatiques, workflow statut, generation PDF, export FEC
-- **Paiements** : enregistrement, idempotence, ventilation multi-factures
-- **Rapprochement bancaire** : import CSV, matching auto/manuel, drag & drop
-- **Relances** : plans parametrables, templates email HTML Jinja2, priorisation intelligente
-- **Marketing CRM** : segments, campagnes email/SMS, consentements RGPD
-- **Dashboard** : KPIs financiers, balance agee, graphiques Recharts, statistiques avancees
-- **IA Copilote** : 4 modes (dossier, financier, documentaire, marketing), quotas par plan
-- **Multi-tenant** : isolation par magasin, switch tenant, dashboard reseau
-- **Sync Cosium** : clients, factures, ordonnances, produits, paiements, tiers payant, documents — lecture seule
-- **Onboarding** : wizard 5 etapes, connexion Cosium (OIDC/basic)
-- **Facturation SaaS** : integration Stripe, plans (Solo, Reseau, IA Pro)
-- **Aide** : centre d'aide avec FAQ, raccourcis clavier, contact support
-- **Dark mode** : theme sombre avec bascule persistante
-- **SSE** : notifications temps reel
-- **RGPD** : anonymisation, export donnees, consentements
-- **Audit trail** : journalisation de toutes les operations sensibles
-
-## Architecture
-
-```
-                    +-------------------+
-                    |   Next.js 15      |
-                    |   (Frontend)      |
-                    |   Port 3000       |
-                    +--------+----------+
-                             |
-                    +--------v----------+
-                    |   FastAPI         |
-                    |   (Backend API)   |
-                    |   Port 8000       |
-                    +---+----+-----+----+
-                        |    |     |
-              +---------+    |     +----------+
-              |              |                |
-    +---------v--+   +------v------+   +-----v-----+
-    | PostgreSQL |   |    Redis    |   |   MinIO    |
-    |   (BDD)    |   |  (Cache +  |   | (Stockage) |
-    | Port 5432  |   |  Celery)   |   | Port 9000  |
-    +------------+   | Port 6379  |   +-----------+
-                     +------+------+
-                            |
-                  +---------+---------+
-                  |                   |
-           +------v-----+    +-------v----+
-           | Celery      |    | Celery     |
-           | Worker      |    | Beat       |
-           | (Taches)    |    | (Cron)     |
-           +-------------+    +------------+
-```
-
-Separation en couches stricte :
-- **Routers** (38) : slim, pas de logique — delegue aux services
-- **Services** (53) : logique metier pure, pas de FastAPI, pas de HTTPException
-- **Repositories** (25) : SQL pur, pas de logique metier
-- **Schemas** (35) : validation Pydantic stricte sur toutes les entrees/sorties
-
-```
-backend/app/
-  api/routers/       # 40 routes FastAPI
-  services/          # 54 services metier
-  repositories/      # 27 acces BDD
-  domain/schemas/    # 37 schemas Pydantic
-  models/            # 23 modeles SQLAlchemy
-  integrations/      # Cosium, MinIO, Stripe, Email, IA, templates Jinja2
-  core/              # Config, auth, logging, exceptions, middleware
-  templates/         # Templates email HTML (Jinja2)
-  db/                # Engine, session
-  main.py            # Point d'entree FastAPI
-
-frontend/src/
-  app/               # 49 pages Next.js (App Router)
-  components/        # UI (Button, DataTable, Toast, StatusBadge, KPICard, etc.)
-  lib/               # API client, auth, types, hooks SWR, schemas Zod
-  middleware.ts      # Protection routes authentifiees
-```
-
-## Commandes utiles (Makefile)
+## Lancement local
 
 ```bash
-make up              # Demarrer les services (detache)
-make down            # Arreter les services
-make build           # Rebuild + demarrer
-make test            # Tests backend (pytest -q)
-make test-v          # Tests backend (verbose)
-make lint            # Lint backend (ruff)
-make lint-fix        # Lint + auto-fix
-make typecheck       # TypeScript check frontend
-make check           # lint + typecheck + test
-make logs            # Suivre les logs API
-make shell           # Shell Python dans le conteneur API
-make sync            # Lancer sync Cosium
-make redis-flush     # Vider le cache Redis
+npm run dev
 ```
 
-## Tests
+Ou en mode detache:
 
 ```bash
-# Backend (740 tests, 100% pass)
-docker compose exec api pytest -v
-
-# Frontend (133 tests, 100% pass)
-cd frontend && npx vitest run
+docker compose up -d --build
 ```
 
-## Lint
+Services par defaut:
+
+- Frontend: `http://localhost:3000`
+- API: `http://localhost:8000`
+- Swagger: `http://localhost:8000/docs`
+- MinIO: `http://localhost:9001`
+- Mailhog: `http://localhost:8025`
+
+## Docker
+
+La stack standard est deployee avec:
 
 ```bash
-# Backend (zero erreur)
-docker compose exec api ruff check app/
-
-# Frontend (zero erreur TypeScript strict)
-cd frontend && npx tsc --noEmit
+docker compose up -d
 ```
 
-## Securite Cosium
+Les images applicatives sont construites depuis:
 
-OptiFlow ne modifie JAMAIS les donnees dans Cosium. La synchronisation est unidirectionnelle (Cosium vers OptiFlow, lecture seule). Seul `POST /authenticate/basic` et `GET /*` sont autorises vers l'API Cosium.
+- `apps/api/Dockerfile`
+- `apps/web/Dockerfile`
 
-Le `CosiumClient` n'expose que deux methodes : `authenticate()` (seul POST autorise) et `get()` (lecture seule). Aucune methode PUT, POST (hors auth), DELETE ou PATCH n'existe.
+## Verification
 
-Voir `CLAUDE.md` pour les conventions detaillees.
+```bash
+npm run check
+```
+
+Le script valide la configuration Docker Compose et lance les verifications locales disponibles.
+
+## Variables d'environnement
+
+Le fichier versionnable est `.env.example`. Le fichier `.env` ne doit jamais etre commit.
+
+Variables importantes:
+
+- `APP_ENV`
+- `DATABASE_URL`
+- `JWT_SECRET`
+- `ENCRYPTION_KEY`
+- `S3_ACCESS_KEY`
+- `S3_SECRET_KEY`
+- `NEXT_PUBLIC_API_BASE_URL`
+
+## Deploiement VPS
+
+Voir `docs/VPS_DEPLOYMENT.md`.

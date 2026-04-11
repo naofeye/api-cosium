@@ -17,7 +17,7 @@ interface DeletedClient {
   last_name: string;
   email: string | null;
   phone: string | null;
-  deleted_at: string;
+  deleted_at: string | null;
 }
 
 interface ClientListResponse {
@@ -26,7 +26,7 @@ interface ClientListResponse {
 }
 
 export default function DeletedClientsPage() {
-  const toast = useToast();
+  const { toast } = useToast();
   const [restoring, setRestoring] = useState<number | null>(null);
 
   const { data, error, isLoading, mutate } = useSWR<ClientListResponse>(
@@ -35,7 +35,7 @@ export default function DeletedClientsPage() {
 
   // Filtrer seulement les clients supprimes (deleted_at != null)
   const deletedClients = (data?.items ?? []).filter(
-    (c) => (c as Record<string, unknown>).deleted_at != null
+    (c) => c.deleted_at != null
   );
 
   const handleRestore = async (clientId: number) => {

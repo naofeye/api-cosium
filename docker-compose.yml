@@ -41,7 +41,9 @@ services:
     restart: unless-stopped
     ports: ["1025:1025", "8025:8025"]
   api:
-    build: { context: ./backend }
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
     restart: unless-stopped
     env_file: [.env]
     depends_on:
@@ -52,28 +54,33 @@ services:
       minio:
         condition: service_healthy
     ports: ["8000:8000"]
-    volumes: ["./backend:/app"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
   web:
-    build: { context: ./frontend }
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000/api/v1}
+        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
     restart: unless-stopped
     env_file: [.env]
     depends_on:
       api:
         condition: service_started
     ports: ["3000:3000"]
-    volumes: ["./frontend:/app", "/app/node_modules"]
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
       interval: 30s
       timeout: 10s
       retries: 3
   worker:
-    build: { context: ./backend }
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
     restart: unless-stopped
     command: celery -A app.tasks worker --loglevel=info
     env_file: [.env]
@@ -82,9 +89,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes: ["./backend:/app"]
   beat:
-    build: { context: ./backend }
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
     restart: unless-stopped
     command: celery -A app.tasks beat --loglevel=info
     env_file: [.env]
@@ -93,7 +101,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes: ["./backend:/app"]
 volumes:
   postgres_data:
   minio_data:

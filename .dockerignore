@@ -1,0 +1,14 @@
+.git
+.gitignore
+.env
+.env.local
+.env.production
+node_modules
+.next
+runtime
+backups
+dist
+build
+coverage
+tmp
+temp

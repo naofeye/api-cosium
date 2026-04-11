@@ -2,10 +2,11 @@
 # OptiFlow — Backup de la base de donnees PostgreSQL
 set -e
 
-cd "$(dirname "$0")/.."
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
 
-COMPOSE_FILE="${1:-docker-compose.prod.yml}"
-BACKUP_DIR="backups"
+COMPOSE_FILE="${1:-docker-compose.yml}"
+BACKUP_DIR="runtime/backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE="${BACKUP_DIR}/optiflow_${TIMESTAMP}.dump"
 

@@ -22,10 +22,10 @@ lint-fix:
 	docker compose exec api python -m ruff check app/ --fix
 
 typecheck:
-	cd frontend && npx tsc --noEmit
+	cd apps/web && npx tsc --noEmit
 
 frontend-build:
-	cd frontend && rm -rf .next && npx next build
+	cd apps/web && rm -rf .next && npx next build
 
 check: lint typecheck test
 	@echo "All checks passed!"

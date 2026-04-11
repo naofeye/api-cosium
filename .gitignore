@@ -1,55 +1,69 @@
-# Environnement
+# Secrets and environment files
 .env
 .env.local
 .env.production
+.env.*.local
+!.env.example
+!.env.production.example
 
-# Credentials (ne JAMAIS commiter)
+# Credentials
 credential*.txt
 *.credentials
 *.secret
-
-# Python
-__pycache__/
-*.py[cod]
-*.egg-info/
-dist/
-build/
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Node
-node_modules/
-.next/
-out/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Docker
-docker-compose.override.yml
-
-# OS
-.DS_Store
-Thumbs.db
+*.pem
+*.key
 
 # Logs
 *.log
 logs/
 
-# MinIO data
+# Runtime data
+runtime/
+data/
+cache/
+tmp/
+temp/
+backups/
+postgres_data/
 minio_data/
 
-# Build artifacts (ne pas tracker)
-frontend/tsconfig.tsbuildinfo
-backend/celerybeat-schedule*
-**/*.pid
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
 
-# Backups
-backups/
+# Node
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
 
-# Cosium scraped pages (filenames too long for Git)
+# Build outputs
+dist/
+build/
+*.pid
+
+# IDE and OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Project-specific artifacts
+apps/api/celerybeat-schedule*
 docs/cosium/pages/

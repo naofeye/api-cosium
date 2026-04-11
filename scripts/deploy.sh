@@ -6,9 +6,11 @@ echo "========================================="
 echo "  OptiFlow AI — Deploiement Production"
 echo "========================================="
 
-cd "$(dirname "$0")/.."
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
 
-COMPOSE_FILE="docker-compose.prod.yml"
+COMPOSE_FILE="docker-compose.yml"
+BACKUP_DIR="runtime/backups"
 
 # Pre-flight: verify required env vars
 if [ ! -f .env ]; then
@@ -27,10 +29,11 @@ fi
 
 # 0. Backup database before deployment
 echo "[0/6] Backup de la base de donnees..."
+mkdir -p "$BACKUP_DIR"
 if docker compose -f "$COMPOSE_FILE" ps postgres 2>/dev/null | grep -q "running"; then
     echo "  Backup en cours..."
     docker compose -f "$COMPOSE_FILE" exec -T postgres \
-        pg_dump -U "${POSTGRES_USER:-optiflow}" -Fc "${POSTGRES_DB:-optiflow}" > "backups/optiflow_$(date +%Y%m%d_%H%M%S).dump" 2>/dev/null \
+        pg_dump -U "${POSTGRES_USER:-optiflow}" -Fc "${POSTGRES_DB:-optiflow}" > "${BACKUP_DIR}/optiflow_$(date +%Y%m%d_%H%M%S).dump" 2>/dev/null \
         && echo "  Backup termine." \
         || echo "  WARN: Backup echoue (non bloquant)."
 else

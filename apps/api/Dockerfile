@@ -1,13 +1,14 @@
-# Multi-stage build for production
 FROM python:3.12-slim AS builder
 WORKDIR /build
 COPY requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 FROM python:3.12-slim
-# Install system dependencies for OCR (tesseract) and PDF processing (poppler)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    tesseract-ocr tesseract-ocr-fra poppler-utils \
+    curl \
+    tesseract-ocr \
+    tesseract-ocr-fra \
+    poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 RUN adduser --disabled-password --gecos "" appuser
 WORKDIR /app

@@ -36,9 +36,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r backend/requirements.txt
-      - run: cd backend && alembic upgrade head
-      - run: cd backend && python -m pytest tests/ -v --tb=short
+      - run: pip install -r apps/api/requirements.txt
+      - run: cd apps/api && alembic upgrade head
+      - run: cd apps/api && python -m pytest tests/ -v --tb=short
 
   backend-lint:
     name: Backend Lint
@@ -49,7 +49,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install ruff
-      - run: cd backend && python -m ruff check app/
+      - run: cd apps/api && python -m ruff check app/
 
   frontend-typecheck:
     name: Frontend Typecheck
@@ -60,8 +60,8 @@ jobs:
         with:
           node-version: "20"
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: cd frontend && npm ci && npx tsc --noEmit
+          cache-dependency-path: apps/web/package-lock.json
+      - run: cd apps/web && npm ci && npx tsc --noEmit
 
   frontend-test:
     name: Frontend Tests
@@ -72,8 +72,8 @@ jobs:
         with:
           node-version: "20"
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: cd frontend && npm ci && npm run test -- --run
+          cache-dependency-path: apps/web/package-lock.json
+      - run: cd apps/web && npm ci && npm run test -- --run
 
   frontend-build:
     name: Frontend Build
@@ -84,10 +84,10 @@ jobs:
         with:
           node-version: "20"
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: cd frontend && npm ci
-      - run: cd frontend && npm audit --audit-level=high
-      - run: cd frontend && npm run build
+          cache-dependency-path: apps/web/package-lock.json
+      - run: cd apps/web && npm ci
+      - run: cd apps/web && npm audit --audit-level=high
+      - run: cd apps/web && npm run build
 
   security-check:
     name: Security Regression Tests
@@ -106,8 +106,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r backend/requirements.txt
-      - run: cd backend && python -m pytest tests/test_security_regression.py -v
+      - run: pip install -r apps/api/requirements.txt
+      - run: cd apps/api && python -m pytest tests/test_security_regression.py -v
 
   gitignore-check:
     name: Gitignore Check
@@ -146,8 +146,8 @@ jobs:
           fi
 
           # Check for tsconfig.tsbuildinfo
-          if git ls-files --cached 'frontend/tsconfig.tsbuildinfo' | grep -q .; then
-            echo "::error::Found tracked frontend/tsconfig.tsbuildinfo"
+          if git ls-files --cached 'apps/web/tsconfig.tsbuildinfo' | grep -q .; then
+            echo "::error::Found tracked apps/web/tsconfig.tsbuildinfo"
             errors=$((errors + 1))
           fi
 

@@ -12,13 +12,25 @@ Create Date: 2026-04-07 12:00:00.000000
 
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
+from sqlalchemy import inspect
 
 revision: str = "o0p1q2r3s4t5"
 down_revision: Union[str, None] = "n9h0i1j2k3l4"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
+
+
+def _has_index(table_name: str, index_name: str) -> bool:
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    return any(index["name"] == index_name for index in inspector.get_indexes(table_name))
+
+
+def _create_index_if_missing(name: str, table_name: str, columns: list[str], *, unique: bool = False) -> None:
+    if not _has_index(table_name, name):
+        op.create_index(name, table_name, columns, unique=unique)
 
 
 def upgrade() -> None:
@@ -50,21 +62,21 @@ def upgrade() -> None:
 
     # --- Devis.numero: global unique -> per-tenant unique ---
     op.drop_constraint("devis_numero_key", "devis", type_="unique")
-    op.create_index("ix_devis_tenant_numero", "devis", ["tenant_id", "numero"], unique=True)
+    _create_index_if_missing("ix_devis_tenant_numero", "devis", ["tenant_id", "numero"], unique=True)
 
     # --- Facture.numero: global unique -> per-tenant unique ---
     op.drop_constraint("factures_numero_key", "factures", type_="unique")
-    op.create_index("ix_factures_tenant_numero", "factures", ["tenant_id", "numero"], unique=True)
-    op.create_index("ix_factures_tenant_status", "factures", ["tenant_id", "status"])
+    _create_index_if_missing("ix_factures_tenant_numero", "factures", ["tenant_id", "numero"], unique=True)
+    _create_index_if_missing("ix_factures_tenant_status", "factures", ["tenant_id", "status"])
 
     # --- PayerOrganization.code: global unique -> per-tenant unique ---
     op.drop_constraint("payer_organizations_code_key", "payer_organizations", type_="unique")
-    op.create_index("ix_payer_orgs_tenant_code", "payer_organizations", ["tenant_id", "code"], unique=True)
+    _create_index_if_missing("ix_payer_orgs_tenant_code", "payer_organizations", ["tenant_id", "code"], unique=True)
 
     # --- Payment.idempotency_key: global unique -> per-tenant unique ---
     op.drop_constraint("payments_idempotency_key_key", "payments", type_="unique")
-    op.create_index("ix_payments_tenant_idempotency", "payments", ["tenant_id", "idempotency_key"], unique=True)
-    op.create_index("ix_payments_tenant_status", "payments", ["tenant_id", "status"])
+    _create_index_if_missing("ix_payments_tenant_idempotency", "payments", ["tenant_id", "idempotency_key"], unique=True)
+    _create_index_if_missing("ix_payments_tenant_status", "payments", ["tenant_id", "status"])
 
 
 def downgrade() -> None:

@@ -1,0 +1,14 @@
+{
+  "name": "optiflow-platform",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Root orchestration for the OptiFlow platform.",
+  "scripts": {
+    "setup": "bash ./scripts/setup.sh",
+    "dev": "docker compose up --build",
+    "start": "docker compose up -d --build",
+    "check": "docker compose config",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
+  }
+}
