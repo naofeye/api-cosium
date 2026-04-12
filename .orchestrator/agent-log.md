@@ -1,0 +1,1 @@
+- 2026-04-12T20:35:00.265Z [claude] :: crée un fichier TODO.md à la racine du projet basé sur l'audit précédent. Format : titre avec nom du projet et date, sections par priorité (P1 à P5), chaque item avec [ ] checkbox, description claire, fichiers impactés, estimation de temps. Commit et push. :: Done. `TODO.md` has been rewritten and pushed. Here's a summary:
