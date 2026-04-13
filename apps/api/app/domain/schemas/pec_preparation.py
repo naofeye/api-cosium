@@ -107,3 +107,57 @@ class PecPreparationSummary(BaseModel):
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class PecPreparationListItem(BaseModel):
+    """Item enrichi du nom client pour la page liste."""
+
+    id: int
+    customer_id: int
+    customer_name: str = "Inconnu"
+    devis_id: int | None = None
+    status: str
+    completude_score: float = 0.0
+    errors_count: int = 0
+    warnings_count: int = 0
+    created_at: str | None = None  # ISO string (deja formate par le service)
+
+
+class PecPreparationListResponse(BaseModel):
+    """Reponse paginee de la liste de preparations PEC."""
+
+    items: list[PecPreparationListItem]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    counts: dict[str, int] = Field(default_factory=dict, description="Compteurs par statut")
+
+
+class PecSubmissionResponse(BaseModel):
+    """Reponse de creation d'une PEC depuis une preparation validee."""
+
+    pec_request_id: int
+    preparation_id: int
+    status: str = Field(..., description="soumise")
+    montant_demande: float
+
+
+class PrecontrolIssue(BaseModel):
+    """Issue detectee par le pre-controle (alerte ou erreur bloquante)."""
+
+    severity: str = Field(..., description="error | warning | info")
+    code: str
+    message: str
+    field: str | None = None
+
+
+class PrecontrolResponse(BaseModel):
+    """Resultat du pre-controle d'une preparation PEC."""
+
+    can_submit: bool = False
+    score: float = 0.0
+    issues: list[PrecontrolIssue] = Field(default_factory=list)
+    summary: str | None = None
+
+    model_config = ConfigDict(extra="allow")  # tolere champs additionnels du service

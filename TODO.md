@@ -52,9 +52,9 @@
 
 ### Refacto backend (dette)
 - [ ] Refacto 19 repos : retirer `db.commit()` → services, repos `db.flush()` — ~8h
-- [ ] Dict → Pydantic `pec_preparation.py:37,206,289` — ~1h
+- [x] Dict → Pydantic `pec_preparation.py` 3 endpoints : `PecPreparationListResponse` + `PecSubmissionResponse` + `PrecontrolResponse` (sous-schemas inclus) — ~1h
 - [ ] Dict → Pydantic `cosium_documents.py:80` → `BulkSyncResponse` — ~1h
-- [ ] Audit `response_model` Pydantic sur tous les routers (40) — ~3h
+- [x] Audit `response_model` Pydantic sur tous les routers (audit 221 endpoints, 55 sans sont légitimes : 204 No Content + StreamingResponse exports/SSE) — ~3h
 - [x] Splitter `reconciliation_service.py` 517→341l + `_reconciliation_helpers.py` 165l ; reconcile_customer_dossier 217→101l — ~2h
 - [x] Splitter `export_service.py` 480→186l (facade) + `_export_styles.py` 28l + `export_xlsx_balance.py` 67l + `export_xlsx_clients.py` 82l + `export_xlsx_pec.py` 110l — ~2h
 - [x] Splitter `erp_sync_extras.py` 455→24l facade + `erp_sync_products.py` 63l + `erp_sync_payments.py` 105l + `erp_sync_third_party.py` 74l + `erp_sync_prescriptions.py` 108l + `_erp_sync_helpers.py` 88l (BATCH_SIZE, parse_iso_date, batch_flush, customer lookup) — ~2h
