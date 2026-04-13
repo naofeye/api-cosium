@@ -14,8 +14,11 @@ from app.domain.schemas.pec_preparation import (
     FieldValidation,
     PecPreparationCreate,
     PecPreparationDocumentResponse,
+    PecPreparationListResponse,
     PecPreparationResponse,
     PecPreparationSummary,
+    PecSubmissionResponse,
+    PrecontrolResponse,
 )
 from app.services import pec_preparation_service
 from app.services.export_pdf import export_pec_preparation_pdf
@@ -25,6 +28,7 @@ router = APIRouter(prefix="/api/v1", tags=["pec-preparation"])
 
 @router.get(
     "/pec-preparations",
+    response_model=PecPreparationListResponse,
     summary="Lister toutes les preparations PEC du tenant",
     description="Retourne la liste paginee de toutes les preparations PEC avec KPIs.",
 )
@@ -34,15 +38,16 @@ def list_all_preparations(
     page_size: int = Query(25, ge=1, le=100),
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
-) -> dict:
+) -> PecPreparationListResponse:
     offset = (page - 1) * page_size
-    return pec_preparation_service.list_all_preparations(
+    data = pec_preparation_service.list_all_preparations(
         db,
         tenant_id=tenant_ctx.tenant_id,
         status=status,
         limit=page_size,
         offset=offset,
     )
+    return PecPreparationListResponse(**data)
 
 
 @router.get(
@@ -196,6 +201,7 @@ def refresh_preparation(
 
 @router.post(
     "/pec-preparations/{preparation_id}/submit",
+    response_model=PecSubmissionResponse,
     summary="Soumettre la PEC",
     description="Cree une demande de PEC depuis la preparation validee.",
 )
@@ -203,13 +209,14 @@ def submit_preparation(
     preparation_id: int,
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
-) -> dict:
-    return pec_preparation_service.create_pec_from_preparation(
+) -> PecSubmissionResponse:
+    data = pec_preparation_service.create_pec_from_preparation(
         db,
         tenant_id=tenant_ctx.tenant_id,
         preparation_id=preparation_id,
         user_id=tenant_ctx.user_id,
     )
+    return PecSubmissionResponse(**data)
 
 
 @router.get(
@@ -279,6 +286,7 @@ def get_audit_trail(
 
 @router.get(
     "/pec-preparations/{preparation_id}/precontrol",
+    response_model=PrecontrolResponse,
     summary="Pre-controle PEC",
     description="Execute un pre-controle complet avant soumission : documents, champs, coherence.",
 )
@@ -286,12 +294,13 @@ def run_precontrol(
     preparation_id: int,
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
-) -> dict:
-    return pec_preparation_service.run_precontrol_for_preparation(
+) -> PrecontrolResponse:
+    data = pec_preparation_service.run_precontrol_for_preparation(
         db,
         tenant_id=tenant_ctx.tenant_id,
         preparation_id=preparation_id,
     )
+    return PrecontrolResponse(**data)
 
 
 @router.get(
