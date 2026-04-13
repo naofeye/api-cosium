@@ -203,8 +203,8 @@
 - [ ] Health check API via `curl` (pas exec Python) — ~20min
 
 ### Scripts maintenance
-- [ ] `restore_db.sh` : `--dry-run` + pre-restore backup — ~1h
-- [ ] `backup_db.sh` : check espace disque, `BACKUP_RETENTION_DAYS` — ~45min
+- [x] `restore_db.sh` : `--dry-run` + pre-restore backup automatique + `--no-pre-backup` — ~1h
+- [x] `backup_db.sh` : check espace disque (`BACKUP_MIN_FREE_MB`) + `BACKUP_RETENTION_DAYS` configurable — ~45min
 - [ ] `scripts/rollback.sh` orchestrant restore + restart — ~2h
 - [ ] `scripts/seed_demo.sh` environnement de démo — ~1h
 - [ ] Data migration backfill indexes — ~30min
@@ -256,7 +256,7 @@
 - [ ] `docs/DEPLOY_CHECKLIST.md` — ~1h
 - [ ] `docs/PERFORMANCE.md` (pool, timeouts, Celery) — ~2h
 - [x] `docs/COSIUM_AUTH.md` (3 modes : basic, OIDC, cookie + rotation) — ~30min
-- [ ] `docs/ENV.md` variables exhaustives — ~1h
+- [x] `docs/ENV.md` variables exhaustives (~50 vars + exemple .env.prod) — ~1h
 - [ ] `docs/DATABASE_INDEXES.md` stratégie — ~30min
 - [ ] TLS setup guide détaillé — ~1h
 - [ ] OpenAPI descriptions enrichies — ~1h
@@ -324,7 +324,7 @@
 
 ## 🛠️ H. DX & outillage (~15h)
 
-- [ ] Makefile (`make dev`, `make test`, `make deploy`) — ~1h
+- [x] Makefile enrichi (help auto, lifecycle, shells, tests, migrations, deploy, clean) — ~1h
 - [ ] `docker-compose.override.yml` local dev — ~30min
 - [ ] Semantic versioning tags CI — ~1h
 - [ ] Prettier pre-commit hook (husky) — ~1h
