@@ -7,6 +7,8 @@ cd "$ROOT_DIR"
 
 COMPOSE_FILE="${1:-docker-compose.yml}"
 BACKUP_DIR="runtime/backups"
+RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-90}"
+MIN_FREE_MB="${BACKUP_MIN_FREE_MB:-500}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE="${BACKUP_DIR}/optiflow_${TIMESTAMP}.dump"
 
@@ -15,6 +17,16 @@ mkdir -p "$BACKUP_DIR"
 echo "Backup de la base de donnees..."
 echo "  Compose: $COMPOSE_FILE"
 echo "  Fichier: $BACKUP_FILE"
+echo "  Retention: $RETENTION_DAYS jours"
+
+# Check espace disque disponible
+FREE_MB=$(df -BM --output=avail "$BACKUP_DIR" 2>/dev/null | tail -1 | tr -dc '0-9' || echo "0")
+if [ "$FREE_MB" -lt "$MIN_FREE_MB" ]; then
+    echo "ERREUR: espace libre ${FREE_MB}MB < seuil ${MIN_FREE_MB}MB sur $BACKUP_DIR"
+    echo "  Liberer de l'espace ou abaisser BACKUP_RETENTION_DAYS."
+    exit 2
+fi
+echo "  Espace libre: ${FREE_MB}MB"
 
 if ! docker compose -f "$COMPOSE_FILE" ps postgres 2>/dev/null | grep -q "running"; then
     echo "ERREUR: PostgreSQL n'est pas demarre."
@@ -36,6 +48,6 @@ else
     exit 1
 fi
 
-# Supprimer les backups de plus de 90 jours
-find "$BACKUP_DIR" -name "optiflow_*.dump" -mtime +90 -delete 2>/dev/null || true
-echo "Backups > 90 jours supprimes."
+# Supprimer les backups au-dela de la retention
+find "$BACKUP_DIR" -name "optiflow_*.dump" -mtime "+${RETENTION_DAYS}" -delete 2>/dev/null || true
+echo "Backups > ${RETENTION_DAYS} jours supprimes."
