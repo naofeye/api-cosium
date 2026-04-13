@@ -55,7 +55,7 @@
 - [ ] Dict → Pydantic `pec_preparation.py:37,206,289` — ~1h
 - [ ] Dict → Pydantic `cosium_documents.py:80` → `BulkSyncResponse` — ~1h
 - [ ] Audit `response_model` Pydantic sur tous les routers (40) — ~3h
-- [ ] Splitter `reconciliation_service.py` 517l — ~2h
+- [x] Splitter `reconciliation_service.py` 517→341l + `_reconciliation_helpers.py` 165l ; reconcile_customer_dossier 217→101l — ~2h
 - [ ] Splitter `export_service.py` 480l → pdf/xlsx — ~2h
 - [ ] Splitter `erp_sync_extras.py` 455l — ~2h
 - [ ] Splitter `client_mutuelle_service.py` 353l — ~1h
