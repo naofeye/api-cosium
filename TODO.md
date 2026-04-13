@@ -39,7 +39,7 @@
 - [ ] Rotation secrets documentée (JWT_SECRET, ENCRYPTION_KEY) — ~1h
 
 ### Data integrity
-- [ ] Test rollback migration Alembic (`alembic downgrade -1 && upgrade +1` en CI) — ~1h
+- [x] Test rollback migration Alembic en CI (`alembic downgrade -1 && upgrade head` ajoute au job backend-tests) — ~1h
 - [ ] Index sur Cosium* (tenant_id, status, created_at) — ~1h
 - [ ] Vérifier index sur Marketing/Interaction/Notification — ~30min
 - [x] Pool PostgreSQL tuning (`max_connections=150`, `idle_in_transaction_session_timeout=60s`, slow query 500ms) — ~30min
@@ -249,7 +249,7 @@
 - [ ] `docs/CONTRIBUTING.md` (git flow, PR) — ~1h
 - [ ] `docs/adr/` Architecture Decision Records — ~2h
 - [ ] `docs/RUNBOOK.md` (incidents, recovery) — ~2h
-- [ ] `docs/ALEMBIC.md` (migrations, rollback) — ~1h
+- [x] `docs/ALEMBIC.md` (workflow, commandes, patterns DDL non-bloquant, CONCURRENTLY, branching, rollback prod) — ~1h
 - [ ] `docs/BUSINESS_RULES.md` (clients, devis, PEC, paiement) — ~1h
 - [ ] `docs/DATABASE.md` + ERD (mermaid) — ~2h
 - [x] `docs/RBAC.md` matrice rôles/permissions (4 roles + group_admin, par module) — ~1h
@@ -257,7 +257,7 @@
 - [ ] `docs/PERFORMANCE.md` (pool, timeouts, Celery) — ~2h
 - [x] `docs/COSIUM_AUTH.md` (3 modes : basic, OIDC, cookie + rotation) — ~30min
 - [x] `docs/ENV.md` variables exhaustives (~50 vars + exemple .env.prod) — ~1h
-- [ ] `docs/DATABASE_INDEXES.md` stratégie — ~30min
+- [x] `docs/DATABASE_INDEXES.md` stratégie (28 index par table + audit pg_stat + CONCURRENTLY) — ~30min
 - [ ] TLS setup guide détaillé — ~1h
 - [ ] OpenAPI descriptions enrichies — ~1h
 - [x] `docs/CELERY.md` (architecture, retry, idempotence, beat, monitoring, troubleshoot) — ~30min

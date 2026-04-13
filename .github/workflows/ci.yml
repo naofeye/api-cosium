@@ -40,6 +40,13 @@ jobs:
           cache-dependency-path: apps/api/requirements.txt
       - run: pip install -r apps/api/requirements.txt
       - run: cd apps/api && alembic upgrade head
+      # Rollback test : downgrade -1 puis upgrade head pour valider que la
+      # derniere migration est reversible (pas de DROP TABLE non-recreable).
+      - name: Test Alembic rollback
+        run: |
+          cd apps/api
+          alembic downgrade -1
+          alembic upgrade head
       - run: cd apps/api && python -m pytest tests/ -v --tb=short
 
   backend-lint:
