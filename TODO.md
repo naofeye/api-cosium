@@ -122,7 +122,7 @@
 - [x] `Sidebar.tsx` 433→171l (split en navConfig, SidebarGroup, SidebarItem, useCollapsedGroups + SidebarHeader inline) — ~1h
 - [ ] `pec-dashboard/page.tsx` 320l — ~1h
 - [ ] `pec-preparation/[prepId]/page.tsx` 650l — ~2h
-- [ ] `clients/page.tsx` 313l — ~1h
+- [x] `clients/page.tsx` 313→184l (hooks useClientsSelection + useClientsDuplicates, BatchActionBar, clientsColumns) — ~1h
 
 ### Accessibilité WCAG AA
 - [ ] Audit `aria-label` toutes icônes seules — ~1h
