@@ -115,7 +115,7 @@
 - [ ] Settings : validation + toast succès partout — ~1h
 
 ### Refacto fichiers >300 lignes
-- [ ] `dashboard/page.tsx` 664→300l — ~2h
+- [x] `dashboard/page.tsx` 664→145l (types, utils, 7 panneaux extraits + 2 hooks SWR/Export) — ~2h
 - [x] `rapprochement/page.tsx` 390→148l (types, KPIs, Toolbar, TransactionsTable, useRapprochementActions) — ~1h30
 - [x] `notifications/page.tsx` 384→188l (types, utils, NotificationCard, NotificationFilters) — ~1h
 - [x] `aide/page.tsx` 338→58l (data, FAQAccordion, HelpQuickLinks, CosiumCookieGuide, ShortcutsTable, DocumentationLinks/SupportContact) — ~1h30
