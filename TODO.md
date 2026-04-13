@@ -117,7 +117,7 @@
 ### Refacto fichiers >300 lignes
 - [ ] `dashboard/page.tsx` 664→300l — ~2h
 - [ ] `rapprochement/page.tsx` 390→250l — ~1h30
-- [ ] `notifications/page.tsx` 369l — ~1h
+- [x] `notifications/page.tsx` 384→188l (types, utils, NotificationCard, NotificationFilters) — ~1h
 - [ ] `aide/page.tsx` 338l — ~1h30
 - [x] `Sidebar.tsx` 433→171l (split en navConfig, SidebarGroup, SidebarItem, useCollapsedGroups + SidebarHeader inline) — ~1h
 - [ ] `pec-dashboard/page.tsx` 320l — ~1h
