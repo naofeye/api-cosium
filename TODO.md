@@ -240,7 +240,7 @@
 - [ ] Matrice Python 3.11/3.12 + Node 18/20 — ~1h
 - [ ] Branch protection rules — ~30min
 - [x] Dependabot activé (npm + pip + actions + docker) — `.github/dependabot.yml` — ~30min
-- [ ] CodeQL / Semgrep static analysis — ~1h30
+- [x] CodeQL static analysis (Python + JS/TS, security-extended, weekly cron) — ~1h30
 
 ---
 
@@ -252,8 +252,8 @@
 - [ ] `docs/ALEMBIC.md` (migrations, rollback) — ~1h
 - [ ] `docs/BUSINESS_RULES.md` (clients, devis, PEC, paiement) — ~1h
 - [ ] `docs/DATABASE.md` + ERD (mermaid) — ~2h
-- [ ] `docs/RBAC.md` matrice rôles/permissions — ~1h
-- [ ] `docs/DEPLOY_CHECKLIST.md` — ~1h
+- [x] `docs/RBAC.md` matrice rôles/permissions (4 roles + group_admin, par module) — ~1h
+- [x] `docs/DEPLOY_CHECKLIST.md` (pre-requis, pre/post-deploy, rollback, TLS, monitoring) — ~1h
 - [ ] `docs/PERFORMANCE.md` (pool, timeouts, Celery) — ~2h
 - [x] `docs/COSIUM_AUTH.md` (3 modes : basic, OIDC, cookie + rotation) — ~30min
 - [x] `docs/ENV.md` variables exhaustives (~50 vars + exemple .env.prod) — ~1h
