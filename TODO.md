@@ -29,10 +29,10 @@
 - [ ] TLS bout en bout avec vrai cert (mkcert local ou Let's Encrypt) — ~2h
 - [ ] Variables `.env.prod.example` exhaustives documentées — ~1h
 - [ ] Certbot staging config testée avant prod — ~30min
-- [ ] Health endpoint `/health/deep` (DB + Redis + MinIO + Cosium) — ~1h
+- [x] Health endpoint `/health/deep` (DB + Redis + MinIO + Cosium) — déjà implémenté dans `admin_health.py:62` — ~1h
 
 ### Sécurité & RBAC
-- [ ] Rate limiting global API (`limit_req_zone api`) pas juste login — ~1h
+- [x] Rate limiting global API (60r/s burst 120) en plus du login — ~1h
 - [ ] Rate limit anti-brute-force signup/forgot-password — ~1h
 - [ ] Audit trail accès tenant (security logging) — ~1h
 - [x] Bloquer `/redoc` en plus de `/docs` en prod — ~20min
@@ -315,10 +315,10 @@
 - [ ] Forecast CA (prédiction IA) — ~4h
 
 ### Pages "Coming Soon"
-- [ ] Copilote IA (teaser + waitlist) — ~30min
-- [ ] Webhooks (teaser) — ~30min
-- [ ] API publique (teaser + tokens) — ~30min
-- [ ] Mobile app (teaser Android/iOS) — ~30min
+- [x] Copilote IA (teaser + waitlist) — ~30min
+- [x] Webhooks (teaser) — ~30min
+- [x] API publique (teaser + tokens) — ~30min
+- [x] Mobile app (teaser Android/iOS) — ~30min
 
 ---
 
@@ -330,10 +330,10 @@
 - [ ] Prettier pre-commit hook (husky) — ~1h
 - [ ] Ruff pre-commit hook — ~30min
 - [x] `.editorconfig` cohérent multi-IDE — ~15min
-- [ ] Dev containers (VS Code `.devcontainer/`) — ~2h
+- [x] Dev containers VS Code (`.devcontainer/devcontainer.json` avec extensions + ports) — ~2h
 - [ ] Génération clients API typés (openapi-typescript) — ~1h30
 - [ ] `pnpm` workspace (perfs + deduplication) — ~1h
-- [ ] Git hooks commit-msg (conventional commits) — ~30min
+- [x] `.gitmessage` template conventional commits — ~30min
 - [ ] Script bootstrap nouveau développeur (`setup.sh` amélioré) — ~1h
 - [ ] Alias bash/zsh commandes fréquentes — ~30min
 - [ ] Swagger UI auth preset (token pré-rempli) — ~30min
