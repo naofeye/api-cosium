@@ -16,6 +16,7 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Pagination } from "@/components/ui/Pagination";
 import { useToast } from "@/components/ui/Toast";
 import { fetchJson } from "@/lib/api";
@@ -121,6 +122,7 @@ export default function NotificationsPage() {
   const { toast } = useToast();
   const [filter, setFilter] = useState<FilterKey>("all");
   const [page, setPage] = useState(1);
+  const [confirmDeleteRead, setConfirmDeleteRead] = useState(false);
   const pageSize = 25;
 
   const unreadOnly = filter === "unread";
@@ -227,7 +229,7 @@ export default function NotificationsPage() {
               <CheckCheck className="h-4 w-4 mr-1" /> Tout marquer comme lu
             </Button>
           )}
-          <Button variant="ghost" size="sm" onClick={handleDeleteRead}>
+          <Button variant="ghost" size="sm" onClick={() => setConfirmDeleteRead(true)}>
             <Trash2 className="h-4 w-4 mr-1" /> Supprimer les lues
           </Button>
         </div>
@@ -364,6 +366,19 @@ export default function NotificationsPage() {
           />
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmDeleteRead}
+        title="Supprimer les notifications lues ?"
+        message="Toutes les notifications deja lues seront definitivement supprimees. Cette action est irreversible."
+        confirmLabel="Supprimer"
+        danger
+        onConfirm={() => {
+          setConfirmDeleteRead(false);
+          handleDeleteRead();
+        }}
+        onCancel={() => setConfirmDeleteRead(false)}
+      />
     </PageLayout>
   );
 }

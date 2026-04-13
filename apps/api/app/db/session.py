@@ -3,8 +3,9 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
 
-# Statement timeout : 30s pour l'API, 300s pour les workers Celery (sync longues)
-_statement_timeout = 300000 if settings.celery_worker else 30000
+# Statement timeout : 30s pour l'API, 120s pour les workers Celery.
+# Tache > 120s = signe d'un probleme (N+1, dead lock, sync non batchee) a investiguer.
+_statement_timeout = 120000 if settings.celery_worker else 30000
 
 # Pool de connexions PostgreSQL :
 # - pool_size=50 : 50 connexions permanentes

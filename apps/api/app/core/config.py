@@ -78,7 +78,7 @@ class Settings(BaseSettings):
             errors: list[str] = []
             if self.jwt_secret == _DEV_JWT_SECRET or "change-me" in self.jwt_secret:
                 errors.append("JWT_SECRET doit etre defini avec une valeur securisee")
-            if self.s3_access_key == _DEV_S3_KEY:
+            if self.s3_access_key == _DEV_S3_KEY or self.s3_secret_key == _DEV_S3_KEY:
                 errors.append("S3_ACCESS_KEY/S3_SECRET_KEY ne doivent pas etre 'minioadmin'")
             if not self.encryption_key:
                 errors.append("ENCRYPTION_KEY est obligatoire (generer avec: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\")")

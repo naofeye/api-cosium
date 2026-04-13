@@ -110,6 +110,7 @@ def signup(db: Session, payload: SignupRequest) -> TokenResponse:
     )
     refresh_token = generate_refresh_token()
     refresh_token_repo.create(db, refresh_token, user.id, get_refresh_token_expiry())
+    db.commit()
 
     logger.info("onboarding_signup", org_id=org.id, tenant_id=tenant.id, user_id=user.id)
 
