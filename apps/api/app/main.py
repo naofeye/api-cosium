@@ -5,10 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.gzip import GZipMiddleware as _BaseGZipMiddleware
 
-_APP_VERSION = "1.0.0"
-_APP_START_TIME = _time.time()
-
-from app import models  # noqa: F401
+from app import models  # noqa: F401, E402
 from app.api.routers import (
     action_items,
     admin_health,
@@ -58,6 +55,7 @@ from app.core.exceptions import (
     NotFoundError,
     ValidationError,
 )
+from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.rate_limiter import RateLimiterMiddleware
 from app.core.request_id import RequestIdMiddleware
@@ -65,10 +63,11 @@ from app.core.security_headers import SecurityHeadersMiddleware
 from app.db.session import SessionLocal
 from app.seed import seed_data
 
+_APP_VERSION = "1.0.0"
+
 logger = get_logger("main")
 
 # Sentry (optional)
-from app.core.config import settings
 
 if settings.sentry_dsn:
     import sentry_sdk

@@ -89,7 +89,7 @@ describe("Login Flow - E2E style", () => {
 
   it("has a forgot password link that navigates correctly", () => {
     render(<LoginPage />);
-    const forgotLink = screen.getByText("Mot de passe oublie ?");
+    const forgotLink = screen.getByText("Mot de passe oublié ?");
     expect(forgotLink).toBeInTheDocument();
     expect(forgotLink.closest("a")).toHaveAttribute("href", "/forgot-password");
   });
