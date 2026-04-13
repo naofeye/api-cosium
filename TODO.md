@@ -166,12 +166,12 @@
 - [ ] Prefetch hover sur liens Sidebar — ~30min
 
 ### Composants UI manquants
-- [ ] `Timeline.tsx` chronologie verticale — ~1h
-- [ ] `AgingTable.tsx` balance agée couleurs tranches — ~1h
-- [ ] `DateRangePicker.tsx` — ~1h
-- [ ] `FileUploadZone.tsx` drag-drop multi — ~1h
+- [x] `Timeline.tsx` chronologie verticale (icon, date, title, description, ring-4) — ~1h
+- [x] `AgingTable.tsx` balance agée couleurs tranches (vert/jaune/ambre/rouge par tranche) — ~1h
+- [x] `DateRangePicker.tsx` (sr-only labels, min/max validation, clear button) — ~1h
+- [x] `FileUploadZone.tsx` drag-drop multi — `FileUpload.tsx` existe déjà — ~1h
 - [ ] `AsyncSelect.tsx` (autocomplete backend) — ~1h30
-- [ ] `Stepper.tsx` (formulaires multi-étapes) — ~1h
+- [x] `Stepper.tsx` (formulaires multi-étapes : current/completed/upcoming, ring effect, sm-hidden description) — ~1h
 
 ---
 
