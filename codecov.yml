@@ -1,0 +1,41 @@
+codecov:
+  require_ci_to_pass: true
+  notify:
+    wait_for_ci: true
+
+coverage:
+  precision: 1
+  round: down
+  range: "60...90"
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%  # tolerance 1pp baisse coverage par PR
+    patch:
+      default:
+        target: 70%  # nouveau code doit avoir >= 70% coverage
+
+flag_management:
+  default_rules:
+    carryforward: true
+  individual_flags:
+    - name: backend
+      paths:
+        - apps/api/app
+    - name: frontend
+      paths:
+        - apps/web/src
+
+ignore:
+  - "apps/api/alembic/**"
+  - "apps/api/tests/**"
+  - "apps/api/scripts/**"
+  - "apps/web/.next/**"
+  - "apps/web/node_modules/**"
+  - "**/__init__.py"
+
+comment:
+  layout: "header, diff, files, footer"
+  behavior: default
+  require_changes: false

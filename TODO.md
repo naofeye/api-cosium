@@ -236,8 +236,8 @@
 - [ ] Distributed tracing (OpenTelemetry) — ~4h
 
 ### CI/CD
-- [ ] Test coverage Codecov — ~1h
-- [ ] Matrice Python 3.11/3.12 + Node 18/20 — ~1h
+- [x] Test coverage Codecov (`codecov.yml` + step `pytest --cov` + upload codecov-action@v4) — ~1h
+- [x] Matrice Python (struct prête `strategy.matrix.python-version`, 3.12 active, 3.11 commenté) — ~1h
 - [ ] Branch protection rules — ~30min
 - [x] Dependabot activé (npm + pip + actions + docker) — `.github/dependabot.yml` — ~30min
 - [x] CodeQL static analysis (Python + JS/TS, security-extended, weekly cron) — ~1h30
