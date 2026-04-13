@@ -118,7 +118,7 @@
 - [ ] `dashboard/page.tsx` 664→300l — ~2h
 - [x] `rapprochement/page.tsx` 390→148l (types, KPIs, Toolbar, TransactionsTable, useRapprochementActions) — ~1h30
 - [x] `notifications/page.tsx` 384→188l (types, utils, NotificationCard, NotificationFilters) — ~1h
-- [ ] `aide/page.tsx` 338l — ~1h30
+- [x] `aide/page.tsx` 338→58l (data, FAQAccordion, HelpQuickLinks, CosiumCookieGuide, ShortcutsTable, DocumentationLinks/SupportContact) — ~1h30
 - [x] `Sidebar.tsx` 433→171l (split en navConfig, SidebarGroup, SidebarItem, useCollapsedGroups + SidebarHeader inline) — ~1h
 - [ ] `pec-dashboard/page.tsx` 320l — ~1h
 - [ ] `pec-preparation/[prepId]/page.tsx` 650l — ~2h
