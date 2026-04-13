@@ -57,7 +57,7 @@
 - [ ] Audit `response_model` Pydantic sur tous les routers (40) — ~3h
 - [x] Splitter `reconciliation_service.py` 517→341l + `_reconciliation_helpers.py` 165l ; reconcile_customer_dossier 217→101l — ~2h
 - [x] Splitter `export_service.py` 480→186l (facade) + `_export_styles.py` 28l + `export_xlsx_balance.py` 67l + `export_xlsx_clients.py` 82l + `export_xlsx_pec.py` 110l — ~2h
-- [ ] Splitter `erp_sync_extras.py` 455l — ~2h
+- [x] Splitter `erp_sync_extras.py` 455→24l facade + `erp_sync_products.py` 63l + `erp_sync_payments.py` 105l + `erp_sync_third_party.py` 74l + `erp_sync_prescriptions.py` 108l + `_erp_sync_helpers.py` 88l (BATCH_SIZE, parse_iso_date, batch_flush, customer lookup) — ~2h
 - [x] Splitter `client_mutuelle_service.py` 353→203l + `_client_mutuelle_detection.py` 178l (3 sources detection extraites + persistence helper) — ~1h
 - [ ] Refacto `consolidation_*.py` 5 fichiers → `BaseConsolidator` — ~2h
 - [ ] Splitter `search_service.global_search()` 216l — ~2h
