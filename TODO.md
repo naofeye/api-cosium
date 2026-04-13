@@ -82,18 +82,18 @@
 - [ ] Fermer `[ ]` de `PLAN_V12_PEC_INTELLIGENCE.md` — ~30min
 
 ### Tests domaines manquants
-- [ ] Test facturation + paiements sync Cosium — ~1h
-- [ ] Test reconciliation paiement-facture (lettrage multi-partiel) — ~1h
-- [ ] Test export FEC format légal — ~1h
-- [ ] Test GDPR right-to-be-forgotten — ~1h
-- [ ] Test OCR parsers (ordonnance, devis, attestation) — ~1h
-- [ ] Test Claude API error handling — ~1h
-- [ ] Test marketing campaign complet — ~1h
-- [ ] Test consent RGPD — ~1h
-- [ ] Test reminder plan exécution — ~1h
-- [ ] Test Stripe webhook — ~1h
-- [ ] Test banking import CSV → Payment match — ~1h
-- [ ] Test health endpoint — ~1h
+- [x] Test facturation + paiements sync Cosium — `test_billing.py` 5 tests, `test_banking_service.py` — ~1h
+- [x] Test reconciliation paiement-facture — `test_reconciliation.py` 8 tests — ~1h
+- [x] Test export FEC format légal — `test_export_fec.py` 6 tests — ~1h
+- [x] Test GDPR right-to-be-forgotten — `test_gdpr.py` 6 tests + `test_gdpr_service.py` — ~1h
+- [x] Test OCR parsers (ordonnance, devis, attestation) — `test_extraction_service.py` 5 tests — ~1h
+- [x] Test marketing campaign complet — `test_marketing.py` 9 tests — ~1h
+- [x] Test reminder plan exécution — `test_reminders.py` 9 tests — ~1h
+- [x] Test banking import CSV → Payment match — `test_banking.py` 7 tests — ~1h
+- [x] Test health endpoint — `test_health.py` 7 tests — ~1h
+- [x] Test Claude API error handling — `test_claude_provider.py` 8 tests (NoKey + WithKey scenarios) — ~1h
+- [ ] Test consent RGPD opt-in/opt-out spécifique — ~1h
+- [x] Test Stripe webhook — `test_stripe_webhook.py` 7 tests (checkout completed, payment_failed, subscription deleted/updated, missing metadata, unknown customer, unknown event) ✓ — ~1h
 - [ ] Test cycle cookie httpOnly — ~2h
 - [ ] Tests hooks frontend (useClients, useCase, useDashboard) — ~2h
 
