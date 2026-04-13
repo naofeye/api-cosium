@@ -21,6 +21,9 @@ from sqlalchemy.orm import Session
 from app.core.logging import get_logger
 from app.domain.schemas.consolidation import ConsolidatedClientProfile
 from app.models.devis import DevisLigne
+from app.services.consolidation_financial import (  # noqa: F401
+    consolidate_financial as _consolidate_financial,
+)
 
 # Re-export public API from sub-modules for backward compatibility
 from app.services.consolidation_helpers import (  # noqa: F401
@@ -44,11 +47,10 @@ from app.services.consolidation_helpers import (  # noqa: F401
     load_document_extractions,
     load_latest_prescription,
 )
-from app.services.consolidation_financial import (  # noqa: F401
-    consolidate_financial as _consolidate_financial,
-)
 from app.services.consolidation_identity import (  # noqa: F401
     consolidate_identity as _consolidate_identity,
+)
+from app.services.consolidation_identity import (
     consolidate_mutuelle as _consolidate_mutuelle,
 )
 from app.services.consolidation_optical import (  # noqa: F401

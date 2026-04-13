@@ -9,7 +9,6 @@ from app.domain.schemas.consolidation import (
     FieldStatus,
 )
 from app.models.devis import Devis, DevisLigne
-
 from app.services.consolidation_helpers import (
     TOLERANCE_AMOUNT,
     _make_field,

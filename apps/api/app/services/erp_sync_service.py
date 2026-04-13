@@ -21,10 +21,10 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.logging import get_logger, log_operation
-from app.models import Customer, Tenant
+from app.integrations.erp_factory import get_connector  # noqa: F401 — re-export for patch targets
+from app.models import Customer
 from app.repositories import onboarding_repo
 from app.services import audit_service
-from app.integrations.erp_factory import get_connector  # noqa: F401 — re-export for patch targets
 from app.services.erp_auth_service import (
     _authenticate_connector,
     _get_connector_for_tenant,

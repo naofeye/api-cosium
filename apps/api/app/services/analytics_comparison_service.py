@@ -17,7 +17,6 @@ from app.domain.schemas.analytics import (
 )
 from app.models import Customer
 from app.models.cosium_data import CosiumInvoice
-
 from app.services.analytics_kpi_service import (
     get_aging_balance,
     get_commercial_kpis,

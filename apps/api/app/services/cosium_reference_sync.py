@@ -17,7 +17,6 @@ from app.core.logging import get_logger
 from app.integrations.cosium.client import CosiumClient
 from app.integrations.cosium.cosium_connector import CosiumConnector
 from app.services import audit_service
-from app.services.erp_sync_service import _authenticate_connector, _get_connector_for_tenant
 
 # Re-export all individual sync functions for backward compatibility
 from app.services.cosium_reference_sync_entities import (
@@ -39,6 +38,7 @@ from app.services.cosium_reference_sync_entities import (
     sync_tags,
     sync_users,
 )
+from app.services.erp_sync_service import _authenticate_connector, _get_connector_for_tenant
 
 logger = get_logger("cosium_reference_sync")
 

@@ -5,14 +5,12 @@ existing callers (e.g. ``from app.services.export_pdf import export_client_pdf``
 continue to work without changes.
 """
 
+from app.services.export_pdf_balance import (  # noqa: F401
+    _get_balance_rows,
+    export_balance_clients_pdf,
+)
 from app.services.export_pdf_base import (  # noqa: F401
     fmt_money as _fmt_money,
-    fmt_diopter as _fmt_diopter,
-    section_table_style as _section_table_style,
-)
-from app.services.export_pdf_balance import (  # noqa: F401
-    export_balance_clients_pdf,
-    _get_balance_rows,
 )
 from app.services.export_pdf_client import export_client_pdf  # noqa: F401
 from app.services.export_pdf_dashboard import export_dashboard_pdf  # noqa: F401

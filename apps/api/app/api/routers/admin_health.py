@@ -1,7 +1,6 @@
 """Admin health check, metrics, and Cosium cookie management endpoints."""
 
 import time
-from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field

@@ -17,6 +17,9 @@ credential*.txt
 *.log
 logs/
 
+# Sensitive captures (HAR files contain cookies, tokens, auth headers)
+*.har
+
 # Runtime data
 runtime/
 data/

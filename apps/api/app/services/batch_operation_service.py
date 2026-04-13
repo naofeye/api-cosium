@@ -15,7 +15,6 @@ from app.core.logging import get_logger
 from app.domain.schemas.batch_operation import (
     BatchItemResponse,
     BatchOperationResponse,
-    BatchPecResult,
     BatchSummaryResponse,
     MarketingCodeResponse,
 )

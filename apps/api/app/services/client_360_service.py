@@ -157,7 +157,6 @@ def get_client_360(db: Session, tenant_id: int, client_id: int) -> Client360Resp
 
     # Financial summary
     resume_financier = build_financial_summary(fin["total_facture"], fin["total_paye"])
-    reste_du = resume_financier.reste_du
 
     # Prescription warning
     prescription_warning = build_prescription_warning(cosium_data.prescriptions)

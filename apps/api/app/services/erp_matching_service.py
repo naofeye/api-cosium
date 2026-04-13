@@ -11,7 +11,6 @@ SYNCHRONISATION UNIDIRECTIONNELLE : ERP -> OptiFlow uniquement.
 """
 
 import unicodedata
-from datetime import UTC, datetime
 
 from app.core.logging import get_logger
 from app.integrations.erp_models import ERPCustomer

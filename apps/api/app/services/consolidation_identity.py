@@ -4,17 +4,14 @@ Handles consolidation of identity fields (nom, prenom, date_naissance, numero_se
 and mutuelle fields (mutuelle_nom, mutuelle_numero_adherent, etc.).
 """
 
-from datetime import UTC
 
 from app.domain.schemas.consolidation import (
     ConsolidatedClientProfile,
-    ConsolidatedField,
     FieldStatus,
 )
 from app.models.client import Customer
 from app.models.client_mutuelle import ClientMutuelle
-
-from app.services.consolidation_helpers import _make_field, _resolve_field, _make_missing_field
+from app.services.consolidation_helpers import _make_field, _resolve_field
 
 
 def consolidate_identity(

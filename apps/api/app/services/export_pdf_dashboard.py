@@ -1,11 +1,8 @@
 """Dashboard and KPI PDF exports."""
 
 import io
-from datetime import UTC, datetime
+from datetime import datetime
 
-from reportlab.lib import colors as rl_colors
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, Spacer, Table
 from sqlalchemy.orm import Session
 
