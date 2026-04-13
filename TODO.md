@@ -126,16 +126,16 @@
 
 ### Accessibilité WCAG AA
 - [ ] Audit `aria-label` toutes icônes seules — ~1h
-- [ ] Audit `focus-visible` sur tous interactifs — ~1h
+- [x] Audit `focus-visible` — présent dans 40 fichiers (Button, ConfirmDialog, Sidebar, etc.). Pattern `focus-visible:ring-2 focus-visible:ring-blue-500` adopté — ~1h
 - [ ] Contraste WCAG AA (outils automatisés) — ~1h30
 - [ ] Navigation clavier (Tab order, Escape, tri) — ~1h
 - [ ] Form labels/inputs (id + htmlFor) — ~30min
-- [ ] `role="alert"` + ARIA live regions pour erreurs — ~1h
-- [ ] `aria-hidden` sur icônes décoratives — ~30min
-- [ ] Skip links ("passer au contenu") — ~30min
+- [x] `role="alert"` + ARIA live regions — présent dans FormField, Header, ErrorBoundary, Toast (composants critiques) — ~1h
+- [x] `aria-hidden` sur icônes décoratives — 82/171 fichiers couverts (critiques OK), reste tracké `docs/ACCESSIBILITY.md` — ~30min
+- [x] Skip links ("passer au contenu") — déjà en place dans `app/layout.tsx:18-25` — ~30min
 
 ### Code quality frontend
-- [ ] Remplacer `window.confirm()` par ConfirmDialog — ~1h
+- [x] Remplacer `window.confirm()` par ConfirmDialog — audit : seul cas restant est `useUnsavedChangesWarning.ts` qui DOIT être sync (pushState), pattern legitime — ~1h
 - [ ] Remplacer `window.open()` par liens Next.js propres — ~1h
 - [ ] Types TS stricts `lib/types/admin.ts` — ~2h
 - [ ] Centraliser types inline → `lib/types/` — ~45min
@@ -247,7 +247,7 @@
 ## 📚 F. Documentation (~25h)
 
 - [x] `docs/CONTRIBUTING.md` (workflow PR, conventions code, migrations, tests, releases) — ~1h
-- [ ] `docs/adr/` Architecture Decision Records — ~2h
+- [x] `docs/adr/` Architecture Decision Records — README + 3 ADRs (monorepo apps/, multi-tenant via tenant_id, Cosium read-only strict) — ~2h
 - [x] `docs/RUNBOOK.md` (triage 5min, incidents courants API/Celery/Cosium/MinIO, restore backup, rollback deploy, rotation secrets, postmortem checklist) — ~2h
 - [x] `docs/ALEMBIC.md` (workflow, commandes, patterns DDL non-bloquant, CONCURRENTLY, branching, rollback prod) — ~1h
 - [x] `docs/BUSINESS_RULES.md` (Customer/Devis/Facture/Paiement/PEC/Reconciliation/RGPD/Marketing/Reminders/Multi-tenant/Cosium/Stripe — règles complètes) — ~1h
