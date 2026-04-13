@@ -120,7 +120,7 @@
 - [x] `notifications/page.tsx` 384→188l (types, utils, NotificationCard, NotificationFilters) — ~1h
 - [x] `aide/page.tsx` 338→58l (data, FAQAccordion, HelpQuickLinks, CosiumCookieGuide, ShortcutsTable, DocumentationLinks/SupportContact) — ~1h30
 - [x] `Sidebar.tsx` 433→171l (split en navConfig, SidebarGroup, SidebarItem, useCollapsedGroups + SidebarHeader inline) — ~1h
-- [ ] `pec-dashboard/page.tsx` 320l — ~1h
+- [x] `pec-dashboard/page.tsx` 320→73l (types, PecKpiCards, PecToolbar, PecPreparationsTable, useExportXlsx) — ~1h
 - [ ] `pec-preparation/[prepId]/page.tsx` 650l — ~2h
 - [x] `clients/page.tsx` 313→184l (hooks useClientsSelection + useClientsDuplicates, BatchActionBar, clientsColumns) — ~1h
 
