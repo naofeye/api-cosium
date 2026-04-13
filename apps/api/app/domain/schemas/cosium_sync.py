@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # --- Payments ---
 
@@ -135,6 +135,22 @@ class BulkSyncRequest(BaseModel):
     max_customers: int | None = None
     delay_docs: float = 1.0
     delay_customers: float = 2.0
+
+
+class BulkSyncResult(BaseModel):
+    """Resultat detaille d'une sync de documents (mode synchrone)."""
+    customers_processed: int = 0
+    documents_downloaded: int = 0
+    documents_skipped: int = 0
+    errors: int = 0
+
+
+class BulkSyncResponse(BaseModel):
+    """Reponse d'un trigger de sync : Celery (started+task_id) ou fallback sync (completed+result)."""
+    status: str = Field(..., description="started | completed")
+    task_id: str | None = None
+    message: str | None = None
+    result: BulkSyncResult | None = None
 
 
 # --- Reusable sync result ---

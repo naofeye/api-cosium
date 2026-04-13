@@ -17,6 +17,8 @@ from app.core.tenant_context import TenantContext
 from app.db.session import get_db
 from app.domain.schemas.cosium_sync import (
     BulkSyncRequest,
+    BulkSyncResponse,
+    BulkSyncResult,
     CosiumDocumentList,
     CosiumDocumentResponse,
     DocumentSyncStatusResponse,
@@ -70,6 +72,7 @@ class AllDocumentsResponse(BaseModel):
 
 @router.post(
     "/sync-all",
+    response_model=BulkSyncResponse,
     summary="Lancer le telechargement de tous les documents Cosium",
     description="Declenche le telechargement en arriere-plan de tous les documents clients depuis Cosium vers MinIO. Lent par design (~1 doc/sec).",
 )
@@ -77,7 +80,7 @@ def trigger_bulk_sync(
     payload: BulkSyncRequest | None = None,
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin")),
-) -> dict:
+) -> BulkSyncResponse:
     body = payload or BulkSyncRequest()
     try:
         from app.tasks.sync_tasks import bulk_download_cosium_documents
@@ -95,7 +98,11 @@ def trigger_bulk_sync(
             task_id=task.id,
             max_customers=body.max_customers,
         )
-        return {"status": "started", "task_id": task.id, "message": "Telechargement en cours en arriere-plan"}
+        return BulkSyncResponse(
+            status="started",
+            task_id=task.id,
+            message="Telechargement en cours en arriere-plan",
+        )
     except Exception as e:
         # Celery might not be available — run synchronously as fallback
         logger.warning("celery_unavailable_running_sync", error=str(e))
@@ -109,7 +116,7 @@ def trigger_bulk_sync(
             delay_between_docs=body.delay_docs,
             max_customers=body.max_customers,
         )
-        return {"status": "completed", "result": result}
+        return BulkSyncResponse(status="completed", result=BulkSyncResult(**result))
 
 
 @router.get(
