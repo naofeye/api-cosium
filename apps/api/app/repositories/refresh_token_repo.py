@@ -14,7 +14,7 @@ def _hash_token(token: str) -> str:
 def create(db: Session, token: str, user_id: int, expires_at: datetime) -> RefreshToken:
     rt = RefreshToken(token=_hash_token(token), user_id=user_id, expires_at=expires_at)
     db.add(rt)
-    db.commit()
+    db.flush()
     db.refresh(rt)
     return rt
 
@@ -34,7 +34,7 @@ def revoke(db: Session, token: str) -> None:
     ).first()
     if rt:
         rt.revoked = True
-        db.commit()
+        db.flush()
 
 
 def revoke_all_for_user(db: Session, user_id: int) -> None:
