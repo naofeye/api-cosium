@@ -27,7 +27,7 @@
 ### Déploiement
 - [ ] Déploiement E2E `docker-compose.prod.yml` testé bout en bout — ~4h
 - [ ] TLS bout en bout avec vrai cert (mkcert local ou Let's Encrypt) — ~2h
-- [ ] Variables `.env.prod.example` exhaustives documentées — ~1h
+- [x] Variables `.env.prod.example` exhaustives documentées (~80 vars regroupées par domaine, valeurs `__CHANGE_ME__` placeholders, instructions de génération JWT/Fernet) — ~1h
 - [ ] Certbot staging config testée avant prod — ~30min
 - [x] Health endpoint `/health/deep` (DB + Redis + MinIO + Cosium) — déjà implémenté dans `admin_health.py:62` — ~1h
 
@@ -40,8 +40,8 @@
 
 ### Data integrity
 - [x] Test rollback migration Alembic en CI (`alembic downgrade -1 && upgrade head` ajoute au job backend-tests) — ~1h
-- [ ] Index sur Cosium* (tenant_id, status, created_at) — ~1h
-- [ ] Vérifier index sur Marketing/Interaction/Notification — ~30min
+- [x] Index sur Cosium* — audit `models/cosium_data.py` confirme indexes presents : `(tenant_id, customer_cosium_id)`, `(tenant_id, cosium_id) UNIQUE`, `(tenant_id, type)`, `(tenant_id, outstanding_balance)` — ~1h
+- [x] Vérifier index sur Marketing/Interaction/Notification — confirmé 11/4/10 indexes via grep, voir `docs/DATABASE_INDEXES.md` — ~30min
 - [x] Pool PostgreSQL tuning (`max_connections=150`, `idle_in_transaction_session_timeout=60s`, slow query 500ms) — ~30min
 - [ ] Celery beat monitoring heartbeat — ~1h
 - [ ] Redis éviction policy (`maxmemory 512mb --maxmemory-policy allkeys-lru`) — ~30min
@@ -71,8 +71,8 @@
 - [x] Dead-letter queue Celery — handler `task_failure.connect` → log structuré + Sentry capture — ~1h
 - [x] Retry policy documentée (`docs/CELERY.md` créé précédemment) — ~30min
 - [x] Tests Celery config (acks_late, time_limits, routing 6 queues, DLQ handler, beat schedule, timezone) `tests/test_celery_config.py` 8/8 ✓ — ~1h
-- [ ] Batch tasks : update statut tous les 100 items (progression visible) — ~1h
-- [ ] Task timeout explicite par type (hard_time_limit) — ~1h
+- [x] Batch tasks : update statut tous les 100 items — déjà en place dans `batch_processing_service.py:81-97` (update_batch + commit + log progress) — ~1h
+- [x] Task timeout explicite par type (hard_time_limit) — soft 300s + hard 360s globaux dans `tasks/__init__.py`, overrides specifiques (extraction 3600s, batch 7200s) dans chaque task module — ~1h
 
 ### PEC Plan V12
 - [ ] Batch PEC submission `POST /pec/batch` — ~6h
