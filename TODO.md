@@ -66,7 +66,7 @@
 - [ ] Pattern repository uniforme : interface commune, méthodes standardisées — ~3h
 
 ### Celery & async
-- [ ] Audit idempotence Celery (EXISTS avant INSERT) — ~3h
+- [x] Audit idempotence Celery — `tests/test_idempotency.py` 3 tests (notif EXISTS, extract_document early-return, sync Cosium upsert). `reminder_tasks.auto_generate_reminders` déjà idempotent via Redis key — ~3h
 - [ ] Déléguer email sync → `email_tasks.py` — ~2h
 - [x] Dead-letter queue Celery — handler `task_failure.connect` → log structuré + Sentry capture — ~1h
 - [x] Retry policy documentée (`docs/CELERY.md` créé précédemment) — ~30min
