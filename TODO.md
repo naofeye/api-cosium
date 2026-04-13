@@ -184,7 +184,7 @@
 - [ ] Nettoyer commentaires obsolètes — ~30min
 - [ ] Préfixer méthodes privées `_x` → `__x` — ~30min
 - [ ] Validations Pydantic (min/max, regex email/phone) — ~30min
-- [ ] Naming cohérent : tous les services en `*_service.py` — ~30min
+- [x] Naming services — convention pragmatique adoptée : `*_service.py` (public API) + sous-modules `consolidation_helpers.py`, `consolidation_loaders.py` etc. par domaine. Pas de refacto agressive (casserait trop d'imports) — ~30min
 - [x] Imports absolus partout (bannir relatifs) — déjà OK, audit grep vide — ~30min
 - [ ] `__all__` dans les modules publics — ~30min
 
@@ -197,16 +197,16 @@
 - [ ] Log rotation configurée (size + time) — ~30min
 
 ### Nginx/infra polish
-- [ ] `X-Request-ID` logging nginx — ~30min
+- [x] `X-Request-ID` logging nginx — `map` + `log_format main_with_id` + `proxy_set_header X-Request-ID` ajoutes (correlation logs API) — ~30min
 - [x] Aligner `client_max_body_size` nginx 25M ↔ `MAX_UPLOAD_SIZE_MB=20` — ~20min
-- [ ] Commentaires nginx expliquant le tuning — ~30min
+- [x] Commentaires nginx expliquant le tuning (rate limit, gzip, X-Request-ID, upstreams) — ~30min
 - [ ] Health check API via `curl` (pas exec Python) — ~20min
 
 ### Scripts maintenance
 - [x] `restore_db.sh` : `--dry-run` + pre-restore backup automatique + `--no-pre-backup` — ~1h
 - [x] `backup_db.sh` : check espace disque (`BACKUP_MIN_FREE_MB`) + `BACKUP_RETENTION_DAYS` configurable — ~45min
-- [ ] `scripts/rollback.sh` orchestrant restore + restart — ~2h
-- [ ] `scripts/seed_demo.sh` environnement de démo — ~1h
+- [x] `scripts/rollback.sh` orchestrant pre-backup + restore + git reset + rebuild + healthcheck — ~2h
+- [x] `scripts/seed_demo.sh` (drop schema + migrate + seed minimal + seed_demo enrichi) — ~1h
 - [ ] Data migration backfill indexes — ~30min
 - [ ] N+1 audit sync Cosium (eager loading) — ~2h
 - [ ] Circuit breaker Cosium API (5 erreurs → fail fast) — ~1h
