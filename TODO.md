@@ -94,7 +94,7 @@
 - [x] Test Claude API error handling — `test_claude_provider.py` 8 tests (NoKey + WithKey scenarios) — ~1h
 - [x] Test consent RGPD opt-in/opt-out — `test_consent_rgpd.py` 6 tests (default, opt-in, toggle idempotent, channels independants, audit log, canal libre) ✓ — ~1h
 - [x] Test Stripe webhook — `test_stripe_webhook.py` 7 tests (checkout completed, payment_failed, subscription deleted/updated, missing metadata, unknown customer, unknown event) ✓ — ~1h
-- [ ] Test cycle cookie httpOnly — ~2h
+- [x] Test cycle cookie httpOnly — `test_cookie_httponly.py` 8 tests (3 cookies set, HttpOnly flag, SameSite Lax, Secure off en test, Path=/, request OK avec cookie, 401 sans, logout clear) ✓ — ~2h
 - [ ] Tests hooks frontend (useClients, useCase, useDashboard) — ~2h
 
 ---
