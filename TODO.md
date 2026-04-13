@@ -216,7 +216,7 @@
 ## 🔵 E. Observabilité (~30h)
 
 ### Métriques
-- [ ] Endpoint `/metrics` Prometheus — ~4h
+- [x] Endpoint `/metrics` Prometheus — `app/api/routers/metrics.py` (4 metrics globaux exposes en format texte standard) + 5 tests pytest verts — ~4h
 - [ ] Middleware histogram temps réponse par endpoint — ~2h
 - [ ] Monitoring queue Celery (Flower ou custom) — ~2h
 - [ ] Sentry custom metrics (facturation, OCR rate) — ~1h
@@ -229,7 +229,7 @@
 - [ ] Alert si disque /var > 80% — ~30min
 
 ### Stack monitoring
-- [ ] `docker-compose.monitoring.yml` (Prometheus + Grafana) — ~4h
+- [x] `docker-compose.monitoring.yml` (Prometheus + Grafana + postgres-exporter + redis-exporter) + `config/prometheus/prometheus.yml` + `config/grafana/provisioning/datasources/` — ~4h
 - [ ] Dashboards Grafana (latence, erreurs, queue, DB) — ~3h
 - [ ] Logs agrégés (fluent-bit ou Datadog) — ~4h
 - [ ] Loki + Promtail pour logs structurés — ~3h
@@ -246,15 +246,15 @@
 
 ## 📚 F. Documentation (~25h)
 
-- [ ] `docs/CONTRIBUTING.md` (git flow, PR) — ~1h
+- [x] `docs/CONTRIBUTING.md` (workflow PR, conventions code, migrations, tests, releases) — ~1h
 - [ ] `docs/adr/` Architecture Decision Records — ~2h
-- [ ] `docs/RUNBOOK.md` (incidents, recovery) — ~2h
+- [x] `docs/RUNBOOK.md` (triage 5min, incidents courants API/Celery/Cosium/MinIO, restore backup, rollback deploy, rotation secrets, postmortem checklist) — ~2h
 - [x] `docs/ALEMBIC.md` (workflow, commandes, patterns DDL non-bloquant, CONCURRENTLY, branching, rollback prod) — ~1h
-- [ ] `docs/BUSINESS_RULES.md` (clients, devis, PEC, paiement) — ~1h
+- [x] `docs/BUSINESS_RULES.md` (Customer/Devis/Facture/Paiement/PEC/Reconciliation/RGPD/Marketing/Reminders/Multi-tenant/Cosium/Stripe — règles complètes) — ~1h
 - [ ] `docs/DATABASE.md` + ERD (mermaid) — ~2h
 - [x] `docs/RBAC.md` matrice rôles/permissions (4 roles + group_admin, par module) — ~1h
 - [x] `docs/DEPLOY_CHECKLIST.md` (pre-requis, pre/post-deploy, rollback, TLS, monitoring) — ~1h
-- [ ] `docs/PERFORMANCE.md` (pool, timeouts, Celery) — ~2h
+- [x] `docs/PERFORMANCE.md` (cibles latence, stack tuning Postgres/Redis/Celery/Nginx, N+1 patterns, pagination, cache Redis, frontend bundle, profiling cProfile/py-spy, scaling) — ~2h
 - [x] `docs/COSIUM_AUTH.md` (3 modes : basic, OIDC, cookie + rotation) — ~30min
 - [x] `docs/ENV.md` variables exhaustives (~50 vars + exemple .env.prod) — ~1h
 - [x] `docs/DATABASE_INDEXES.md` stratégie (28 index par table + audit pg_stat + CONCURRENTLY) — ~30min
