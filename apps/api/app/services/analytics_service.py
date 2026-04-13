@@ -7,6 +7,10 @@ Delegates to sub-modules for individual KPI calculations and comparisons:
 All public functions are re-exported here for backward compatibility.
 """
 
+from app.services.analytics_comparison_service import (  # noqa: F401
+    get_dashboard_full,
+    get_kpi_comparison,
+)
 from app.services.analytics_kpi_service import (  # noqa: F401
     get_aging_balance,
     get_commercial_kpis,
@@ -17,8 +21,4 @@ from app.services.analytics_kpi_service import (  # noqa: F401
     get_marketing_kpis,
     get_operational_kpis,
     get_payer_performance,
-)
-from app.services.analytics_comparison_service import (  # noqa: F401
-    get_dashboard_full,
-    get_kpi_comparison,
 )

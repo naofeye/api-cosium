@@ -1,7 +1,6 @@
 """PEC preparation PDF exports."""
 
 import io
-from datetime import UTC, datetime
 
 from reportlab.lib import colors as rl_colors
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet

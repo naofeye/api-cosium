@@ -10,18 +10,42 @@ from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
 from app.integrations.cosium.adapter_reference import (
-    adapt_bank, adapt_brand, adapt_calendar_category, adapt_calendar_event,
-    adapt_company, adapt_cosium_user, adapt_doctor, adapt_equipment_type,
-    adapt_frame_material, adapt_lens_focus_category, adapt_lens_focus_type,
-    adapt_lens_material, adapt_mutuelle, adapt_site, adapt_supplier, adapt_tag,
+    adapt_bank,
+    adapt_brand,
+    adapt_calendar_category,
+    adapt_calendar_event,
+    adapt_company,
+    adapt_cosium_user,
+    adapt_doctor,
+    adapt_equipment_type,
+    adapt_frame_material,
+    adapt_lens_focus_category,
+    adapt_lens_focus_type,
+    adapt_lens_material,
+    adapt_mutuelle,
+    adapt_site,
+    adapt_supplier,
+    adapt_tag,
 )
 from app.models.client import Customer
 from app.models.cosium_reference import (
-    CosiumBank, CosiumBrand, CosiumCalendarCategory, CosiumCalendarEvent,
-    CosiumCompany, CosiumCustomerTag, CosiumDoctor, CosiumEquipmentType,
-    CosiumFrameMaterial, CosiumLensFocusCategory, CosiumLensFocusType,
-    CosiumLensMaterial, CosiumMutuelle, CosiumSite, CosiumSupplier,
-    CosiumTag, CosiumUser,
+    CosiumBank,
+    CosiumBrand,
+    CosiumCalendarCategory,
+    CosiumCalendarEvent,
+    CosiumCompany,
+    CosiumCustomerTag,
+    CosiumDoctor,
+    CosiumEquipmentType,
+    CosiumFrameMaterial,
+    CosiumLensFocusCategory,
+    CosiumLensFocusType,
+    CosiumLensMaterial,
+    CosiumMutuelle,
+    CosiumSite,
+    CosiumSupplier,
+    CosiumTag,
+    CosiumUser,
 )
 from app.services import audit_service
 

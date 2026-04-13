@@ -11,10 +11,8 @@ from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
 from app.domain.schemas.batch_operation import (
-    BatchItemResponse,
     BatchOperationResponse,
     BatchPecResult,
-    BatchSummaryResponse,
 )
 from app.models.client import Customer
 from app.models.client_mutuelle import ClientMutuelle

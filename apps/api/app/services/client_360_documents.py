@@ -18,8 +18,7 @@ from app.domain.schemas.client_360 import (
     OcrInconsistency,
     OcrMutuelleData,
 )
-from app.models.client import Customer
-from app.models.cosium_data import CosiumDocument, CosiumInvoice, CosiumPayment, CosiumPrescription
+from app.models.cosium_data import CosiumDocument, CosiumPayment, CosiumPrescription
 from app.models.cosium_reference import CosiumCalendarEvent, CosiumCustomerTag
 from app.models.document_extraction import DocumentExtraction
 

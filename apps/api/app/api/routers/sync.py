@@ -4,11 +4,11 @@ from sqlalchemy.orm import Session
 
 from app.core.deps import require_tenant_role
 from app.core.exceptions import BusinessError
+from app.core.logging import get_logger
 from app.core.redis_cache import acquire_lock, cache_delete_pattern, release_lock
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.sync import ERPTypeItem, SeedDemoResponse, SyncAllResult, SyncResultResponse, SyncStatusResponse
-from app.core.logging import get_logger
 from app.services import erp_sync_service
 
 logger = get_logger("sync")

@@ -77,7 +77,7 @@ def signup(db: Session, payload: SignupRequest) -> TokenResponse:
             )
             db.flush()
             break
-        except IntegrityError:
+        except IntegrityError as err:
             db.rollback()
             # Re-create org since rollback discarded it
             org = onboarding_repo.create_organization(
@@ -89,7 +89,7 @@ def signup(db: Session, payload: SignupRequest) -> TokenResponse:
                 trial_ends_at=datetime.now(UTC) + timedelta(days=TRIAL_DAYS),
             )
             if attempt == max_slug_attempts - 1:
-                raise BusinessError("Impossible de créer le magasin, veuillez réessayer.")
+                raise BusinessError("Impossible de créer le magasin, veuillez réessayer.") from err
 
     user = onboarding_repo.create_user(
         db,

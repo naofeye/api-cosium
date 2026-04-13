@@ -6,7 +6,6 @@ Extracted from pec_preparation_service to keep each file under 300 lines.
 import json
 from datetime import UTC, datetime
 
-from sqlalchemy import select as sa_select
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessError, NotFoundError

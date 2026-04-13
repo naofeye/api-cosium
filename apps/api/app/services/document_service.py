@@ -49,7 +49,7 @@ def upload_document(db: Session, tenant_id: int, case_id: int, file: UploadFile,
         raise ValidationError("file", f"Fichier trop volumineux (max {settings.max_upload_size_mb} MB)")
 
     # Verification magic bytes pour eviter les fichiers deguises
-    _MAGIC = {
+    _magic = {
         b"%PDF": "pdf",
         b"\xff\xd8\xff": "jpg",
         b"\x89PNG": "png",
@@ -59,7 +59,7 @@ def upload_document(db: Session, tenant_id: int, case_id: int, file: UploadFile,
         b"BM": "bmp",
     }
     detected_ext = None
-    for magic, magic_ext in _MAGIC.items():
+    for magic, magic_ext in _magic.items():
         if file_data[:len(magic)] == magic:
             detected_ext = magic_ext
             break

@@ -1,7 +1,6 @@
 """API router for batch PEC operations (Groupes marketing)."""
 
-import io
-from datetime import date, datetime
+from datetime import date
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse

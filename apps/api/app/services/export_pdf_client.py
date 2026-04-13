@@ -1,7 +1,6 @@
 """Client-related PDF exports: client profile, client 360."""
 
 import io
-from datetime import UTC, datetime
 
 from reportlab.lib import colors as rl_colors
 from reportlab.lib.styles import getSampleStyleSheet

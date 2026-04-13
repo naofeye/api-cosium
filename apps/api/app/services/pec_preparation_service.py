@@ -17,12 +17,10 @@ from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
 from app.domain.schemas.consolidation import ConsolidatedClientProfile
 from app.domain.schemas.pec_preparation import (
-    PecPreparationDocumentResponse,
     PecPreparationResponse,
     PecPreparationSummary,
 )
 from app.models.client import Customer
-from app.models.document_extraction import DocumentExtraction
 from app.repositories import pec_audit_repo, pec_preparation_repo
 from app.services import audit_service, consolidation_service
 from app.services.incoherence_detector import detect_incoherences
@@ -30,17 +28,10 @@ from app.services.incoherence_detector import detect_incoherences
 # Re-exports for backward compatibility
 from app.services.pec_consolidation_service import (
     _to_response,
-    correct_field,
-    refresh_preparation,
 )
 from app.services.pec_precontrol_service import (
     _auto_attach_documents,
     _validate_customer,
-    add_document,
-    create_pec_from_preparation,
-    get_audit_trail,
-    list_documents,
-    run_precontrol_for_preparation,
 )
 
 logger = get_logger("pec_preparation_service")

@@ -1,7 +1,7 @@
 """Balance clients PDF export and data helper."""
 
 import io
-from datetime import datetime, date
+from datetime import date, datetime
 
 from reportlab.lib import colors as rl_colors
 from reportlab.platypus import Paragraph, Table, TableStyle
@@ -17,7 +17,6 @@ from app.services.export_pdf_base import (
     make_date_style,
     make_title_style,
 )
-
 
 # ---------------------------------------------------------------------------
 # Balance Clients — shared data helper

@@ -3,7 +3,8 @@
 Centralise les patterns de query repetes dans le router cosium_reference.
 """
 
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from pydantic import BaseModel
 from sqlalchemy import BinaryExpression, ColumnElement, UnaryExpression, func, or_, select

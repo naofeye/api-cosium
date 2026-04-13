@@ -56,7 +56,7 @@ class ExtractionError(BusinessError):
         super().__init__(message=message, code="EXTRACTION_ERROR")
 
 
-class ImportError_(BusinessError):
+class ImportDataError(BusinessError):
     """Erreur lors de l'import de donnees."""
 
     def __init__(self, message: str, source: str = "") -> None:

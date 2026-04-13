@@ -9,7 +9,6 @@ from app.domain.schemas.consolidation import (
     FieldStatus,
 )
 from app.models.cosium_data import CosiumPrescription
-
 from app.services.consolidation_helpers import (
     TOLERANCE_ADDITION,
     TOLERANCE_AXIS,
