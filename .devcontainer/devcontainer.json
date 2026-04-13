@@ -1,0 +1,51 @@
+{
+  "name": "OptiFlow AI dev",
+  "dockerComposeFile": ["../docker-compose.yml"],
+  "service": "api",
+  "workspaceFolder": "/app",
+  "shutdownAction": "stopCompose",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "ms-azuretools.vscode-docker",
+        "tamasfe.even-better-toml",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.organizeImports": "explicit"
+        },
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.tabSize": 4
+        },
+        "[typescript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[typescriptreact]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": ["tests"],
+        "files.eol": "\n"
+      }
+    }
+  },
+  "forwardPorts": [3000, 8000, 5432, 6379, 9000, 9001, 8025],
+  "portsAttributes": {
+    "3000": { "label": "Web (Next.js)" },
+    "8000": { "label": "API (FastAPI)" },
+    "5432": { "label": "PostgreSQL" },
+    "6379": { "label": "Redis" },
+    "9000": { "label": "MinIO S3" },
+    "9001": { "label": "MinIO Console" },
+    "8025": { "label": "Mailhog UI" }
+  }
+}

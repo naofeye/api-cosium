@@ -1,0 +1,29 @@
+# <type>(<scope>): <subject>  (50 chars max)
+#
+# <body>  (72 chars per line, what & why, not how)
+#
+# <footer>  (refs, breaking changes, co-authors)
+#
+# Types autorises (conventional commits) :
+#   feat     — nouvelle fonctionnalite
+#   fix      — correction de bug
+#   refactor — refacto sans changement comportement
+#   docs     — documentation seulement
+#   chore    — outillage, deps, configs (pas de code prod)
+#   test     — ajout/correction de tests
+#   perf     — amelioration performance
+#   style    — formatage, semicolons (pas logique)
+#   ci       — CI/CD
+#   build    — build system, deps releases
+#
+# Scopes courants :
+#   api, web, infra, ci, docs, deps, security, pec, cosium, ...
+#
+# Exemples :
+#   feat(pec): batch submission endpoint
+#   fix(web): scroll lock on dialog open
+#   refactor(api): split reconciliation_service in 3 files
+#   chore(ci): add bandit security scan
+#
+# Pour activer ce template :
+#   git config commit.template .gitmessage
