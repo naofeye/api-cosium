@@ -92,7 +92,7 @@
 - [x] Test banking import CSV → Payment match — `test_banking.py` 7 tests — ~1h
 - [x] Test health endpoint — `test_health.py` 7 tests — ~1h
 - [x] Test Claude API error handling — `test_claude_provider.py` 8 tests (NoKey + WithKey scenarios) — ~1h
-- [ ] Test consent RGPD opt-in/opt-out spécifique — ~1h
+- [x] Test consent RGPD opt-in/opt-out — `test_consent_rgpd.py` 6 tests (default, opt-in, toggle idempotent, channels independants, audit log, canal libre) ✓ — ~1h
 - [x] Test Stripe webhook — `test_stripe_webhook.py` 7 tests (checkout completed, payment_failed, subscription deleted/updated, missing metadata, unknown customer, unknown event) ✓ — ~1h
 - [ ] Test cycle cookie httpOnly — ~2h
 - [ ] Tests hooks frontend (useClients, useCase, useDashboard) — ~2h
