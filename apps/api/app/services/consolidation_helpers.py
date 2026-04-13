@@ -1,25 +1,19 @@
 """Shared helper functions and constants for consolidation modules.
 
-Contains field creation utilities, comparison functions, data loaders,
-and constants used across consolidation_identity, consolidation_optical,
-and consolidation_financial.
+Contains field creation utilities, comparison functions, and constants used
+across consolidation_identity, consolidation_optical, and consolidation_financial.
+
+Les data loaders sont dans `consolidation_loaders.py` (re-exportes ci-dessous).
 """
 
 import json
 from datetime import UTC, date, datetime
-
-from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from app.domain.schemas.consolidation import (
     ConsolidatedClientProfile,
     ConsolidatedField,
     FieldStatus,
 )
-from app.models.client import Customer
-from app.models.client_mutuelle import ClientMutuelle
-from app.models.cosium_data import CosiumPrescription
-from app.models.devis import Devis, DevisLigne
 from app.models.document_extraction import DocumentExtraction
 
 # Fields required for a complete PEC submission
@@ -205,102 +199,14 @@ def _collect_ocr_data(
 
 
 # --- Data loaders ---
+# Deplaces dans `consolidation_loaders.py`. Re-exportes ici pour compat ascendante.
+from app.services.consolidation_loaders import (  # noqa: E402, F401
+    load_client_mutuelles,
+    load_cosium_client,
+    load_devis,
+    load_devis_lignes,
+    load_document_extractions,
+    load_latest_prescription,
+)
 
 
-def load_cosium_client(
-    db: Session, tenant_id: int, customer_id: int
-) -> Customer | None:
-    return db.scalars(
-        select(Customer).where(
-            Customer.id == customer_id,
-            Customer.tenant_id == tenant_id,
-        )
-    ).first()
-
-
-def load_latest_prescription(
-    db: Session, tenant_id: int, customer_id: int
-) -> CosiumPrescription | None:
-    return db.scalars(
-        select(CosiumPrescription)
-        .where(
-            CosiumPrescription.customer_id == customer_id,
-            CosiumPrescription.tenant_id == tenant_id,
-        )
-        .order_by(CosiumPrescription.file_date.desc().nullslast(), CosiumPrescription.id.desc())
-        .limit(1)
-    ).first()
-
-
-def load_devis(
-    db: Session, tenant_id: int, customer_id: int, devis_id: int | None
-) -> Devis | None:
-    if devis_id:
-        return db.scalars(
-            select(Devis).where(
-                Devis.id == devis_id,
-                Devis.tenant_id == tenant_id,
-            )
-        ).first()
-    from app.models.case import Case
-
-    return db.scalars(
-        select(Devis)
-        .join(Case, Case.id == Devis.case_id)
-        .where(
-            Case.customer_id == customer_id,
-            Devis.tenant_id == tenant_id,
-        )
-        .order_by(Devis.created_at.desc())
-        .limit(1)
-    ).first()
-
-
-def load_devis_lignes(
-    db: Session, tenant_id: int, devis_id: int
-) -> list[DevisLigne]:
-    return list(
-        db.scalars(
-            select(DevisLigne).where(
-                DevisLigne.devis_id == devis_id,
-                DevisLigne.tenant_id == tenant_id,
-            )
-        ).all()
-    )
-
-
-def load_client_mutuelles(
-    db: Session, tenant_id: int, customer_id: int
-) -> list[ClientMutuelle]:
-    return list(
-        db.scalars(
-            select(ClientMutuelle).where(
-                ClientMutuelle.customer_id == customer_id,
-                ClientMutuelle.tenant_id == tenant_id,
-                ClientMutuelle.active.is_(True),
-            )
-            .order_by(ClientMutuelle.confidence.desc())
-        ).all()
-    )
-
-
-def load_document_extractions(
-    db: Session, tenant_id: int, customer_id: int
-) -> list[DocumentExtraction]:
-    """Load document extractions linked to this customer's documents."""
-    from app.models.case import Case
-    from app.models.document import Document
-
-    return list(
-        db.scalars(
-            select(DocumentExtraction)
-            .join(Document, Document.id == DocumentExtraction.document_id)
-            .join(Case, Case.id == Document.case_id)
-            .where(
-                Case.customer_id == customer_id,
-                DocumentExtraction.tenant_id == tenant_id,
-                DocumentExtraction.structured_data.isnot(None),
-            )
-            .order_by(DocumentExtraction.created_at.desc())
-        ).all()
-    )
