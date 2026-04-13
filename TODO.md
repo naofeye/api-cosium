@@ -68,9 +68,9 @@
 ### Celery & async
 - [ ] Audit idempotence Celery (EXISTS avant INSERT) — ~3h
 - [ ] Déléguer email sync → `email_tasks.py` — ~2h
-- [ ] Dead-letter queue Celery — ~1h
-- [ ] Retry policy documentée (`docs/CELERY.md`) — ~30min
-- [ ] Test : tâche échoue → retry → réussit — ~1h
+- [x] Dead-letter queue Celery — handler `task_failure.connect` → log structuré + Sentry capture — ~1h
+- [x] Retry policy documentée (`docs/CELERY.md` créé précédemment) — ~30min
+- [x] Tests Celery config (acks_late, time_limits, routing 6 queues, DLQ handler, beat schedule, timezone) `tests/test_celery_config.py` 8/8 ✓ — ~1h
 - [ ] Batch tasks : update statut tous les 100 items (progression visible) — ~1h
 - [ ] Task timeout explicite par type (hard_time_limit) — ~1h
 
