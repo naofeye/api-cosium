@@ -1,7 +1,7 @@
 """Pydantic schemas for the multi-source consolidation engine."""
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 FieldValue = str | int | float | bool | None
 
 
-class FieldStatus(str, Enum):
+class FieldStatus(StrEnum):
     """Status of a consolidated field indicating its provenance and reliability."""
 
     CONFIRMED = "confirmed"  # User explicitly validated

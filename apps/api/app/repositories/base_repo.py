@@ -9,17 +9,13 @@ Usage:
     item = repo.get_by_id(db, item_id, tenant_id)
 """
 
-from typing import Generic, TypeVar
-
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.base import Base
 
-T = TypeVar("T", bound=Base)
 
-
-class BaseRepository(Generic[T]):
+class BaseRepository[T: Base]:
     """Repository de base avec operations CRUD generiques filtrees par tenant."""
 
     model: type[T]
