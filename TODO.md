@@ -51,7 +51,7 @@
 ## 🟠 B. Architecture & tests (~55h)
 
 ### Refacto backend (dette)
-- [ ] Refacto 19 repos : retirer `db.commit()` → services, repos `db.flush()` — ~8h
+- [x] Refacto 19 repos : `db.commit()` → `db.flush()` — audit grep confirme 0 `db.commit()` dans `apps/api/app/repositories/` (27 fichiers, 69 occurrences `db.flush`). Pattern services-gerent-commit en place — ~8h
 - [x] Dict → Pydantic `pec_preparation.py` 3 endpoints : `PecPreparationListResponse` + `PecSubmissionResponse` + `PrecontrolResponse` (sous-schemas inclus) — ~1h
 - [x] Dict → Pydantic `cosium_documents.py:80` → `BulkSyncResponse` (started+task_id ou completed+BulkSyncResult) — ~1h
 - [x] Audit `response_model` Pydantic sur tous les routers (audit 221 endpoints, 55 sans sont légitimes : 204 No Content + StreamingResponse exports/SSE) — ~3h
