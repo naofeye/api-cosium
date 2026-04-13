@@ -34,6 +34,7 @@ from app.api.routers import (
     factures,
     gdpr,
     marketing,
+    metrics,
     notifications,
     ocam_operators,
     onboarding,
@@ -376,6 +377,7 @@ app.include_router(reminders.router)
 app.include_router(renewals.router)
 app.include_router(consents.router)
 app.include_router(marketing.router)
+app.include_router(metrics.router)
 app.include_router(search.router)
 app.include_router(sync.router)
 app.include_router(exports.router)
