@@ -7,11 +7,11 @@ from app.models.cosium_data import CosiumInvoice, CosiumPayment
 from app.models.tenant import Tenant
 from app.services.reconciliation_service import (
     classify_payment,
-    _names_match,
-    _normalize_name,
-    link_payments_to_customers,
-    reconcile_customer_dossier,
     get_reconciliation_summary,
+    link_payments_to_customers,
+    names_match,
+    normalize_name,
+    reconcile_customer_dossier,
 )
 
 
