@@ -206,6 +206,7 @@
 - [ ] [NEW] **Onglet Equipements** : historique complet des montures + verres + dioptries (timeline visuelle)
 - [ ] [NEW] **Onglet Prescriptions** : evolution des dioptries dans le temps (graphique Recharts)
 - [x] [NEW] **Backend Fidelite** : `GET /clients/{id}/cosium-live` retourne fidelity_cards + sponsorships + notes en LIVE
+- [x] [NEW] **Frontend Onglet Fidelite** : `TabFidelite` cree, integre dans fiche client (cartes + parrainages + notes CRM, gestion erreurs gracieuse)
 - [ ] [NEW] **Onglet RDV** : historique et prochains rendez-vous depuis le calendrier Cosium (frontend)
 - [ ] [NEW] **Onglet SAV** : dossiers SAV avec statut et timeline (frontend)
 - [x] [NEW] **Backend Notes** : inclus dans `cosium-live` (live Cosium, gestion erreur gracieuse)
