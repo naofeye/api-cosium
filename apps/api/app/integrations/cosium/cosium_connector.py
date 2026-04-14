@@ -357,6 +357,49 @@ class CosiumConnector(ERPConnector):
             logger.debug("cosium_ophthalmologist_not_found", customer_id=customer_erp_id)
             return None
 
+    def get_spectacle_file(self, file_id: int) -> dict:
+        """GET /end-consumer/spectacles-files/{id} — dossier lunettes (container HAL).
+
+        Retourne le container avec liens vers diopters, spectacles-selection, doctor-address.
+        Lecture seule.
+        """
+        return self._client.get(f"/v1/end-consumer/spectacles-files/{file_id}")
+
+    def get_spectacle_diopters(self, file_id: int) -> list[dict]:
+        """GET /end-consumer/spectacles-files/{id}/diopters — dioptries du dossier lunettes.
+
+        Retourne la liste des entrees de dioptries (sphere, cylinder, axis, addition, prism).
+        Lecture seule.
+        """
+        data = self._client.get(f"/v1/end-consumer/spectacles-files/{file_id}/diopters")
+        embedded = data.get("_embedded", {}) or {}
+        items = embedded.get("content", []) if isinstance(embedded, dict) else []
+        if not isinstance(items, list):
+            items = [items] if items else []
+        return items
+
+    def get_spectacle_selection(self, file_id: int) -> dict:
+        """GET /end-consumer/spectacles-files/{id}/spectacles-selection — selection courante du client.
+
+        Retourne la liste des paires de lunettes en cours de selection.
+        Lecture seule.
+        """
+        return self._client.get(f"/v1/end-consumer/spectacles-files/{file_id}/spectacles-selection")
+
+    def list_spectacle_files_for_customer(self, customer_cosium_id: int) -> list[dict]:
+        """GET /end-consumer/spectacles-files/?customerId=... — liste des dossiers lunettes d'un client.
+
+        Le parametre customerId attend une reference HAL complete vers le client.
+        Lecture seule.
+        """
+        customer_ref = f"/{self._client.tenant}/api/v1/end-consumer/customers/{customer_cosium_id}"
+        data = self._client.get("/v1/end-consumer/spectacles-files/", params={"customerId": customer_ref})
+        embedded = data.get("_embedded", {}) or {}
+        items = embedded.get("content", []) if isinstance(embedded, dict) else []
+        if not isinstance(items, list):
+            items = [items] if items else []
+        return items
+
     def get_payment_types(self) -> list[ERPPaymentType]:
         data = self._client.get("/payment-types")
         embedded = data.get("_embedded", data)
