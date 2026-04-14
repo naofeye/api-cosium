@@ -12,6 +12,7 @@ from app.domain.schemas.auth import (
     LoginRequest,
     LoginResponse,
     ResetPasswordRequest,
+    SessionInfo,
     SwitchTenantRequest,
     TokenResponse,
     UserMeResponse,
@@ -37,9 +38,15 @@ def _set_auth_cookies(response: Response, result: TokenResponse) -> None:
     response.set_cookie(
         "optiflow_refresh", result.refresh_token, max_age=settings.refresh_token_expire_days * 86400, **_COOKIE_OPTS
     )
-    # Non-httpOnly flag so middleware/frontend can detect auth status (no secret)
+    # Non-httpOnly flag so frontend can detect auth status (no secret).
+    # Reste non-httpOnly (lisible JS) mais secure=True en prod pour eviter fuite sur HTTP.
     response.set_cookie(
-        "optiflow_authenticated", "true", max_age=settings.refresh_token_expire_days * 86400, path="/", samesite="lax"
+        "optiflow_authenticated",
+        "true",
+        max_age=settings.refresh_token_expire_days * 86400,
+        path="/",
+        samesite="lax",
+        secure=settings.app_env not in ("local", "development", "test"),
     )
 
 
@@ -164,6 +171,49 @@ def logout_all(
     response.delete_cookie("optiflow_token", path="/")
     response.delete_cookie("optiflow_refresh", path="/")
     response.delete_cookie("optiflow_authenticated", path="/")
+
+
+@router.get(
+    "/sessions",
+    response_model=list[SessionInfo],
+    summary="Lister les sessions actives",
+    description="Retourne toutes les sessions actives (refresh tokens non revokes) de l'utilisateur.",
+)
+def list_sessions(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[SessionInfo]:
+    import hashlib
+    current_refresh = request.cookies.get("optiflow_refresh") or ""
+    current_hash = hashlib.sha256(current_refresh.encode()).hexdigest() if current_refresh else ""
+    sessions = refresh_token_repo.list_active_for_user(db, current_user.id)
+    return [
+        SessionInfo(
+            id=s.id,
+            created_at=s.created_at.isoformat(),
+            expires_at=s.expires_at.isoformat(),
+            is_current=(s.token == current_hash),
+        )
+        for s in sessions
+    ]
+
+
+@router.post(
+    "/sessions/{session_id}/revoke",
+    status_code=204,
+    summary="Revoquer une session",
+    description="Revoque un refresh token specifique (utile pour deconnecter un autre appareil).",
+)
+def revoke_session(
+    session_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    if not refresh_token_repo.revoke_by_id(db, current_user.id, session_id):
+        from app.core.exceptions import NotFoundError
+        raise NotFoundError(f"Session {session_id} introuvable")
+    db.commit()
 
 
 @router.get(

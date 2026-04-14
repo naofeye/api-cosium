@@ -65,6 +65,7 @@ from app.db.session import SessionLocal
 from app.seed import seed_data
 
 _APP_VERSION = "1.0.0"
+_APP_START_TIME = _time.time()
 
 logger = get_logger("main")
 

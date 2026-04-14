@@ -48,3 +48,49 @@ def revoke_all_for_user(db: Session, user_id: int) -> None:
 def is_valid(rt: RefreshToken) -> bool:
     now = datetime.now(UTC)  # naive datetime for DB compatibility
     return not rt.revoked and rt.expires_at > now.replace(tzinfo=None)
+
+
+def list_active_for_user(db: Session, user_id: int) -> list[RefreshToken]:
+    """Sessions actives (non revokes, non expires) triees du plus recent au plus ancien."""
+    now = datetime.now(UTC).replace(tzinfo=None)
+    return list(
+        db.scalars(
+            select(RefreshToken)
+            .where(
+                RefreshToken.user_id == user_id,
+                RefreshToken.revoked.is_(False),
+                RefreshToken.expires_at > now,
+            )
+            .order_by(RefreshToken.created_at.desc())
+        )
+    )
+
+
+def revoke_by_id(db: Session, user_id: int, session_id: int) -> bool:
+    """Revoque une session precise. Renvoie False si non trouvee ou n'appartient pas a l'user."""
+    rt = db.scalars(
+        select(RefreshToken).where(RefreshToken.id == session_id, RefreshToken.user_id == user_id)
+    ).first()
+    if not rt:
+        return False
+    rt.revoked = True
+    db.flush()
+    return True
+
+
+def purge_orphans(db: Session, keep_days: int = 30) -> int:
+    """Supprime les tokens revokes ou expires depuis plus de keep_days jours.
+
+    Retourne le nombre de lignes supprimees.
+    """
+    from sqlalchemy import delete, or_
+    from datetime import timedelta
+
+    cutoff = (datetime.now(UTC) - timedelta(days=keep_days)).replace(tzinfo=None)
+    result = db.execute(
+        delete(RefreshToken).where(
+            or_(RefreshToken.revoked.is_(True), RefreshToken.expires_at < cutoff),
+            RefreshToken.created_at < cutoff,
+        )
+    )
+    return result.rowcount or 0
