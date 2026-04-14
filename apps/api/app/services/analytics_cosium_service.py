@@ -408,6 +408,41 @@ def compute_client_score(db: Session, tenant_id: int, customer_id: int) -> dict:
     }
 
 
+def get_cashflow_forecast(db: Session, tenant_id: int) -> dict:
+    """Previsionnel de tresorerie 30j base sur l'age des factures impayees.
+
+    Heuristique :
+    - 0-30j : 70% chance d'encaissement dans les 30 prochains jours
+    - 30-60j : 40% chance
+    - 60-90j : 20% chance
+    - 90j+ : 5% chance (irrecouvrable potentiel)
+    """
+    aging_0_30 = _aging_bucket_sum(db, tenant_id, 0, 30)
+    aging_30_60 = _aging_bucket_sum(db, tenant_id, 30, 60)
+    aging_60_90 = _aging_bucket_sum(db, tenant_id, 60, 90)
+    aging_over_90 = _aging_bucket_sum(db, tenant_id, 90, None)
+
+    expected_30d = (
+        aging_0_30 * 0.70
+        + aging_30_60 * 0.40
+        + aging_60_90 * 0.20
+        + aging_over_90 * 0.05
+    )
+    irrecoverable_risk = aging_over_90 * 0.95  # part probablement perdue
+
+    return {
+        "outstanding_total": round(aging_0_30 + aging_30_60 + aging_60_90 + aging_over_90, 2),
+        "expected_30d": round(expected_30d, 2),
+        "irrecoverable_risk": round(irrecoverable_risk, 2),
+        "buckets": {
+            "0_30": round(aging_0_30, 2),
+            "30_60": round(aging_30_60, 2),
+            "60_90": round(aging_60_90, 2),
+            "over_90": round(aging_over_90, 2),
+        },
+    }
+
+
 def get_top_clients_by_ca(db: Session, tenant_id: int, limit: int = 10, months: int = 12) -> list[dict]:
     """Top N clients par CA sur les N derniers mois (factures Cosium INVOICE)."""
     cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=months * 30)

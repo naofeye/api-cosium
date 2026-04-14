@@ -10,6 +10,7 @@ import { OnboardingGuide } from "@/components/ui/OnboardingGuide";
 import { SkeletonCard } from "@/components/ui/SkeletonCard";
 
 import { ActionItemsBreakdown } from "./components/ActionItemsBreakdown";
+import { CashflowForecastWidget } from "./components/CashflowForecast";
 import { CosiumCockpitKPIs } from "./components/CosiumCockpitKPIs";
 import { DashboardKPIs } from "./components/DashboardKPIs";
 import { DashboardSections } from "./components/DashboardSections";
@@ -112,6 +113,10 @@ export default function DashboardPage() {
 
       <ErrorBoundary name="CosiumCockpit">
         <CosiumCockpitKPIs />
+      </ErrorBoundary>
+
+      <ErrorBoundary name="CashflowForecast">
+        <CashflowForecastWidget />
       </ErrorBoundary>
 
       <ErrorBoundary name="DashboardKPIs">

@@ -41,6 +41,19 @@ def financial_breakdown(
 
 
 @router.get(
+    "/analytics/cashflow-forecast",
+    summary="Previsionnel de tresorerie 30j",
+    description="Estimation des encaissements probables sur 30 jours (heuristique aging-based) + risque irrecouvrable.",
+    tags=["analytics"],
+)
+def cashflow_forecast(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> dict:
+    return analytics_cosium_service.get_cashflow_forecast(db, tenant_ctx.tenant_id)
+
+
+@router.get(
     "/dashboard/top-clients",
     summary="Top clients par CA",
     description="Retourne les N clients avec le CA le plus eleve sur les derniers mois (factures Cosium).",
