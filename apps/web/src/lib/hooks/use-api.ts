@@ -117,6 +117,10 @@ export function useCosiumInvoices(params?: {
   search?: string;
   date_from?: string;
   date_to?: string;
+  archived?: boolean | null;
+  has_outstanding?: boolean | null;
+  min_amount?: number;
+  max_amount?: number;
 }) {
   const sp = new URLSearchParams();
   if (params?.page) sp.set("page", String(params.page));
@@ -126,6 +130,10 @@ export function useCosiumInvoices(params?: {
   if (params?.search) sp.set("search", params.search);
   if (params?.date_from) sp.set("date_from", params.date_from);
   if (params?.date_to) sp.set("date_to", params.date_to);
+  if (params?.archived !== undefined && params?.archived !== null) sp.set("archived", String(params.archived));
+  if (params?.has_outstanding !== undefined && params?.has_outstanding !== null) sp.set("has_outstanding", String(params.has_outstanding));
+  if (params?.min_amount !== undefined) sp.set("min_amount", String(params.min_amount));
+  if (params?.max_amount !== undefined) sp.set("max_amount", String(params.max_amount));
   return useSWR<PaginatedResponse<CosiumInvoice>>(`/cosium-invoices?${sp}`);
 }
 
