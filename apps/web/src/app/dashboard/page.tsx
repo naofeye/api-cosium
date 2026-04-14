@@ -23,6 +23,7 @@ import { ReconciliationBanner } from "./components/ReconciliationBanner";
 import { RecentActivity } from "./components/RecentActivity";
 import { RenewalSection } from "./components/RenewalSection";
 import { TodayAppointments } from "./components/TodayAppointments";
+import { TopClientsCa } from "./components/TopClientsCa";
 import { UpcomingAppointments } from "./components/UpcomingAppointments";
 import { useDashboardSWR } from "./hooks/useDashboardSWR";
 import { useExportPDF } from "./hooks/useExportPDF";
@@ -91,6 +92,10 @@ export default function DashboardPage() {
 
       <ErrorBoundary name="UpcomingAppointments">
         <UpcomingAppointments />
+      </ErrorBoundary>
+
+      <ErrorBoundary name="TopClientsCa">
+        <TopClientsCa />
       </ErrorBoundary>
 
       <PeriodSelector

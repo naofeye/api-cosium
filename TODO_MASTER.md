@@ -327,7 +327,7 @@
 
 - [ ] [NEW] **Dashboard fidelite** : points cumules, parrainages actifs, bons disponibles (depuis Cosium)
 - [ ] [NEW] **Alertes parrainage** : notifier quand un parrainage est utilise
-- [ ] [NEW] **Top clients** : classement par CA, frequence, anciennete — pour actions VIP
+- [x] [NEW] **Top clients** : `GET /dashboard/top-clients?limit=N&months=N` + widget `TopClientsCa` dashboard avec barre de progression CA + nb factures + outstanding flag (lien fiche client)
 
 ---
 

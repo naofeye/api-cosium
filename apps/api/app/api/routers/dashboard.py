@@ -24,6 +24,20 @@ def dashboard_summary(
 
 
 @router.get(
+    "/dashboard/top-clients",
+    summary="Top clients par CA",
+    description="Retourne les N clients avec le CA le plus eleve sur les derniers mois (factures Cosium).",
+)
+def dashboard_top_clients(
+    limit: int = 10,
+    months: int = 12,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> list[dict]:
+    return analytics_cosium_service.get_top_clients_by_ca(db, tenant_ctx.tenant_id, limit=limit, months=months)
+
+
+@router.get(
     "/dashboard/cosium-cockpit",
     response_model=CosiumCockpitKPIs,
     summary="Cockpit opticien — KPIs Cosium live",
