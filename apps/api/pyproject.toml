@@ -22,6 +22,7 @@ ignore = [
   "E501",  # line too long (handled by formatter)
   "E741",  # ambiguous variable name (l, e — common in loops)
   "B008",  # function call in default arg (Depends())
+  "UP046", # PEP 695 type params — Pydantic Generic[T] still requires the legacy syntax
 ]
 
 [tool.ruff.lint.isort]

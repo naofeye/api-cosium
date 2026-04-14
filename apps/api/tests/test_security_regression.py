@@ -175,10 +175,15 @@ class TestCosiumReadOnly:
         members = inspect.getmembers(CosiumConnector, predicate=inspect.isfunction)
         public_methods = [name for name, _ in members if not name.startswith("_")]
 
+        # get_*, list_*, search_* sont tous des verbes de LECTURE (HTTP GET).
+        # authenticate fait POST /authenticate/basic (seul POST autorise par charte).
+        # Toute methode put/post/delete/patch/create/update/save/etc serait BLOQUEE.
+        READ_PREFIXES = ("get_", "list_", "search_")
+        ALLOWED_NAMES = {"authenticate", "erp_type", "is_authenticated"}
         for method_name in public_methods:
-            assert method_name.startswith("get_") or method_name in ("authenticate", "erp_type", "is_authenticated"), (
+            assert method_name.startswith(READ_PREFIXES) or method_name in ALLOWED_NAMES, (
                 f"Methode inattendue sur CosiumConnector : {method_name}. "
-                "Seules les methodes get_* et authenticate sont autorisees."
+                "Seules les methodes get_*/list_*/search_* (lectures) et authenticate sont autorisees."
             )
 
 
