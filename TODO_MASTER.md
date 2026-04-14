@@ -81,8 +81,8 @@
 
 - [x] GET `/customers` — recherche basique (nom, email, tel)
 - [ ] [NEW] **Embed complet** : exploiter `?embed=accounting,address,consents,optician,site,tags` pour rapatrier toutes les sous-ressources en un seul appel
-- [ ] [NEW] **Cartes de fidelite** : GET `/customers/{id}/fidelity-cards` — sync vers table `client_fidelity_cards`
-- [ ] [NEW] **Parrainages** : GET `/customers/{id}/sponsorships` — sync vers table `client_sponsorships`
+- [x] [NEW] **Cartes de fidelite** : route `GET /api/v1/cosium/customers/{id}/fidelity-cards` — lecture live
+- [x] [NEW] **Parrainages** : route `GET /api/v1/cosium/customers/{id}/sponsorships` — lecture live
 - [ ] [NEW] **Consentements marketing** : lire les flags `subscribed-to-email/sms/paper` depuis Cosium et les afficher dans OptiFlow (lecture seule)
 - [ ] [NEW] **Recherche fuzzy** : exploiter `loose_first_name`, `loose_last_name`, `loose_customer_number` pour la recherche globale
 - [ ] [NEW] **Adapter enrichi** : `cosium_customer_to_optiflow()` doit mapper fidelity, sponsorship, consents, tags
