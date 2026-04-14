@@ -116,6 +116,29 @@ def list_cosium_commandes_fournisseur(
 
 
 @router.get(
+    "/cosium/invoices/{invoice_cosium_id}/payment-links",
+    summary="Liens de paiement en ligne (live)",
+    description="Recupere les URLs de paiement en ligne d'une facture Cosium si disponibles.",
+)
+def get_invoice_payment_links(
+    invoice_cosium_id: int,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> dict:
+    from app.integrations.cosium.cosium_connector import CosiumConnector
+    from app.services.erp_auth_service import _authenticate_connector, _get_connector_for_tenant
+    from app.core.exceptions import BusinessError, ExternalServiceError
+    connector, tenant = _get_connector_for_tenant(db, tenant_ctx.tenant_id)
+    if not isinstance(connector, CosiumConnector):
+        raise BusinessError("Le tenant n'utilise pas Cosium comme ERP")
+    _authenticate_connector(connector, tenant)
+    try:
+        return connector.get_invoice_payment_links(invoice_cosium_id)
+    except Exception as e:
+        raise ExternalServiceError(f"Liens paiement Cosium {invoice_cosium_id} indisponibles : {str(e)[:100]}")
+
+
+@router.get(
     "/cosium/invoice-payments/{payment_id}",
     summary="Detail reglement Cosium (live)",
     description="Recupere un reglement de facture Cosium en live (montant, banque, date valeur, code comptable, ...).",

@@ -110,10 +110,10 @@
 - [x] GET `/invoices` — factures basiques
 - [x] GET `/invoiced-items` — lignes de facture
 - [x] [NEW] **Paiements facture** : `GET /api/v1/cosium/invoice-payments/{payment_id}` (live) — connector + endpoint avec gestion 502 gracieuse
-- [ ] [NEW] **Liens de paiement** : GET `/invoices/{id}/payment-links` — liens de paiement en ligne si disponibles
-- [ ] [NEW] **16 types de documents** : exploiter tous les types (INVOICE, QUOTE, CREDIT_NOTE, DELIVERY_NOTE, SHIPPING_FORM, ORDER_FORM, VALUED_NOTE, RETURN_VOUCHER, SUPPLIER_ORDER_FORM, SUPPLIER_DELIVERY_NOTE, SUPPLIER_INVOICE, SUPPLIER_CREDIT_NOTE, SUPPLIER_VALUED_NOTE, SUPPLIER_RETURN_VOUCHER, STOCK_MOVE, STOCK_MANUAL_UPDATE)
+- [x] [NEW] **Liens de paiement** : `GET /api/v1/cosium/invoices/{id}/payment-links` (live) — connector + endpoint avec gestion 502.
+- [x] [NEW] **16 types de documents** : `CosiumInvoice.type` accepte tous les types Cosium. Vue comptable expose 6 types reels (INVOICE, QUOTE, CREDIT_NOTE, SUPPLIER_ORDER_FORM, SUPPLIER_DELIVERY_NOTE, SUPPLIER_INVOICE).
 - [x] [NEW] **Filtres avances** : `archived`, `has_outstanding`, `min_amount`, `max_amount` ajoutes a `/cosium/factures-cosium` (settled deja existant). Validé : 208 factures > 100€ avec encours.
-- [ ] [NEW] **Adapter enrichi** : mapper les 16 types + montants detailles (`shareSocialSecurity`, `sharePrivateInsurance`, `outstandingBalance`)
+- [x] [NEW] **Adapter enrichi** : `share_social_security`, `share_private_insurance`, `outstanding_balance` deja stockes/exposes (vue comptable + cockpit + analyse financiere live).
 - [x] [NEW] **Vue comptable** : page `/analytics-cosium` (sidebar Cosium > Analyse financiere) — table ventilee par type avec count/TI/SS/AMC/RAC/encours. Endpoint `GET /api/v1/analytics/financial-breakdown[?date_from=&date_to=]`. Live : 6 types Cosium, INVOICE 3.25M€.
 
 ## 1.4 SAV / Apres-Vente [NEW] (P1)

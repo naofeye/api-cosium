@@ -455,6 +455,13 @@ class CosiumConnector(ERPConnector):
             params["embed"] = ",".join(embeds)
         return self._client.get(f"/customers/{customer_cosium_id}", params=params or None)
 
+    def get_invoice_payment_links(self, invoice_cosium_id: int) -> dict:
+        """GET /invoices/{id}/payment-links — liens de paiement en ligne (lecture seule).
+
+        Retourne les URLs de paiement en ligne associees a une facture si disponibles.
+        """
+        return self._client.get(f"/invoices/{invoice_cosium_id}/payment-links")
+
     def get_invoice_payment(self, payment_id: int) -> dict:
         """GET /invoice-payments/{id} — detail d'un reglement de facture (lecture seule)."""
         return self._client.get(f"/invoice-payments/{payment_id}")
