@@ -416,6 +416,34 @@ class CosiumConnector(ERPConnector):
         """GET /commercial-operations/{op_id}/advantages/{adv_id} — detail d'un avantage."""
         return self._client.get(f"/commercial-operations/{operation_id}/advantages/{advantage_id}")
 
+    def search_customers_loose(
+        self,
+        last_name: str | None = None,
+        first_name: str | None = None,
+        customer_number: str | None = None,
+        page_size: int = 25,
+    ) -> list[dict]:
+        """GET /customers — recherche fuzzy via loose_* (lecture seule).
+
+        Au moins un parametre doit etre fourni. Cosium fait du matching approximatif.
+        """
+        params: dict = {"page_number": 0, "page_size": page_size}
+        if last_name:
+            params["loose_last_name"] = last_name
+        if first_name:
+            params["loose_first_name"] = first_name
+        if customer_number:
+            params["loose_customer_number"] = customer_number
+        data = self._client.get("/customers", params=params)
+        embedded = data.get("_embedded", {}) or {}
+        items = (
+            embedded.get("customers", embedded.get("content", []))
+            if isinstance(embedded, dict) else []
+        )
+        if not isinstance(items, list):
+            items = [items] if items else []
+        return items
+
     def list_customer_fidelity_cards(self, customer_cosium_id: int) -> list[dict]:
         """GET /customers/{id}/fidelity-cards — cartes de fidelite du client (lecture seule)."""
         data = self._client.get(f"/customers/{customer_cosium_id}/fidelity-cards")

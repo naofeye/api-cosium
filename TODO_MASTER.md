@@ -84,7 +84,7 @@
 - [x] [NEW] **Cartes de fidelite** : route `GET /api/v1/cosium/customers/{id}/fidelity-cards` — lecture live
 - [x] [NEW] **Parrainages** : route `GET /api/v1/cosium/customers/{id}/sponsorships` — lecture live
 - [ ] [NEW] **Consentements marketing** : lire les flags `subscribed-to-email/sms/paper` depuis Cosium et les afficher dans OptiFlow (lecture seule)
-- [ ] [NEW] **Recherche fuzzy** : exploiter `loose_first_name`, `loose_last_name`, `loose_customer_number` pour la recherche globale
+- [x] [NEW] **Recherche fuzzy** : `GET /api/v1/cosium/customers/search?last_name=&first_name=&customer_number=` (loose match Cosium, gestion 502 gracieuse)
 - [ ] [NEW] **Adapter enrichi** : `cosium_customer_to_optiflow()` doit mapper fidelity, sponsorship, consents, tags
 - [ ] [NEW] **Migration Alembic** : tables `client_fidelity_cards`, `client_sponsorships` + champs consents sur `clients`
 
@@ -97,13 +97,13 @@
 - [x] [NEW] **Catalogue montures** : GET `/end-consumer/catalog/optical-frames` — routes `GET /api/v1/cosium/catalog/frames[/{id}]`
 - [x] [NEW] **Catalogue verres** : GET `/end-consumer/catalog/optical-lenses` — routes `GET /api/v1/cosium/catalog/lenses[/{id}]`
 - [x] [NEW] **Options verres** : GET `/end-consumer/catalog/optical-lenses/{id}/available-options` — route `GET /api/v1/cosium/catalog/lenses/{id}/options`
-- [ ] [NEW] **Selection client** : GET `/end-consumer/spectacles-files/{id}/selection` — choix en cours du client
-- [ ] [NEW] **Adapter** : `cosium_spectacle_to_optiflow()`, `cosium_diopter_to_optiflow()`, `cosium_frame_to_optiflow()`
-- [ ] [NEW] **Modeles SQLAlchemy** : `spectacle_files`, `prescriptions_detail`, `optical_frames`, `optical_lenses`
-- [ ] [NEW] **Migration Alembic** : 4 nouvelles tables optiques
-- [ ] [NEW] **Service** : `spectacle_service.py` — logique de recuperation et mise en cache des dossiers optiques
-- [ ] [NEW] **Router** : `GET /api/v1/cosium/spectacles/{customer_id}` — expose les dossiers optiques au frontend
-- [ ] [NEW] **Frontend** : onglet "Equipements optiques" dans la fiche client avec historique des montures/verres
+- [x] [NEW] **Selection client** : `get_spectacle_selection` integre dans `get_spectacle_file_complete`
+- [x] [NEW] **Adapter** : 3 fonctions existent (`cosium_spectacle_file_to_optiflow`, `cosium_diopter_to_optiflow`, `cosium_optical_frame_to_optiflow`)
+- [ ] [NEW] **Modeles SQLAlchemy** : `spectacle_files`, `prescriptions_detail` (catalogue lu en live, persistence reportee)
+- [ ] [NEW] **Migration Alembic** : a creer si on choisit la persistence
+- [x] [NEW] **Service** : `spectacle_service.py` — orchestrateur live (sans persistence pour l'instant)
+- [x] [NEW] **Router** : `GET /api/v1/cosium/spectacles/{file_id}` + `/customer/{cosium_id}`
+- [x] [NEW] **Frontend** : onglet "Equipements" enrichi avec section "Dossiers lunettes Cosium en cours" (live)
 
 ## 1.3 Facturation & Paiements Enrichis [NEW] (P1)
 
