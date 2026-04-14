@@ -22,6 +22,7 @@ import { ReconciliationBanner } from "./components/ReconciliationBanner";
 import { RecentActivity } from "./components/RecentActivity";
 import { RenewalSection } from "./components/RenewalSection";
 import { TodayAppointments } from "./components/TodayAppointments";
+import { UpcomingAppointments } from "./components/UpcomingAppointments";
 import { useDashboardSWR } from "./hooks/useDashboardSWR";
 import { useExportPDF } from "./hooks/useExportPDF";
 import { formatDate, getDateRange, type PeriodKey } from "./utils";
@@ -85,6 +86,10 @@ export default function DashboardPage() {
 
       <ErrorBoundary name="TodayAppointments">
         <TodayAppointments events={calendar.data?.events ?? []} />
+      </ErrorBoundary>
+
+      <ErrorBoundary name="UpcomingAppointments">
+        <UpcomingAppointments />
       </ErrorBoundary>
 
       <PeriodSelector
