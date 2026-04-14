@@ -10,6 +10,8 @@ from fastapi import Depends
 
 from app.db.session import get_db
 from app.models import Customer, Tenant, User
+from app.models.cosium_data import CosiumInvoice
+from app.models.notification import ActionItem
 
 router = APIRouter(prefix="/api/v1", tags=["metrics"])
 
@@ -63,5 +65,46 @@ def prometheus_metrics(db: Session = Depends(get_db)) -> Response:
         "optiflow_customers_total", total_customers,
         "Nombre total de clients (non soft-deleted)",
     ))
+
+    # Metrics Cosium invoices
+    total_cosium_invoices = db.scalar(
+        select(func.count()).select_from(CosiumInvoice).where(CosiumInvoice.type == "INVOICE")
+    ) or 0
+    total_outstanding = float(
+        db.scalar(
+            select(func.coalesce(func.sum(CosiumInvoice.outstanding_balance), 0))
+            .where(CosiumInvoice.type == "INVOICE", CosiumInvoice.outstanding_balance > 0)
+        )
+        or 0
+    )
+    output.append(_format_metric(
+        "optiflow_cosium_invoices_total", total_cosium_invoices,
+        "Nombre total de factures Cosium synchronisees",
+    ))
+    output.append(_format_metric(
+        "optiflow_outstanding_balance_eur", round(total_outstanding, 2),
+        "Encours impaye total (EUR) sur l'ensemble des factures Cosium",
+    ))
+
+    # Metrics action items (par statut)
+    pending_count = db.scalar(
+        select(func.count()).select_from(ActionItem).where(ActionItem.status == "pending")
+    ) or 0
+    output.append(_format_metric(
+        "optiflow_action_items_pending", pending_count,
+        "Nombre d'action items en attente sur l'ensemble des tenants",
+    ))
+
+    # Action items par type (label)
+    types_rows = db.execute(
+        select(ActionItem.type, func.count())
+        .where(ActionItem.status == "pending")
+        .group_by(ActionItem.type)
+    ).all()
+    if types_rows:
+        output.append("# HELP optiflow_action_items_by_type Action items en attente, par type\n")
+        output.append("# TYPE optiflow_action_items_by_type gauge\n")
+        for type_name, count in types_rows:
+            output.append(f'optiflow_action_items_by_type{{type="{type_name}"}} {count}\n')
 
     return Response(content="".join(output), media_type="text/plain; version=0.0.4")
