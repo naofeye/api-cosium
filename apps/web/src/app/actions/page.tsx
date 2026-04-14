@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { logger } from "@/lib/logger";
 import { PageLayout } from "@/components/layout/PageLayout";
@@ -61,6 +61,9 @@ const TYPE_LABELS: Record<string, string> = {
   pec_attente: "PEC en attente",
   relance_faire: "Relances a faire",
   devis_expiration: "Devis expirant",
+  impaye_cosium: "Impayes Cosium",
+  devis_dormant: "Devis dormants",
+  rdv_demain: "RDV demain",
 };
 
 const TYPE_ICONS: Record<string, typeof FolderOpen> = {
@@ -87,6 +90,8 @@ const PRIORITY_LABELS: Record<string, string> = {
 
 export default function ActionsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const typeFilter = searchParams.get("type");
   const {
     data: dashboard,
     error: dashErr,
@@ -182,8 +187,9 @@ export default function ActionsPage() {
 
   if (!dashboard || !actions) return null;
 
+  const filteredItems = typeFilter ? actions.items.filter((i) => i.type === typeFilter) : actions.items;
   const groupedActions: Record<string, ActionItem[]> = {};
-  for (const item of actions.items) {
+  for (const item of filteredItems) {
     if (!groupedActions[item.type]) groupedActions[item.type] = [];
     groupedActions[item.type].push(item);
   }
@@ -212,6 +218,16 @@ export default function ActionsPage() {
         <p className="mt-1 text-sm text-text-secondary">
           Voici vos priorites du jour — {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
         </p>
+        {typeFilter && (
+          <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-blue-50 border border-blue-200 px-3 py-1.5 text-sm text-blue-800">
+            <span className="font-medium">Filtre :</span>
+            <span>{TYPE_LABELS[typeFilter] ?? typeFilter}</span>
+            <span className="rounded-full bg-blue-200 px-2 py-0.5 text-xs font-bold tabular-nums">{filteredItems.length}</span>
+            <Link href="/actions" className="ml-1 hover:bg-blue-200 rounded-full p-0.5" aria-label="Retirer le filtre">
+              <X className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        )}
       </div>
       {showOnboarding && (
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
