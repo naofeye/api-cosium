@@ -7,6 +7,8 @@ from app.domain.schemas.notifications import (
     ActionItemResponse,
 )
 from app.models import Case, Customer, Document, DocumentType, Payment
+from app.models.cosium_data import CosiumInvoice
+from app.models.cosium_reference import CosiumCalendarEvent
 from app.repositories import action_item_repo
 
 logger = get_logger("action_item_service")
@@ -41,6 +43,9 @@ def update_status(db: Session, tenant_id: int, item_id: int, status: str) -> Non
 def generate_action_items(db: Session, tenant_id: int, user_id: int) -> ActionItemListResponse:
     _generate_incomplete_cases(db, tenant_id, user_id)
     _generate_overdue_payments(db, tenant_id, user_id)
+    _generate_upcoming_appointments(db, tenant_id, user_id)
+    _generate_overdue_cosium_invoices(db, tenant_id, user_id)
+    _generate_stale_quotes(db, tenant_id, user_id)
     db.commit()
     logger.info("action_items_generated", tenant_id=tenant_id, user_id=user_id)
     return list_action_items(db, tenant_id, user_id, status="pending")
@@ -102,6 +107,107 @@ def _generate_incomplete_cases(db: Session, tenant_id: int, user_id: int) -> Non
                 type="dossier_incomplet",
                 entity_type="case",
                 entity_id=case_row.id,
+            )
+
+
+def _generate_upcoming_appointments(db: Session, tenant_id: int, user_id: int) -> None:
+    """Alerte pour les RDV de demain (rappel client)."""
+    from datetime import UTC, datetime, timedelta
+    now = datetime.now(UTC).replace(tzinfo=None)
+    tomorrow_start = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+    day_after = tomorrow_start + timedelta(days=1)
+
+    events = db.execute(
+        select(CosiumCalendarEvent.id, CosiumCalendarEvent.subject, CosiumCalendarEvent.start_date)
+        .where(
+            CosiumCalendarEvent.tenant_id == tenant_id,
+            CosiumCalendarEvent.start_date >= tomorrow_start,
+            CosiumCalendarEvent.start_date < day_after,
+            CosiumCalendarEvent.canceled.is_(False),
+        )
+    ).all()
+
+    for ev in events:
+        existing = action_item_repo.find_existing(
+            db, user_id=user_id, tenant_id=tenant_id, type="rdv_demain",
+            entity_type="calendar_event", entity_id=ev.id,
+        )
+        if not existing:
+            heure = ev.start_date.strftime("%H:%M") if ev.start_date else ""
+            action_item_repo.create(
+                db, tenant_id=tenant_id, user_id=user_id,
+                type="rdv_demain",
+                title=f"RDV demain {heure} - {ev.subject[:80]}",
+                description=f"Rappel client recommande pour le RDV du {ev.start_date.strftime('%d/%m/%Y') if ev.start_date else ''}",
+                entity_type="calendar_event", entity_id=ev.id,
+                priority="medium",
+            )
+
+
+def _generate_overdue_cosium_invoices(db: Session, tenant_id: int, user_id: int) -> None:
+    """Alerte pour les factures Cosium impayees depuis plus de 30 jours."""
+    from datetime import UTC, datetime, timedelta
+    cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=30)
+
+    invoices = db.execute(
+        select(CosiumInvoice.id, CosiumInvoice.invoice_number, CosiumInvoice.outstanding_balance, CosiumInvoice.invoice_date)
+        .where(
+            CosiumInvoice.tenant_id == tenant_id,
+            CosiumInvoice.type == "INVOICE",
+            CosiumInvoice.outstanding_balance > 0,
+            CosiumInvoice.invoice_date < cutoff,
+        )
+        .limit(200)
+    ).all()
+
+    for inv in invoices:
+        existing = action_item_repo.find_existing(
+            db, user_id=user_id, tenant_id=tenant_id, type="impaye_cosium",
+            entity_type="cosium_invoice", entity_id=inv.id,
+        )
+        if not existing:
+            days_overdue = (datetime.now(UTC).replace(tzinfo=None) - inv.invoice_date).days if inv.invoice_date else 0
+            priority = "high" if days_overdue > 90 else "medium"
+            action_item_repo.create(
+                db, tenant_id=tenant_id, user_id=user_id,
+                type="impaye_cosium",
+                title=f"Impaye {inv.invoice_number or '#' + str(inv.id)} - {float(inv.outstanding_balance):.2f} EUR",
+                description=f"Facture en retard de {days_overdue} jours",
+                entity_type="cosium_invoice", entity_id=inv.id,
+                priority=priority,
+            )
+
+
+def _generate_stale_quotes(db: Session, tenant_id: int, user_id: int) -> None:
+    """Alerte pour les devis Cosium non transformes depuis plus de 15 jours."""
+    from datetime import UTC, datetime, timedelta
+    cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=15)
+
+    quotes = db.execute(
+        select(CosiumInvoice.id, CosiumInvoice.invoice_number, CosiumInvoice.total_ti, CosiumInvoice.invoice_date)
+        .where(
+            CosiumInvoice.tenant_id == tenant_id,
+            CosiumInvoice.type == "QUOTE",
+            CosiumInvoice.invoice_date < cutoff,
+            CosiumInvoice.outstanding_balance == 0,  # heuristique : non encore facture
+        )
+        .limit(100)
+    ).all()
+
+    for q in quotes:
+        existing = action_item_repo.find_existing(
+            db, user_id=user_id, tenant_id=tenant_id, type="devis_dormant",
+            entity_type="cosium_invoice", entity_id=q.id,
+        )
+        if not existing:
+            days_old = (datetime.now(UTC).replace(tzinfo=None) - q.invoice_date).days if q.invoice_date else 0
+            action_item_repo.create(
+                db, tenant_id=tenant_id, user_id=user_id,
+                type="devis_dormant",
+                title=f"Devis dormant {q.invoice_number or '#' + str(q.id)} - {float(q.total_ti):.2f} EUR",
+                description=f"Devis non transforme depuis {days_old} jours",
+                entity_type="cosium_invoice", entity_id=q.id,
+                priority="medium",
             )
 
 
