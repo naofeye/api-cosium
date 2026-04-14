@@ -337,6 +337,36 @@ def _extract_id_from_href(href: str, segment: str) -> int | None:
         return None
 
 
+def cosium_fidelity_card_to_optiflow(raw: dict) -> dict:
+    """Normalise une carte de fidelite Cosium."""
+    links = raw.get("_links", {}) or {}
+    self_href = links.get("self", {}).get("href", "") if isinstance(links.get("self"), dict) else ""
+    return {
+        "cosium_id": _extract_id_from_href(self_href, "/customer-fidelity-cards/"),
+        "card_number": raw.get("cardNumber"),
+        "amount": raw.get("amount"),
+        "remaining_amount": raw.get("remainingAmount"),
+        "remaining_consumable_amount": raw.get("remainingConsumableAmount"),
+        "creation_date": raw.get("creationDateTime") or raw.get("creationDate"),
+        "expiration_date": raw.get("expirationDate"),
+    }
+
+
+def cosium_sponsorship_to_optiflow(raw: dict) -> dict:
+    """Normalise un parrainage Cosium."""
+    links = raw.get("_links", {}) or {}
+    self_href = links.get("self", {}).get("href", "") if isinstance(links.get("self"), dict) else ""
+    return {
+        "cosium_id": _extract_id_from_href(self_href, "/customer-sponsorships/"),
+        "sponsored_first_name": raw.get("sponsoredPartyFirstName"),
+        "sponsored_last_name": raw.get("sponsoredPartyLastName"),
+        "amount": raw.get("amount"),
+        "remaining_amount": raw.get("remainingAmount"),
+        "creation_date": raw.get("creationDateTime") or raw.get("creationDate"),
+        "consumed": bool(raw.get("consumed", False)),
+    }
+
+
 def cosium_note_to_optiflow(raw: dict) -> dict:
     """Normalise une note CRM Cosium.
 
