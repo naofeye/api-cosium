@@ -34,6 +34,10 @@ def list_cosium_factures(
     search: str | None = Query(None),
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
+    archived: bool | None = Query(None, description="Filtrer factures archivees"),
+    has_outstanding: bool | None = Query(None, description="True = encours > 0"),
+    min_amount: float | None = Query(None, description="Montant min EUR"),
+    max_amount: float | None = Query(None, description="Montant max EUR"),
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> CosiumInvoiceListResponse:
@@ -41,6 +45,8 @@ def list_cosium_factures(
         db, tenant_id=tenant_ctx.tenant_id, page=page, page_size=page_size,
         type_filter="INVOICE", settled=settled, search=search,
         date_from=date_from, date_to=date_to,
+        archived=archived, has_outstanding=has_outstanding,
+        min_amount=min_amount, max_amount=max_amount,
     )
 
 
