@@ -234,7 +234,7 @@ export function ClientTabs({
       )}
       {activeTab === "equipements" && (
         <ErrorBoundary name="TabEquipements">
-          <TabEquipements equipments={cd?.equipments ?? []} />
+          <TabEquipements equipments={cd?.equipments ?? []} cosiumId={cosiumId} />
         </ErrorBoundary>
       )}
       {activeTab === "fidelite" && (

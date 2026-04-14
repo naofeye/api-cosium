@@ -203,7 +203,7 @@
 ## 2.3 Fiche Client 360° Ultime (P1)
 
 - [x] Fiche client basique avec onglets
-- [ ] [NEW] **Onglet Equipements** : historique complet des montures + verres + dioptries (timeline visuelle)
+- [x] [NEW] **Onglet Equipements** : section "Dossiers lunettes Cosium en cours" (live `/cosium/spectacles/customer/{id}`) + cache historique. Badges Dioptries/Selection/Prescripteur. Degradation gracieuse si Cosium KO.
 - [ ] [NEW] **Onglet Prescriptions** : evolution des dioptries dans le temps (graphique Recharts)
 - [x] [NEW] **Backend Fidelite** : `GET /clients/{id}/cosium-live` retourne fidelity_cards + sponsorships + notes en LIVE
 - [x] [NEW] **Frontend Onglet Fidelite** : `TabFidelite` cree, integre dans fiche client (cartes + parrainages + notes CRM, gestion erreurs gracieuse)
