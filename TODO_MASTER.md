@@ -197,6 +197,7 @@
 - [ ] [NEW] **KPI Stock** : alertes rupture (stock < seuil) via `latent-sales` vs `stock`
 - [x] [NEW] **Graphique CA comparatif** : `ca_this_month`/`ca_last_month`/`ca_same_month_last_year` dans cockpit
 - [ ] [NEW] **Graphique mix produits** : repartition montures/verres/lentilles/accessoires
+- [x] [NEW] **Frontend cockpit dashboard** : `CosiumCockpitKPIs` integre dans `/dashboard` — 8 KPIs (CA jour/sem/mois, panier, taux, balance agee, comparatif M-1/N-1) avec auto-refresh 60s
 - [x] [NEW] **Graphique balance agee** : 4 tranches (0-30j, 30-60j, 60-90j, 90j+) dans cockpit (15694€ total)
 
 ## 2.3 Fiche Client 360° Ultime (P1)
