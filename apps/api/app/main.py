@@ -26,6 +26,7 @@ from app.api.routers import (
     cosium_documents,
     cosium_invoices,
     cosium_catalog,
+    cosium_commercial,
     cosium_fidelity,
     cosium_notes,
     cosium_reference,
@@ -399,6 +400,7 @@ app.include_router(cosium_catalog.router)
 app.include_router(cosium_sav.router)
 app.include_router(cosium_notes.router)
 app.include_router(cosium_fidelity.router)
+app.include_router(cosium_commercial.router)
 app.include_router(ocam_operators.router)
 app.include_router(batch_operations.router)
 app.include_router(sse.router)

@@ -154,10 +154,10 @@
 
 ## 1.7 Operations Commerciales [NEW] (P2)
 
-- [ ] [NEW] **Avantages** : GET `/commercial-operations/{id}/advantages` — promotions actives
-- [ ] [NEW] **Bons d'achat** : GET `/commercial-operations/{id}/vouchers` — bons utilisables par client
-- [ ] [NEW] **Paniers** : GET `/commercial-operations/{id}/carts` — paniers en cours
-- [ ] [NEW] **Adapter** : `cosium_commercial_op_to_optiflow()`
+- [x] [NEW] **Avantages** : routes `GET /api/v1/cosium/commercial-operations/{id}/advantages[/adv_id]`
+- [~] [NEW] **Bons d'achat** : Cosium n'expose `/vouchers` qu'en PUT — INTERDIT par charte read-only
+- [~] [NEW] **Paniers** : Cosium n'expose `/carts` qu'en PUT/DELETE — INTERDIT par charte read-only
+- [x] [NEW] **Adapter** : `cosium_advantage_to_optiflow()` — name, dates, links HAL
 - [ ] [NEW] **Modele** : `commercial_operations`, `vouchers`
 - [ ] [NEW] **Frontend** : section "Avantages actifs" dans la fiche client + alertes dans la file d'actions
 
