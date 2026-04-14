@@ -46,6 +46,7 @@ def generate_action_items(db: Session, tenant_id: int, user_id: int) -> ActionIt
     _generate_upcoming_appointments(db, tenant_id, user_id)
     _generate_overdue_cosium_invoices(db, tenant_id, user_id)
     _generate_stale_quotes(db, tenant_id, user_id)
+    _generate_renewal_opportunities(db, tenant_id, user_id)
     db.commit()
     logger.info("action_items_generated", tenant_id=tenant_id, user_id=user_id)
     return list_action_items(db, tenant_id, user_id, status="pending")
@@ -208,6 +209,62 @@ def _generate_stale_quotes(db: Session, tenant_id: int, user_id: int) -> None:
                 description=f"Devis non transforme depuis {days_old} jours",
                 entity_type="cosium_invoice", entity_id=q.id,
                 priority="medium",
+            )
+
+
+def _generate_renewal_opportunities(db: Session, tenant_id: int, user_id: int) -> None:
+    """Alerte clients avec dernier achat optique > 24 mois (eligibles renouvellement)."""
+    from datetime import UTC, datetime, timedelta
+    cutoff_old = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=730)  # 2 ans
+    cutoff_recent = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=1825)  # 5 ans (eviter les trop anciens)
+
+    # Sous-requete : derniere date facture par client
+    from sqlalchemy import select as sa_select
+    last_purchase = (
+        sa_select(
+            CosiumInvoice.customer_id,
+            func.max(CosiumInvoice.invoice_date).label("last_date"),
+            func.sum(CosiumInvoice.total_ti).label("ca"),
+        )
+        .where(
+            CosiumInvoice.tenant_id == tenant_id,
+            CosiumInvoice.type == "INVOICE",
+            CosiumInvoice.customer_id.isnot(None),
+        )
+        .group_by(CosiumInvoice.customer_id)
+        .having(func.max(CosiumInvoice.invoice_date) < cutoff_old)
+        .having(func.max(CosiumInvoice.invoice_date) >= cutoff_recent)
+        .subquery()
+    )
+
+    rows = db.execute(
+        select(
+            last_purchase.c.customer_id,
+            last_purchase.c.last_date,
+            last_purchase.c.ca,
+        )
+        .order_by(last_purchase.c.ca.desc())
+        .limit(100)
+    ).all()
+
+    for r in rows:
+        if not r.customer_id:
+            continue
+        existing = action_item_repo.find_existing(
+            db, user_id=user_id, tenant_id=tenant_id,
+            type="renouvellement", entity_type="customer", entity_id=r.customer_id,
+        )
+        if not existing:
+            months_ago = (datetime.now(UTC).replace(tzinfo=None) - r.last_date).days // 30 if r.last_date else 0
+            ca_total = float(r.ca or 0)
+            priority = "high" if ca_total > 500 and months_ago > 30 else "medium"
+            action_item_repo.create(
+                db, tenant_id=tenant_id, user_id=user_id,
+                type="renouvellement",
+                title=f"Renouvellement #{r.customer_id} - {months_ago} mois sans achat",
+                description=f"CA historique : {ca_total:.2f} EUR. A relancer pour bilan visuel.",
+                entity_type="customer", entity_id=r.customer_id,
+                priority=priority,
             )
 
 

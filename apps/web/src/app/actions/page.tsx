@@ -64,6 +64,7 @@ const TYPE_LABELS: Record<string, string> = {
   impaye_cosium: "Impayes Cosium",
   devis_dormant: "Devis dormants",
   rdv_demain: "RDV demain",
+  renouvellement: "Renouvellements eligibles",
 };
 
 const TYPE_ICONS: Record<string, typeof FolderOpen> = {

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import useSWR from "swr";
-import { Zap, FolderOpen, AlertTriangle, FileText, CalendarClock, CreditCard } from "lucide-react";
+import { Zap, FolderOpen, AlertTriangle, FileText, CalendarClock, CreditCard, RefreshCw } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 interface ActionItemsResponse {
@@ -53,6 +53,13 @@ const CATEGORY_CONFIG: Record<string, CategoryConfig> = {
     bg: "bg-orange-50 border-orange-200",
     text: "text-orange-900",
     description: "Reste a payer",
+  },
+  renouvellement: {
+    label: "Renouvellements",
+    icon: RefreshCw,
+    bg: "bg-purple-50 border-purple-200",
+    text: "text-purple-900",
+    description: "Clients sans achat > 2 ans",
   },
 };
 
