@@ -188,16 +188,16 @@
 ## 2.2 Dashboard Cockpit Opticien (P0)
 
 - [x] 6 KPIs basiques
-- [ ] [NEW] **KPI Cosium live** : CA du jour/semaine/mois (depuis invoices Cosium)
-- [ ] [NEW] **KPI Panier moyen** : montant moyen par facture optique
-- [ ] [NEW] **KPI Taux de transformation** : devis → facture (QUOTE → INVOICE)
+- [x] [NEW] **KPI Cosium live** : CA jour/semaine/mois via `/api/v1/dashboard/cosium-cockpit` (testé, données réelles 4771€)
+- [x] [NEW] **KPI Panier moyen** : `panier_moyen` dans cockpit (CA mois / nb factures = 477€)
+- [x] [NEW] **KPI Taux de transformation** : `quote_to_invoice_rate` 90 derniers jours (testé : 79.5%)
 - [ ] [NEW] **KPI Delai PEC** : temps moyen de reponse mutuelles
 - [ ] [NEW] **KPI SAV** : nombre en cours, delai moyen, taux satisfaction
 - [ ] [NEW] **KPI Renouvellements** : clients eligibles ce mois vs contactes vs convertis
 - [ ] [NEW] **KPI Stock** : alertes rupture (stock < seuil) via `latent-sales` vs `stock`
-- [ ] [NEW] **Graphique CA comparatif** : mois actuel vs mois precedent vs annee precedente (Recharts)
+- [x] [NEW] **Graphique CA comparatif** : `ca_this_month`/`ca_last_month`/`ca_same_month_last_year` dans cockpit
 - [ ] [NEW] **Graphique mix produits** : repartition montures/verres/lentilles/accessoires
-- [ ] [NEW] **Graphique balance agee** : `outstandingBalance` par tranche (0-30j, 30-60j, 60-90j, 90j+)
+- [x] [NEW] **Graphique balance agee** : 4 tranches (0-30j, 30-60j, 60-90j, 90j+) dans cockpit (15694€ total)
 
 ## 2.3 Fiche Client 360° Ultime (P1)
 

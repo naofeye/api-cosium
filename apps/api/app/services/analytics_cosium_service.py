@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
 from app.domain.schemas.analytics import (
+    CosiumCockpitKPIs,
     CosiumCounts,
     CosiumKPIs,
     CosiumMonthlyCa,
@@ -170,3 +171,121 @@ def get_cosium_ca_par_mois(db: Session, tenant_id: int) -> list[CosiumMonthlyCa]
         result.append(CosiumMonthlyCa(mois=month_start.strftime("%Y-%m"), ca=round(ca, 2)))
 
     return result
+
+
+def _sum_invoices_between(db: Session, tenant_id: int, start: datetime, end: datetime) -> float:
+    """Somme des factures (type=INVOICE) sur une plage de dates."""
+    return float(
+        db.scalar(
+            select(func.coalesce(func.sum(CosiumInvoice.total_ti), 0))
+            .where(
+                CosiumInvoice.tenant_id == tenant_id,
+                CosiumInvoice.type == "INVOICE",
+                CosiumInvoice.invoice_date >= start,
+                CosiumInvoice.invoice_date < end,
+            )
+        )
+        or 0
+    )
+
+
+def _count_invoices_between(db: Session, tenant_id: int, start: datetime, end: datetime) -> int:
+    return (
+        db.scalar(
+            select(func.count())
+            .select_from(CosiumInvoice)
+            .where(
+                CosiumInvoice.tenant_id == tenant_id,
+                CosiumInvoice.type == "INVOICE",
+                CosiumInvoice.invoice_date >= start,
+                CosiumInvoice.invoice_date < end,
+            )
+        )
+        or 0
+    )
+
+
+def _aging_bucket_sum(db: Session, tenant_id: int, days_min: int, days_max: int | None) -> float:
+    """Somme outstanding des factures avec age dans la tranche [days_min, days_max[ jours."""
+    now = datetime.now(UTC).replace(tzinfo=None)
+    upper_bound = now - timedelta(days=days_min)
+    filters = [
+        CosiumInvoice.tenant_id == tenant_id,
+        CosiumInvoice.type == "INVOICE",
+        CosiumInvoice.outstanding_balance > 0,
+        CosiumInvoice.invoice_date <= upper_bound,
+    ]
+    if days_max is not None:
+        lower_bound = now - timedelta(days=days_max)
+        filters.append(CosiumInvoice.invoice_date > lower_bound)
+    return float(
+        db.scalar(
+            select(func.coalesce(func.sum(CosiumInvoice.outstanding_balance), 0)).where(*filters)
+        )
+        or 0
+    )
+
+
+def get_cosium_cockpit_kpis(db: Session, tenant_id: int) -> CosiumCockpitKPIs:
+    """KPIs cockpit opticien : CA jour/semaine/mois, panier moyen, taux transformation, balance agee."""
+    now = datetime.now(UTC).replace(tzinfo=None)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    tomorrow_start = today_start + timedelta(days=1)
+    week_start = today_start - timedelta(days=today_start.weekday())  # Monday
+    month_start = today_start.replace(day=1)
+    last_month_end = month_start
+    last_month_start = (month_start - timedelta(days=1)).replace(day=1)
+    same_month_last_year_start = month_start.replace(year=month_start.year - 1)
+    same_month_last_year_end = (same_month_last_year_start + timedelta(days=32)).replace(day=1)
+
+    ca_today = _sum_invoices_between(db, tenant_id, today_start, tomorrow_start)
+    ca_week = _sum_invoices_between(db, tenant_id, week_start, tomorrow_start)
+    ca_month = _sum_invoices_between(db, tenant_id, month_start, tomorrow_start)
+    ca_last_month = _sum_invoices_between(db, tenant_id, last_month_start, last_month_end)
+    ca_same_month_last_year = _sum_invoices_between(
+        db, tenant_id, same_month_last_year_start, same_month_last_year_end
+    )
+
+    nb_today = _count_invoices_between(db, tenant_id, today_start, tomorrow_start)
+    nb_month = _count_invoices_between(db, tenant_id, month_start, tomorrow_start)
+    panier_moyen = round(ca_month / nb_month, 2) if nb_month > 0 else 0.0
+
+    # Taux transformation : invoices / quotes (sur les 90 derniers jours)
+    cutoff = now - timedelta(days=90)
+    nb_quotes = (
+        db.scalar(
+            select(func.count())
+            .select_from(CosiumInvoice)
+            .where(
+                CosiumInvoice.tenant_id == tenant_id,
+                CosiumInvoice.type == "QUOTE",
+                CosiumInvoice.invoice_date >= cutoff,
+            )
+        )
+        or 0
+    )
+    nb_invoices_recent = _count_invoices_between(db, tenant_id, cutoff, tomorrow_start)
+    quote_to_invoice_rate = round((nb_invoices_recent / nb_quotes) * 100, 1) if nb_quotes > 0 else 0.0
+
+    # Balance agee
+    aging_0_30 = _aging_bucket_sum(db, tenant_id, 0, 30)
+    aging_30_60 = _aging_bucket_sum(db, tenant_id, 30, 60)
+    aging_60_90 = _aging_bucket_sum(db, tenant_id, 60, 90)
+    aging_over_90 = _aging_bucket_sum(db, tenant_id, 90, None)
+
+    return CosiumCockpitKPIs(
+        ca_today=round(ca_today, 2),
+        ca_this_week=round(ca_week, 2),
+        ca_this_month=round(ca_month, 2),
+        ca_last_month=round(ca_last_month, 2),
+        ca_same_month_last_year=round(ca_same_month_last_year, 2),
+        panier_moyen=panier_moyen,
+        nb_invoices_today=nb_today,
+        nb_invoices_this_month=nb_month,
+        quote_to_invoice_rate=quote_to_invoice_rate,
+        aging_0_30=round(aging_0_30, 2),
+        aging_30_60=round(aging_30_60, 2),
+        aging_60_90=round(aging_60_90, 2),
+        aging_over_90=round(aging_over_90, 2),
+        aging_total=round(aging_0_30 + aging_30_60 + aging_60_90 + aging_over_90, 2),
+    )
