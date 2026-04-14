@@ -337,6 +337,36 @@ def _extract_id_from_href(href: str, segment: str) -> int | None:
         return None
 
 
+def cosium_after_sales_to_optiflow(raw: dict) -> dict:
+    """Normalise un dossier SAV Cosium.
+
+    Mappe les champs metier cles : statut, dates, produit, client, reparateur.
+    """
+    links = raw.get("_links", {}) or {}
+    self_href = links.get("self", {}).get("href", "") if isinstance(links.get("self"), dict) else ""
+    sav_id = _extract_id_from_href(self_href, "/after-sales-services/")
+    return {
+        "cosium_id": sav_id,
+        "status": raw.get("status"),
+        "resolution_status": raw.get("resolutionStatus"),
+        "creation_date": raw.get("creationDate"),
+        "processing_date": raw.get("processingDate"),
+        "end_date": raw.get("endDate"),
+        "description": raw.get("description"),
+        "type": raw.get("type"),
+        "customer_number": raw.get("customerNumber"),
+        "invoice_number": raw.get("invoiceNumber"),
+        "invoice_date": raw.get("invoiceDate"),
+        "item_serial_number": raw.get("itemSerialNumber"),
+        "product_code": raw.get("productCode"),
+        "product_ean": raw.get("productEANCode"),
+        "product_model": raw.get("productModel"),
+        "product_color": raw.get("productColorLabel"),
+        "repairer_name": raw.get("repairerName"),
+        "site_name": raw.get("siteName"),
+    }
+
+
 def cosium_optical_frame_to_optiflow(raw: dict) -> dict:
     """Normalise une monture du catalogue Cosium."""
     links = raw.get("_links", {}) or {}

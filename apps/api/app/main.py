@@ -27,6 +27,7 @@ from app.api.routers import (
     cosium_invoices,
     cosium_catalog,
     cosium_reference,
+    cosium_sav,
     cosium_spectacles,
     dashboard,
     devis,
@@ -393,6 +394,7 @@ app.include_router(onboarding.router)
 app.include_router(cosium_reference.router)
 app.include_router(cosium_spectacles.router)
 app.include_router(cosium_catalog.router)
+app.include_router(cosium_sav.router)
 app.include_router(ocam_operators.router)
 app.include_router(batch_operations.router)
 app.include_router(sse.router)

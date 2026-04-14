@@ -120,10 +120,10 @@
 
 > Module entierement nouveau. Permet de suivre les reparations et garanties.
 
-- [ ] [NEW] **Liste SAV** : GET `/after-sales-services` — recherche avec filtres (statut, date, site, reparateur)
-- [ ] [NEW] **Detail SAV** : GET `/after-sales-services/{id}` — detail complet du dossier
-- [ ] [NEW] **Workflow statuts** : pending → processing → resolved → finished (lecture seule)
-- [ ] [NEW] **Adapter** : `cosium_after_sales_to_optiflow()`
+- [x] [NEW] **Liste SAV** : GET `/after-sales-services` — route `GET /api/v1/cosium/sav` avec filtres (status, resolution, date, site)
+- [x] [NEW] **Detail SAV** : GET `/after-sales-services/{id}` — route `GET /api/v1/cosium/sav/{id}`
+- [x] [NEW] **Workflow statuts** : mappes TO_REPAIR/IN_PROCESS/REPAIR_IN_PROCESS/FINISHED + RESOLVED/SOLD_OUT
+- [x] [NEW] **Adapter** : `cosium_after_sales_to_optiflow()` — 17 champs metier extraits
 - [ ] [NEW] **Modele** : `after_sales_services` (id, customer_id, status, site_id, repairer, created_at, resolved_at)
 - [ ] [NEW] **Migration Alembic** : table `after_sales_services`
 - [ ] [NEW] **Service** : `after_sales_service.py`
