@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
-from app.domain.schemas.client_360_live import Client360CosiumLive
+from app.domain.schemas.client_360_live import Client360CosiumLive, CosiumConsents
 from app.domain.schemas.fidelity import FidelityCardResponse, SponsorshipResponse
 from app.domain.schemas.notes import CosiumNoteResponse
 from app.integrations.cosium.adapter import (
@@ -82,6 +82,19 @@ def get_client_cosium_live(db: Session, tenant_id: int, client_id: int) -> Clien
         errors.append(f"notes: {str(e)[:100]}")
         logger.warning("client_360_live_notes_failed", cosium_id=cosium_id, error=str(e))
 
+    consents: CosiumConsents | None = None
+    try:
+        raw_c = connector.get_customer_consents(cosium_id)
+        consents = CosiumConsents(
+            email_consent=raw_c.get("emailConsent"),
+            sms_consent=raw_c.get("smsConsent"),
+            whatsapp_consent=raw_c.get("whatsappConsent"),
+            exclude_all_consent=raw_c.get("excludeAllConsent"),
+        )
+    except Exception as e:
+        errors.append(f"consents: {str(e)[:100]}")
+        logger.warning("client_360_live_consents_failed", cosium_id=cosium_id, error=str(e))
+
     logger.info(
         "client_360_live_fetched",
         client_id=client_id, cosium_id=cosium_id,
@@ -94,5 +107,6 @@ def get_client_cosium_live(db: Session, tenant_id: int, client_id: int) -> Clien
         fidelity_cards=fidelity,
         sponsorships=sponsorships,
         notes=notes,
+        consents=consents,
         errors=errors,
     )
