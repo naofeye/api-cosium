@@ -92,8 +92,8 @@
 
 > C'est LE differenciateur. Recuperer le panier optique complet du client.
 
-- [ ] [NEW] **Spectacle Files** : GET `/end-consumer/spectacles-files/{id}` — dossier lunettes complet
-- [ ] [NEW] **Dioptries** : GET `/end-consumer/spectacles-files/{id}/diopters` — sphere, cylindre, axe, addition, prisme
+- [x] [NEW] **Spectacle Files** : GET `/end-consumer/spectacles-files/{id}` — connector + service + route `GET /api/v1/cosium/spectacles/{file_id}`
+- [x] [NEW] **Dioptries** : GET `/end-consumer/spectacles-files/{id}/diopters` — adapter `cosium_diopter_to_optiflow`, inclus dans le dossier complet
 - [ ] [NEW] **Catalogue montures** : GET `/end-consumer/catalog/optical-frames` — avec filtres (marque, type, materiau)
 - [ ] [NEW] **Catalogue verres** : GET `/end-consumer/catalog/optical-lenses` — avec options (traitement, teinte, photochromique)
 - [ ] [NEW] **Options verres** : GET `/end-consumer/catalog/optical-lenses/{id}/options` — options disponibles par verre

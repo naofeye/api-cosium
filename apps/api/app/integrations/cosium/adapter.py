@@ -304,3 +304,46 @@ def _hundredths_to_diopter(value: int | float | None) -> float | None:
     if value is None:
         return None
     return round(float(value) / 100.0, 2)
+
+
+def cosium_diopter_to_optiflow(raw: dict) -> dict:
+    """Normalise une entree de dioptrie Cosium (spectacles-files/{id}/diopters).
+
+    Cosium stocke les valeurs en centiemes (sphere100Right=-50 -> -0.50 dioptrie).
+    Retourne un dict avec les valeurs OD (right) et OG (left) en format standard.
+    """
+    return {
+        "sphere_right": _hundredths_to_diopter(raw.get("sphere100Right")),
+        "cylinder_right": _hundredths_to_diopter(raw.get("cylinder100Right")),
+        "axis_right": raw.get("axisRight"),
+        "addition_right": _hundredths_to_diopter(raw.get("addition100Right")),
+        "prism_right": _hundredths_to_diopter(raw.get("prism100Right")),
+        "sphere_left": _hundredths_to_diopter(raw.get("sphere100Left")),
+        "cylinder_left": _hundredths_to_diopter(raw.get("cylinder100Left")),
+        "axis_left": raw.get("axisLeft"),
+        "addition_left": _hundredths_to_diopter(raw.get("addition100Left")),
+        "prism_left": _hundredths_to_diopter(raw.get("prism100Left")),
+        "vision_type": raw.get("visionType") or raw.get("type"),
+    }
+
+
+def cosium_spectacle_file_to_optiflow(raw: dict) -> dict:
+    """Normalise un dossier lunettes Cosium (spectacles-files/{id}).
+
+    Extrait l'ID du _links.self.href et retourne les metadonnees utiles.
+    """
+    links = raw.get("_links", {}) or {}
+    self_href = links.get("self", {}).get("href", "") if isinstance(links.get("self"), dict) else ""
+    file_id: int | None = None
+    if "/spectacles-files/" in self_href:
+        try:
+            file_id = int(self_href.rsplit("/spectacles-files/", 1)[-1].split("?")[0].split("/")[0])
+        except (ValueError, IndexError):
+            file_id = None
+    return {
+        "cosium_id": file_id,
+        "has_diopters": "diopters" in links,
+        "has_selection": "spectacles-selection" in links,
+        "has_doctor_address": "doctor-address" in links,
+        "creation_date": raw.get("creationDate") or raw.get("date"),
+    }

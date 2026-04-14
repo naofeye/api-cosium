@@ -212,7 +212,7 @@ def revoke_session(
 ) -> None:
     if not refresh_token_repo.revoke_by_id(db, current_user.id, session_id):
         from app.core.exceptions import NotFoundError
-        raise NotFoundError(f"Session {session_id} introuvable")
+        raise NotFoundError("Session", session_id)
     db.commit()
 
 
