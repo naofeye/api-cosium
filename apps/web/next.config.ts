@@ -5,6 +5,10 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   compress: true,
+  // CI a un job "Frontend Lint" dedie ; on ne bloque pas le build sur les warnings ESLint.
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   async headers() {
     return [
       {
