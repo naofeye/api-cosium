@@ -176,7 +176,7 @@
 ## 2.1 File d'Actions Intelligente (P0)
 
 - [x] Action items basiques
-- [ ] [NEW] **Alertes renouvellement** : detecter les clients dont l'equipement a > 2 ans (via spectacle files + date facture)
+- [x] [NEW] **Alertes renouvellement** : `_generate_renewal_opportunities` (clients dernier achat 2-5 ans, max 100, priorise par CA). Type `renouvellement` integre dans dashboard widget + page Actions. Validé live : 100 alertes generees.
 - [ ] [NEW] **Alertes SAV** : SAV en attente depuis > X jours
 - [x] [NEW] **Alertes RDV** : type `rdv_demain` (testé : 11 alertes generees) — `_generate_upcoming_appointments`
 - [ ] [NEW] **Alertes bons d'achat** : bons expirant dans < 30 jours
