@@ -76,12 +76,17 @@ def list_calendar_events(
     status: str | None = Query(None, description="Filtrer par statut"),
     from_start_date: str | None = Query(None, description="ISO 8601 date de debut min (yyyy-mm-dd ou yyyy-mm-ddTHH:MM:SS)"),
     to_start_date: str | None = Query(None, description="ISO 8601 date de debut max"),
+    date_from: str | None = Query(None, description="Alias front-end de from_start_date"),
+    date_to: str | None = Query(None, description="Alias front-end de to_start_date"),
     customer_number: str | None = Query(None, description="Filtrer par numero client"),
     site_name: str | None = Query(None, description="Filtrer par site"),
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> PaginatedCalendarEvents:
     from datetime import datetime
+    # Aliases : date_from/date_to ont priorite si fournis
+    from_start_date = date_from or from_start_date
+    to_start_date = date_to or to_start_date
     filters = []
     if status:
         filters.append(CosiumCalendarEvent.status == status)
