@@ -144,10 +144,10 @@
 
 ## 1.6 Notes CRM [NEW] (P2)
 
-- [ ] [NEW] **Liste notes** : GET `/notes` — notes avec statuts et apparences
-- [ ] [NEW] **Notes par client** : GET `/notes?customerId={id}` — historique CRM du client
-- [ ] [NEW] **Statuts notes** : GET `/notes/statuses` — reference des statuts possibles
-- [ ] [NEW] **Adapter** : `cosium_note_to_optiflow()`
+- [x] [NEW] **Liste notes** : route `GET /api/v1/cosium/notes/{note_id}` — detail note
+- [x] [NEW] **Notes par client** : `GET /api/v1/cosium/notes/customer/{cosium_id}` — historique CRM
+- [x] [NEW] **Statuts notes** : `GET /api/v1/cosium/notes/statuses`
+- [x] [NEW] **Adapter** : `cosium_note_to_optiflow()` — message, dates, customer, appearance, status
 - [ ] [NEW] **Modele** : `cosium_notes` (id, customer_id, content, status, appearance, created_at)
 - [ ] [NEW] **Migration Alembic** : table `cosium_notes`
 - [ ] [NEW] **Frontend** : integration dans la timeline client (onglet "Activite")
