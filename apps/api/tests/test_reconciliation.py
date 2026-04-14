@@ -6,7 +6,7 @@ from app.models.client import Customer
 from app.models.cosium_data import CosiumInvoice, CosiumPayment
 from app.models.tenant import Tenant
 from app.services.reconciliation_service import (
-    _classify_payment,
+    classify_payment,
     _names_match,
     _normalize_name,
     link_payments_to_customers,
@@ -157,12 +157,12 @@ def test_payment_types_categorized(db, default_tenant: Tenant) -> None:
     assert result.has_pec is True
     assert result.pec_status == "secu_et_mutuelle"
 
-    # Also test _classify_payment directly
-    assert _classify_payment("TPSV") == "secu"
-    assert _classify_payment("TPMV") == "mutuelle"
-    assert _classify_payment("CB") == "client"
-    assert _classify_payment("AV") == "avoir"
-    assert _classify_payment("ESP") == "client"
+    # Also test classify_payment directly
+    assert classify_payment("TPSV") == "secu"
+    assert classify_payment("TPMV") == "mutuelle"
+    assert classify_payment("CB") == "client"
+    assert classify_payment("AV") == "avoir"
+    assert classify_payment("ESP") == "client"
 
 
 # -----------------------------------------------------------------------
