@@ -219,7 +219,7 @@
 - [ ] [NEW] **Ventilation par tiers** : part Secu (`shareSocialSecurity`) vs mutuelle (`sharePrivateInsurance`) vs reste a charge
 - [ ] [NEW] **Analyse par type document** : INVOICE vs QUOTE vs CREDIT_NOTE — taux de credit notes (indicateur qualite)
 - [ ] [NEW] **Acomptes** : suivi des factures `hasAdvancePayment=true` — encaisse vs restant
-- [ ] [NEW] **Ventes latentes** : produits en devis non factures (`latent-sales`) — potentiel CA a convertir
+- [x] [NEW] **Ventes latentes** : KPI `latent_quotes_count` + `latent_quotes_amount` (devis 90j non transformes) integre dans cockpit + carte dashboard couleur warning. Live : 39 devis = 655€ potentiel.
 - [ ] [NEW] **Export FEC enrichi** : inclure les donnees Cosium dans l'export comptable
 - [ ] [NEW] **Previsionnel tresorerie** : basee sur les echeances PEC + paiements attendus
 

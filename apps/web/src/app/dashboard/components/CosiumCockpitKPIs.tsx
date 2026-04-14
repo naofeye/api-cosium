@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   Calendar,
   CalendarDays,
+  FileText,
 } from "lucide-react";
 
 interface CosiumCockpitData {
@@ -30,6 +31,8 @@ interface CosiumCockpitData {
   aging_60_90: number;
   aging_over_90: number;
   aging_total: number;
+  latent_quotes_count: number;
+  latent_quotes_amount: number;
 }
 
 function trendVsLastMonth(current: number, previous: number): { value: number; label: string } | undefined {
@@ -123,6 +126,12 @@ export function CosiumCockpitKPIs() {
             label="Meme mois N-1"
             value={formatMoney(data.ca_same_month_last_year)}
             color="info"
+          />
+          <KPICard
+            icon={FileText}
+            label={`CA potentiel devis (${data.latent_quotes_count})`}
+            value={formatMoney(data.latent_quotes_amount)}
+            color="warning"
           />
         </div>
       </div>
