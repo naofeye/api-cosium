@@ -359,7 +359,7 @@
 
 ## 7.1 Monitoring (P2)
 
-- [ ] **Prometheus metrics** : latence API, taux erreur, duree sync Cosium, taille queue Celery
+- [x] **Prometheus metrics** : `/api/v1/metrics` enrichi (tenants, users, customers, cosium_invoices, outstanding_balance_eur, action_items_pending + breakdown par type label)
 - [ ] **Grafana dashboards** : dashboard ops (infra) + dashboard metier (CA, clients, sync)
 - [ ] **Sentry integration** : capture erreurs frontend + backend avec contexte utilisateur
 - [ ] **Alerting** : Slack/email si sync echoue, si latence > 5s, si erreur rate > 5%
