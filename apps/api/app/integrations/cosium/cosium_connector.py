@@ -455,6 +455,10 @@ class CosiumConnector(ERPConnector):
             params["embed"] = ",".join(embeds)
         return self._client.get(f"/customers/{customer_cosium_id}", params=params or None)
 
+    def get_invoice_payment(self, payment_id: int) -> dict:
+        """GET /invoice-payments/{id} — detail d'un reglement de facture (lecture seule)."""
+        return self._client.get(f"/invoice-payments/{payment_id}")
+
     def get_customer_consents(self, customer_cosium_id: int) -> dict:
         """GET /customers/{id}/consents — flags marketing (lecture seule)."""
         return self._client.get(f"/customers/{customer_cosium_id}/consents")

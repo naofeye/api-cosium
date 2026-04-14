@@ -109,7 +109,7 @@
 
 - [x] GET `/invoices` — factures basiques
 - [x] GET `/invoiced-items` — lignes de facture
-- [ ] [NEW] **Paiements facture** : GET `/invoice-payments/{id}` — detail des reglements par facture
+- [x] [NEW] **Paiements facture** : `GET /api/v1/cosium/invoice-payments/{payment_id}` (live) — connector + endpoint avec gestion 502 gracieuse
 - [ ] [NEW] **Liens de paiement** : GET `/invoices/{id}/payment-links` — liens de paiement en ligne si disponibles
 - [ ] [NEW] **16 types de documents** : exploiter tous les types (INVOICE, QUOTE, CREDIT_NOTE, DELIVERY_NOTE, SHIPPING_FORM, ORDER_FORM, VALUED_NOTE, RETURN_VOUCHER, SUPPLIER_ORDER_FORM, SUPPLIER_DELIVERY_NOTE, SUPPLIER_INVOICE, SUPPLIER_CREDIT_NOTE, SUPPLIER_VALUED_NOTE, SUPPLIER_RETURN_VOUCHER, STOCK_MOVE, STOCK_MANUAL_UPDATE)
 - [x] [NEW] **Filtres avances** : `archived`, `has_outstanding`, `min_amount`, `max_amount` ajoutes a `/cosium/factures-cosium` (settled deja existant). Validé : 208 factures > 100€ avec encours.
