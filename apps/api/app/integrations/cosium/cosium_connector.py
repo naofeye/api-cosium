@@ -400,6 +400,39 @@ class CosiumConnector(ERPConnector):
             items = [items] if items else []
         return items
 
+    def list_after_sales_services(
+        self,
+        status: str | None = None,
+        resolution_status: str | None = None,
+        creation_date: str | None = None,
+        site_name: str | None = None,
+        page: int = 0,
+        page_size: int = 50,
+        max_pages: int = 20,
+    ) -> list[dict]:
+        """GET /after-sales-services — liste des dossiers SAV avec filtres (lecture seule).
+
+        Statuts possibles : TO_REPAIR, IN_PROCESS, REPAIR_IN_PROCESS, FINISHED
+        Resolution : RESOLVED, SOLD_OUT
+        Dates format : yyyy-mm-dd
+        """
+        params: dict = {}
+        if status:
+            params["status"] = status
+        if resolution_status:
+            params["resolution_status"] = resolution_status
+        if creation_date:
+            params["creation_date"] = creation_date
+        if site_name:
+            params["site_name"] = site_name
+        return self._client.get_paginated(
+            "/after-sales-services", params=params, page_size=page_size, max_pages=max_pages
+        )
+
+    def get_after_sales_service(self, sav_id: int) -> dict:
+        """GET /after-sales-services/{id} — detail d'un dossier SAV (lecture seule)."""
+        return self._client.get(f"/after-sales-services/{sav_id}")
+
     def list_optical_frames(self, page: int = 0, page_size: int = 50, max_pages: int = 20) -> list[dict]:
         """GET /end-consumer/catalog/optical-frames — catalogue montures (lecture seule)."""
         return self._client.get_paginated(
