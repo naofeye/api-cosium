@@ -400,6 +400,22 @@ class CosiumConnector(ERPConnector):
             items = [items] if items else []
         return items
 
+    def list_commercial_operation_advantages(self, operation_id: int) -> list[dict]:
+        """GET /commercial-operations/{id}/advantages — avantages d'une operation commerciale.
+
+        Lecture seule. Note : les endpoints /vouchers et /carts existent uniquement
+        en PUT/DELETE chez Cosium, donc INTERDITS par notre charte.
+        """
+        data = self._client.get(f"/commercial-operations/{operation_id}/advantages")
+        items = data.get("content", []) if isinstance(data, dict) else []
+        if not isinstance(items, list):
+            items = [items] if items else []
+        return items
+
+    def get_commercial_operation_advantage(self, operation_id: int, advantage_id: int) -> dict:
+        """GET /commercial-operations/{op_id}/advantages/{adv_id} — detail d'un avantage."""
+        return self._client.get(f"/commercial-operations/{operation_id}/advantages/{advantage_id}")
+
     def list_customer_fidelity_cards(self, customer_cosium_id: int) -> list[dict]:
         """GET /customers/{id}/fidelity-cards — cartes de fidelite du client (lecture seule)."""
         data = self._client.get(f"/customers/{customer_cosium_id}/fidelity-cards")

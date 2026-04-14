@@ -337,6 +337,33 @@ def _extract_id_from_href(href: str, segment: str) -> int | None:
         return None
 
 
+def cosium_advantage_to_optiflow(raw: dict) -> dict:
+    """Normalise un avantage commercial Cosium.
+
+    Format Cosium : name, from (ISO date), to (ISO date), links (rel/href).
+    """
+    links = raw.get("links", []) or []
+    self_href = ""
+    if isinstance(links, list):
+        for link in links:
+            if isinstance(link, dict) and link.get("rel") == "self":
+                self_href = link.get("href", "")
+                break
+    advantage_id: int | None = None
+    if "/advantages/" in self_href:
+        try:
+            advantage_id = int(self_href.rsplit("/advantages/", 1)[-1].split("?")[0].split("/")[0])
+        except (ValueError, IndexError):
+            advantage_id = None
+    return {
+        "cosium_id": advantage_id,
+        "name": raw.get("name"),
+        "description": raw.get("description"),
+        "valid_from": raw.get("from"),
+        "valid_to": raw.get("to"),
+    }
+
+
 def cosium_fidelity_card_to_optiflow(raw: dict) -> dict:
     """Normalise une carte de fidelite Cosium."""
     links = raw.get("_links", {}) or {}
