@@ -400,6 +400,31 @@ class CosiumConnector(ERPConnector):
             items = [items] if items else []
         return items
 
+    def list_optical_frames(self, page: int = 0, page_size: int = 50, max_pages: int = 20) -> list[dict]:
+        """GET /end-consumer/catalog/optical-frames — catalogue montures (lecture seule)."""
+        return self._client.get_paginated(
+            "/v1/end-consumer/catalog/optical-frames", page_size=page_size, max_pages=max_pages
+        )
+
+    def get_optical_frame(self, frame_id: int) -> dict:
+        """GET /end-consumer/catalog/optical-frames/{id} — detail d'une monture (lecture seule)."""
+        return self._client.get(f"/v1/end-consumer/catalog/optical-frames/{frame_id}")
+
+    def list_optical_lenses(self, page: int = 0, page_size: int = 50, max_pages: int = 20) -> list[dict]:
+        """GET /end-consumer/catalog/optical-lenses — catalogue verres (lecture seule)."""
+        return self._client.get_paginated(
+            "/v1/end-consumer/catalog/optical-lenses", page_size=page_size, max_pages=max_pages
+        )
+
+    def get_optical_lens(self, lens_id: int) -> dict:
+        """GET /end-consumer/catalog/optical-lenses/{id} — detail d'un verre (lecture seule)."""
+        return self._client.get(f"/v1/end-consumer/catalog/optical-lenses/{lens_id}")
+
+    def get_optical_lens_options(self, lens_id: int, code: str | None = None) -> dict:
+        """GET /end-consumer/catalog/optical-lenses/{id}/available-options — options du verre."""
+        params = {"code": code} if code else None
+        return self._client.get(f"/v1/end-consumer/catalog/optical-lenses/{lens_id}/available-options", params=params)
+
     def get_payment_types(self) -> list[ERPPaymentType]:
         data = self._client.get("/payment-types")
         embedded = data.get("_embedded", data)

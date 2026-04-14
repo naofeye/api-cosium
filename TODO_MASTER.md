@@ -94,9 +94,9 @@
 
 - [x] [NEW] **Spectacle Files** : GET `/end-consumer/spectacles-files/{id}` — connector + service + route `GET /api/v1/cosium/spectacles/{file_id}`
 - [x] [NEW] **Dioptries** : GET `/end-consumer/spectacles-files/{id}/diopters` — adapter `cosium_diopter_to_optiflow`, inclus dans le dossier complet
-- [ ] [NEW] **Catalogue montures** : GET `/end-consumer/catalog/optical-frames` — avec filtres (marque, type, materiau)
-- [ ] [NEW] **Catalogue verres** : GET `/end-consumer/catalog/optical-lenses` — avec options (traitement, teinte, photochromique)
-- [ ] [NEW] **Options verres** : GET `/end-consumer/catalog/optical-lenses/{id}/options` — options disponibles par verre
+- [x] [NEW] **Catalogue montures** : GET `/end-consumer/catalog/optical-frames` — routes `GET /api/v1/cosium/catalog/frames[/{id}]`
+- [x] [NEW] **Catalogue verres** : GET `/end-consumer/catalog/optical-lenses` — routes `GET /api/v1/cosium/catalog/lenses[/{id}]`
+- [x] [NEW] **Options verres** : GET `/end-consumer/catalog/optical-lenses/{id}/available-options` — route `GET /api/v1/cosium/catalog/lenses/{id}/options`
 - [ ] [NEW] **Selection client** : GET `/end-consumer/spectacles-files/{id}/selection` — choix en cours du client
 - [ ] [NEW] **Adapter** : `cosium_spectacle_to_optiflow()`, `cosium_diopter_to_optiflow()`, `cosium_frame_to_optiflow()`
 - [ ] [NEW] **Modeles SQLAlchemy** : `spectacle_files`, `prescriptions_detail`, `optical_frames`, `optical_lenses`
