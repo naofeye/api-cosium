@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Glasses, Sparkles } from "lucide-react";
+import { Glasses, Sparkles, Search } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 
 interface Frame {
@@ -37,18 +37,30 @@ interface Lens {
 
 type CatalogTab = "frames" | "lenses";
 
-function FramesGrid() {
+function FramesGrid({ search }: { search: string }) {
   const { data, error, isLoading, mutate } = useSWR<Frame[]>("/cosium/catalog/frames?page_size=100");
+
+  const filtered = useMemo(() => {
+    if (!data) return [];
+    if (!search.trim()) return data;
+    const q = search.toLowerCase();
+    return data.filter((f) =>
+      [f.brand, f.model, f.color, f.material, f.style].some((v) => v && v.toLowerCase().includes(q))
+    );
+  }, [data, search]);
 
   if (isLoading) return <LoadingState text="Chargement du catalogue montures..." />;
   if (error) return <ErrorState message="Impossible de charger les montures Cosium" onRetry={() => mutate()} />;
   if (!data || data.length === 0) {
     return <EmptyState title="Catalogue vide" description="Aucune monture disponible dans le catalogue Cosium." />;
   }
+  if (filtered.length === 0) {
+    return <EmptyState title="Aucun resultat" description={`Aucune monture ne correspond a "${search}".`} />;
+  }
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {data.map((f, idx) => (
+      {filtered.map((f, idx) => (
         <div
           key={f.cosium_id ?? idx}
           className="rounded-xl border border-border bg-bg-card p-4 shadow-sm hover:shadow-md transition-all"
@@ -78,18 +90,30 @@ function FramesGrid() {
   );
 }
 
-function LensesGrid() {
+function LensesGrid({ search }: { search: string }) {
   const { data, error, isLoading, mutate } = useSWR<Lens[]>("/cosium/catalog/lenses?page_size=100");
+
+  const filtered = useMemo(() => {
+    if (!data) return [];
+    if (!search.trim()) return data;
+    const q = search.toLowerCase();
+    return data.filter((l) =>
+      [l.brand, l.model, l.material, l.treatment, l.tint].some((v) => v && v.toLowerCase().includes(q))
+    );
+  }, [data, search]);
 
   if (isLoading) return <LoadingState text="Chargement du catalogue verres..." />;
   if (error) return <ErrorState message="Impossible de charger les verres Cosium" onRetry={() => mutate()} />;
   if (!data || data.length === 0) {
     return <EmptyState title="Catalogue vide" description="Aucun verre disponible dans le catalogue Cosium." />;
   }
+  if (filtered.length === 0) {
+    return <EmptyState title="Aucun resultat" description={`Aucun verre ne correspond a "${search}".`} />;
+  }
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {data.map((l, idx) => (
+      {filtered.map((l, idx) => (
         <div
           key={l.cosium_id ?? idx}
           className="rounded-xl border border-border bg-bg-card p-4 shadow-sm hover:shadow-md transition-all"
@@ -121,6 +145,7 @@ function LensesGrid() {
 
 export default function CataloguePage() {
   const [tab, setTab] = useState<CatalogTab>("frames");
+  const [search, setSearch] = useState("");
 
   return (
     <PageLayout
@@ -159,8 +184,19 @@ export default function CataloguePage() {
         </div>
       </div>
 
-      {tab === "frames" && <FramesGrid />}
-      {tab === "lenses" && <LensesGrid />}
+      <div className="mb-4 relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" aria-hidden="true" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={tab === "frames" ? "Rechercher monture (marque, modele, couleur, materiau, style)..." : "Rechercher verre (marque, modele, materiau, traitement, teinte)..."}
+          className="w-full max-w-xl pl-10 pr-3 py-2 rounded-lg border border-border bg-bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+      </div>
+
+      {tab === "frames" && <FramesGrid search={search} />}
+      {tab === "lenses" && <LensesGrid search={search} />}
     </PageLayout>
   );
 }
