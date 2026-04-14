@@ -210,7 +210,7 @@
 - [ ] [NEW] **Onglet RDV** : historique et prochains rendez-vous depuis le calendrier Cosium (frontend)
 - [ ] [NEW] **Onglet SAV** : dossiers SAV avec statut et timeline (frontend)
 - [x] [NEW] **Backend Notes** : inclus dans `cosium-live` (live Cosium, gestion erreur gracieuse)
-- [ ] [NEW] **Score client** : algorithme de scoring (frequence achat, panier moyen, anciennete, PEC ok, renouvellement)
+- [x] [NEW] **Score client** : `GET /api/v1/clients/{id}/score` (0-100, 6 composantes : CA, freq, anciennete, mutuelle, outstanding, renouvelable). Categorie VIP/Fidele/Standard/Nouveau. Affiche en haut TabResume avec breakdown visuel. Validé live : KRYS YOHAN = 67/Fidele.
 - [ ] [NEW] **Alerte proactive** : bandeau en haut de la fiche si action requise (renouvellement, impaye, SAV en attente)
 
 ## 2.4 Analyse Financiere Avancee (P1)

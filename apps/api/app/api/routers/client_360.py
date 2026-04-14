@@ -57,6 +57,20 @@ def get_client_cosium_data(
 
 
 @router.get(
+    "/clients/{client_id}/score",
+    summary="Score client (algo 0-100)",
+    description="Calcule un score client (CA, frequence, anciennete, mutuelle, impayes, eligibilite renouvellement). Categorie VIP/Fidele/Standard/Nouveau.",
+)
+def get_client_score(
+    client_id: int,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> dict:
+    from app.services import analytics_cosium_service
+    return analytics_cosium_service.compute_client_score(db, tenant_ctx.tenant_id, client_id)
+
+
+@router.get(
     "/clients/{client_id}/cosium-live",
     response_model=Client360CosiumLive,
     summary="Donnees Cosium LIVE d'un client (non cachees)",
