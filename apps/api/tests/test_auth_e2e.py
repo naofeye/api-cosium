@@ -279,7 +279,7 @@ def test_logout_blacklists_token(client, seed_user):
     # Login
     login_resp = client.post(
         "/api/v1/auth/login",
-        json={"email": "test@optiflow.local", "password": "test123"},
+        json={"email": "test@optiflow.com", "password": "test123"},
     )
     assert login_resp.status_code == 200
     token = login_resp.cookies.get("optiflow_token")
@@ -319,7 +319,7 @@ def test_expired_token_rejected(client, seed_user):
 
     # Creer un token deja expire (exp dans le passe)
     payload = {
-        "sub": "test@optiflow.local",
+        "sub": "test@optiflow.com",
         "role": "admin",
         "tenant_id": 1,
         "exp": datetime.now(UTC) - timedelta(seconds=10),

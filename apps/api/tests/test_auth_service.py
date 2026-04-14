@@ -13,7 +13,7 @@ from app.services import auth_service
 
 class TestAuthenticate:
     def test_authenticate_valid_credentials(self, db, seed_user):
-        payload = LoginRequest(email="test@optiflow.local", password="test123")
+        payload = LoginRequest(email="test@optiflow.com", password="test123")
         result = auth_service.authenticate(db, payload)
 
         assert result.access_token is not None
@@ -23,12 +23,12 @@ class TestAuthenticate:
         assert result.tenant_name == "Test Magasin"
 
     def test_authenticate_wrong_password_raises(self, db, seed_user):
-        payload = LoginRequest(email="test@optiflow.local", password="wrongpassword")
+        payload = LoginRequest(email="test@optiflow.com", password="wrongpassword")
         with pytest.raises(AuthenticationError):
             auth_service.authenticate(db, payload)
 
     def test_authenticate_nonexistent_email_raises(self, db, seed_user):
-        payload = LoginRequest(email="nobody@optiflow.local", password="test123")
+        payload = LoginRequest(email="nobody@optiflow.com", password="test123")
         with pytest.raises(AuthenticationError):
             auth_service.authenticate(db, payload)
 
@@ -50,7 +50,7 @@ class TestRequestPasswordReset:
     @patch("app.tasks.email_tasks.send_email_async")
     @patch("app.integrations.email_templates.render_email", return_value="<html>reset</html>")
     def test_existing_email_creates_token(self, mock_render, mock_send, db, seed_user):
-        auth_service.request_password_reset(db, "test@optiflow.local")
+        auth_service.request_password_reset(db, "test@optiflow.com")
 
         token = db.query(PasswordResetToken).filter(
             PasswordResetToken.user_id == seed_user.id

@@ -62,7 +62,7 @@ def _create_tpp(db, tenant_id: int, invoice_cosium_id: int, amc_amount: float = 
 
 
 def _login(client: TestClient) -> dict:
-    resp = client.post("/api/v1/auth/login", json={"email": "test@optiflow.local", "password": "test123"})
+    resp = client.post("/api/v1/auth/login", json={"email": "test@optiflow.com", "password": "test123"})
     token = resp.cookies.get("optiflow_token")
     return {"Authorization": f"Bearer {token}"}
 

@@ -155,4 +155,4 @@ class TestSearchLogs:
             page=1, page_size=10,
         )
         assert len(result.items) >= 1
-        assert result.items[0].user_email == "test@optiflow.local"
+        assert result.items[0].user_email == "test@optiflow.com"

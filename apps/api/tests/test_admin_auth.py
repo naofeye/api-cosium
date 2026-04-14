@@ -9,7 +9,7 @@ from app.security import hash_password
 def operator_user_fixture(db):
     """User avec role=operator sur le tenant par defaut (pas admin)."""
     user = User(
-        email="operator@optiflow.local",
+        email="operator@optiflow.com",
         password_hash=hash_password("Test1234"),
         role="operator",
         is_active=True,
@@ -27,7 +27,7 @@ def operator_user_fixture(db):
 def operator_headers_fixture(client, operator_user):
     resp = client.post(
         "/api/v1/auth/login",
-        json={"email": "operator@optiflow.local", "password": "Test1234"},
+        json={"email": "operator@optiflow.com", "password": "Test1234"},
     )
     token = resp.cookies.get("optiflow_token")
     return {"Authorization": f"Bearer {token}"}

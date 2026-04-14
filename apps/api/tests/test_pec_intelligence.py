@@ -77,7 +77,7 @@ def test_db_fixture():
     ))
 
     # Seed user
-    user = User(email="test@optiflow.local", password_hash=hash_password("test123"), role="admin", is_active=True)
+    user = User(email="test@optiflow.com", password_hash=hash_password("test123"), role="admin", is_active=True)
     db.add(user)
     db.flush()
     db.add(TenantUser(user_id=user.id, tenant_id=tenant.id, role="admin"))
