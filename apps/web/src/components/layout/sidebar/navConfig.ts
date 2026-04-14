@@ -85,6 +85,7 @@ export const navGroups: NavGroup[] = [
       { href: "/mutuelles", label: "Mutuelles", icon: Shield },
       { href: "/produits", label: "Produits", icon: Package },
       { href: "/documents-cosium", label: "Documents", icon: FolderDown },
+      { href: "/sav", label: "SAV", icon: Briefcase },
     ],
   },
   {
