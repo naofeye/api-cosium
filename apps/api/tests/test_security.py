@@ -78,11 +78,11 @@ def test_login_rate_limiting(client, seed_user):
     for _ in range(10):
         client.post(
             "/api/v1/auth/login",
-            json={"email": "test@optiflow.local", "password": "wrong"},
+            json={"email": "test@optiflow.com", "password": "wrong"},
         )
     resp = client.post(
         "/api/v1/auth/login",
-        json={"email": "test@optiflow.local", "password": "wrong"},
+        json={"email": "test@optiflow.com", "password": "wrong"},
     )
     assert resp.status_code == 429
 
@@ -97,7 +97,7 @@ def test_expired_token_returns_401(client, seed_user):
 
     expired_token = pyjwt.encode(
         {
-            "sub": "test@optiflow.local",
+            "sub": "test@optiflow.com",
             "role": "admin",
             "exp": datetime.now(UTC) - timedelta(hours=1),
         },

@@ -8,8 +8,8 @@ from app.security import hash_password
 def test_trial_days_remaining(client, db):
     resp = client.post("/api/v1/onboarding/signup", json={
         "company_name": "Trial Test",
-        "owner_email": "trial@test.local",
-        "owner_password": "Test1234",
+        "owner_email": "trial@test.com",
+        "owner_password": "Test12345!",
         "owner_first_name": "A",
         "owner_last_name": "B",
     })
@@ -28,8 +28,8 @@ def test_trial_days_remaining(client, db):
 def test_trial_expired_shows_zero_days(client, db):
     resp = client.post("/api/v1/onboarding/signup", json={
         "company_name": "Expired Trial",
-        "owner_email": "expired@test.local",
-        "owner_password": "Test1234",
+        "owner_email": "expired@test.com",
+        "owner_password": "Test12345!",
         "owner_first_name": "A",
         "owner_last_name": "B",
     })
@@ -57,7 +57,7 @@ def test_no_trial_for_solo_plan(client, db):
     assert org.trial_ends_at is None  # Solo plan has no trial
 
     # Login as existing test user
-    user = User(email="solo@test.local", password_hash=hash_password("Test1234"), role="admin", is_active=True)
+    user = User(email="solo@test.com", password_hash=hash_password("Test12345!"), role="admin", is_active=True)
     db.add(user)
     db.flush()
     tenant = db.query(Tenant).filter(Tenant.slug == "test-magasin").first()
@@ -65,7 +65,7 @@ def test_no_trial_for_solo_plan(client, db):
     db.commit()
 
     login_resp = client.post("/api/v1/auth/login", json={
-        "email": "solo@test.local", "password": "Test1234",
+        "email": "solo@test.com", "password": "Test12345!",
     })
     token = login_resp.cookies.get("optiflow_token")
 

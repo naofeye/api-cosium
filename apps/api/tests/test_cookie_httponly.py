@@ -15,7 +15,7 @@ from datetime import timedelta
 import pytest
 
 
-def _login(client, email="test@optiflow.local", password="test123"):
+def _login(client, email="test@optiflow.com", password="test123"):
     return client.post("/api/v1/auth/login", json={"email": email, "password": password})
 
 

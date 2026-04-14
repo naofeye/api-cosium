@@ -7,8 +7,8 @@ from app.models import Organization, Tenant, TenantUser, User
 def test_signup_creates_org_tenant_user(client, db):
     resp = client.post("/api/v1/onboarding/signup", json={
         "company_name": "Optique Test",
-        "owner_email": "owner@test.local",
-        "owner_password": "Test1234",
+        "owner_email": "owner@test.com",
+        "owner_password": "Test12345!",
         "owner_first_name": "Jean",
         "owner_last_name": "Martin",
     })
@@ -28,7 +28,7 @@ def test_signup_creates_org_tenant_user(client, db):
     assert tenant is not None
     assert tenant.organization_id == org.id
 
-    user = db.query(User).filter(User.email == "owner@test.local").first()
+    user = db.query(User).filter(User.email == "owner@test.com").first()
     assert user is not None
 
     tu = db.query(TenantUser).filter(TenantUser.user_id == user.id).first()
@@ -39,15 +39,15 @@ def test_signup_creates_org_tenant_user(client, db):
 def test_signup_duplicate_email_rejected(client, db):
     client.post("/api/v1/onboarding/signup", json={
         "company_name": "First",
-        "owner_email": "dup@test.local",
-        "owner_password": "Test1234",
+        "owner_email": "dup@test.com",
+        "owner_password": "Test12345!",
         "owner_first_name": "A",
         "owner_last_name": "B",
     })
     resp = client.post("/api/v1/onboarding/signup", json={
         "company_name": "Second",
-        "owner_email": "dup@test.local",
-        "owner_password": "Test1234",
+        "owner_email": "dup@test.com",
+        "owner_password": "Test12345!",
         "owner_first_name": "C",
         "owner_last_name": "D",
     })
@@ -57,7 +57,7 @@ def test_signup_duplicate_email_rejected(client, db):
 def test_signup_weak_password_rejected(client):
     resp = client.post("/api/v1/onboarding/signup", json={
         "company_name": "Weak",
-        "owner_email": "weak@test.local",
+        "owner_email": "weak@test.com",
         "owner_password": "short",
         "owner_first_name": "X",
         "owner_last_name": "Y",
@@ -68,8 +68,8 @@ def test_signup_weak_password_rejected(client):
 def test_onboarding_status_after_signup(client, db):
     resp = client.post("/api/v1/onboarding/signup", json={
         "company_name": "Status Test",
-        "owner_email": "status@test.local",
-        "owner_password": "Test1234",
+        "owner_email": "status@test.com",
+        "owner_password": "Test12345!",
         "owner_first_name": "A",
         "owner_last_name": "B",
     })
@@ -96,8 +96,8 @@ def test_connect_cosium_success(mock_get_connector, client, db):
 
     resp = client.post("/api/v1/onboarding/signup", json={
         "company_name": "Cosium Test",
-        "owner_email": "cosium@test.local",
-        "owner_password": "Test1234",
+        "owner_email": "cosium@test.com",
+        "owner_password": "Test12345!",
         "owner_first_name": "A",
         "owner_last_name": "B",
     })
@@ -124,8 +124,8 @@ def test_connect_cosium_failure(mock_get_connector, client, db):
 
     resp = client.post("/api/v1/onboarding/signup", json={
         "company_name": "Fail Cosium",
-        "owner_email": "fail@test.local",
-        "owner_password": "Test1234",
+        "owner_email": "fail@test.com",
+        "owner_password": "Test12345!",
         "owner_first_name": "A",
         "owner_last_name": "B",
     })

@@ -71,7 +71,7 @@ def test_db_fixture():
 
     # Seed user
     user = User(
-        email="test@optiflow.local",
+        email="test@optiflow.com",
         password_hash=hash_password("test123"),
         role="admin",
         is_active=True,

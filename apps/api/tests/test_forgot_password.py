@@ -14,7 +14,7 @@ class TestForgotPassword:
             mock_email.send_email.return_value = True
             resp = client.post(
                 "/api/v1/auth/forgot-password",
-                json={"email": "test@optiflow.local"},
+                json={"email": "test@optiflow.com"},
             )
         assert resp.status_code == 204
 
@@ -31,7 +31,7 @@ class TestForgotPassword:
             mock_email.send_email.return_value = True
             client.post(
                 "/api/v1/auth/forgot-password",
-                json={"email": "test@optiflow.local"},
+                json={"email": "test@optiflow.com"},
             )
         tokens = db.query(PasswordResetToken).filter(
             PasswordResetToken.user_id == seed_user.id,
@@ -43,11 +43,11 @@ class TestForgotPassword:
         with patch("app.tasks.email_tasks.send_email_async") as mock_task:
             client.post(
                 "/api/v1/auth/forgot-password",
-                json={"email": "test@optiflow.local"},
+                json={"email": "test@optiflow.com"},
             )
             mock_task.delay.assert_called_once()
             kwargs = mock_task.delay.call_args[1]
-            assert kwargs["to"] == "test@optiflow.local"
+            assert kwargs["to"] == "test@optiflow.com"
             assert "reinitialisation" in kwargs["subject"].lower()
 
 
@@ -71,7 +71,7 @@ class TestResetPassword:
         raw_token = self._create_valid_token(db, seed_user.id)
         resp = client.post(
             "/api/v1/auth/reset-password",
-            json={"token": raw_token, "new_password": "NewPass123"},
+            json={"token": raw_token, "new_password": "NewPass123!"},
         )
         assert resp.status_code == 204
 
@@ -87,19 +87,19 @@ class TestResetPassword:
         raw_token = self._create_valid_token(db, seed_user.id)
         client.post(
             "/api/v1/auth/reset-password",
-            json={"token": raw_token, "new_password": "NewPass123"},
+            json={"token": raw_token, "new_password": "NewPass123!"},
         )
         # Login with new password
         resp = client.post(
             "/api/v1/auth/login",
-            json={"email": "test@optiflow.local", "password": "NewPass123"},
+            json={"email": "test@optiflow.com", "password": "NewPass123!"},
         )
         assert resp.status_code == 200
 
     def test_reset_password_invalid_token(self, client):
         resp = client.post(
             "/api/v1/auth/reset-password",
-            json={"token": "invalid-token-value", "new_password": "NewPass123"},
+            json={"token": "invalid-token-value", "new_password": "NewPass123!"},
         )
         assert resp.status_code == 401
 
@@ -117,7 +117,7 @@ class TestResetPassword:
 
         resp = client.post(
             "/api/v1/auth/reset-password",
-            json={"token": raw_token, "new_password": "NewPass123"},
+            json={"token": raw_token, "new_password": "NewPass123!"},
         )
         assert resp.status_code == 401
 
@@ -126,14 +126,14 @@ class TestResetPassword:
         # Use it once
         resp1 = client.post(
             "/api/v1/auth/reset-password",
-            json={"token": raw_token, "new_password": "NewPass123"},
+            json={"token": raw_token, "new_password": "NewPass123!"},
         )
         assert resp1.status_code == 204
 
         # Try to use it again
         resp2 = client.post(
             "/api/v1/auth/reset-password",
-            json={"token": raw_token, "new_password": "AnotherPass1"},
+            json={"token": raw_token, "new_password": "AnotherPass1!"},
         )
         assert resp2.status_code == 401
 

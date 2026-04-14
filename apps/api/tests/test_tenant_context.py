@@ -6,7 +6,7 @@ from app.security import hash_password
 def test_login_returns_tenant_info(client, seed_user):
     resp = client.post(
         "/api/v1/auth/login",
-        json={"email": "test@optiflow.local", "password": "test123"},
+        json={"email": "test@optiflow.com", "password": "test123"},
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -20,7 +20,7 @@ def test_login_returns_tenant_info(client, seed_user):
 def test_jwt_contains_tenant_id(client, seed_user):
     resp = client.post(
         "/api/v1/auth/login",
-        json={"email": "test@optiflow.local", "password": "test123"},
+        json={"email": "test@optiflow.com", "password": "test123"},
     )
     token = resp.cookies.get("optiflow_token")
     from app.security import decode_access_token
@@ -32,7 +32,7 @@ def test_jwt_contains_tenant_id(client, seed_user):
 def test_endpoint_requires_tenant_in_jwt(client, seed_user):
     from app.security import create_access_token
     # Token sans tenant_id
-    old_token = create_access_token("test@optiflow.local", "admin")
+    old_token = create_access_token("test@optiflow.com", "admin")
     resp = client.get(
         "/api/v1/cases",
         headers={"Authorization": f"Bearer {old_token}"},

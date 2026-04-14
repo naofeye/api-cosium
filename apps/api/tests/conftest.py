@@ -73,7 +73,7 @@ def client_fixture(db):
 @pytest.fixture(name="seed_user")
 def seed_user_fixture(db):
     user = User(
-        email="test@optiflow.local",
+        email="test@optiflow.com",
         password_hash=hash_password("test123"),
         role="admin",
         is_active=True,
@@ -96,7 +96,7 @@ def auth_headers_fixture(client, seed_user):
     # because TestClient cookie persistence can be unreliable across fixtures.
     resp = client.post(
         "/api/v1/auth/login",
-        json={"email": "test@optiflow.local", "password": "test123"},
+        json={"email": "test@optiflow.com", "password": "test123"},
     )
     token = resp.cookies.get("optiflow_token")
     return {"Authorization": f"Bearer {token}"}

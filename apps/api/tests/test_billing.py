@@ -7,8 +7,8 @@ from app.models import Tenant
 def _signup_and_get_token(client):
     resp = client.post("/api/v1/onboarding/signup", json={
         "company_name": "Billing Test",
-        "owner_email": "billing@test.local",
-        "owner_password": "Test1234",
+        "owner_email": "billing@test.com",
+        "owner_password": "Test12345!",
         "owner_first_name": "A",
         "owner_last_name": "B",
     })

@@ -30,7 +30,7 @@ class TestGetCurrentUser:
         from app.core.config import settings
 
         expired = pyjwt.encode(
-            {"sub": "test@optiflow.local", "exp": 0},
+            {"sub": "test@optiflow.com", "exp": 0},
             settings.jwt_secret,
             algorithm="HS256",
         )
@@ -66,7 +66,7 @@ class TestGetCurrentUser:
         from app.core.config import settings
 
         token = pyjwt.encode(
-            {"sub": "ghost@optiflow.local", "exp": int(time.time()) + 3600},
+            {"sub": "ghost@optiflow.com", "exp": int(time.time()) + 3600},
             settings.jwt_secret,
             algorithm="HS256",
         )
@@ -78,7 +78,7 @@ class TestGetCurrentUser:
 
     def test_inactive_user_returns_401(self, client, db):
         user = User(
-            email="inactive@optiflow.local",
+            email="inactive@optiflow.com",
             password_hash=hash_password("test123"),
             role="admin",
             is_active=False,
@@ -93,7 +93,7 @@ class TestGetCurrentUser:
         from app.core.config import settings
 
         token = pyjwt.encode(
-            {"sub": "inactive@optiflow.local", "exp": int(time.time()) + 3600},
+            {"sub": "inactive@optiflow.com", "exp": int(time.time()) + 3600},
             settings.jwt_secret,
             algorithm="HS256",
         )
@@ -116,7 +116,7 @@ class TestRequireRole:
     def test_operator_cannot_access_admin_endpoint(self, client, db):
         tenant = db.query(Tenant).filter(Tenant.slug == "test-magasin").first()
         operator = User(
-            email="operator@optiflow.local",
+            email="operator@optiflow.com",
             password_hash=hash_password("test123"),
             role="operator",
             is_active=True,
@@ -129,7 +129,7 @@ class TestRequireRole:
 
         resp = client.post(
             "/api/v1/auth/login",
-            json={"email": "operator@optiflow.local", "password": "test123"},
+            json={"email": "operator@optiflow.com", "password": "test123"},
         )
         token = resp.cookies.get("optiflow_token")
         headers = {"Authorization": f"Bearer {token}"}

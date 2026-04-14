@@ -25,8 +25,10 @@ from app.core.constants import (
 )
 from app.domain.schemas.reconciliation import AnomalyItem
 
-# Tolerance pour comparaison financiere (euros)
-TOLERANCE = Decimal("0.02")
+# Tolerance pour comparaison financiere (euros).
+# float (et non Decimal) : les modeles CosiumInvoice/CosiumPayment utilisent Float,
+# les fonctions de ce module recoivent donc des floats. Mixer Decimal+float = TypeError.
+TOLERANCE = 0.02
 
 # Payment type → category mapping
 _SECU_TYPES = {"TPSV"}
