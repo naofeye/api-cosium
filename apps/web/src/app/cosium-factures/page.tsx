@@ -49,8 +49,12 @@ export default function CosiumFacturesPage() {
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [hasOutstandingFilter, setHasOutstandingFilter] = useState("");
+  const [minAmount, setMinAmount] = useState("");
+  const [maxAmount, setMaxAmount] = useState("");
 
   const settled = settledFilter === "" ? null : settledFilter === "true";
+  const hasOutstanding = hasOutstandingFilter === "" ? null : hasOutstandingFilter === "true";
 
   const filterParams = {
     type_filter: typeFilter || undefined,
@@ -58,6 +62,9 @@ export default function CosiumFacturesPage() {
     search: search || undefined,
     date_from: dateFrom || undefined,
     date_to: dateTo || undefined,
+    has_outstanding: hasOutstanding ?? undefined,
+    min_amount: minAmount ? Number(minAmount) : undefined,
+    max_amount: maxAmount ? Number(maxAmount) : undefined,
   };
 
   const { data, error, isLoading, mutate } = useCosiumInvoices({
@@ -259,6 +266,34 @@ export default function CosiumFacturesPage() {
             value={dateTo}
             onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
             className="rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <select
+          value={hasOutstandingFilter}
+          onChange={(e) => { setHasOutstandingFilter(e.target.value); setPage(1); }}
+          className="rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+          aria-label="Filtrer par encours"
+        >
+          <option value="">Tous (encours)</option>
+          <option value="true">Avec encours &gt; 0</option>
+          <option value="false">Sans encours</option>
+        </select>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            placeholder="Min EUR"
+            value={minAmount}
+            onChange={(e) => { setMinAmount(e.target.value); setPage(1); }}
+            className="w-24 rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+            aria-label="Montant minimum"
+          />
+          <input
+            type="number"
+            placeholder="Max EUR"
+            value={maxAmount}
+            onChange={(e) => { setMaxAmount(e.target.value); setPage(1); }}
+            className="w-24 rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+            aria-label="Montant maximum"
           />
           {(dateFrom || dateTo) && (
             <button

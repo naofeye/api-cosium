@@ -144,6 +144,10 @@ def list_cosium_invoices(
     search: str | None = Query(None, description="Recherche par numero ou nom client"),
     date_from: date | None = Query(None, description="Date de debut (YYYY-MM-DD)"),
     date_to: date | None = Query(None, description="Date de fin (YYYY-MM-DD)"),
+    archived: bool | None = Query(None, description="Filtrer factures archivees"),
+    has_outstanding: bool | None = Query(None, description="True = encours > 0"),
+    min_amount: float | None = Query(None, description="Montant min EUR"),
+    max_amount: float | None = Query(None, description="Montant max EUR"),
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> CosiumInvoiceListResponse:
@@ -157,6 +161,10 @@ def list_cosium_invoices(
         search=search,
         date_from=date_from,
         date_to=date_to,
+        archived=archived,
+        has_outstanding=has_outstanding,
+        min_amount=min_amount,
+        max_amount=max_amount,
     )
 
 
