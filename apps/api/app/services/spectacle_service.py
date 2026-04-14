@@ -31,7 +31,7 @@ def get_spectacle_file_complete(connector: CosiumConnector, file_id: int) -> dic
         raw_file = connector.get_spectacle_file(file_id)
     except Exception as e:
         logger.warning("spectacle_file_not_found", file_id=file_id, error=str(e))
-        raise NotFoundError("Dossier lunettes", file_id)
+        raise NotFoundError("Dossier lunettes", file_id) from e
 
     file_meta = cosium_spectacle_file_to_optiflow(raw_file)
 

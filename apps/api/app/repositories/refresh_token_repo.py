@@ -83,8 +83,9 @@ def purge_orphans(db: Session, keep_days: int = 30) -> int:
 
     Retourne le nombre de lignes supprimees.
     """
-    from sqlalchemy import delete, or_
     from datetime import timedelta
+
+    from sqlalchemy import delete, or_
 
     cutoff = (datetime.now(UTC) - timedelta(days=keep_days)).replace(tzinfo=None)
     result = db.execute(

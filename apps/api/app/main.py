@@ -23,11 +23,11 @@ from app.api.routers import (
     client_mutuelles,
     clients,
     consents,
-    cosium_documents,
-    cosium_invoices,
     cosium_catalog,
     cosium_commercial,
+    cosium_documents,
     cosium_fidelity,
+    cosium_invoices,
     cosium_notes,
     cosium_reference,
     cosium_sav,
@@ -54,6 +54,7 @@ from app.api.routers import (
     sse,
     sync,
 )
+from app.core.config import settings
 from app.core.exceptions import (
     AuthenticationError,
     BusinessError,
@@ -62,7 +63,6 @@ from app.core.exceptions import (
     NotFoundError,
     ValidationError,
 )
-from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.rate_limiter import RateLimiterMiddleware
 from app.core.request_id import RequestIdMiddleware

@@ -3,10 +3,9 @@
 Pas d'authentification (le bind 127.0.0.1 + nginx restreignent l'acces).
 Stack stack monitoring : Prometheus scrape ce endpoint toutes les 30s.
 """
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
-from fastapi import Depends
 
 from app.db.session import get_db
 from app.models import Customer, Tenant, User

@@ -97,15 +97,15 @@ def list_calendar_events(
     if from_start_date:
         try:
             filters.append(CosiumCalendarEvent.start_date >= datetime.fromisoformat(from_start_date.replace("Z", "+00:00")))
-        except ValueError:
-            from app.core.exceptions import ValidationError as VE
-            raise VE("from_start_date doit etre au format ISO 8601")
+        except ValueError as exc:
+            from app.core.exceptions import ValidationError
+            raise ValidationError("from_start_date doit etre au format ISO 8601") from exc
     if to_start_date:
         try:
             filters.append(CosiumCalendarEvent.start_date <= datetime.fromisoformat(to_start_date.replace("Z", "+00:00")))
-        except ValueError:
-            from app.core.exceptions import ValidationError as VE
-            raise VE("to_start_date doit etre au format ISO 8601")
+        except ValueError as exc:
+            from app.core.exceptions import ValidationError
+            raise ValidationError("to_start_date doit etre au format ISO 8601") from exc
     data = paginated_query(
         db, CosiumCalendarEvent, tenant_ctx.tenant_id, page, page_size,
         order_by=[CosiumCalendarEvent.start_date.desc()],
@@ -127,6 +127,7 @@ def list_upcoming_calendar_events(
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> list[CalendarEventResponse]:
     from datetime import UTC, datetime
+
     from sqlalchemy import select
     now = datetime.now(UTC).replace(tzinfo=None)
     rows = db.scalars(
@@ -153,6 +154,7 @@ def get_calendar_event(
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> CalendarEventResponse:
     from sqlalchemy import select
+
     from app.core.exceptions import NotFoundError
     row = db.scalars(
         select(CosiumCalendarEvent).where(
