@@ -56,6 +56,10 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.cleanup_tasks.purge_refresh_tokens",
         "schedule": crontab(hour=3, minute=30),  # Daily 3:30 AM
     },
+    "apply-retention-policy": {
+        "task": "app.tasks.cleanup_tasks.apply_retention_policy",
+        "schedule": crontab(hour=3, minute=45),  # Daily 3:45 AM
+    },
 }
 celery_app.conf.timezone = "Europe/Paris"
 

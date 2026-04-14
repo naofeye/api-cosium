@@ -57,6 +57,66 @@ def get_client_cosium_data(
 
 
 @router.get(
+    "/clients/{client_id}/ai-renewal-suggestion",
+    summary="IA : suggestion de relance renouvellement",
+    description="Genere un message contextualise base sur score, derniere visite, equipement.",
+)
+def ai_renewal_suggestion(
+    client_id: int,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> dict:
+    """Suggestion textuelle simple basee sur les donnees client + score."""
+    from app.repositories import client_repo
+    from app.services import analytics_cosium_service
+    from app.core.exceptions import NotFoundError
+
+    customer = client_repo.get_by_id(db, client_id, tenant_ctx.tenant_id)
+    if not customer:
+        raise NotFoundError("Client", client_id)
+
+    score = analytics_cosium_service.compute_client_score(db, tenant_ctx.tenant_id, client_id)
+    days_since = score.get("days_since_last_invoice")
+    months = (days_since // 30) if days_since else 0
+
+    if not score["is_renewable"]:
+        suggestion = (
+            f"{customer.first_name} {customer.last_name} a achete il y a {months} mois — "
+            "renouvellement pas encore opportun. Continuer le suivi."
+        )
+        urgency = "low"
+    elif score["category"] == "VIP":
+        suggestion = (
+            f"{customer.first_name} {customer.last_name} (VIP, CA 12m {score['ca_12m']:.0f}€) — "
+            f"dernier achat il y a {months} mois. Proposer un bilan visuel premium + nouveaute monture haut de gamme. "
+            "Appel personnel recommande."
+        )
+        urgency = "high"
+    elif score["category"] == "Fidele":
+        suggestion = (
+            f"Client fidele, dernier achat il y a {months} mois. "
+            "Email de relance avec offre renouvellement (-10% ou bilan offert) recommande."
+        )
+        urgency = "medium"
+    else:
+        suggestion = (
+            f"Client standard, dernier achat il y a {months} mois. "
+            "SMS automatique de rappel bilan visuel."
+        )
+        urgency = "medium"
+
+    return {
+        "customer_id": client_id,
+        "customer_name": f"{customer.first_name} {customer.last_name}",
+        "score": score["score"],
+        "category": score["category"],
+        "months_since_last_purchase": months,
+        "suggestion": suggestion,
+        "urgency": urgency,
+    }
+
+
+@router.get(
     "/clients/{client_id}/score",
     summary="Score client (algo 0-100)",
     description="Calcule un score client (CA, frequence, anciennete, mutuelle, impayes, eligibilite renouvellement). Categorie VIP/Fidele/Standard/Nouveau.",

@@ -41,6 +41,19 @@ def financial_breakdown(
 
 
 @router.get(
+    "/analytics/group-comparison",
+    summary="Comparatif inter-magasins (groupe)",
+    description="KPIs cote a cote pour tous les tenants actifs (CA 30j, panier moyen, encours, clients).",
+    tags=["analytics"],
+)
+def group_comparison(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> list[dict]:
+    return analytics_cosium_service.compute_group_comparison(db)
+
+
+@router.get(
     "/analytics/dynamic-segments",
     summary="Segments marketing dynamiques",
     description="Calcule des segments suggeres a partir de Cosium (VIP, renouvellement, inactifs, impayes, avec mutuelle).",
