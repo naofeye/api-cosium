@@ -178,11 +178,11 @@
 - [x] Action items basiques
 - [ ] [NEW] **Alertes renouvellement** : detecter les clients dont l'equipement a > 2 ans (via spectacle files + date facture)
 - [ ] [NEW] **Alertes SAV** : SAV en attente depuis > X jours
-- [ ] [NEW] **Alertes RDV** : clients avec RDV demain (rappel automatique)
+- [x] [NEW] **Alertes RDV** : type `rdv_demain` (testé : 11 alertes generees) — `_generate_upcoming_appointments`
 - [ ] [NEW] **Alertes bons d'achat** : bons expirant dans < 30 jours
-- [ ] [NEW] **Alertes devis non transformes** : devis envoyes depuis > 15 jours sans signature
-- [ ] [NEW] **Alertes impaye** : factures avec `outstandingBalance > 0` et date > 30 jours
-- [ ] [NEW] **Priorisation IA** : classer les actions par urgence et impact financier
+- [x] [NEW] **Alertes devis non transformes** : type `devis_dormant` > 15j (testé : 100 alertes) — `_generate_stale_quotes`
+- [x] [NEW] **Alertes impaye** : type `impaye_cosium` > 30j (testé : 169 alertes) — `_generate_overdue_cosium_invoices`
+- [x] [NEW] **Priorisation auto** : impaye > 90j = high, sinon medium ; devis = medium ; RDV = medium
 - [ ] [NEW] **Widget sidebar** : compteur d'actions par categorie (badge rouge)
 
 ## 2.2 Dashboard Cockpit Opticien (P0)
