@@ -27,6 +27,10 @@ def list_invoices(
     search: str | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
+    archived: bool | None = None,
+    has_outstanding: bool | None = None,
+    min_amount: float | None = None,
+    max_amount: float | None = None,
 ) -> CosiumInvoiceListResponse:
     """Return a paginated list of Cosium invoices."""
     rows, total = cosium_invoice_repo.get_list(
@@ -39,6 +43,10 @@ def list_invoices(
         search=search,
         date_from=date_from,
         date_to=date_to,
+        archived=archived,
+        has_outstanding=has_outstanding,
+        min_amount=min_amount,
+        max_amount=max_amount,
     )
     items = [CosiumInvoiceItem.model_validate(row) for row in rows]
     logger.info(

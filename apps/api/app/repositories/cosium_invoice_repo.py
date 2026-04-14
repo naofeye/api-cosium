@@ -16,6 +16,10 @@ def _apply_filters(
     search: str | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
+    archived: bool | None = None,
+    has_outstanding: bool | None = None,
+    min_amount: float | None = None,
+    max_amount: float | None = None,
 ):
     """Apply common filters to a query (shared between data query and count)."""
     q = q.where(CosiumInvoice.tenant_id == tenant_id)
@@ -25,6 +29,19 @@ def _apply_filters(
 
     if settled is not None:
         q = q.where(CosiumInvoice.settled == settled)
+
+    if archived is not None:
+        q = q.where(CosiumInvoice.archived == archived)
+
+    if has_outstanding is True:
+        q = q.where(CosiumInvoice.outstanding_balance > 0)
+    elif has_outstanding is False:
+        q = q.where(CosiumInvoice.outstanding_balance == 0)
+
+    if min_amount is not None:
+        q = q.where(CosiumInvoice.total_ti >= min_amount)
+    if max_amount is not None:
+        q = q.where(CosiumInvoice.total_ti <= max_amount)
 
     if search:
         pattern = f"%{search}%"
@@ -49,13 +66,21 @@ def get_list(
     search: str | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
+    archived: bool | None = None,
+    has_outstanding: bool | None = None,
+    min_amount: float | None = None,
+    max_amount: float | None = None,
 ) -> tuple[list[CosiumInvoice], int]:
     """Return paginated Cosium invoices with optional filters."""
     q = _apply_filters(
         select(CosiumInvoice), tenant_id, type_filter, settled, search, date_from, date_to,
+        archived=archived, has_outstanding=has_outstanding,
+        min_amount=min_amount, max_amount=max_amount,
     )
     q_count = _apply_filters(
         select(func.count()).select_from(CosiumInvoice), tenant_id, type_filter, settled, search, date_from, date_to,
+        archived=archived, has_outstanding=has_outstanding,
+        min_amount=min_amount, max_amount=max_amount,
     )
 
     total = db.scalar(q_count) or 0
