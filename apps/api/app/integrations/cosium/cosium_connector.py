@@ -444,6 +444,10 @@ class CosiumConnector(ERPConnector):
             items = [items] if items else []
         return items
 
+    def get_customer_consents(self, customer_cosium_id: int) -> dict:
+        """GET /customers/{id}/consents — flags marketing (lecture seule)."""
+        return self._client.get(f"/customers/{customer_cosium_id}/consents")
+
     def list_customer_fidelity_cards(self, customer_cosium_id: int) -> list[dict]:
         """GET /customers/{id}/fidelity-cards — cartes de fidelite du client (lecture seule)."""
         data = self._client.get(f"/customers/{customer_cosium_id}/fidelity-cards")

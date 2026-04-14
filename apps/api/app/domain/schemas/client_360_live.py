@@ -5,6 +5,14 @@ from app.domain.schemas.fidelity import FidelityCardResponse, SponsorshipRespons
 from app.domain.schemas.notes import CosiumNoteResponse
 
 
+class CosiumConsents(BaseModel):
+    """Consentements marketing du client cote Cosium (lecture seule)."""
+    email_consent: bool | None = None
+    sms_consent: bool | None = None
+    whatsapp_consent: bool | None = None
+    exclude_all_consent: bool | None = None
+
+
 class Client360CosiumLive(BaseModel):
     """Donnees client recuperees en LIVE depuis Cosium (non cachees).
 
@@ -16,4 +24,5 @@ class Client360CosiumLive(BaseModel):
     fidelity_cards: list[FidelityCardResponse] = []
     sponsorships: list[SponsorshipResponse] = []
     notes: list[CosiumNoteResponse] = []
+    consents: CosiumConsents | None = None
     errors: list[str] = []

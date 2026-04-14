@@ -83,7 +83,7 @@
 - [ ] [NEW] **Embed complet** : exploiter `?embed=accounting,address,consents,optician,site,tags` pour rapatrier toutes les sous-ressources en un seul appel
 - [x] [NEW] **Cartes de fidelite** : route `GET /api/v1/cosium/customers/{id}/fidelity-cards` — lecture live
 - [x] [NEW] **Parrainages** : route `GET /api/v1/cosium/customers/{id}/sponsorships` — lecture live
-- [ ] [NEW] **Consentements marketing** : lire les flags `subscribed-to-email/sms/paper` depuis Cosium et les afficher dans OptiFlow (lecture seule)
+- [x] [NEW] **Consentements marketing** : `GET /customers/{id}/consents` -> 4 flags (email, sms, whatsapp, exclude_all). Inclus dans `cosium-live` + cards visuels dans onglet Fidelite.
 - [x] [NEW] **Recherche fuzzy** : `GET /api/v1/cosium/customers/search?last_name=&first_name=&customer_number=` (loose match Cosium, gestion 502 gracieuse)
 - [ ] [NEW] **Adapter enrichi** : `cosium_customer_to_optiflow()` doit mapper fidelity, sponsorship, consents, tags
 - [ ] [NEW] **Migration Alembic** : tables `client_fidelity_cards`, `client_sponsorships` + champs consents sur `clients`

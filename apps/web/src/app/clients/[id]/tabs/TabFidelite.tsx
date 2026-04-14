@@ -4,7 +4,7 @@ import useSWR from "swr";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
-import { Award, Gift, MessageSquare, AlertTriangle } from "lucide-react";
+import { Award, Gift, MessageSquare, AlertTriangle, Mail, Phone, MessageCircle, Ban } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 
 interface FidelityCard {
@@ -36,12 +36,20 @@ interface Note {
   status_label: string | null;
 }
 
+interface Consents {
+  email_consent: boolean | null;
+  sms_consent: boolean | null;
+  whatsapp_consent: boolean | null;
+  exclude_all_consent: boolean | null;
+}
+
 interface CosiumLiveData {
   customer_id: number;
   cosium_id: number | null;
   fidelity_cards: FidelityCard[];
   sponsorships: Sponsorship[];
   notes: Note[];
+  consents: Consents | null;
   errors: string[];
 }
 
@@ -93,6 +101,54 @@ export function TabFidelite({ clientId }: Props) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Consentements marketing Cosium */}
+      {data.consents && (
+        <section>
+          <div className="mb-3 flex items-center gap-2">
+            <Ban className="h-5 w-5 text-red-600" />
+            <h3 className="text-base font-semibold text-text-primary">Consentements marketing Cosium</h3>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className={`rounded-lg border p-3 ${data.consents.email_consent ? "bg-emerald-50 border-emerald-200" : "bg-gray-50 border-gray-200"}`}>
+              <div className="flex items-center gap-2">
+                <Mail className={`h-4 w-4 ${data.consents.email_consent ? "text-emerald-700" : "text-text-secondary"}`} />
+                <span className="text-sm font-medium">Email</span>
+              </div>
+              <p className={`mt-1 text-xs ${data.consents.email_consent ? "text-emerald-700" : "text-text-secondary"}`}>
+                {data.consents.email_consent ? "Autorise" : "Refuse"}
+              </p>
+            </div>
+            <div className={`rounded-lg border p-3 ${data.consents.sms_consent ? "bg-emerald-50 border-emerald-200" : "bg-gray-50 border-gray-200"}`}>
+              <div className="flex items-center gap-2">
+                <Phone className={`h-4 w-4 ${data.consents.sms_consent ? "text-emerald-700" : "text-text-secondary"}`} />
+                <span className="text-sm font-medium">SMS</span>
+              </div>
+              <p className={`mt-1 text-xs ${data.consents.sms_consent ? "text-emerald-700" : "text-text-secondary"}`}>
+                {data.consents.sms_consent ? "Autorise" : "Refuse"}
+              </p>
+            </div>
+            <div className={`rounded-lg border p-3 ${data.consents.whatsapp_consent ? "bg-emerald-50 border-emerald-200" : "bg-gray-50 border-gray-200"}`}>
+              <div className="flex items-center gap-2">
+                <MessageCircle className={`h-4 w-4 ${data.consents.whatsapp_consent ? "text-emerald-700" : "text-text-secondary"}`} />
+                <span className="text-sm font-medium">WhatsApp</span>
+              </div>
+              <p className={`mt-1 text-xs ${data.consents.whatsapp_consent ? "text-emerald-700" : "text-text-secondary"}`}>
+                {data.consents.whatsapp_consent ? "Autorise" : "Refuse"}
+              </p>
+            </div>
+            <div className={`rounded-lg border p-3 ${data.consents.exclude_all_consent ? "bg-red-50 border-red-200" : "bg-gray-50 border-gray-200"}`}>
+              <div className="flex items-center gap-2">
+                <Ban className={`h-4 w-4 ${data.consents.exclude_all_consent ? "text-red-700" : "text-text-secondary"}`} />
+                <span className="text-sm font-medium">Exclu total</span>
+              </div>
+              <p className={`mt-1 text-xs ${data.consents.exclude_all_consent ? "text-red-700 font-semibold" : "text-text-secondary"}`}>
+                {data.consents.exclude_all_consent ? "OUI - Stop !" : "Non"}
+              </p>
+            </div>
+          </div>
+        </section>
       )}
 
       {/* Cartes de fidelite */}
