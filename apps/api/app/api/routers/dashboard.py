@@ -41,6 +41,19 @@ def financial_breakdown(
 
 
 @router.get(
+    "/analytics/dynamic-segments",
+    summary="Segments marketing dynamiques",
+    description="Calcule des segments suggeres a partir de Cosium (VIP, renouvellement, inactifs, impayes, avec mutuelle).",
+    tags=["analytics"],
+)
+def dynamic_segments(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> list[dict]:
+    return analytics_cosium_service.compute_dynamic_segments(db, tenant_ctx.tenant_id)
+
+
+@router.get(
     "/analytics/cashflow-forecast",
     summary="Previsionnel de tresorerie 30j",
     description="Estimation des encaissements probables sur 30 jours (heuristique aging-based) + risque irrecouvrable.",

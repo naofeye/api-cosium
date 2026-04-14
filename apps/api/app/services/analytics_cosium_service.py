@@ -408,6 +408,118 @@ def compute_client_score(db: Session, tenant_id: int, customer_id: int) -> dict:
     }
 
 
+def compute_dynamic_segments(db: Session, tenant_id: int) -> list[dict]:
+    """Segments marketing dynamiques calcules sur Cosium data (suggestions, non persistes)."""
+    from app.models import ClientMutuelle
+
+    now = datetime.now(UTC).replace(tzinfo=None)
+    cutoff_2y = now - timedelta(days=730)
+    cutoff_3y = now - timedelta(days=1095)
+
+    # Clients avec total CA INVOICE par customer_id
+    ca_per_customer_q = (
+        select(
+            CosiumInvoice.customer_id,
+            func.sum(CosiumInvoice.total_ti).label("ca"),
+            func.max(CosiumInvoice.invoice_date).label("last_date"),
+        )
+        .where(
+            CosiumInvoice.tenant_id == tenant_id,
+            CosiumInvoice.type == "INVOICE",
+            CosiumInvoice.customer_id.isnot(None),
+        )
+        .group_by(CosiumInvoice.customer_id)
+        .subquery()
+    )
+
+    # VIP : CA > 5000€
+    vip_count = db.scalar(
+        select(func.count()).select_from(ca_per_customer_q).where(ca_per_customer_q.c.ca > 5000)
+    ) or 0
+    vip_ca = float(
+        db.scalar(
+            select(func.sum(ca_per_customer_q.c.ca)).where(ca_per_customer_q.c.ca > 5000)
+        ) or 0
+    )
+
+    # Renouvellement eligible : dernier achat 2-5 ans
+    renewal_count = db.scalar(
+        select(func.count()).select_from(ca_per_customer_q).where(
+            ca_per_customer_q.c.last_date < cutoff_2y,
+            ca_per_customer_q.c.last_date >= now - timedelta(days=1825),
+        )
+    ) or 0
+
+    # Inactif > 3 ans
+    inactive_count = db.scalar(
+        select(func.count()).select_from(ca_per_customer_q).where(
+            ca_per_customer_q.c.last_date < cutoff_3y,
+        )
+    ) or 0
+
+    # Avec impayes
+    with_outstanding_count = (
+        db.scalar(
+            select(func.count(func.distinct(CosiumInvoice.customer_id))).where(
+                CosiumInvoice.tenant_id == tenant_id,
+                CosiumInvoice.type == "INVOICE",
+                CosiumInvoice.outstanding_balance > 0,
+                CosiumInvoice.customer_id.isnot(None),
+            )
+        )
+        or 0
+    )
+
+    # Sans mutuelle
+    customers_with_mutuelle = (
+        db.scalar(
+            select(func.count(func.distinct(ClientMutuelle.customer_id))).where(
+                ClientMutuelle.tenant_id == tenant_id,
+            )
+        )
+        or 0
+    )
+
+    return [
+        {
+            "key": "vip",
+            "label": "Clients VIP (CA > 5000 EUR)",
+            "description": "Top clients a fideliser. Actions VIP recommandees.",
+            "count": vip_count,
+            "ca": round(vip_ca, 2),
+            "color": "emerald",
+        },
+        {
+            "key": "renewal_eligible",
+            "label": "Eligibles renouvellement (2-5 ans)",
+            "description": "Equipement vieillissant. Cible relance bilan visuel.",
+            "count": renewal_count,
+            "color": "purple",
+        },
+        {
+            "key": "inactive_3y",
+            "label": "Inactifs > 3 ans",
+            "description": "Clients dormants. Reactivation difficile mais utile.",
+            "count": inactive_count,
+            "color": "gray",
+        },
+        {
+            "key": "with_outstanding",
+            "label": "Avec encours impayes",
+            "description": "Clients a relancer pour recouvrement.",
+            "count": with_outstanding_count,
+            "color": "red",
+        },
+        {
+            "key": "with_mutuelle",
+            "label": "Avec mutuelle configuree",
+            "description": "Clients dont la mutuelle OptiFlow est connue.",
+            "count": customers_with_mutuelle,
+            "color": "blue",
+        },
+    ]
+
+
 def get_cashflow_forecast(db: Session, tenant_id: int) -> dict:
     """Previsionnel de tresorerie 30j base sur l'age des factures impayees.
 
