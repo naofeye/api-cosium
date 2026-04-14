@@ -87,6 +87,24 @@ class CosiumMonthlyCa(BaseModel):
     ca: float = 0
 
 
+class CosiumCockpitKPIs(BaseModel):
+    """KPIs cockpit opticien — vue d'ensemble live."""
+    ca_today: float = 0
+    ca_this_week: float = 0
+    ca_this_month: float = 0
+    ca_last_month: float = 0
+    ca_same_month_last_year: float = 0
+    panier_moyen: float = 0
+    nb_invoices_today: int = 0
+    nb_invoices_this_month: int = 0
+    quote_to_invoice_rate: float = 0
+    aging_0_30: float = 0
+    aging_30_60: float = 0
+    aging_60_90: float = 0
+    aging_over_90: float = 0
+    aging_total: float = 0
+
+
 class KPIComparison(BaseModel):
     ca_total_delta: float | None = None
     montant_encaisse_delta: float | None = None
