@@ -262,7 +262,6 @@ def startup() -> None:
         from alembic.config import Config as AlembicConfig
         from alembic.runtime.migration import MigrationContext
         from alembic.script import ScriptDirectory
-
         from app.db.session import engine
 
         alembic_cfg = AlembicConfig("alembic.ini")

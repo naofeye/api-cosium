@@ -9,7 +9,6 @@ Decoupage extrait pour reduire la taille du service principal :
 """
 import re
 import unicodedata
-from decimal import Decimal
 
 from app.core.constants import (
     CONFIDENCE_CERTAIN,
