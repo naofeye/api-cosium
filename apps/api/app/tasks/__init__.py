@@ -33,6 +33,11 @@ celery_app.conf.update(
 )
 
 celery_app.conf.beat_schedule = {
+    # Heartbeat : detecte si le scheduler est mort (voir /api/v1/admin/beat-status)
+    "beat-heartbeat": {
+        "task": "app.tasks.heartbeat_tasks.beat_heartbeat",
+        "schedule": crontab(minute="*"),  # chaque minute
+    },
     # NOTE: Pas de relance automatique — l'utilisateur veut valider avant tout envoi client
     # Les relances sont uniquement manuelles via la page Relances
     "sync-cosium-daily": {
@@ -46,6 +51,10 @@ celery_app.conf.beat_schedule = {
     "check-expiring-prescriptions": {
         "task": "app.tasks.sync_tasks.check_expiring_prescriptions",
         "schedule": crontab(hour=10, minute=0, day_of_week=1),  # Monday 10 AM
+    },
+    "purge-refresh-tokens": {
+        "task": "app.tasks.cleanup_tasks.purge_refresh_tokens",
+        "schedule": crontab(hour=3, minute=30),  # Daily 3:30 AM
     },
 }
 celery_app.conf.timezone = "Europe/Paris"
@@ -66,3 +75,17 @@ def _on_task_failure(sender=None, task_id=None, exception=None, args=None, kwarg
         kwargs=str(kwargs)[:500] if kwargs else None,
     )
     # Sentry capture automatique via celery integration si SENTRY_DSN configure
+
+
+# Import explicite des modules de taches pour que les decorateurs @celery_app.task
+# enregistrent les taches dans le registre au demarrage du worker/beat.
+# Sans ca, le worker lance avec `-A app.tasks` ne voit pas les taches.
+from app.tasks import (  # noqa: E402, F401
+    batch_tasks,
+    cleanup_tasks,
+    email_tasks,
+    extraction_tasks,
+    heartbeat_tasks,
+    reminder_tasks,
+    sync_tasks,
+)

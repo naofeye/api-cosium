@@ -19,6 +19,7 @@ class HealthCheckResponse(BaseModel):
 
 
 class MetricsTotals(BaseModel):
+    users: int = 0
     clients: int
     dossiers: int
     factures: int

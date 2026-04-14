@@ -90,6 +90,23 @@ def health_check(db: Session = Depends(get_db)) -> HealthCheckResponse:
     except Exception:
         checks["redis"] = {"status": "error", "error": "unavailable"}
 
+    # Celery beat heartbeat : alerte si scheduler mort > 5 min
+    try:
+        import redis as redis_lib
+
+        r = redis_lib.Redis.from_url(settings.redis_url, socket_timeout=2)
+        raw = r.get("celery:beat:heartbeat")
+        if raw is None:
+            checks["celery_beat"] = {"status": "error", "error": "no_heartbeat"}
+        else:
+            age_s = int(time.time() - int(raw))
+            checks["celery_beat"] = {
+                "status": "ok" if age_s < 300 else "error",
+                "last_beat_age_s": age_s,
+            }
+    except Exception:
+        checks["celery_beat"] = {"status": "error", "error": "unavailable"}
+
     # MinIO
     try:
         import httpx

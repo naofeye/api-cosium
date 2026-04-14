@@ -91,6 +91,14 @@ class UserMeResponse(BaseModel):
     is_active: bool
 
 
+class SessionInfo(BaseModel):
+    """Represente une session active (refresh token non revoke)."""
+    id: int
+    created_at: str
+    expires_at: str
+    is_current: bool = False
+
+
 class SyncResult(BaseModel):
     created: int = 0
     updated: int = 0
