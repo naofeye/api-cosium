@@ -37,7 +37,7 @@ markers = [
   "cosium_live: tests requiring real Cosium API credentials (skipped by default)",
   "slow: slow tests",
 ]
-addopts = "-m 'not cosium_live'"
+addopts = "-m 'not cosium_live' --timeout=30 --timeout-method=thread"
 filterwarnings = [
     "ignore::DeprecationWarning:botocore.*",
     "ignore::DeprecationWarning:sqlalchemy.*",
