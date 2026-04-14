@@ -67,9 +67,9 @@ def ai_renewal_suggestion(
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> dict:
     """Suggestion textuelle simple basee sur les donnees client + score."""
+    from app.core.exceptions import NotFoundError
     from app.repositories import client_repo
     from app.services import analytics_cosium_service
-    from app.core.exceptions import NotFoundError
 
     customer = client_repo.get_by_id(db, client_id, tenant_ctx.tenant_id)
     if not customer:
