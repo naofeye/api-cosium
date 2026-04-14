@@ -9,6 +9,7 @@ import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { OnboardingGuide } from "@/components/ui/OnboardingGuide";
 import { SkeletonCard } from "@/components/ui/SkeletonCard";
 
+import { ActionItemsBreakdown } from "./components/ActionItemsBreakdown";
 import { CosiumCockpitKPIs } from "./components/CosiumCockpitKPIs";
 import { DashboardKPIs } from "./components/DashboardKPIs";
 import { DashboardSections } from "./components/DashboardSections";
@@ -99,6 +100,10 @@ export default function DashboardPage() {
         onExportPDF={exportPDF}
         exporting={exporting}
       />
+
+      <ErrorBoundary name="ActionItemsBreakdown">
+        <ActionItemsBreakdown />
+      </ErrorBoundary>
 
       <ErrorBoundary name="CosiumCockpit">
         <CosiumCockpitKPIs />
