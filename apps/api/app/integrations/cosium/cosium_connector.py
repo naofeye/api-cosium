@@ -444,6 +444,17 @@ class CosiumConnector(ERPConnector):
             items = [items] if items else []
         return items
 
+    def get_customer_detail(self, customer_cosium_id: int, embeds: list[str] | None = None) -> dict:
+        """GET /customers/{id}?embed=... — detail client complet (lecture seule).
+
+        Embeds disponibles : accounting, address, consents, optician, site,
+        site-for-central-buying-service, tags, hearing-aid-specialist.
+        """
+        params = {}
+        if embeds:
+            params["embed"] = ",".join(embeds)
+        return self._client.get(f"/customers/{customer_cosium_id}", params=params or None)
+
     def get_customer_consents(self, customer_cosium_id: int) -> dict:
         """GET /customers/{id}/consents — flags marketing (lecture seule)."""
         return self._client.get(f"/customers/{customer_cosium_id}/consents")

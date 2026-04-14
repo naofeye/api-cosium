@@ -82,6 +82,29 @@ def search_customers_loose(
 
 
 @router.get(
+    "/{customer_cosium_id}/detail",
+    summary="Detail client Cosium (live, avec embeds)",
+    description="Recupere le client Cosium complet avec sous-ressources (accounting, address, consents, optician, site, tags) en un appel.",
+)
+def get_customer_detail_live(
+    customer_cosium_id: int,
+    embed: str = Query(
+        "accounting,address,consents,optician,site,tags",
+        description="Liste CSV des sous-ressources a inclure",
+    ),
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> dict:
+    connector = _get_cosium_connector(db, tenant_ctx.tenant_id)
+    embeds_list = [e.strip() for e in embed.split(",") if e.strip()]
+    try:
+        return connector.get_customer_detail(customer_cosium_id, embeds=embeds_list)
+    except Exception as e:
+        from app.core.exceptions import ExternalServiceError
+        raise ExternalServiceError(f"Detail Cosium indisponible : {str(e)[:120]}")
+
+
+@router.get(
     "/{customer_cosium_id}/fidelity-cards",
     response_model=list[FidelityCardResponse],
     summary="Cartes de fidelite d'un client",

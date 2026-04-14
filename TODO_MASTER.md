@@ -80,7 +80,7 @@
 ## 1.1 Enrichissement Client Cosium [NEW] (P0)
 
 - [x] GET `/customers` — recherche basique (nom, email, tel)
-- [ ] [NEW] **Embed complet** : exploiter `?embed=accounting,address,consents,optician,site,tags` pour rapatrier toutes les sous-ressources en un seul appel
+- [x] [NEW] **Embed complet** : `GET /api/v1/cosium/customers/{cosium_id}/detail?embed=...` — endpoint live avec embeds par defaut (accounting, address, consents, optician, site, tags)
 - [x] [NEW] **Cartes de fidelite** : route `GET /api/v1/cosium/customers/{id}/fidelity-cards` — lecture live
 - [x] [NEW] **Parrainages** : route `GET /api/v1/cosium/customers/{id}/sponsorships` — lecture live
 - [x] [NEW] **Consentements marketing** : `GET /customers/{id}/consents` -> 4 flags (email, sms, whatsapp, exclude_all). Inclus dans `cosium-live` + cards visuels dans onglet Fidelite.
