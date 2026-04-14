@@ -69,13 +69,13 @@ def ai_renewal_suggestion(
     """Suggestion textuelle simple basee sur les donnees client + score."""
     from app.core.exceptions import NotFoundError
     from app.repositories import client_repo
-    from app.services import analytics_cosium_service
+    from app.services import analytics_cosium_extras
 
     customer = client_repo.get_by_id(db, client_id, tenant_ctx.tenant_id)
     if not customer:
         raise NotFoundError("Client", client_id)
 
-    score = analytics_cosium_service.compute_client_score(db, tenant_ctx.tenant_id, client_id)
+    score = analytics_cosium_extras.compute_client_score(db, tenant_ctx.tenant_id, client_id)
     days_since = score.get("days_since_last_invoice")
     months = (days_since // 30) if days_since else 0
 
@@ -126,8 +126,8 @@ def get_client_score(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> dict:
-    from app.services import analytics_cosium_service
-    return analytics_cosium_service.compute_client_score(db, tenant_ctx.tenant_id, client_id)
+    from app.services import analytics_cosium_extras
+    return analytics_cosium_extras.compute_client_score(db, tenant_ctx.tenant_id, client_id)
 
 
 @router.get(

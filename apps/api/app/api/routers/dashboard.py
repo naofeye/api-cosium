@@ -5,7 +5,7 @@ from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.analytics import CosiumCockpitKPIs
 from app.domain.schemas.dashboard import DashboardSummary
-from app.services import analytics_cosium_service, dashboard_service
+from app.services import analytics_cosium_extras, analytics_cosium_service, dashboard_service
 
 router = APIRouter(prefix="/api/v1", tags=["dashboard"])
 
@@ -50,7 +50,7 @@ def group_comparison(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> list[dict]:
-    return analytics_cosium_service.compute_group_comparison(db)
+    return analytics_cosium_extras.compute_group_comparison(db)
 
 
 @router.get(
@@ -63,7 +63,7 @@ def dynamic_segments(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> list[dict]:
-    return analytics_cosium_service.compute_dynamic_segments(db, tenant_ctx.tenant_id)
+    return analytics_cosium_extras.compute_dynamic_segments(db, tenant_ctx.tenant_id)
 
 
 @router.get(
@@ -76,7 +76,7 @@ def cashflow_forecast(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> dict:
-    return analytics_cosium_service.get_cashflow_forecast(db, tenant_ctx.tenant_id)
+    return analytics_cosium_extras.get_cashflow_forecast(db, tenant_ctx.tenant_id)
 
 
 @router.get(
@@ -90,7 +90,7 @@ def dashboard_top_clients(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> list[dict]:
-    return analytics_cosium_service.get_top_clients_by_ca(db, tenant_ctx.tenant_id, limit=limit, months=months)
+    return analytics_cosium_extras.get_top_clients_by_ca(db, tenant_ctx.tenant_id, limit=limit, months=months)
 
 
 @router.get(
