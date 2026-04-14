@@ -61,14 +61,16 @@ def search_customers_loose(
         )
     except Exception as e:
         from app.core.exceptions import ExternalServiceError
-        raise ExternalServiceError(f"Recherche Cosium indisponible : {str(e)[:100]}")
+        raise ExternalServiceError(f"Recherche Cosium indisponible : {str(e)[:100]}") from e
     result: list[CosiumCustomerLoose] = []
     for c in raw:
         cid_raw = c.get("id") or c.get("cosiumId")
         cid = None
         if cid_raw:
-            try: cid = int(cid_raw)
-            except (ValueError, TypeError): pass
+            try:
+                cid = int(cid_raw)
+            except (ValueError, TypeError):
+                pass
         result.append(CosiumCustomerLoose(
             cosium_id=cid,
             customer_number=str(c.get("customerNumber", "") or "") or None,
@@ -101,7 +103,7 @@ def get_customer_detail_live(
         return connector.get_customer_detail(customer_cosium_id, embeds=embeds_list)
     except Exception as e:
         from app.core.exceptions import ExternalServiceError
-        raise ExternalServiceError(f"Detail Cosium indisponible : {str(e)[:120]}")
+        raise ExternalServiceError(f"Detail Cosium indisponible : {str(e)[:120]}") from e
 
 
 @router.get(
