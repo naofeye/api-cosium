@@ -226,6 +226,44 @@ def _aging_bucket_sum(db: Session, tenant_id: int, days_min: int, days_max: int 
     )
 
 
+def get_top_clients_by_ca(db: Session, tenant_id: int, limit: int = 10, months: int = 12) -> list[dict]:
+    """Top N clients par CA sur les N derniers mois (factures Cosium INVOICE)."""
+    cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=months * 30)
+
+    rows = db.execute(
+        select(
+            CosiumInvoice.customer_id,
+            CosiumInvoice.customer_name,
+            CosiumInvoice.customer_cosium_id,
+            func.coalesce(func.sum(CosiumInvoice.total_ti), 0).label("ca"),
+            func.count(CosiumInvoice.id).label("nb_invoices"),
+            func.max(CosiumInvoice.invoice_date).label("last_invoice"),
+            func.coalesce(func.sum(CosiumInvoice.outstanding_balance), 0).label("outstanding"),
+        )
+        .where(
+            CosiumInvoice.tenant_id == tenant_id,
+            CosiumInvoice.type == "INVOICE",
+            CosiumInvoice.invoice_date >= cutoff,
+        )
+        .group_by(CosiumInvoice.customer_id, CosiumInvoice.customer_name, CosiumInvoice.customer_cosium_id)
+        .order_by(func.sum(CosiumInvoice.total_ti).desc())
+        .limit(limit)
+    ).all()
+
+    return [
+        {
+            "customer_id": r.customer_id,
+            "customer_name": r.customer_name or "Client inconnu",
+            "customer_cosium_id": r.customer_cosium_id,
+            "ca": round(float(r.ca), 2),
+            "nb_invoices": int(r.nb_invoices),
+            "last_invoice_date": r.last_invoice.isoformat() if r.last_invoice else None,
+            "outstanding": round(float(r.outstanding), 2),
+        }
+        for r in rows
+    ]
+
+
 def get_cosium_cockpit_kpis(db: Session, tenant_id: int) -> CosiumCockpitKPIs:
     """KPIs cockpit opticien : CA jour/semaine/mois, panier moyen, taux transformation, balance agee."""
     now = datetime.now(UTC).replace(tzinfo=None)
