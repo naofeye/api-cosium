@@ -400,6 +400,28 @@ class CosiumConnector(ERPConnector):
             items = [items] if items else []
         return items
 
+    def list_notes_for_customer(self, customer_cosium_id: int) -> list[dict]:
+        """GET /notes?customer_id={id} — notes CRM d'un client (lecture seule)."""
+        data = self._client.get("/notes", params={"customer_id": customer_cosium_id})
+        embedded = data.get("_embedded", {}) or {}
+        items = embedded.get("content", []) if isinstance(embedded, dict) else []
+        if not isinstance(items, list):
+            items = [items] if items else []
+        return items
+
+    def get_note(self, note_id: int) -> dict:
+        """GET /notes/{id} — detail d'une note (lecture seule)."""
+        return self._client.get(f"/notes/{note_id}")
+
+    def list_note_statuses(self) -> list[dict]:
+        """GET /notes/statuses — reference des statuts de notes (lecture seule)."""
+        data = self._client.get("/notes/statuses")
+        embedded = data.get("_embedded", {}) or {}
+        items = embedded.get("content", []) if isinstance(embedded, dict) else data
+        if not isinstance(items, list):
+            items = [items] if items else []
+        return items
+
     def list_after_sales_services(
         self,
         status: str | None = None,

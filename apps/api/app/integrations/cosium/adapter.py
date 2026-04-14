@@ -337,6 +337,30 @@ def _extract_id_from_href(href: str, segment: str) -> int | None:
         return None
 
 
+def cosium_note_to_optiflow(raw: dict) -> dict:
+    """Normalise une note CRM Cosium.
+
+    Champs Cosium : message, creationDate, customerId, appearance.{value,label}, status.{value,label}.
+    """
+    links = raw.get("_links", {}) or {}
+    self_href = links.get("self", {}).get("href", "") if isinstance(links.get("self"), dict) else ""
+    appearance = raw.get("appearance", {}) or {}
+    status = raw.get("status", {}) or {}
+    return {
+        "cosium_id": _extract_id_from_href(self_href, "/notes/"),
+        "message": raw.get("message", ""),
+        "creation_date": raw.get("creationDate"),
+        "modification_date": raw.get("modificationDate"),
+        "customer_id": raw.get("customerId"),
+        "customer_number": raw.get("customerNumber"),
+        "author": raw.get("author") or raw.get("authorName"),
+        "appearance_value": appearance.get("value") if isinstance(appearance, dict) else None,
+        "appearance_label": appearance.get("label") if isinstance(appearance, dict) else None,
+        "status_value": status.get("value") if isinstance(status, dict) else None,
+        "status_label": status.get("label") if isinstance(status, dict) else None,
+    }
+
+
 def cosium_after_sales_to_optiflow(raw: dict) -> dict:
     """Normalise un dossier SAV Cosium.
 
