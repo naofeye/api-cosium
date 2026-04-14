@@ -493,6 +493,21 @@ def get_cosium_cockpit_kpis(db: Session, tenant_id: int) -> CosiumCockpitKPIs:
     aging_60_90 = _aging_bucket_sum(db, tenant_id, 60, 90)
     aging_over_90 = _aging_bucket_sum(db, tenant_id, 90, None)
 
+    # Ventes latentes : devis non transformes (90 derniers jours, outstanding=0 = non factures)
+    latent_cutoff = now - timedelta(days=90)
+    latent_row = db.execute(
+        select(
+            func.count().label("nb"),
+            func.coalesce(func.sum(CosiumInvoice.total_ti), 0).label("amount"),
+        )
+        .where(
+            CosiumInvoice.tenant_id == tenant_id,
+            CosiumInvoice.type == "QUOTE",
+            CosiumInvoice.invoice_date >= latent_cutoff,
+            CosiumInvoice.outstanding_balance == 0,  # heuristique non transforme
+        )
+    ).first()
+
     return CosiumCockpitKPIs(
         ca_today=round(ca_today, 2),
         ca_this_week=round(ca_week, 2),
@@ -508,4 +523,6 @@ def get_cosium_cockpit_kpis(db: Session, tenant_id: int) -> CosiumCockpitKPIs:
         aging_60_90=round(aging_60_90, 2),
         aging_over_90=round(aging_over_90, 2),
         aging_total=round(aging_0_30 + aging_30_60 + aging_60_90 + aging_over_90, 2),
+        latent_quotes_count=int(latent_row.nb) if latent_row else 0,
+        latent_quotes_amount=round(float(latent_row.amount), 2) if latent_row else 0,
     )

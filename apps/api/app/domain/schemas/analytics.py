@@ -103,6 +103,8 @@ class CosiumCockpitKPIs(BaseModel):
     aging_60_90: float = 0
     aging_over_90: float = 0
     aging_total: float = 0
+    latent_quotes_count: int = 0
+    latent_quotes_amount: float = 0
 
 
 class KPIComparison(BaseModel):
