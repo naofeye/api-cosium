@@ -24,6 +24,23 @@ def dashboard_summary(
 
 
 @router.get(
+    "/analytics/financial-breakdown",
+    summary="Ventilation comptable Cosium par type de document",
+    description="Compte, total TI, encours, parts SS/AMC/RAC pour chaque type de document Cosium (INVOICE, QUOTE, CREDIT_NOTE, ...).",
+    tags=["analytics"],
+)
+def financial_breakdown(
+    date_from: str | None = None,
+    date_to: str | None = None,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> dict:
+    return analytics_cosium_service.get_financial_breakdown_by_type(
+        db, tenant_ctx.tenant_id, date_from=date_from, date_to=date_to,
+    )
+
+
+@router.get(
     "/dashboard/top-clients",
     summary="Top clients par CA",
     description="Retourne les N clients avec le CA le plus eleve sur les derniers mois (factures Cosium).",

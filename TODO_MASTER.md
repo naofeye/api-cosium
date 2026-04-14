@@ -114,7 +114,7 @@
 - [ ] [NEW] **16 types de documents** : exploiter tous les types (INVOICE, QUOTE, CREDIT_NOTE, DELIVERY_NOTE, SHIPPING_FORM, ORDER_FORM, VALUED_NOTE, RETURN_VOUCHER, SUPPLIER_ORDER_FORM, SUPPLIER_DELIVERY_NOTE, SUPPLIER_INVOICE, SUPPLIER_CREDIT_NOTE, SUPPLIER_VALUED_NOTE, SUPPLIER_RETURN_VOUCHER, STOCK_MOVE, STOCK_MANUAL_UPDATE)
 - [ ] [NEW] **Filtres avances** : `hasAdvancePayment`, `settled`, `validationQuoteDateIsPresent`, `archived`
 - [ ] [NEW] **Adapter enrichi** : mapper les 16 types + montants detailles (`shareSocialSecurity`, `sharePrivateInsurance`, `outstandingBalance`)
-- [ ] [NEW] **Vue comptable** : page "Analyse financiere Cosium" avec ventilation par type de document
+- [x] [NEW] **Vue comptable** : page `/analytics-cosium` (sidebar Cosium > Analyse financiere) — table ventilee par type avec count/TI/SS/AMC/RAC/encours. Endpoint `GET /api/v1/analytics/financial-breakdown[?date_from=&date_to=]`. Live : 6 types Cosium, INVOICE 3.25M€.
 
 ## 1.4 SAV / Apres-Vente [NEW] (P1)
 
