@@ -31,6 +31,7 @@ from app.models.cosium_data import CosiumPayment, CosiumPrescription, CosiumProd
 from app.models.cosium_reference import (
     CosiumBank,
     CosiumBrand,
+    CosiumCalendarCategory,
     CosiumCalendarEvent,
     CosiumCompany,
     CosiumDoctor,
@@ -73,10 +74,33 @@ def list_calendar_events(
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
     status: str | None = Query(None, description="Filtrer par statut"),
+    from_start_date: str | None = Query(None, description="ISO 8601 date de debut min (yyyy-mm-dd ou yyyy-mm-ddTHH:MM:SS)"),
+    to_start_date: str | None = Query(None, description="ISO 8601 date de debut max"),
+    customer_number: str | None = Query(None, description="Filtrer par numero client"),
+    site_name: str | None = Query(None, description="Filtrer par site"),
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> PaginatedCalendarEvents:
-    filters = [CosiumCalendarEvent.status == status] if status else []
+    from datetime import datetime
+    filters = []
+    if status:
+        filters.append(CosiumCalendarEvent.status == status)
+    if customer_number:
+        filters.append(CosiumCalendarEvent.customer_number == customer_number)
+    if site_name:
+        filters.append(CosiumCalendarEvent.site_name == site_name)
+    if from_start_date:
+        try:
+            filters.append(CosiumCalendarEvent.start_date >= datetime.fromisoformat(from_start_date.replace("Z", "+00:00")))
+        except ValueError:
+            from app.core.exceptions import ValidationError as VE
+            raise VE("from_start_date doit etre au format ISO 8601")
+    if to_start_date:
+        try:
+            filters.append(CosiumCalendarEvent.start_date <= datetime.fromisoformat(to_start_date.replace("Z", "+00:00")))
+        except ValueError:
+            from app.core.exceptions import ValidationError as VE
+            raise VE("to_start_date doit etre au format ISO 8601")
     data = paginated_query(
         db, CosiumCalendarEvent, tenant_ctx.tenant_id, page, page_size,
         order_by=[CosiumCalendarEvent.start_date.desc()],
@@ -84,6 +108,83 @@ def list_calendar_events(
         response_schema=CalendarEventResponse,
     )
     return PaginatedCalendarEvents(**data)
+
+
+@router.get(
+    "/calendar-events/upcoming",
+    response_model=list[CalendarEventResponse],
+    summary="Prochains rendez-vous",
+    description="Retourne les N prochains evenements (a partir de maintenant), pour widget dashboard.",
+)
+def list_upcoming_calendar_events(
+    limit: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> list[CalendarEventResponse]:
+    from datetime import UTC, datetime
+    from sqlalchemy import select
+    now = datetime.now(UTC).replace(tzinfo=None)
+    rows = db.scalars(
+        select(CosiumCalendarEvent)
+        .where(
+            CosiumCalendarEvent.tenant_id == tenant_ctx.tenant_id,
+            CosiumCalendarEvent.start_date >= now,
+            CosiumCalendarEvent.canceled.is_(False),
+        )
+        .order_by(CosiumCalendarEvent.start_date.asc())
+        .limit(limit)
+    ).all()
+    return [CalendarEventResponse.model_validate(r, from_attributes=True) for r in rows]
+
+
+@router.get(
+    "/calendar-events/{event_id}",
+    response_model=CalendarEventResponse,
+    summary="Detail d'un evenement calendrier",
+)
+def get_calendar_event(
+    event_id: int,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> CalendarEventResponse:
+    from sqlalchemy import select
+    from app.core.exceptions import NotFoundError
+    row = db.scalars(
+        select(CosiumCalendarEvent).where(
+            CosiumCalendarEvent.id == event_id,
+            CosiumCalendarEvent.tenant_id == tenant_ctx.tenant_id,
+        )
+    ).first()
+    if not row:
+        raise NotFoundError("Evenement", event_id)
+    return CalendarEventResponse.model_validate(row, from_attributes=True)
+
+
+@router.get(
+    "/calendar-event-categories",
+    summary="Lister les categories d'evenements",
+    description="Retourne la liste des categories d'evenements (types de RDV).",
+)
+def list_calendar_categories(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> list[dict]:
+    from sqlalchemy import select
+    rows = db.scalars(
+        select(CosiumCalendarCategory)
+        .where(CosiumCalendarCategory.tenant_id == tenant_ctx.tenant_id)
+        .order_by(CosiumCalendarCategory.name)
+    ).all()
+    return [
+        {
+            "id": r.id,
+            "cosium_id": r.cosium_id,
+            "name": r.name,
+            "color": r.color,
+            "family_name": r.family_name,
+        }
+        for r in rows
+    ]
 
 
 @router.get("/mutuelles", response_model=PaginatedMutuelles, summary="Lister les mutuelles")
