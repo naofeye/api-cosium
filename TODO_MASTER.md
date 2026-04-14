@@ -128,7 +128,7 @@
 - [ ] [NEW] **Migration Alembic** : table `after_sales_services`
 - [ ] [NEW] **Service** : `after_sales_service.py`
 - [ ] [NEW] **Router** : `GET /api/v1/cosium/sav` + `GET /api/v1/cosium/sav/{id}`
-- [ ] [NEW] **Frontend** : page "SAV" dans la sidebar + onglet SAV dans la fiche client
+- [x] [NEW] **Frontend SAV** : page `/sav` dans sidebar Cosium + filtre statut + DataTable (statut, client, produit, reparateur, site)
 - [ ] [NEW] **KPI dashboard** : nombre de SAV en cours, delai moyen de resolution, taux de cloture
 
 ## 1.5 Calendrier & Rendez-vous [NEW] (P1)
