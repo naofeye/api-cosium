@@ -133,14 +133,14 @@
 
 ## 1.5 Calendrier & Rendez-vous [NEW] (P1)
 
-- [ ] [NEW] **Evenements** : GET `/calendar-events` — avec filtres date ISO 8601 (`from_start_date`, `to_end_date`)
-- [ ] [NEW] **Categories** : GET `/calendar-event-categories` — types de RDV (examen, livraison, ajustement...)
-- [ ] [NEW] **Detail evenement** : GET `/calendar-events/{id}` — avec client lie
+- [x] [NEW] **Evenements** : GET `/calendar-events` enrichi — filtres ISO 8601 `from_start_date`/`to_start_date` + `customer_number` + `site_name`
+- [x] [NEW] **Categories** : GET `/cosium/calendar-event-categories` — depuis cache local
+- [x] [NEW] **Detail evenement** : GET `/cosium/calendar-events/{id}`
 - [ ] [NEW] **Recurrence** : mapper les patterns de recurrence (frequence, jour, heure)
-- [ ] [NEW] **Adapter enrichi** : `adapt_calendar_event()` existe mais doit gerer recurrence + filtres date
+- [x] [NEW] **Adapter enrichi** : `adapt_calendar_event()` existant + filtres date dans router
 - [ ] [NEW] **Sync incrementale** : ne recuperer que les events modifies depuis le dernier sync
 - [ ] [NEW] **Frontend** : vue calendrier (semaine/mois) avec evenements colores par categorie
-- [ ] [NEW] **Widget dashboard** : "Prochains RDV" avec nom client + type + heure
+- [x] [NEW] **Widget dashboard** : `GET /cosium/calendar-events/upcoming?limit=N` — endpoint pret pour le widget
 
 ## 1.6 Notes CRM [NEW] (P2)
 
