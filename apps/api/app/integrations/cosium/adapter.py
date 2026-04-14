@@ -327,6 +327,52 @@ def cosium_diopter_to_optiflow(raw: dict) -> dict:
     }
 
 
+def _extract_id_from_href(href: str, segment: str) -> int | None:
+    """Extrait un ID numerique d'une URL HAL .../segment/{id}."""
+    if not href or segment not in href:
+        return None
+    try:
+        return int(href.rsplit(segment, 1)[-1].split("?")[0].split("/")[0])
+    except (ValueError, IndexError):
+        return None
+
+
+def cosium_optical_frame_to_optiflow(raw: dict) -> dict:
+    """Normalise une monture du catalogue Cosium."""
+    links = raw.get("_links", {}) or {}
+    self_href = links.get("self", {}).get("href", "") if isinstance(links.get("self"), dict) else ""
+    return {
+        "cosium_id": _extract_id_from_href(self_href, "/optical-frames/"),
+        "brand": raw.get("brand"),
+        "model": raw.get("model"),
+        "color": raw.get("color"),
+        "material": raw.get("material"),
+        "style": raw.get("style"),
+        "size": raw.get("size"),
+        "nose_width": raw.get("noseWidth"),
+        "arm_size": raw.get("armSize"),
+        "price": raw.get("price"),
+    }
+
+
+def cosium_optical_lens_to_optiflow(raw: dict) -> dict:
+    """Normalise un verre du catalogue Cosium."""
+    links = raw.get("_links", {}) or {}
+    self_href = links.get("self", {}).get("href", "") if isinstance(links.get("self"), dict) else ""
+    return {
+        "cosium_id": _extract_id_from_href(self_href, "/optical-lenses/"),
+        "brand": raw.get("brand"),
+        "model": raw.get("model"),
+        "price": raw.get("price"),
+        "material": raw.get("material"),
+        "index": raw.get("index"),
+        "treatment": raw.get("treatment"),
+        "tint": raw.get("tint"),
+        "photochromic": raw.get("photochromic"),
+        "has_options": "available-options" in links,
+    }
+
+
 def cosium_spectacle_file_to_optiflow(raw: dict) -> dict:
     """Normalise un dossier lunettes Cosium (spectacles-files/{id}).
 
