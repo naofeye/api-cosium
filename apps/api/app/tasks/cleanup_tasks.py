@@ -34,6 +34,7 @@ def apply_retention_policy(audit_log_keep_days: int = 365, action_items_resolved
     Execution quotidienne via beat (3h45 AM).
     """
     from datetime import UTC, datetime, timedelta
+
     from sqlalchemy import delete
 
     from app.models import AuditLog
