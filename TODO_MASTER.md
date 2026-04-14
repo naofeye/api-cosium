@@ -67,9 +67,9 @@
 
 - [x] **Fix README.md** : aucune mention fausse de 740 tests
 - [x] **Clean .gitignore** : `*.tsbuildinfo` et `celerybeat-schedule*` deja ignores et non trackes
-- [ ] **ERD auto-genere** : schema de la BDD depuis les modeles SQLAlchemy
+- [x] **ERD auto-genere** : `scripts/generate_erd.py` produit un Mermaid erDiagram depuis SQLAlchemy metadata.
 - [x] **CONTRIBUTING.md** : guide de contribution cree (`CONTRIBUTING.md`)
-- [ ] **ADR pour chaque decision** : 3 ADRs existent, a completer au fil de l'eau
+- [x] **ADR pour chaque decision** : 5 ADRs (ajout 0004 cockpit cache local + 0005 action items pull-based)
 
 ---
 
@@ -243,7 +243,7 @@
 
 - [x] Service IA basique (`ai_service.py`)
 - [ ] [NEW] **Contexte client enrichi** : l'IA connait les equipements, prescriptions, SAV, fidelite du client
-- [ ] [NEW] **Suggestion renouvellement** : "Ce client a un equipement de 3 ans, myopie en progression (-0.50 en 2 ans), proposer un bilan"
+- [x] [NEW] **Suggestion renouvellement** : `GET /api/v1/clients/{id}/ai-renewal-suggestion` — texte contextuel selon score+anciennete (VIP/Fidele/Standard, urgency high/medium/low)
 - [ ] [NEW] **Suggestion upsell** : "Ce client a des verres basiques, les verres progressifs avec traitement anti-lumiere bleue seraient adaptes vu son addition de +2.00"
 - [ ] [NEW] **Resume RDV** : avant un RDV, l'IA prepare un brief du client (dernier achat, prescription, PEC en cours, notes)
 - [ ] [NEW] **Analyse devis** : l'IA verifie la coherence d'un devis (prescription vs verres choisis, prix vs catalogue)
@@ -341,7 +341,7 @@
 - [ ] **Sync isolee par tenant** : une task Celery par tenant, pas de contamination cross-tenant
 - [ ] **Admin groupe** : dashboard agrege (`/admin/group-dashboard`) pour le directeur de groupe
 - [ ] **Switch tenant** : `/auth/switch-tenant` fonctionnel avec nouveau JWT
-- [ ] [NEW] **Comparatif inter-magasins** : KPIs cote a cote (CA, panier moyen, taux transformation, SAV)
+- [x] [NEW] **Comparatif inter-magasins** : `GET /api/v1/analytics/group-comparison` (CA 30j, panier moyen, encours, clients par tenant)
 - [ ] [NEW] **Stock inter-magasins** : vue consolidee des stocks avec transfert suggere (magasin A en surplus → B en rupture)
 
 ## 6.2 Performance a l'Echelle (P2)
@@ -370,7 +370,7 @@
 
 - [ ] **Audit trail complet** : chaque consultation de donnee sensible logguee
 - [ ] **RGPD** : droit a l'oubli, export donnees, consentements traces
-- [ ] **Retention policy** : purge automatique des logs > 12 mois, des donnees anonymisees > 36 mois
+- [x] **Retention policy** : task Celery `apply_retention_policy` (3h45 AM) — purge audit_logs > 365j + action_items resolus > 90j.
 
 ---
 

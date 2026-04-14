@@ -408,6 +408,67 @@ def compute_client_score(db: Session, tenant_id: int, customer_id: int) -> dict:
     }
 
 
+def compute_group_comparison(db: Session) -> list[dict]:
+    """KPIs comparatifs entre tenants d'un meme groupe (admin reseau).
+
+    Calcule pour chaque tenant : CA 30j, panier moyen, encours, nb factures,
+    nb clients actifs.
+    """
+    from app.models import Customer, Tenant
+    cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=30)
+
+    tenants = db.scalars(select(Tenant).where(Tenant.is_active.is_(True))).all()
+    result = []
+    for t in tenants:
+        ca_30d = float(
+            db.scalar(
+                select(func.coalesce(func.sum(CosiumInvoice.total_ti), 0)).where(
+                    CosiumInvoice.tenant_id == t.id,
+                    CosiumInvoice.type == "INVOICE",
+                    CosiumInvoice.invoice_date >= cutoff,
+                )
+            )
+            or 0
+        )
+        nb = int(
+            db.scalar(
+                select(func.count()).select_from(CosiumInvoice).where(
+                    CosiumInvoice.tenant_id == t.id,
+                    CosiumInvoice.type == "INVOICE",
+                    CosiumInvoice.invoice_date >= cutoff,
+                )
+            )
+            or 0
+        )
+        outstanding = float(
+            db.scalar(
+                select(func.coalesce(func.sum(CosiumInvoice.outstanding_balance), 0)).where(
+                    CosiumInvoice.tenant_id == t.id,
+                    CosiumInvoice.type == "INVOICE",
+                    CosiumInvoice.outstanding_balance > 0,
+                )
+            )
+            or 0
+        )
+        nb_clients = int(
+            db.scalar(
+                select(func.count()).select_from(Customer).where(Customer.tenant_id == t.id)
+            )
+            or 0
+        )
+        result.append({
+            "tenant_id": t.id,
+            "tenant_name": t.name,
+            "tenant_slug": t.slug,
+            "ca_30d": round(ca_30d, 2),
+            "nb_invoices_30d": nb,
+            "panier_moyen": round(ca_30d / nb, 2) if nb > 0 else 0,
+            "outstanding_total": round(outstanding, 2),
+            "nb_customers": nb_clients,
+        })
+    return sorted(result, key=lambda r: r["ca_30d"], reverse=True)
+
+
 def compute_dynamic_segments(db: Session, tenant_id: int) -> list[dict]:
     """Segments marketing dynamiques calcules sur Cosium data (suggestions, non persistes)."""
     from app.models import ClientMutuelle
