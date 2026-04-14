@@ -230,8 +230,8 @@
 - [ ] [NEW] **Alertes rupture** : stock < seuil configurable par famille produit
 - [ ] [NEW] **Ventes latentes** : GET `/products/{id}/latent-sales` — produits reserves dans des devis
 - [ ] [NEW] **Stock disponible reel** : stock physique - ventes latentes = dispo reel
-- [ ] [NEW] **Catalogue montures** : navigation dans le catalogue Cosium avec filtres (marque, type, prix)
-- [ ] [NEW] **Catalogue verres** : navigation verres avec options et traitements
+- [x] [NEW] **Catalogue montures** : page `/catalogue` (onglet Montures) — grille cards (marque, modele, couleur, materiau, style, dimensions, prix)
+- [x] [NEW] **Catalogue verres** : page `/catalogue` (onglet Verres) — grille cards (marque, modele, materiau, indice, traitement, teinte, photochromique)
 - [ ] [NEW] **Frontend** : page "Stock" dans la sidebar avec vue grille/liste, filtres, export
 
 ---
