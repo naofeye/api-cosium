@@ -221,7 +221,7 @@
 - [ ] [NEW] **Acomptes** : suivi des factures `hasAdvancePayment=true` — encaisse vs restant
 - [x] [NEW] **Ventes latentes** : KPI `latent_quotes_count` + `latent_quotes_amount` (devis 90j non transformes) integre dans cockpit + carte dashboard couleur warning. Live : 39 devis = 655€ potentiel.
 - [ ] [NEW] **Export FEC enrichi** : inclure les donnees Cosium dans l'export comptable
-- [ ] [NEW] **Previsionnel tresorerie** : basee sur les echeances PEC + paiements attendus
+- [x] [NEW] **Previsionnel tresorerie** : `GET /api/v1/analytics/cashflow-forecast` + widget dashboard 3 cards (encours total / encaissable 30j / risque irrecouvrable). Heuristique aging-based (70/40/20/5%). Live : 15694€ -> 7155€ encaissable, 5380€ risque.
 
 ## 2.5 Gestion de Stock Intelligente [NEW] (P2)
 
