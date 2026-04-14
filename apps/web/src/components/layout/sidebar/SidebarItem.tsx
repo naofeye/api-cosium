@@ -7,15 +7,17 @@ interface Props {
   active: boolean;
   showLabel: boolean;
   onClick: () => void;
+  badge?: number;
 }
 
-export function SidebarItem({ item, active, showLabel, onClick }: Props) {
+export function SidebarItem({ item, active, showLabel, onClick, badge }: Props) {
+  const badgeText = badge && badge > 0 ? (badge > 99 ? "99+" : String(badge)) : null;
   return (
     <Link
       href={item.href}
       onClick={onClick}
       aria-current={active ? "page" : undefined}
-      aria-label={!showLabel ? item.label : undefined}
+      aria-label={!showLabel ? `${item.label}${badgeText ? ` (${badge} actions)` : ""}` : undefined}
       title={!showLabel ? item.label : undefined}
       className={cn(
         "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
@@ -30,7 +32,12 @@ export function SidebarItem({ item, active, showLabel, onClick }: Props) {
         className={cn("h-5 w-5 shrink-0", active && "text-blue-400")}
         aria-hidden="true"
       />
-      {showLabel && <span>{item.label}</span>}
+      {showLabel && <span className="flex-1">{item.label}</span>}
+      {badgeText && showLabel && (
+        <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white tabular-nums shadow-sm shadow-red-500/30">
+          {badgeText}
+        </span>
+      )}
     </Link>
   );
 }

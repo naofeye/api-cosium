@@ -183,7 +183,7 @@
 - [x] [NEW] **Alertes devis non transformes** : type `devis_dormant` > 15j (testé : 100 alertes) — `_generate_stale_quotes`
 - [x] [NEW] **Alertes impaye** : type `impaye_cosium` > 30j (testé : 169 alertes) — `_generate_overdue_cosium_invoices`
 - [x] [NEW] **Priorisation auto** : impaye > 90j = high, sinon medium ; devis = medium ; RDV = medium
-- [ ] [NEW] **Widget sidebar** : compteur d'actions par categorie (badge rouge)
+- [x] [NEW] **Widget sidebar** : badge rouge sur item "Actions" avec compteur SWR auto-refresh 60s (99+ si > 99)
 
 ## 2.2 Dashboard Cockpit Opticien (P0)
 

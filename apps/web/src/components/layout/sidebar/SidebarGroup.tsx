@@ -11,6 +11,7 @@ interface Props {
   collapsedGroups: Record<string, boolean>;
   onToggleGroup: (key: string) => void;
   onLinkClick: () => void;
+  badges?: Record<string, number>;
 }
 
 export function SidebarGroup({
@@ -20,6 +21,7 @@ export function SidebarGroup({
   collapsedGroups,
   onToggleGroup,
   onLinkClick,
+  badges,
 }: Props) {
   const hasActiveItem = group.items.some((item) => isActive(pathname, item.href));
   const effectiveCollapsed = (collapsedGroups[group.key] ?? false) && !hasActiveItem;
@@ -85,6 +87,7 @@ export function SidebarGroup({
               active={isActive(pathname, item.href)}
               showLabel
               onClick={onLinkClick}
+              badge={badges?.[item.href]}
             />
           ))}
         </div>

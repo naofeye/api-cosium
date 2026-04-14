@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import useSWR from "swr";
 import { ChevronLeft, ChevronRight, Eye, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -78,6 +79,14 @@ export function Sidebar() {
     else setCollapsed((v) => !v);
   };
 
+  // Compteur d'actions a faire pour le badge sidebar
+  const { data: actionsData } = useSWR<{ total: number }>(
+    "/action-items?status=pending&limit=1",
+    { refreshInterval: 60000, shouldRetryOnError: false },
+  );
+  const badges: Record<string, number> = {};
+  if (actionsData?.total) badges["/actions"] = actionsData.total;
+
   const sidebarContent = (
     <>
       <SidebarHeader
@@ -98,6 +107,7 @@ export function Sidebar() {
             collapsedGroups={collapsedGroups}
             onToggleGroup={toggleGroup}
             onLinkClick={handleLinkClick}
+            badges={badges}
           />
         ))}
 
