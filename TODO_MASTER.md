@@ -204,10 +204,10 @@
 - [x] Fiche client basique avec onglets
 - [ ] [NEW] **Onglet Equipements** : historique complet des montures + verres + dioptries (timeline visuelle)
 - [ ] [NEW] **Onglet Prescriptions** : evolution des dioptries dans le temps (graphique Recharts)
-- [ ] [NEW] **Onglet Fidelite** : carte de fidelite, points, parrainages, bons actifs
-- [ ] [NEW] **Onglet RDV** : historique et prochains rendez-vous depuis le calendrier Cosium
-- [ ] [NEW] **Onglet SAV** : dossiers SAV avec statut et timeline
-- [ ] [NEW] **Onglet Notes** : notes CRM Cosium integrees dans l'activite
+- [x] [NEW] **Backend Fidelite** : `GET /clients/{id}/cosium-live` retourne fidelity_cards + sponsorships + notes en LIVE
+- [ ] [NEW] **Onglet RDV** : historique et prochains rendez-vous depuis le calendrier Cosium (frontend)
+- [ ] [NEW] **Onglet SAV** : dossiers SAV avec statut et timeline (frontend)
+- [x] [NEW] **Backend Notes** : inclus dans `cosium-live` (live Cosium, gestion erreur gracieuse)
 - [ ] [NEW] **Score client** : algorithme de scoring (frequence achat, panier moyen, anciennete, PEC ok, renouvellement)
 - [ ] [NEW] **Alerte proactive** : bandeau en haut de la fiche si action requise (renouvellement, impaye, SAV en attente)
 

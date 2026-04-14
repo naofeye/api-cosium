@@ -6,6 +6,7 @@ from app.core.exceptions import NotFoundError, ValidationError
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.client_360 import Client360Response, CosiumDataBundle
+from app.domain.schemas.client_360_live import Client360CosiumLive
 from app.domain.schemas.interactions import (
     EmailPayload,
     InteractionCreate,
@@ -14,7 +15,7 @@ from app.domain.schemas.interactions import (
 )
 from app.integrations.email_sender import email_sender
 from app.repositories import client_repo
-from app.services import client_360_service, export_pdf, interaction_service, pdf_service
+from app.services import client_360_live_service, client_360_service, export_pdf, interaction_service, pdf_service
 
 router = APIRouter(prefix="/api/v1", tags=["client-360"])
 
@@ -52,6 +53,22 @@ def get_client_cosium_data(
         db,
         tenant_id=tenant_ctx.tenant_id,
         client_id=client_id,
+    )
+
+
+@router.get(
+    "/clients/{client_id}/cosium-live",
+    response_model=Client360CosiumLive,
+    summary="Donnees Cosium LIVE d'un client (non cachees)",
+    description="Agrege fidelity-cards + sponsorships + notes en temps reel depuis Cosium. Lent (3 appels reseaux), pour fiche client detaillee.",
+)
+def get_client_cosium_live(
+    client_id: int,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> Client360CosiumLive:
+    return client_360_live_service.get_client_cosium_live(
+        db, tenant_id=tenant_ctx.tenant_id, client_id=client_id,
     )
 
 
