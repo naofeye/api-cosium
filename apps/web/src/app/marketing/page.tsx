@@ -11,6 +11,7 @@ import { SegmentPanel } from "./components/SegmentPanel";
 import type { Segment } from "./components/SegmentPanel";
 import { CampaignPanel } from "./components/CampaignPanel";
 import type { Campaign } from "./components/CampaignPanel";
+import { DynamicSegmentsPanel } from "./components/DynamicSegments";
 
 interface CampaignStats {
   campaign_id: number;
@@ -154,6 +155,8 @@ export default function MarketingPage() {
           <Send className="h-4 w-4" aria-hidden="true" /> {sendResult}
         </div>
       )}
+
+      <DynamicSegmentsPanel />
 
       <div className="border-b border-border mb-6">
         <div className="flex gap-0">

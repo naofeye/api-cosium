@@ -317,7 +317,7 @@
 ## 5.1 Marketing Enrichi [NEW] (P2)
 
 - [x] Marketing service basique + campagnes
-- [ ] [NEW] **Segments dynamiques** : bases sur les donnees Cosium (dernier achat > 2 ans, progressifs, < 40 ans...)
+- [x] [NEW] **Segments dynamiques** : `GET /api/v1/analytics/dynamic-segments` + widget `DynamicSegmentsPanel` page Marketing (5 segments live : VIP, renouvellement, inactifs >3a, impayes, avec mutuelle). Validé : 20 VIP/450k€, 620 renouvellements, 198 inactifs, 147 impayes, 778 mutuelles.
 - [ ] [NEW] **Exploitation bons d'achat** : afficher les vouchers actifs + alerter sur les expirations proches
 - [ ] [NEW] **Campagne renouvellement** : workflow automatise (segment → template → envoi → suivi conversion)
 - [ ] [NEW] **Historique interactions** : fusionner notes Cosium + emails envoyes + appels + SMS dans une timeline unique
