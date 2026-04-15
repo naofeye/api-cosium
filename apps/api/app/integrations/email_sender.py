@@ -12,7 +12,7 @@ class EmailSender:
     def __init__(self) -> None:
         self.host = settings.mailhog_smtp_host
         self.port = settings.mailhog_smtp_port
-        self.from_email = "noreply@optiflow.local"
+        self.from_email = "noreply@optiflow.com"
 
     def send_email(self, to: str, subject: str, body_html: str) -> bool:
         try:

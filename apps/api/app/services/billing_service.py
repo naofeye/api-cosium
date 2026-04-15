@@ -47,7 +47,7 @@ def initiate_checkout(db: Session, tenant_id: int, plan: str) -> str:
 
     if not tenant.stripe_customer_id:
         customer_id = stripe_client.create_customer(
-            email=org.contact_email or f"tenant-{tenant_id}@optiflow.local",
+            email=org.contact_email or f"tenant-{tenant_id}@optiflow.com",
             name=tenant.name,
             tenant_id=tenant_id,
         )

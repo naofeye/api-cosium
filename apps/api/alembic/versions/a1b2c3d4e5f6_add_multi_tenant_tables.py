@@ -91,7 +91,7 @@ def upgrade() -> None:
     # 5. Create default organization and tenant, assign all existing data
     op.execute(
         "INSERT INTO organizations (name, slug, contact_email, plan) "
-        "VALUES ('Organisation par défaut', 'default', 'admin@optiflow.local', 'solo')"
+        "VALUES ('Organisation par défaut', 'default', 'admin@optiflow.com', 'solo')"
     )
     op.execute(
         "INSERT INTO tenants (organization_id, name, slug, cosium_tenant) "
