@@ -32,7 +32,7 @@ def _ensure_default_tenant(db: Session) -> Tenant:
     org = db.query(Organization).filter(Organization.slug == "default").first()
     if not org:
         org = Organization(
-            name="Organisation par défaut", slug="default", contact_email="admin@optiflow.local", plan="solo"
+            name="Organisation par défaut", slug="default", contact_email="admin@optiflow.com", plan="solo"
         )
         db.add(org)
         db.flush()
@@ -46,12 +46,12 @@ def seed_data(db: Session) -> None:
     tenant = _ensure_default_tenant(db)
 
     if db.query(User).count() == 0:
-        user = User(email="admin@optiflow.local", password_hash=hash_password("Admin123"), role="admin")
+        user = User(email="admin@optiflow.com", password_hash=hash_password("Admin123"), role="admin")
         db.add(user)
         db.flush()
         db.add(TenantUser(user_id=user.id, tenant_id=tenant.id, role="admin"))
     else:
-        user = db.query(User).filter(User.email == "admin@optiflow.local").first()
+        user = db.query(User).filter(User.email == "admin@optiflow.com").first()
         if (
             user
             and db.query(TenantUser).filter(TenantUser.user_id == user.id, TenantUser.tenant_id == tenant.id).count()
