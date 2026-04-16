@@ -1,24 +1,30 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { LoadingState } from "@/components/ui/LoadingState";
 import type { CosiumDataBundle } from "../types";
 
+// Tabs prioritaires (rendu sync — vus en premier)
 import { TabResume } from "../tabs/TabResume";
 import { TabDossiers } from "../tabs/TabDossiers";
 import { TabFinances } from "../tabs/TabFinances";
 import { TabDocuments } from "../tabs/TabDocuments";
-import { TabMarketing } from "../tabs/TabMarketing";
-import { TabHistorique } from "../tabs/TabHistorique";
-import { TabCosiumDocuments } from "../tabs/TabCosiumDocuments";
 import { TabOrdonnances } from "../tabs/TabOrdonnances";
-import { TabCosiumPaiements } from "../tabs/TabCosiumPaiements";
 import { TabRendezVous } from "../tabs/TabRendezVous";
 import { TabEquipements } from "../tabs/TabEquipements";
-import { TabFidelite } from "../tabs/TabFidelite";
-import { TabPEC } from "../tabs/TabPEC";
-import { TabActivite } from "../tabs/TabActivite";
-import { TabRapprochement } from "../tabs/TabRapprochement";
-import { TabSAV } from "../tabs/TabSAV";
+
+// Tabs secondaires (lazy-loaded → reduction bundle initial)
+const tabLoading = { loading: () => <LoadingState text="Chargement..." /> };
+const TabMarketing = dynamic(() => import("../tabs/TabMarketing").then((m) => m.TabMarketing), tabLoading);
+const TabHistorique = dynamic(() => import("../tabs/TabHistorique").then((m) => m.TabHistorique), tabLoading);
+const TabCosiumDocuments = dynamic(() => import("../tabs/TabCosiumDocuments").then((m) => m.TabCosiumDocuments), tabLoading);
+const TabCosiumPaiements = dynamic(() => import("../tabs/TabCosiumPaiements").then((m) => m.TabCosiumPaiements), tabLoading);
+const TabFidelite = dynamic(() => import("../tabs/TabFidelite").then((m) => m.TabFidelite), tabLoading);
+const TabPEC = dynamic(() => import("../tabs/TabPEC").then((m) => m.TabPEC), tabLoading);
+const TabActivite = dynamic(() => import("../tabs/TabActivite").then((m) => m.TabActivite), tabLoading);
+const TabRapprochement = dynamic(() => import("../tabs/TabRapprochement").then((m) => m.TabRapprochement), tabLoading);
+const TabSAV = dynamic(() => import("../tabs/TabSAV").then((m) => m.TabSAV), tabLoading);
 
 export type Tab =
   | "resume"
