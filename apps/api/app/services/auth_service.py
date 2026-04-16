@@ -102,6 +102,19 @@ def authenticate(db: Session, payload: LoginRequest) -> TokenResponse:
         logger.warning("authentication_failed", email_hash=email_hash)
         raise AuthenticationError()
 
+    # MFA check si active sur le compte
+    if user.totp_enabled:
+        from app.services import mfa_service
+
+        if not payload.totp_code:
+            raise AuthenticationError("MFA_CODE_REQUIRED")
+        if not mfa_service.verify_login_code(user, payload.totp_code):
+            _record_failed_login(payload.email)
+            email_hash = hashlib.sha256(payload.email.lower().encode()).hexdigest()[:12]
+            logger.warning("authentication_mfa_failed", email_hash=email_hash)
+            raise AuthenticationError("Code MFA invalide")
+        user.totp_last_used_at = datetime.now(UTC).replace(tzinfo=None)
+
     tenants = _get_user_tenants(db, user.id)
     if not tenants:
         raise AuthenticationError("Aucun magasin accessible pour cet utilisateur")

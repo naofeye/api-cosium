@@ -31,7 +31,7 @@ jobs:
     env:
       DATABASE_URL: postgresql+psycopg://optiflow:optiflow@localhost:5432/optiflow_test
       JWT_SECRET: ci-test-secret-key-not-for-prod
-      ENCRYPTION_KEY: ci-test-key-not-for-prod
+      ENCRYPTION_KEY: WM973v2ZmRwE1PSjiBQcFpc3lhF0Q2zrJOSdPjALgQw=
       APP_ENV: test
       S3_ENDPOINT: http://localhost:9000
       S3_ACCESS_KEY: minioadmin
@@ -58,7 +58,7 @@ jobs:
           cd apps/api
           python -m pytest tests/ -v --tb=short \
             --cov=app --cov-report=xml --cov-report=term \
-            --cov-fail-under=0
+            --cov-fail-under=45
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         if: matrix.python-version == '3.12'
@@ -154,7 +154,7 @@ jobs:
     env:
       DATABASE_URL: sqlite://
       JWT_SECRET: ci-test-secret-key-not-for-prod
-      ENCRYPTION_KEY: ci-test-key-not-for-prod
+      ENCRYPTION_KEY: WM973v2ZmRwE1PSjiBQcFpc3lhF0Q2zrJOSdPjALgQw=
       APP_ENV: test
       S3_ENDPOINT: http://localhost:9000
       S3_ACCESS_KEY: minioadmin
