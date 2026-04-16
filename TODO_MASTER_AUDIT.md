@@ -569,3 +569,105 @@ Voir roadmap Phase 1-7 ci-dessus. Prochaines étapes à valeur maximale :
 4. **async Cosium + RLS Postgres** → scale multi-tenant réel
 5. **Pre-commit + Dependabot + ESLint strict** → hygiène continue
 6. **Consolidation docs + ONBOARDING.md** → scalabilité équipe
+
+---
+
+# Progression : 10 passes cumulatives exécutées
+
+Série de 10 passes d'audit/refactor menées après l'audit initial. Chaque passe produit du code appliqué + commit.
+
+## Passe 1/10 — ESLint strict
+- `ignoreDuringBuilds: false` dans `next.config.ts` (warnings n'échouent pas, erreurs oui)
+- 37 warnings résiduels non-bloquants, documentés
+- Commit : `51dadae`
+
+## Passe 2/10 — Services propres (`UploadFile` retiré)
+- `document_service.upload_document` : prend `file_data: bytes, filename, content_type`
+- `banking_service.import_statement` : idem
+- Routers font `await file.read()` avant délégation → services testables avec bytes pur
+- `batch_export_service.StreamingResponse` laissé en TODO P3 (refonte plus large)
+- Commit : `5856b5f`
+
+## Passe 3/10 — Perfs queries + log warnings
+- Fix N+1 `_get_user_tenants` : 1 JOIN au lieu de N queries
+- `admin_health` : 4× `except Exception:` → log warning + context
+- `auth_service` : login attempts Redis errors → log warning
+- Commit : `c5cd4ba`
+
+## Passe 4/10 — cosium_connector split
+- `get_customers` (130 lignes) extrait dans `customer_fetcher.py`
+- `cosium_connector.py` : 594 → 470 lignes
+- Re-export garanti via `fetch_all_customers(client)` déléguant tout
+- Commit : `c1c789d`
+
+## Passe 5/10 — adapter.py split
+- `cosium_prescription_to_optiflow` + `cosium_diopter_to_optiflow` + `_hundredths_to_diopter` extraits dans `adapter_prescription.py`
+- `adapter.py` : 531 → 435 lignes
+- Re-export conservé pour compat imports existants
+- Commit : `cf9b305`
+
+## Passe 6/10 — FK ondelete=SET NULL
+- 7 FKs nullable passent en `ondelete=SET NULL` (cosium_data customer_id × 4, documents.document_type_id, interactions.created_by, cosium_reference.customer_id)
+- Migration `v7w8x9y0z1a2` applicable en prod
+- Prévient les orphelins après soft-delete customer/user/document_type
+- Commit : `c526200`
+
+## Passe 7/10 — Coverage boost
+- `tests/test_analytics_extras.py` : 6 tests (trends, best_contact_hour, cashflow, top_clients)
+- `tests/test_security_helpers.py` : 7 tests (hash/verify, encode/decode JWT, blacklist)
+- +13 tests total
+- Commit : `4a64ee3` (ou équivalent)
+
+## Passe 8/10 — Frontend perf (lazy tabs)
+- `ClientTabs.tsx` : 9 tabs secondaires passent en `next/dynamic` (Marketing/Historique/CosiumDocuments/CosiumPaiements/Fidelite/PEC/Activite/Rapprochement/SAV)
+- Réduit bundle JS initial fiche client
+- 7 tabs prioritaires (Resume/Dossiers/Finances/Documents/Ordonnances/RendezVous/Equipements) restent chargés sync
+- Commit : `cf7d7a0`
+
+## Passe 9/10 — Observability Prometheus enrichie
+- `/api/v1/metrics` ajoute :
+  - `optiflow_users_mfa_enabled` (adoption MFA)
+  - `optiflow_cosium_last_sync_age_seconds` (détection sync bloqué)
+  - `optiflow_action_items_resolved_7d` (vélocité équipe)
+- Commit : `134fd8a`
+
+## Passe 10/10 — ADR + polish docs
+- `docs/adr/0006-mfa-totp-optional.md` : contexte, options, décision, implémentation, évolutions MFA
+- TODO_MASTER_AUDIT actualisé avec les 10 passes
+- Commit : à venir
+
+---
+
+# Bilan des 10 passes
+
+| Passe | Thème | Gain |
+|---|---|---|
+| 1 | ESLint strict | CI build plus sûr |
+| 2 | Services découplés FastAPI | Testabilité, archi propre |
+| 3 | Perfs + log warnings | -N queries/login, observabilité |
+| 4 | cosium_connector split | Maintenabilité -20% LoC |
+| 5 | adapter.py split | Idem |
+| 6 | FK ondelete | Intégrité BDD |
+| 7 | Coverage +13 tests | Confiance régression |
+| 8 | Lazy tabs frontend | Bundle JS initial réduit |
+| 9 | Metrics Prometheus | Alertes ops possibles |
+| 10 | ADR + docs | Traçabilité décisions |
+
+**Tests cumulés post-10 passes** : 100+ passent sur suite ciblée.
+
+**Fichiers > 400 lignes restants** (TODO Phase 3 élargi) :
+- `analytics_cosium_extras.py` (481L) — split en sous-domaines (score/segments/forecast/comparison)
+- `sync.py` (420L) — extraire orchestration `sync_all()` dans service
+- `main.py` (419L) — extraire `setup_middlewares`, `register_routers`
+- `seed_demo.py` (435L) — déplacer dans `tests/factories/`
+- `tasks/sync_tasks.py` (404L) — découpage par type sync
+- `cosium_reference.py` router (401L) — split par entité référentielle
+
+**Items DIFFERE-PROD inchangés** : TLS Let's Encrypt, server_name prod, passwords BDD/Grafana prod, rotation creds Cosium (cf `docs/PRODUCTION_CHECKLIST.md`).
+
+**Restants P1-P2 non traités** :
+- Tests E2E Playwright frontend
+- RLS PostgreSQL multi-tenant (défense en profondeur)
+- async Cosium client (`httpx.AsyncClient` → refonte services)
+- Backup codes MFA + MFA forcée admin
+- Découpage `use-api.ts` 331L par domaine (cassant pour imports existants, nécessite plan de migration)
