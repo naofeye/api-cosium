@@ -1,6 +1,5 @@
 import uuid
 
-from fastapi import UploadFile
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -21,8 +20,20 @@ def list_documents(db: Session, tenant_id: int, case_id: int) -> list[DocumentRe
     return [DocumentResponse.model_validate(d) for d in docs]
 
 
-def upload_document(db: Session, tenant_id: int, case_id: int, file: UploadFile, user_id: int) -> DocumentResponse:
-    filename = file.filename or "unknown"
+def upload_document(
+    db: Session,
+    tenant_id: int,
+    case_id: int,
+    *,
+    file_data: bytes,
+    filename: str,
+    content_type: str | None,
+    user_id: int,
+) -> DocumentResponse:
+    """Upload un document. Le router doit avoir appele file.read() au prealable.
+
+    Service decouple de FastAPI/UploadFile : testable avec des bytes.
+    """
     ext = filename.rsplit(".", 1)[-1] if "." in filename else "bin"
     storage_key = f"tenants/{tenant_id}/cases/{case_id}/{uuid.uuid4().hex}.{ext}"
 
@@ -40,10 +51,9 @@ def upload_document(db: Session, tenant_id: int, case_id: int, file: UploadFile,
 
     if ext.lower() not in allowed_extensions:
         raise ValidationError("file", f"Type de fichier non autorise: .{ext}")
-    if file.content_type and file.content_type not in allowed_mimes:
-        raise ValidationError("file", f"Type MIME non autorise: {file.content_type}")
+    if content_type and content_type not in allowed_mimes:
+        raise ValidationError("file", f"Type MIME non autorise: {content_type}")
 
-    file_data = file.file.read()
     max_size = settings.max_upload_size_mb * 1024 * 1024
     if len(file_data) > max_size:
         raise ValidationError("file", f"Fichier trop volumineux (max {settings.max_upload_size_mb} MB)")
@@ -73,7 +83,7 @@ def upload_document(db: Session, tenant_id: int, case_id: int, file: UploadFile,
         bucket=settings.s3_bucket,
         key=storage_key,
         file_data=file_data,
-        content_type=file.content_type or "application/octet-stream",
+        content_type=content_type or "application/octet-stream",
     )
 
     try:

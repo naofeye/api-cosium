@@ -74,11 +74,12 @@ class TestImportStatement:
             "15/03/2026;Paiement client Martin;150,00;REF001\n"
             "16/03/2026;Virement mutuelle;300,50;REF002\n"
         )
-        mock_file = MagicMock()
-        mock_file.file.read.return_value = csv_content.encode("utf-8")
-        mock_file.filename = "releve_mars.csv"
-
-        imported, skipped = banking_service.import_statement(db, tid, mock_file, seed_user.id)
+        imported, skipped = banking_service.import_statement(
+            db, tid,
+            file_data=csv_content.encode("utf-8"),
+            filename="releve_mars.csv",
+            user_id=seed_user.id,
+        )
         assert imported == 2
 
         txs = db.query(BankTransaction).filter(BankTransaction.tenant_id == tid).all()

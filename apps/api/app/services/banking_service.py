@@ -2,7 +2,6 @@ import csv
 import io
 from datetime import datetime
 
-from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessError, NotFoundError
@@ -63,14 +62,23 @@ def create_payment(
     return PaymentResponse.model_validate(payment)
 
 
-def import_statement(db: Session, tenant_id: int, file: UploadFile, user_id: int) -> tuple[int, int]:
-    """Parse and import a bank statement CSV. Returns (imported, skipped) counts."""
-    raw = file.file.read()
+def import_statement(
+    db: Session,
+    tenant_id: int,
+    *,
+    file_data: bytes,
+    filename: str,
+    user_id: int,
+) -> tuple[int, int]:
+    """Parse and import a bank statement CSV. Returns (imported, skipped) counts.
+
+    Service decouple de FastAPI : prend `bytes + filename` (router fait `await file.read()`).
+    """
     try:
-        content = raw.decode("utf-8-sig")
+        content = file_data.decode("utf-8-sig")
     except UnicodeDecodeError:
         try:
-            content = raw.decode("latin-1")
+            content = file_data.decode("latin-1")
         except UnicodeDecodeError:
             raise BusinessError(
                 "Impossible de lire le fichier. Format d'encodage non supporte.",
@@ -81,7 +89,7 @@ def import_statement(db: Session, tenant_id: int, file: UploadFile, user_id: int
     count = 0
     skipped = 0
     duplicates = 0
-    source_file = file.filename or "import.csv"
+    source_file = filename or "import.csv"
 
     # Pre-load existing transaction signatures for dedup
     existing_txs = banking_repo.get_transaction_signatures(db, tenant_id)

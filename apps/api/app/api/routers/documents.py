@@ -37,8 +37,15 @@ async def upload_document(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> DocumentResponse:
+    file_data = await file.read()
     return document_service.upload_document(
-        db, tenant_id=tenant_ctx.tenant_id, case_id=case_id, file=file, user_id=tenant_ctx.user_id
+        db,
+        tenant_id=tenant_ctx.tenant_id,
+        case_id=case_id,
+        file_data=file_data,
+        filename=file.filename or "unknown",
+        content_type=file.content_type,
+        user_id=tenant_ctx.user_id,
     )
 
 
