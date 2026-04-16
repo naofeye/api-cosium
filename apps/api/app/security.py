@@ -78,16 +78,26 @@ def blacklist_access_token(token: str) -> None:
 
 
 def is_token_blacklisted(token: str) -> bool:
-    """Verifie si un access token est dans la blacklist Redis."""
-    try:
-        from app.core.redis_cache import get_redis_client
+    """Verifie si un access token est dans la blacklist Redis.
 
+    Fail-closed en production : si Redis est indisponible, refuse le token
+    (retourne True) pour eviter qu'un token revoque passe. En dev/test, fail-open
+    pour ne pas bloquer le workflow local.
+    """
+    from app.core.logging import get_logger
+    from app.core.redis_cache import get_redis_client
+
+    logger = get_logger("security")
+    fail_closed = settings.app_env not in ("local", "test", "dev")
+    try:
         r = get_redis_client()
         if r is None:
-            return False
+            logger.warning("blacklist_redis_unavailable", fail_closed=fail_closed)
+            return fail_closed
         return bool(r.exists(_token_blacklist_key(token)))
-    except Exception:
-        return False
+    except Exception as exc:
+        logger.warning("blacklist_check_failed", error=str(exc), fail_closed=fail_closed)
+        return fail_closed
 
 
 def generate_refresh_token() -> str:
