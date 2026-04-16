@@ -11,9 +11,10 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   compress: true,
-  // CI a un job "Frontend Lint" dedie ; on ne bloque pas le build sur les warnings ESLint.
+  // ESLint run durant `next build` - bloque sur erreurs uniquement (warnings ok).
+  // CI a un job "Frontend Lint" separe qui fait un audit plus strict.
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   images: {
     remotePatterns: [
