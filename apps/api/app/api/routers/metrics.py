@@ -106,4 +106,43 @@ def prometheus_metrics(db: Session = Depends(get_db)) -> Response:
         for type_name, count in types_rows:
             output.append(f'optiflow_action_items_by_type{{type="{type_name}"}} {count}\n')
 
+    # Metrics MFA (sécurité)
+    from app.models.user import User
+
+    users_mfa_enabled = db.scalar(
+        select(func.count()).select_from(User).where(User.totp_enabled.is_(True))
+    ) or 0
+    output.append(_format_metric(
+        "optiflow_users_mfa_enabled", users_mfa_enabled,
+        "Nombre d'utilisateurs avec MFA/TOTP active",
+    ))
+
+    # Metrics sync Cosium (age dernier sync par tenant)
+    from app.models.cosium_data import CosiumInvoice
+
+    last_sync = db.scalar(
+        select(func.max(CosiumInvoice.synced_at))
+    )
+    if last_sync:
+        import time
+        age_seconds = int(time.time() - last_sync.timestamp())
+        output.append(_format_metric(
+            "optiflow_cosium_last_sync_age_seconds", age_seconds,
+            "Age en secondes du dernier sync Cosium (invoice)",
+        ))
+
+    # Action items resolus sur les 7 derniers jours (velocite)
+    from datetime import UTC, datetime, timedelta
+    week_ago = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=7)
+    resolved_7d = db.scalar(
+        select(func.count()).select_from(ActionItem).where(
+            ActionItem.status == "resolved",
+            ActionItem.created_at >= week_ago,
+        )
+    ) or 0
+    output.append(_format_metric(
+        "optiflow_action_items_resolved_7d", resolved_7d,
+        "Action items resolus sur les 7 derniers jours",
+    ))
+
     return Response(content="".join(output), media_type="text/plain; version=0.0.4")
