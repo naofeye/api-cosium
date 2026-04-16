@@ -9,7 +9,10 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.deps import require_tenant_role
+from app.core.logging import get_logger
 from app.core.tenant_context import TenantContext
+
+_health_logger = get_logger("admin_health")
 from app.db.session import get_db
 from app.domain.schemas.admin import DataQualityResponse, ExtractionStats, HealthCheckResponse, MetricsResponse
 from app.models.cosium_data import CosiumDocument, CosiumInvoice, CosiumPayment, CosiumPrescription
@@ -83,7 +86,8 @@ def health_check(
         start = time.time()
         db.execute(text("SELECT 1"))
         checks["database"] = {"status": "ok", "response_ms": round((time.time() - start) * 1000, 1)}
-    except Exception:
+    except Exception as exc:
+        _health_logger.warning("health_db_check_failed", error=str(exc))
         checks["database"] = {"status": "error", "error": "unavailable"}
 
     # Redis
@@ -94,7 +98,8 @@ def health_check(
         r = redis_lib.Redis.from_url(settings.redis_url, socket_timeout=2)
         r.ping()
         checks["redis"] = {"status": "ok", "response_ms": round((time.time() - start) * 1000, 1)}
-    except Exception:
+    except Exception as exc:
+        _health_logger.warning("health_redis_check_failed", error=str(exc))
         checks["redis"] = {"status": "error", "error": "unavailable"}
 
     # Celery beat heartbeat : alerte si scheduler mort > 5 min
@@ -111,7 +116,8 @@ def health_check(
                 "status": "ok" if age_s < 300 else "error",
                 "last_beat_age_s": age_s,
             }
-    except Exception:
+    except Exception as exc:
+        _health_logger.warning("health_celery_beat_check_failed", error=str(exc))
         checks["celery_beat"] = {"status": "error", "error": "unavailable"}
 
     # MinIO
@@ -124,7 +130,8 @@ def health_check(
             "status": "ok" if resp.status_code == 200 else "degraded",
             "response_ms": round((time.time() - start) * 1000, 1),
         }
-    except Exception:
+    except Exception as exc:
+        _health_logger.warning("health_minio_check_failed", error=str(exc))
         checks["minio"] = {"status": "error", "error": "unavailable"}
 
     # Cosium: not checked here because health is public (no tenant context).
