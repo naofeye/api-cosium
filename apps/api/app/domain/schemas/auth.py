@@ -38,6 +38,7 @@ class ResetPasswordRequest(BaseModel, PasswordMixin):
 class LoginRequest(BaseModel):
     email: str = Field(..., min_length=1, max_length=255)
     password: str = Field(..., min_length=1)
+    totp_code: str | None = Field(default=None, min_length=6, max_length=6, pattern=r"^\d{6}$")
 
 
 class ChangePasswordRequest(BaseModel, PasswordMixin):

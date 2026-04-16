@@ -14,6 +14,10 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(50), default="admin", nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    # MFA / TOTP (optionnel, activable par user)
+    totp_secret_enc: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    totp_last_used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class PasswordResetToken(Base):
