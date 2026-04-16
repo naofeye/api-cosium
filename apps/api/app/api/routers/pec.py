@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from app.core.idempotency import IdempotencyContext, idempotency
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.pec import (
@@ -66,8 +67,13 @@ def create_pec(
     payload: PecCreate,
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
+    idem: IdempotencyContext = Depends(idempotency("pec:create")),
 ) -> PecResponse:
-    return pec_service.create_pec(db, tenant_id=tenant_ctx.tenant_id, payload=payload, user_id=tenant_ctx.user_id)
+    if idem.cached:
+        return PecResponse(**idem.cached)
+    result = pec_service.create_pec(db, tenant_id=tenant_ctx.tenant_id, payload=payload, user_id=tenant_ctx.user_id)
+    idem.store(result.model_dump(mode="json"))
+    return result
 
 
 @router.get(

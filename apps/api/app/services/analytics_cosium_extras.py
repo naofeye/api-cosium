@@ -8,7 +8,149 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.cosium_data import CosiumInvoice
+from app.models.interaction import Interaction
 from app.services.analytics_cosium_service import _aging_bucket_sum
+
+
+def compute_product_mix(db: Session, tenant_id: int, days: int = 90) -> dict:
+    """Mix produits sur la periode : CA et quantites par famille.
+
+    Utilise `cosium_invoiced_items` si synchronises. Retourne un fallback vide si table est vide.
+    """
+    from app.models.cosium_data import CosiumInvoicedItem
+
+    cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=days)
+
+    rows = db.execute(
+        select(
+            CosiumInvoicedItem.product_family,
+            func.count().label("nb_lignes"),
+            func.coalesce(func.sum(CosiumInvoicedItem.quantity), 0).label("quantite"),
+            func.coalesce(func.sum(CosiumInvoicedItem.total_ti), 0).label("ca"),
+        )
+        .where(
+            CosiumInvoicedItem.tenant_id == tenant_id,
+            CosiumInvoicedItem.synced_at >= cutoff,
+        )
+        .group_by(CosiumInvoicedItem.product_family)
+        .order_by(func.sum(CosiumInvoicedItem.total_ti).desc())
+    ).all()
+
+    families = [
+        {
+            "family": r.product_family or "non_classe",
+            "nb_lignes": int(r.nb_lignes or 0),
+            "quantite": int(r.quantite or 0),
+            "ca": round(float(r.ca or 0), 2),
+        }
+        for r in rows
+    ]
+
+    ca_total = sum(f["ca"] for f in families)
+    for f in families:
+        f["share_pct"] = round(f["ca"] / ca_total * 100, 1) if ca_total > 0 else 0.0
+
+    return {
+        "period_days": days,
+        "synced": len(families) > 0,
+        "total_ca": round(ca_total, 2),
+        "families": families,
+    }
+
+
+def compute_trends(db: Session, tenant_id: int) -> dict:
+    """Compare periode courante (30j) vs periode precedente (30j avant).
+
+    Metriques : CA, nb factures, panier moyen.
+    """
+    now = datetime.now(UTC).replace(tzinfo=None)
+    p1_end = now
+    p1_start = now - timedelta(days=30)
+    p2_end = p1_start
+    p2_start = p2_end - timedelta(days=30)
+
+    def _period(start: datetime, end: datetime) -> dict:
+        row = db.execute(
+            select(
+                func.coalesce(func.sum(CosiumInvoice.total_ti), 0),
+                func.count(),
+            ).where(
+                CosiumInvoice.tenant_id == tenant_id,
+                CosiumInvoice.type == "INVOICE",
+                CosiumInvoice.invoice_date >= start,
+                CosiumInvoice.invoice_date < end,
+            )
+        ).one()
+        ca = float(row[0] or 0)
+        nb = int(row[1] or 0)
+        panier = round(ca / nb, 2) if nb > 0 else 0.0
+        return {"ca": round(ca, 2), "nb_factures": nb, "panier_moyen": panier}
+
+    current = _period(p1_start, p1_end)
+    previous = _period(p2_start, p2_end)
+
+    def _delta_pct(a: float, b: float) -> float | None:
+        if b == 0:
+            return None
+        return round((a - b) / b * 100, 1)
+
+    return {
+        "period_current": {"start": p1_start.date().isoformat(), "end": p1_end.date().isoformat(), **current},
+        "period_previous": {"start": p2_start.date().isoformat(), "end": p2_end.date().isoformat(), **previous},
+        "delta": {
+            "ca_pct": _delta_pct(current["ca"], previous["ca"]),
+            "nb_factures_pct": _delta_pct(current["nb_factures"], previous["nb_factures"]),
+            "panier_moyen_pct": _delta_pct(current["panier_moyen"], previous["panier_moyen"]),
+        },
+    }
+
+
+def compute_best_contact_hour(db: Session, tenant_id: int, min_sample: int = 10) -> dict:
+    """Retourne l'heure moyenne conseillee pour contacter les clients.
+
+    Heuristique : regarde les interactions entrantes (reponses clients) des 6 derniers mois,
+    groupe par heure, renvoie les 3 tranches horaires les plus actives.
+    """
+    cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=180)
+
+    rows = db.execute(
+        select(
+            func.extract("hour", Interaction.created_at).label("hour"),
+            func.count().label("count"),
+        )
+        .where(
+            Interaction.tenant_id == tenant_id,
+            Interaction.direction == "entrant",
+            Interaction.created_at >= cutoff,
+        )
+        .group_by("hour")
+        .order_by(func.count().desc())
+    ).all()
+
+    total = sum(int(r.count) for r in rows)
+    if total < min_sample:
+        return {
+            "total_samples": total,
+            "confident": False,
+            "best_hours": [],
+            "recommendation": "Echantillon insuffisant, continuez a tracer les interactions entrantes.",
+        }
+
+    top3 = [
+        {"hour": int(r.hour), "count": int(r.count), "share": round(int(r.count) / total * 100, 1)}
+        for r in rows[:3]
+    ]
+    best_hour = top3[0]["hour"] if top3 else None
+    return {
+        "total_samples": total,
+        "confident": True,
+        "best_hours": top3,
+        "recommendation": (
+            f"Preferez un contact autour de {best_hour}h — {top3[0]['share']}% des reponses clients s'y concentrent."
+            if best_hour is not None
+            else "Aucune tendance claire."
+        ),
+    }
 
 
 def compute_client_score(db: Session, tenant_id: int, customer_id: int) -> dict:

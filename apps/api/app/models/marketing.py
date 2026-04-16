@@ -60,3 +60,8 @@ class MessageLog(Base):
     channel: Mapped[str] = mapped_column(String(30), nullable=False)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="sent")
     sent_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    # A/B testing : variant_key identifie la version du template envoyee (ex: "A", "B", "control")
+    variant_key: Mapped[str | None] = mapped_column(String(30), nullable=True, index=True)
+    opened_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    clicked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    replied_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

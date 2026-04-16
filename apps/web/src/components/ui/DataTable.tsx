@@ -180,7 +180,7 @@ export function DataTable<T extends { id: number | string }>({
                   key={col.key}
                   scope="col"
                   className={cn(
-                    "px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary",
+                    "px-3 sm:px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary whitespace-nowrap",
                     col.sortable && "cursor-pointer select-none hover:text-text-primary",
                     col.className,
                   )}
@@ -272,7 +272,7 @@ export function DataTable<T extends { id: number | string }>({
                 onKeyDown={onRowClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onRowClick(row); } } : undefined}
               >
                 {visibleColumns.map((col) => (
-                  <td key={col.key} className={cn("px-4 py-3", col.className)}>
+                  <td key={col.key} className={cn("px-3 sm:px-4 py-3", col.className)}>
                     {col.render(row)}
                   </td>
                 ))}
@@ -291,7 +291,7 @@ export function DataTable<T extends { id: number | string }>({
             <button
               onClick={() => onPageChange(page - 1)}
               disabled={page <= 1}
-              className="rounded-lg border border-border p-1.5 hover:bg-gray-100 disabled:opacity-40"
+              className="rounded-lg border border-border p-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-gray-100 disabled:opacity-40"
               aria-label="Page précédente"
               title="Page precedente"
             >
@@ -300,7 +300,7 @@ export function DataTable<T extends { id: number | string }>({
             <button
               onClick={() => onPageChange(page + 1)}
               disabled={page >= totalPages}
-              className="rounded-lg border border-border p-1.5 hover:bg-gray-100 disabled:opacity-40"
+              className="rounded-lg border border-border p-2 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-gray-100 disabled:opacity-40"
               aria-label="Page suivante"
               title="Page suivante"
             >

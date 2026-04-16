@@ -83,7 +83,7 @@ export default function NewCasePage() {
           </div>
         </div>
 
-        <div className="sticky bottom-0 mt-6 flex justify-end gap-3 rounded-xl border border-border bg-bg-card p-4 shadow-sm">
+        <div className="sticky bottom-20 lg:bottom-0 mt-6 flex justify-end gap-3 rounded-xl border border-border bg-bg-card p-4 shadow-sm">
           <Button variant="outline" type="button" onClick={() => router.push("/cases")}>
             Annuler
           </Button>

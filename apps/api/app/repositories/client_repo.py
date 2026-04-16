@@ -53,8 +53,25 @@ def get_by_id_including_deleted(db: Session, client_id: int, tenant_id: int) -> 
 get_by_id_active = get_by_id
 
 
+# Whitelist des champs modifiables sur Customer (protection mass-assignment).
+# Exclut deliberement: id, tenant_id (set explicitement), created_at, deleted_at, avatar_url
+# (gere par service dedie), cosium_id (gere par sync).
+_CUSTOMER_WRITABLE_FIELDS = frozenset({
+    "first_name", "last_name", "email", "phone", "mobile_phone",
+    "birth_date", "address", "street_name", "street_number", "postal_code", "city",
+    "social_security_number", "optician_name",
+    "subscribed_email", "subscribed_sms", "subscribed_paper",
+    "cosium_metadata", "notes",
+})
+
+
+def _filter_writable(kwargs: dict) -> dict:
+    return {k: v for k, v in kwargs.items() if k in _CUSTOMER_WRITABLE_FIELDS}
+
+
 def create(db: Session, tenant_id: int, **kwargs: object) -> Customer:
-    customer = Customer(tenant_id=tenant_id, **kwargs)
+    safe = _filter_writable(kwargs)
+    customer = Customer(tenant_id=tenant_id, **safe)
     db.add(customer)
     db.flush()
     db.refresh(customer)
@@ -62,7 +79,8 @@ def create(db: Session, tenant_id: int, **kwargs: object) -> Customer:
 
 
 def update(db: Session, customer: Customer, **kwargs: object) -> Customer:
-    for key, value in kwargs.items():
+    safe = _filter_writable(kwargs)
+    for key, value in safe.items():
         if value is not None:
             setattr(customer, key, value)
     db.flush()

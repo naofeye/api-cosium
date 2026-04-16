@@ -1,4 +1,5 @@
 import time as _time
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -53,6 +54,7 @@ from app.api.routers import (
     search,
     sse,
     sync,
+    web_vitals,
 )
 from app.core.config import settings
 from app.core.exceptions import (
@@ -87,7 +89,101 @@ if settings.sentry_dsn:
     )
 
 _is_dev = settings.app_env in ("local", "development", "test")
+
+
+def _startup_checks() -> None:
+    """Verifications et initialisations au demarrage (migrations, tables, seed, bucket)."""
+    if settings.app_env == "test":
+        logger.info("startup_external_checks_skipped", env=settings.app_env)
+        return
+
+    # Verifier les migrations Alembic pending
+    try:
+        from alembic.config import Config as AlembicConfig
+        from alembic.runtime.migration import MigrationContext
+        from alembic.script import ScriptDirectory
+        from app.db.session import engine  # noqa: I001
+
+        alembic_cfg = AlembicConfig("alembic.ini")
+        script = ScriptDirectory.from_config(alembic_cfg)
+        with engine.connect() as conn:
+            context = MigrationContext.configure(conn)
+            current_rev = context.get_current_revision()
+            head_rev = script.get_current_head()
+            if current_rev != head_rev:
+                logger.warning(
+                    "alembic_migrations_pending",
+                    current=current_rev,
+                    head=head_rev,
+                    hint="Executer 'alembic upgrade head'",
+                )
+                if settings.app_env in ("production", "staging"):
+                    raise RuntimeError(
+                        f"Schema Alembic incoherent en {settings.app_env}: "
+                        f"current={current_rev} head={head_rev}. "
+                        "Executer 'alembic upgrade head' avant de demarrer."
+                    )
+    except RuntimeError:
+        raise
+    except Exception as e:
+        logger.warning("alembic_check_skipped", error=str(e)[:100])
+
+    # Verifier les tables manquantes (WARNING seulement, pas de create_all)
+    from app.db.base import Base
+    from app.db.session import engine
+
+    try:
+        from sqlalchemy import inspect as sa_inspect
+
+        inspector = sa_inspect(engine)
+        db_tables = set(inspector.get_table_names())
+        model_tables = set(Base.metadata.tables.keys())
+        missing = model_tables - db_tables
+        if missing:
+            logger.error(
+                "missing_tables_detected",
+                missing=sorted(missing),
+                count=len(missing),
+                hint="Executer 'alembic upgrade head' pour creer les tables manquantes",
+            )
+            if settings.app_env in ("production", "staging"):
+                raise RuntimeError(
+                    f"Tables manquantes en {settings.app_env}: {sorted(missing)}. "
+                    "Executer 'alembic upgrade head' avant de demarrer."
+                )
+        else:
+            logger.info("all_model_tables_present", count=len(model_tables))
+    except RuntimeError:
+        raise
+    except Exception as e:
+        logger.error("table_verification_failed", error=str(e))
+
+    # Seeding conditionnel — uniquement en dev/local et si active
+    if settings.app_env in ("local", "development") and settings.seed_on_startup:
+        db = SessionLocal()
+        try:
+            seed_data(db)
+        finally:
+            db.close()
+
+    from app.integrations.storage import storage
+
+    try:
+        storage.ensure_bucket(settings.s3_bucket)
+    except Exception as e:
+        logger.error("minio_bucket_init_failed", error=str(e))
+    logger.info("application_started", env=settings.app_env)
+
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    """Remplace @app.on_event('startup') deprecie. Execute checks au demarrage."""
+    _startup_checks()
+    yield
+
+
 app = FastAPI(
+    lifespan=_lifespan,
     title="OptiFlow AI API",
     description="API de gestion pour opticiens connectee a Cosium — CRM, devis, facturation, PEC, marketing et IA.",
     version="1.2.0",
@@ -252,81 +348,6 @@ def api_version() -> dict:
     return {"version": _APP_VERSION, "api": "v1", "build": "2026-04-06"}
 
 
-@app.on_event("startup")
-def startup() -> None:
-    # La validation des secrets production est geree par le model_validator de Settings.
-    # Si on arrive ici, les secrets sont acceptables pour l'environnement courant.
-
-    # Verifier les migrations Alembic pending
-    try:
-        from alembic.config import Config as AlembicConfig
-        from alembic.runtime.migration import MigrationContext
-        from alembic.script import ScriptDirectory
-        from app.db.session import engine  # noqa: I001
-
-        alembic_cfg = AlembicConfig("alembic.ini")
-        script = ScriptDirectory.from_config(alembic_cfg)
-        with engine.connect() as conn:
-            context = MigrationContext.configure(conn)
-            current_rev = context.get_current_revision()
-            head_rev = script.get_current_head()
-            if current_rev != head_rev:
-                logger.warning(
-                    "alembic_migrations_pending",
-                    current=current_rev,
-                    head=head_rev,
-                    hint="Executer 'alembic upgrade head'",
-                )
-    except Exception as e:
-        logger.warning("alembic_check_skipped", error=str(e)[:100])
-
-    # Verifier les tables manquantes (WARNING seulement, pas de create_all)
-    from app.db.base import Base
-    from app.db.session import engine
-
-    try:
-        from sqlalchemy import inspect as sa_inspect
-
-        inspector = sa_inspect(engine)
-        db_tables = set(inspector.get_table_names())
-        model_tables = set(Base.metadata.tables.keys())
-        missing = model_tables - db_tables
-        if missing:
-            logger.error(
-                "missing_tables_detected",
-                missing=sorted(missing),
-                count=len(missing),
-                hint="Executer 'alembic upgrade head' pour creer les tables manquantes",
-            )
-            if settings.app_env in ("production", "staging"):
-                raise RuntimeError(
-                    f"Tables manquantes en {settings.app_env}: {sorted(missing)}. "
-                    "Executer 'alembic upgrade head' avant de demarrer."
-                )
-        else:
-            logger.info("all_model_tables_present", count=len(model_tables))
-    except RuntimeError:
-        raise
-    except Exception as e:
-        logger.error("table_verification_failed", error=str(e))
-
-    # Seeding conditionnel — uniquement en dev/local et si active
-    if settings.app_env in ("local", "development") and settings.seed_on_startup:
-        db = SessionLocal()
-        try:
-            seed_data(db)
-        finally:
-            db.close()
-
-    from app.integrations.storage import storage
-
-    try:
-        storage.ensure_bucket(settings.s3_bucket)
-    except Exception as e:
-        logger.error("minio_bucket_init_failed", error=str(e))
-    logger.info("application_started", env=settings.app_env)
-
-
 @app.get("/health", summary="Liveness check", description="Verification rapide que l'API est en ligne (pour load balancer).")
 def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -385,6 +406,7 @@ app.include_router(renewals.router)
 app.include_router(consents.router)
 app.include_router(marketing.router)
 app.include_router(metrics.router)
+app.include_router(web_vitals.router)
 app.include_router(search.router)
 app.include_router(sync.router)
 app.include_router(exports.router)

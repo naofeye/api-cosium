@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from fastapi.testclient import TestClient
 
 
@@ -96,7 +98,8 @@ def test_send_campaign_without_consent(client: TestClient, auth_headers: dict) -
     assert resp.json()["total_sent"] == 0  # No consent = no send
 
 
-def test_send_campaign_with_consent(client: TestClient, auth_headers: dict) -> None:
+@patch("app.integrations.email_sender.email_sender.send_email", return_value=True)
+def test_send_campaign_with_consent(_mock_send, client: TestClient, auth_headers: dict) -> None:
     client_id = _create_client(client, auth_headers)
     client.put(f"/api/v1/clients/{client_id}/consents/email",
                json={"consented": True}, headers=auth_headers)
@@ -115,7 +118,8 @@ def test_send_campaign_with_consent(client: TestClient, auth_headers: dict) -> N
     assert resp.json()["total_sent"] >= 1
 
 
-def test_campaign_stats(client: TestClient, auth_headers: dict) -> None:
+@patch("app.integrations.email_sender.email_sender.send_email", return_value=True)
+def test_campaign_stats(_mock_send, client: TestClient, auth_headers: dict) -> None:
     client_id = _create_client(client, auth_headers)
     client.put(f"/api/v1/clients/{client_id}/consents/email",
                json={"consented": True}, headers=auth_headers)

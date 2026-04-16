@@ -49,16 +49,16 @@ function SidebarHeader({
       )}
       <button
         onClick={onToggle}
-        className="rounded-lg p-1.5 hover:bg-white/10 transition-all duration-200"
+        className="rounded-lg p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-white/10 transition-all duration-200"
         aria-label={toggleLabel}
         title={toggleLabel}
       >
         {mobileOpen ? (
           <X className="h-5 w-5" />
         ) : collapsed ? (
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-5 w-5" />
         ) : (
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-5 w-5" />
         )}
       </button>
     </div>

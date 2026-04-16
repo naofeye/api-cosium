@@ -25,7 +25,7 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 _COOKIE_OPTS: dict = {
     "httponly": True,
-    "samesite": "lax",
+    "samesite": "strict",
     "secure": settings.app_env not in ("local", "development", "test"),
     "path": "/",
 }
@@ -45,7 +45,18 @@ def _set_auth_cookies(response: Response, result: TokenResponse) -> None:
         "true",
         max_age=settings.refresh_token_expire_days * 86400,
         path="/",
-        samesite="lax",
+        samesite="strict",
+        secure=settings.app_env not in ("local", "development", "test"),
+    )
+
+
+def _clear_auth_cookies(response: Response) -> None:
+    response.delete_cookie("optiflow_token", **_COOKIE_OPTS)
+    response.delete_cookie("optiflow_refresh", **_COOKIE_OPTS)
+    response.delete_cookie(
+        "optiflow_authenticated",
+        path="/",
+        samesite="strict",
         secure=settings.app_env not in ("local", "development", "test"),
     )
 
@@ -150,9 +161,7 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)) 
     refresh_tok = request.cookies.get("optiflow_refresh")
     if refresh_tok:
         auth_service.logout(db, refresh_tok)
-    response.delete_cookie("optiflow_token", path="/")
-    response.delete_cookie("optiflow_refresh", path="/")
-    response.delete_cookie("optiflow_authenticated", path="/")
+    _clear_auth_cookies(response)
 
 
 @router.post(
@@ -168,9 +177,7 @@ def logout_all(
 ) -> None:
     refresh_token_repo.revoke_all_for_user(db, current_user.id)
     db.commit()
-    response.delete_cookie("optiflow_token", path="/")
-    response.delete_cookie("optiflow_refresh", path="/")
-    response.delete_cookie("optiflow_authenticated", path="/")
+    _clear_auth_cookies(response)
 
 
 @router.get(

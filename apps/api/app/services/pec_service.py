@@ -78,7 +78,7 @@ def create_pec(db: Session, tenant_id: int, payload: PecCreate, user_id: int) ->
             )
         ).first()
         if not facture:
-            raise BusinessError("FACTURE_NOT_FOUND", "La facture associee n'existe pas")
+            raise BusinessError("La facture associee n'existe pas", code="FACTURE_NOT_FOUND")
 
     pec = pec_repo.create_pec(
         db,
@@ -168,7 +168,7 @@ def change_status(db: Session, tenant_id: int, pec_id: int, payload: PecStatusUp
 
     if payload.montant_accorde is not None:
         if payload.montant_accorde < 0:
-            raise BusinessError("MONTANT_NEGATIF", "Le montant accorde ne peut pas etre negatif")
+            raise BusinessError("Le montant accorde ne peut pas etre negatif", code="MONTANT_NEGATIF")
         if pec.montant_demande and payload.montant_accorde > float(pec.montant_demande):
             raise BusinessError(
                 "MONTANT_DEPASSE",

@@ -30,7 +30,7 @@ router = APIRouter(prefix="/api/v1/clients", tags=["clients"])
     description="Retourne la liste paginee des clients du magasin avec recherche optionnelle.",
 )
 def list_clients(
-    query: str = Query("", alias="q"),
+    query: str = Query("", alias="q", max_length=100),
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
     include_deleted: bool = Query(False),

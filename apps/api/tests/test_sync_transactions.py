@@ -172,6 +172,26 @@ def test_concurrent_sync_blocked_by_redis_lock(
     assert "en cours" in detail.lower() or "SYNC_IN_PROGRESS" in str(data)
 
 
+@patch("app.api.routers.sync.acquire_lock", return_value=False)
+def test_concurrent_sync_returns_stable_business_error_payload(
+    mock_acquire: MagicMock,
+    client: TestClient,
+    auth_headers: dict,
+) -> None:
+    """Concurrent sync errors should keep the functional code/message mapping."""
+    resp = client.post("/api/v1/sync/customers", headers=auth_headers)
+    assert resp.status_code == 400
+    data = resp.json()
+    assert data["error"]["code"] == "SYNC_IN_PROGRESS"
+    assert "synchronisation des clients" in data["error"]["message"].lower()
+
+
+def test_enrich_clients_limit_is_bounded(client: TestClient, auth_headers: dict) -> None:
+    """Expensive enrichment endpoint should reject unbounded limits early."""
+    resp = client.post("/api/v1/sync/enrich-clients?limit=5000", headers=auth_headers)
+    assert resp.status_code == 422
+
+
 # ---------- Test 7: sync with empty ERP data returns zeros ----------
 
 @patch("app.services.erp_auth_service.get_connector")

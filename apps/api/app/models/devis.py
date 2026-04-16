@@ -14,7 +14,7 @@ class Devis(Base):
     )
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
-    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id"), nullable=False, index=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, index=True)
     numero: Mapped[str] = mapped_column(String(50), nullable=False)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="brouillon", index=True)
     montant_ht: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
@@ -25,6 +25,7 @@ class Devis(Base):
     reste_a_charge: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
     updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, onupdate=lambda: datetime.now(UTC))
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
 
     case: Mapped["Case"] = relationship("Case", back_populates="devis", lazy="noload")  # type: ignore[name-defined]  # noqa: F821
 

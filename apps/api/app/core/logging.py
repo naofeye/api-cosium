@@ -25,11 +25,29 @@ _SENSITIVE_FIELDS = frozenset({
 })
 
 
+import re as _re
+
+# Pattern de masquage des valeurs : password=xxx, token: xxx, api_key="xxx"
+_SENSITIVE_VALUE_PATTERN = _re.compile(
+    r"\b(password|token|secret|api[_-]?key|bearer|authorization)\s*[:=]\s*['\"]?([^\s'\",]+)",
+    _re.IGNORECASE,
+)
+
+
+def _scrub_value(value: Any) -> Any:
+    """Masque les patterns sensibles dans une string ; laisse les autres types intacts."""
+    if isinstance(value, str):
+        return _SENSITIVE_VALUE_PATTERN.sub(r"\1=***", value)
+    return value
+
+
 def _mask_sensitive_fields(logger: Any, method_name: str, event_dict: dict) -> dict:
-    """Remplace les valeurs des champs sensibles par '***' dans les logs."""
+    """Remplace les valeurs des champs sensibles par '***' (cles + substrings)."""
     for key in list(event_dict.keys()):
         if key.lower() in _SENSITIVE_FIELDS or key.lower().endswith(("_secret", "_key", "_token", "_password")):
             event_dict[key] = "***"
+        else:
+            event_dict[key] = _scrub_value(event_dict[key])
     return event_dict
 
 

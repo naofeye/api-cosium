@@ -62,14 +62,26 @@ def _token_blacklist_key(token: str) -> str:
 
 
 def blacklist_access_token(token: str) -> None:
-    """Ajoute un access token a la blacklist Redis (TTL = duree restante du token)."""
+    """Ajoute un access token a la blacklist Redis (TTL = duree restante du token).
+
+    Verifie la signature avant de decoder. Accepte l'expiration (logout d'un token expire).
+    Un token invalide n'est pas blackliste (rien a revoquer).
+    """
     try:
         from app.core.redis_cache import get_redis_client
 
         r = get_redis_client()
         if r is None:
             return
-        payload = jwt.decode(token, options={"verify_signature": False, "verify_exp": False})
+        try:
+            payload = jwt.decode(
+                token,
+                settings.jwt_secret,
+                algorithms=["HS256"],
+                options={"verify_exp": False},
+            )
+        except jwt.InvalidSignatureError:
+            return  # Token forge : rien a blacklister
         exp = payload.get("exp", 0)
         ttl = max(int(exp - datetime.now(UTC).timestamp()), 60)
         r.setex(_token_blacklist_key(token), ttl, "1")

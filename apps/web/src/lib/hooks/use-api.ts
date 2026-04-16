@@ -266,3 +266,66 @@ export function useAllCosiumDocuments(params?: {
 export function useClient360(id: number | string) {
   return useSWR(`/clients/${id}/360`);
 }
+
+// --- Cosium Fidelity ---
+export function useCosiumFidelityCards(params?: { customerCosiumId?: string; page?: number; pageSize?: number }) {
+  const sp = new URLSearchParams();
+  if (params?.customerCosiumId) sp.set("customerCosiumId", params.customerCosiumId);
+  if (params?.page != null) sp.set("page", String(params.page));
+  if (params?.pageSize != null) sp.set("page_size", String(params.pageSize));
+  const qs = sp.toString();
+  return useSWR(`/cosium/fidelity-cards${qs ? `?${qs}` : ""}`);
+}
+
+export function useCosiumSponsorships(params?: { customerCosiumId?: string; page?: number; pageSize?: number }) {
+  const sp = new URLSearchParams();
+  if (params?.customerCosiumId) sp.set("customerCosiumId", params.customerCosiumId);
+  if (params?.page != null) sp.set("page", String(params.page));
+  if (params?.pageSize != null) sp.set("page_size", String(params.pageSize));
+  const qs = sp.toString();
+  return useSWR(`/cosium/sponsorships${qs ? `?${qs}` : ""}`);
+}
+
+// --- IA endpoints ---
+export function usePreRdvBrief(customerId: number | string | null) {
+  return useSWR(customerId ? `/ai/client/${customerId}/pre-rdv-brief` : null);
+}
+
+export function useUpsellSuggestion(customerId: number | string | null) {
+  return useSWR(customerId ? `/ai/client/${customerId}/upsell-suggestion` : null);
+}
+
+export function useDevisAnalysis(devisId: number | string | null) {
+  return useSWR(devisId ? `/ai/devis/${devisId}/analysis` : null);
+}
+
+export function useProductRecommendation(customerId: number | string | null) {
+  return useSWR(customerId ? `/ai/client/${customerId}/product-recommendation` : null);
+}
+
+export function useBestContactHour() {
+  return useSWR(`/dashboard/best-contact-hour`);
+}
+
+export function useDashboardTrends() {
+  return useSWR(`/dashboard/trends`);
+}
+
+export function useCampaignRoi(campaignId: number | string | null) {
+  return useSWR(campaignId ? `/marketing/campaigns/${campaignId}/roi` : null);
+}
+
+export function useCampaignAbStats(campaignId: number | string | null) {
+  return useSWR(campaignId ? `/marketing/campaigns/${campaignId}/ab-stats` : null);
+}
+
+export function useClientTimeline(clientId: number | string | null, kinds?: string[]) {
+  const qs = kinds && kinds.length > 0
+    ? `?${kinds.map((k) => `kinds=${encodeURIComponent(k)}`).join("&")}`
+    : "";
+  return useSWR(clientId ? `/clients/${clientId}/timeline${qs}` : null);
+}
+
+export function useProductMix(days: number = 90) {
+  return useSWR(`/dashboard/product-mix?days=${days}`);
+}

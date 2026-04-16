@@ -90,8 +90,13 @@ jobs:
       - run: pip install bandit pip-audit
       # Bandit : static analysis code security. ll = medium/high, skip assert & shell in subprocess (false positives sur tests).
       - run: cd apps/api && bandit -r app/ -ll --skip B101,B601
-      # pip-audit : CVEs connues dans les deps. Non-bloquant (|| true) en attendant triage.
-      - run: cd apps/api && pip-audit -r requirements.txt --strict || true
+      # pip-audit : CVEs strict. Ignore list documentee (triage 2026-04-16) :
+      #   - CVE-2025-71176 (pytest) : dev-only, pas d'exposition prod
+      #   - CVE-2025-62727 (starlette) : embed FastAPI 0.116, upgrade necessite FastAPI compatible
+      - run: |
+          cd apps/api && pip-audit -r requirements.txt --strict \
+            --ignore-vuln CVE-2025-71176 \
+            --ignore-vuln CVE-2025-62727
 
   frontend-typecheck:
     name: Frontend Typecheck

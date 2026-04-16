@@ -207,16 +207,20 @@ def create_pec_from_preparation(
     # Validate required documents
     doc_roles = {d.document_role for d in (prep.documents or [])}
     if "ordonnance" not in doc_roles:
-        raise BusinessError("MISSING_ORDONNANCE",
-                            "L'ordonnance est obligatoire pour soumettre une PEC optique")
+        raise BusinessError(
+            "L'ordonnance est obligatoire pour soumettre une PEC optique",
+            code="MISSING_ORDONNANCE",
+        )
     if "devis" not in doc_roles:
-        raise BusinessError("MISSING_DEVIS",
-                            "Le devis signe est obligatoire pour soumettre une PEC")
+        raise BusinessError(
+            "Le devis signe est obligatoire pour soumettre une PEC",
+            code="MISSING_DEVIS",
+        )
     if "attestation_mutuelle" not in doc_roles:
         logger.warning("pec_submit_missing_attestation", preparation_id=preparation_id)
 
     if not prep.consolidated_data:
-        raise BusinessError("NO_CONSOLIDATED_DATA", "Pas de donnees consolidees")
+        raise BusinessError("Pas de donnees consolidees", code="NO_CONSOLIDATED_DATA")
 
     profile = ConsolidatedClientProfile.model_validate_json(prep.consolidated_data)
 
@@ -247,7 +251,7 @@ def create_pec_from_preparation(
             db.add(org)
             db.flush()
     if not org:
-        raise BusinessError("NO_MUTUELLE", "Impossible de creer la PEC : aucune mutuelle identifiee")
+        raise BusinessError("Impossible de creer la PEC : aucune mutuelle identifiee", code="NO_MUTUELLE")
 
     # Find a case for this customer
     from app.models.case import Case
@@ -259,7 +263,7 @@ def create_pec_from_preparation(
         ).order_by(Case.created_at.desc()).limit(1)
     ).first()
     if not case:
-        raise BusinessError("NO_CASE", "Aucun dossier trouve pour ce client")
+        raise BusinessError("Aucun dossier trouve pour ce client", code="NO_CASE")
 
     pec = pec_repo.create_pec(
         db, tenant_id=tenant_id, case_id=case.id,

@@ -13,6 +13,10 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = _DEV_DB_URL
+    database_pool_size: int = 10
+    database_max_overflow: int = 10
+    database_pool_recycle_seconds: int = 1800
+    database_pool_timeout_seconds: int = 30
 
     # Auth
     jwt_secret: str = _DEV_JWT_SECRET
@@ -78,12 +82,16 @@ class Settings(BaseSettings):
             errors: list[str] = []
             if self.jwt_secret == _DEV_JWT_SECRET or "change-me" in self.jwt_secret:
                 errors.append("JWT_SECRET doit etre defini avec une valeur securisee")
+            if len(self.jwt_secret) < 32:
+                errors.append("JWT_SECRET doit faire au moins 32 caracteres (HS256 requires 256 bits)")
             if self.s3_access_key == _DEV_S3_KEY or self.s3_secret_key == _DEV_S3_KEY:
                 errors.append("S3_ACCESS_KEY/S3_SECRET_KEY ne doivent pas etre 'minioadmin'")
             if not self.encryption_key:
                 errors.append("ENCRYPTION_KEY est obligatoire (generer avec: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\")")
             if self.database_url == _DEV_DB_URL:
                 errors.append("DATABASE_URL doit utiliser des credentials securises")
+            if self.database_pool_size > 50:
+                errors.append("DATABASE_POOL_SIZE ne doit pas depasser 50 sans justification explicite")
             if "*" in self.cors_origins:
                 errors.append("CORS_ORIGINS ne doit pas contenir '*' en production")
             if errors:

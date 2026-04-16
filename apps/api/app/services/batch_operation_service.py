@@ -197,7 +197,7 @@ def create_batch(
 
     for customer in clients:
         batch_operation_repo.create_item(
-            db, batch_id=batch.id, customer_id=customer.id
+            db, tenant_id=tenant_id, batch_id=batch.id, customer_id=customer.id
         )
 
     db.commit()

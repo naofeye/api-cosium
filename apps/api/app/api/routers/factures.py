@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
+from app.core.idempotency import IdempotencyContext, idempotency
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.factures import (
@@ -25,10 +26,15 @@ def create_facture(
     payload: FactureCreate,
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
+    idem: IdempotencyContext = Depends(idempotency("facture:create")),
 ) -> FactureResponse:
-    return facture_service.create_from_devis(
+    if idem.cached:
+        return FactureResponse(**idem.cached)
+    result = facture_service.create_from_devis(
         db, tenant_id=tenant_ctx.tenant_id, devis_id=payload.devis_id, user_id=tenant_ctx.user_id
     )
+    idem.store(result.model_dump(mode="json"))
+    return result
 
 
 @router.get(

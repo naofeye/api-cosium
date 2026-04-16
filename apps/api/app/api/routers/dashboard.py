@@ -94,6 +94,52 @@ def dashboard_top_clients(
 
 
 @router.get(
+    "/dashboard/best-contact-hour",
+    summary="Heure optimale de contact",
+    description=(
+        "Calcule les tranches horaires ou les clients repondent le plus, "
+        "base sur les interactions entrantes des 6 derniers mois."
+    ),
+)
+def dashboard_best_contact_hour(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> dict:
+    return analytics_cosium_extras.compute_best_contact_hour(db, tenant_ctx.tenant_id)
+
+
+@router.get(
+    "/dashboard/trends",
+    summary="Tendances CA / panier sur 30j vs 30j precedents",
+    description=(
+        "Compare le mois glissant avec le precedent : CA, nombre factures, "
+        "panier moyen et delta pourcentage."
+    ),
+)
+def dashboard_trends(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> dict:
+    return analytics_cosium_extras.compute_trends(db, tenant_ctx.tenant_id)
+
+
+@router.get(
+    "/dashboard/product-mix",
+    summary="Mix produits par famille",
+    description=(
+        "Ventile le CA et les quantites par famille produit sur les N derniers jours (default 90). "
+        "Necessite synchronisation `cosium_invoiced_items`."
+    ),
+)
+def dashboard_product_mix(
+    days: int = 90,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> dict:
+    return analytics_cosium_extras.compute_product_mix(db, tenant_ctx.tenant_id, days=days)
+
+
+@router.get(
     "/dashboard/cosium-cockpit",
     response_model=CosiumCockpitKPIs,
     summary="Cockpit opticien — KPIs Cosium live",

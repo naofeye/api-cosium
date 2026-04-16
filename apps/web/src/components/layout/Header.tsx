@@ -199,7 +199,7 @@ export function Header({ breadcrumb }: HeaderProps) {
               onClick={toggleDropdown}
               className="relative rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
               aria-label="Notifications"
-              aria-haspopup="dialog"
+              aria-haspopup="menu"
               aria-expanded={showDropdown}
               title="Notifications"
             >

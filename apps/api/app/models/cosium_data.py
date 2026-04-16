@@ -160,3 +160,30 @@ class CosiumPrescription(Base):
     spectacles_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     prescriber_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     synced_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+
+
+class CosiumInvoicedItem(Base):
+    """Ligne de facture Cosium (produit vendu sur une facture).
+
+    Permet la ventilation par type produit (monture/verres/lentilles/autre)
+    via la famille produit. Sync depuis Cosium `/invoiced-items`.
+    """
+
+    __tablename__ = "cosium_invoiced_items"
+    __table_args__ = (
+        Index("ix_cosium_invoiced_items_tenant_cosium", "tenant_id", "cosium_id", unique=True),
+        Index("ix_cosium_invoiced_items_tenant_invoice", "tenant_id", "invoice_cosium_id"),
+        Index("ix_cosium_invoiced_items_tenant_family", "tenant_id", "product_family"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    cosium_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    invoice_cosium_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    product_cosium_id: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
+    product_label: Mapped[str] = mapped_column(String(500), default="", nullable=False)
+    product_family: Mapped[str] = mapped_column(String(100), default="", nullable=False, index=True)
+    quantity: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    unit_price_ti: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    total_ti: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    synced_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)

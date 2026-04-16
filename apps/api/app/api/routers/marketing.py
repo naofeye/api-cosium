@@ -141,3 +141,39 @@ def get_campaign_stats(
         tenant_id=tenant_ctx.tenant_id,
         campaign_id=campaign_id,
     )
+
+
+@router.get(
+    "/campaigns/{campaign_id}/roi",
+    summary="ROI d'une campagne",
+    description=(
+        "Calcule le ROI : CA genere par les clients cibles dans les 30 jours suivant l'envoi, "
+        "nombre de conversions (clients ayant achete), taux de conversion."
+    ),
+)
+def get_campaign_roi(
+    campaign_id: int,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> dict:
+    return marketing_service.get_campaign_roi(
+        db, tenant_id=tenant_ctx.tenant_id, campaign_id=campaign_id
+    )
+
+
+@router.get(
+    "/campaigns/{campaign_id}/ab-stats",
+    summary="Statistiques A/B par variante",
+    description=(
+        "Compare les variantes d'une campagne (variant_key) : taux d'ouverture, "
+        "taux de clic, taux de reponse par variante."
+    ),
+)
+def get_campaign_ab_stats(
+    campaign_id: int,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> dict:
+    return marketing_service.get_campaign_ab_stats(
+        db, tenant_id=tenant_ctx.tenant_id, campaign_id=campaign_id
+    )

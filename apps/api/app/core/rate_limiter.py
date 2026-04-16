@@ -116,8 +116,8 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         return None
 
     async def dispatch(self, request: Request, call_next):
-        # Disable rate limiting in test/local environment
-        if settings.app_env in ("test", "local"):
+        # Disable rate limiting only in test env (local/dev garde rate-limit avec fallback memoire)
+        if settings.app_env == "test":
             return await call_next(request)
 
         rule = self._find_rule(request.url.path, request.method)

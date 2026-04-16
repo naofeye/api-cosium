@@ -1,6 +1,8 @@
 """Simple Redis cache for expensive queries. Disabled in test env."""
 
 import json
+import threading
+import time
 
 import redis
 
@@ -11,6 +13,8 @@ logger = get_logger("cache")
 
 _redis: redis.Redis | None = None
 _CACHE_DISABLED = settings.app_env == "test"
+_fallback_lock = threading.Lock()
+_fallback_locks: dict[str, float] = {}
 
 
 def _get_redis() -> redis.Redis | None:
@@ -25,7 +29,8 @@ def _get_redis() -> redis.Redis | None:
                 socket_timeout=2,
             )
             _redis.ping()
-        except Exception:
+        except Exception as exc:
+            logger.warning("redis_connection_failed", error=str(exc))
             _redis = None
     return _redis
 
@@ -52,7 +57,8 @@ def cache_get(key: str) -> dict | list | None:
     except (redis.ConnectionError, redis.TimeoutError):
         _reset_on_connection_error()
         return None
-    except Exception:
+    except Exception as exc:
+        logger.warning("cache_get_failed", key=key, error=str(exc))
         return None
 
 
@@ -88,22 +94,37 @@ def cache_delete_pattern(pattern: str) -> None:
 def acquire_lock(key: str, ttl: int = 300) -> bool:
     """Try to acquire a distributed lock. Returns True if acquired, False otherwise.
 
-    IMPORTANT: retourne False si Redis est indisponible pour eviter les
-    operations concurrentes non protegees (sync, import, etc.).
+    Falls back to an in-memory TTL lock when Redis is unavailable so local/test
+    environments keep working without silently allowing duplicate execution.
     """
     r = _get_redis()
     if not r:
-        logger.warning("acquire_lock_no_redis", key=key, hint="Operation refusee sans verrou distribue")
-        return False
+        now = time.monotonic()
+        with _fallback_lock:
+            expires_at = _fallback_locks.get(key, 0.0)
+            if expires_at > now:
+                logger.warning("acquire_lock_fallback_conflict", key=key)
+                return False
+            _fallback_locks[key] = now + ttl
+            logger.info("acquire_lock_fallback", key=key, ttl=ttl)
+            return True
     try:
         return bool(r.set(key, "1", nx=True, ex=ttl))
     except Exception as exc:
         logger.warning("acquire_lock_redis_error", key=key, error=str(exc))
-        return False
+        now = time.monotonic()
+        with _fallback_lock:
+            expires_at = _fallback_locks.get(key, 0.0)
+            if expires_at > now:
+                return False
+            _fallback_locks[key] = now + ttl
+            return True
 
 
 def release_lock(key: str) -> None:
     """Release a distributed lock."""
+    with _fallback_lock:
+        _fallback_locks.pop(key, None)
     r = _get_redis()
     if not r:
         return

@@ -1,6 +1,8 @@
+import time
+
 from celery import Celery
 from celery.schedules import crontab
-from celery.signals import task_failure
+from celery.signals import task_failure, task_postrun, task_prerun
 
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -60,12 +62,50 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.cleanup_tasks.apply_retention_policy",
         "schedule": crontab(hour=3, minute=45),  # Daily 3:45 AM
     },
+    "weekly-report": {
+        "task": "app.tasks.weekly_report_tasks.send_weekly_reports",
+        "schedule": crontab(hour=8, minute=0, day_of_week=1),  # Lundi 8h
+    },
 }
 celery_app.conf.timezone = "Europe/Paris"
 
 
 # --- Dead-letter queue : log structure pour les taches qui depassent max_retries ---
 # Le worker doit etre lance avec : -Q default,email,sync,extraction,batch,reminder,dlq
+# --- Profiling : duree + RSS memoire par tache, alerte si > 60s ou > 500MB ---
+_task_start_times: dict[str, float] = {}
+
+
+@task_prerun.connect
+def _on_task_prerun(task_id=None, task=None, **kw):
+    if task_id:
+        _task_start_times[task_id] = time.time()
+
+
+@task_postrun.connect
+def _on_task_postrun(task_id=None, task=None, retval=None, state=None, **kw):
+    if not task_id or task_id not in _task_start_times:
+        return
+    duration = time.time() - _task_start_times.pop(task_id)
+    rss_mb: float | None = None
+    try:
+        import resource  # unix only
+        rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        rss_mb = rss / 1024.0  # ru_maxrss is KB on linux
+    except (ImportError, AttributeError):
+        pass
+    level = "warning" if duration > 60 or (rss_mb and rss_mb > 500) else "info"
+    log_method = logger.warning if level == "warning" else logger.info
+    log_method(
+        "celery_task_profile",
+        task=task.name if task else "unknown",
+        task_id=task_id,
+        duration_s=round(duration, 3),
+        rss_mb=round(rss_mb, 1) if rss_mb else None,
+        state=state,
+    )
+
+
 @task_failure.connect
 def _on_task_failure(sender=None, task_id=None, exception=None, args=None, kwargs=None, **kw):
     """Capture toutes les failures pour Sentry + log structure (DLQ-like)."""
@@ -92,4 +132,5 @@ from app.tasks import (  # noqa: E402, F401
     heartbeat_tasks,
     reminder_tasks,
     sync_tasks,
+    weekly_report_tasks,
 )
