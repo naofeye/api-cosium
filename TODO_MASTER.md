@@ -1,422 +1,574 @@
-# TODO MASTER — OptiFlow AI : Le Cosium Copilot
+# TODO MASTER V2 — OptiFlow AI : Le Cosium Copilot
 
-> **Vision** : Transformer OptiFlow en **copilote intelligent** pour opticiens, branche sur Cosium en temps reel.
-> Ce document consolide les 5 TODOs precedentes (V1-V5) + les nouvelles capacites decouvertes dans le DOC API.
+> **Vision** : Transformer OptiFlow en **copilote intelligent** de reference pour opticiens, branche sur Cosium en temps reel.
+> Ce document consolide les 5 TODOs (V1-V5), les 5 rapports d'audit, et l'analyse approfondie du DOC API Cosium.
 > **Perimetre** : Optique uniquement (pas d'audio/audiologie).
-> **Derniere mise a jour** : 2026-04-14
+> **Cible** : Desktop + Mobile PWA, rendu professionnel et fluide.
+> **Derniere mise a jour** : 2026-04-15
 
 ---
 
 ## LEGENDE
 
-- `[ ]` = A faire
-- `[x]` = Fait (herite des TODOs V1-V5)
-- `[!]` = BLOQUANT pour la production
-- `[NEW]` = Nouveau, issu de l'analyse DOC API
-- Priorite : P0 (critique) > P1 (haute) > P2 (moyenne) > P3 (nice-to-have)
+- `[ ]` A faire
+- `[x]` Fait (herite des TODOs V1-V5)
+- `[!]` BLOQUANT pour la production
+- `[BUG]` Bug identifie lors de l'audit de code
+- `[SEC]` Faille de securite identifiee
+- `[PERF]` Probleme de performance
+- `[NEW]` Nouveau item issu du DOC API ou de l'audit
+- `[PWA]` Concerne la Progressive Web App
+- Priorite : P0 (bloquant) > P1 (haute) > P2 (moyenne) > P3 (nice-to-have)
 
 ---
 
-# PHASE 0 — FONDATIONS & DETTE CRITIQUE
-> Corriger tout ce qui bloque le deploiement production.
-> Herite de TODO V1-V5, items non coches.
+# ═══════════════════════════════════════════════
+# PHASE 0 — URGENCES : BUGS, SECURITE & PRODUCTION
+# ═══════════════════════════════════════════════
+> Tout corriger AVANT de construire quoi que ce soit de nouveau.
+> Estimation : ~80h
 
-## 0.1 Deploiement & Infrastructure (P0) [!]
+## 0.1 BUGS CRITIQUES BACKEND [!] (P0)
 
-- [x] **Fix deploy.sh** : `scripts/backup_db.sh` existe (retention + verif integrite), port 8000 ferme en prod via `ports: !reset []`
-- [ ] **Activer TLS/HTTPS** : decommenter le bloc HTTPS dans `config/nginx/nginx.conf`, tester certbot
-- [x] **Fix bootstrap prod** : `main.py` fail-fast en prod/staging si tables manquantes (`apps/api/app/main.py:294-298`)
-- [x] **Celery beat heartbeat** : tache `beat_heartbeat` chaque minute ecrit dans Redis, exposee via `/api/v1/admin/health` (seuil 300s)
-- [x] **Redis eviction policy** : `maxmemory-policy allkeys-lru` configure dans `docker-compose.prod.yml`
-- [ ] **MinIO backup automation** : script de backup S3 vers stockage off-site
-- [x] **Require ENCRYPTION_KEY** : enforce en prod/staging (`apps/api/app/core/encryption.py:13-17`)
+- [x] [BUG] **JWT sans verification tenant** : verif effectuee au niveau `get_current_user()` (`core/deps.py:54-65`) et `get_tenant_context()` (`core/tenant_context.py:50-60`). Les dependencies FastAPI verifient user.is_active + TenantUser.is_active. CORRIGE.
+- [x] [BUG] **Password reset token rejouable** : `models/user.py:25` — champ `used` verifie (`auth_service.py:266`) et mis a jour (`auth_service.py:281`). CORRIGE.
+- [x] [BUG] **Pas de rollback explicite** : rollback centralise dans `db/session.py:get_db()` (except Exception: db.rollback()). Toute exception remontant d'un service declenche un rollback avant fermeture. CORRIGE.
+- [x] [BUG] **Rate limiter bloquant si Redis down** : `acquire_lock()` (`core/redis_cache.py:92-119`) et rate limiter (`core/rate_limiter.py:76,87`) ont tous deux un fallback in-memory avec warning log. CORRIGE.
+- [x] [BUG] **Token blacklist inoperante sans Redis** : `security.py:is_token_blacklisted()` fail-closed en prod (retourne True + warning) et fail-open en dev/test/local. Evite que tokens revoques passent en prod. CORRIGE.
+- [x] [BUG] **Commit dans boucle sync docs** : `cosium_document_sync.py:149` — commit batche par 50. CORRIGE.
+- [x] [BUG] **Celery healthcheck casse** : `docker-compose.yml:99` — remplace `$$HOSTNAME` par `$$(hostname)` (command substitution fonctionne en sh/dash, pas $HOSTNAME). CORRIGE.
+- [x] [BUG] **Tenant isolation manquante** : `facture_repo.py:90-110` — filtrage `tenant_id` verifie OK. Reste a auditer TOUS les autres repos.
+- [x] [BUG] **Metrique merge client fausse** : `client_merge_service.py:102-115` — count des PEC est fait AVANT le transfert des cases (commentaire "bug fix" explicite). CORRIGE.
 
-## 0.2 Securite (P0) [!]
+## 0.2 FAILLES DE SECURITE [!] (P0)
 
-- [x] JWT role mismatch corrige (User.role → TenantUser.role)
-- [x] Race condition signup corrigee (unique slug)
-- [x] File upload magic bytes ajoutes
-- [x] Rate limiting PEC/batch/import
-- [x] Email header injection sanitise
-- [x] float → Decimal sur toutes les tables financieres
-- [x] **Fix auth fallback cookie** : `middleware.ts` utilise UNIQUEMENT `optiflow_token` httpOnly (plus de fallback). `optiflow_authenticated` reste non-httpOnly comme signal UX + `secure=True` en prod
-- [x] **Session revocation (partiel)** : endpoints `GET/POST /auth/sessions[/id/revoke]` + task Celery `purge_refresh_tokens` quotidienne (3h30). Tracking par device (user_agent/IP) reporte — necessite migration.
-- [x] **Redis lock fail-safe** : `acquire_lock()` retourne False si Redis down (`apps/api/app/core/redis_cache.py:94-102`)
-- [x] **Masquer /docs et /openapi.json en prod** : `docs_url=None` hors dev (`apps/api/app/main.py:87`)
-- [ ] **Audit OWASP Top 10** : pass complet headers, CSRF, rate-limit login
+- [ ] [SEC] [DIFFERE-PROD] **Credentials Cosium dans .env committe** : `.env` contient login/password Cosium en clair dans le repo Git. Environnement TEST, conservation autorisee. A traiter au passage en prod uniquement (revocation compte `AFAOUSSI` + `git filter-branch`).
+- [x] [SEC] **Cle de chiffrement derivee du JWT** : `core/encryption.py:13-17` — fail-fast en production/staging si ENCRYPTION_KEY absent. Fallback SHA256(JWT_SECRET) UNIQUEMENT en dev/test avec warning. CORRIGE.
+- [x] [SEC] JWT role mismatch corrige (User.role → TenantUser.role)
+- [x] [SEC] Race condition signup corrigee (unique slug)
+- [x] [SEC] File upload magic bytes ajoutes
+- [x] [SEC] Rate limiting PEC/batch/import
+- [x] [SEC] Email header injection sanitise
+- [x] [SEC] float → Decimal sur tables financieres
+- [x] [SEC] **Auth fallback cookie non-httpOnly** : `middleware.ts:5` utilise UNIQUEMENT `optiflow_token` httpOnly pour la protection serveur. Le flag client `optiflow_authenticated` (auth.ts:19) est purement UX, pas de bypass possible (backend et middleware ignorent ce flag). CORRIGE.
+- [x] [SEC] **Session revocation absente** : `refresh_token_repo.revoke_all_for_user()` appele a login (auth_service.py:112), switch-tenant (ligne 188), change-password (ligne 218), reset-password (ligne 282). Politique definie : 1 session active par user. CORRIGE.
+- [x] [SEC] **CORS allow_credentials trop permissif** : `main.py:163-169` — origines parsees depuis settings.cors_origins (pas de wildcard `*`). FastAPI refuse `*` + credentials. Methodes limitees (GET/POST/PUT/DELETE/OPTIONS). Headers whitelistes. OK tant que cors_origins est explicite en prod. CORRIGE.
+- [ ] [SEC] **CSP unsafe-inline** : `next.config.ts:22-23` — `script-src 'self' 'unsafe-inline' 'unsafe-eval'`. Migrer vers nonces CSP.
+- [x] [SEC] **Pas de validation taille fichier** : `document_service.py:47-49` applique `settings.max_upload_size_mb * 1024 * 1024`. Validation post-lecture memoire (ameliorable via nginx `client_max_body_size` pour pre-filtrage). CORRIGE.
+- [ ] [SEC] **Pas d'idempotence** : payments/banking OK (`banking_service.py:29-34` `idempotency_key`), reminder_tasks/sync_tasks OK. Manque PEC, factures, devis. PARTIEL.
+- [x] [SEC] **/docs et /openapi.json exposes en prod** : `main.py:89-95` — `docs_url` et `redoc_url` = None si app_env pas dans (local, development, test). OpenAPI JSON inaccessible hors dev. CORRIGE.
+- [ ] [SEC] **Audit OWASP Top 10** : pass complet headers, CSRF, rate-limit login, injection.
 
-## 0.3 Contrats Frontend/Backend (P1)
+## 0.3 DEPLOIEMENT & INFRASTRUCTURE [!] (P0)
 
-- [x] **Fix admin dashboard** : schema + endpoint retournent `services` + `components`, status `healthy/degraded` (`apps/api/app/domain/schemas/admin.py:12-18`)
-- [x] **Fix metrics admin** : `users` ajoute a `MetricsTotals` (`apps/api/app/domain/schemas/admin.py:21`)
-- [x] **Fix Cosium admin** : `tenant` et `base_url` deja dans `erp_sync_service.get_sync_status` (`apps/api/app/services/erp_sync_service.py:171-180`)
-- [x] **Creer /admin/data-quality** : route dediee wrap le composant `DataQualitySection` (`apps/web/src/app/admin/data-quality/page.tsx`)
-- [ ] **Fix cosium_admin tenant-aware** : `_check_cosium_status()` accepte `tenant_id` mais `/admin/health` est public — refactor auth necessaire
+- [x] [BUG] **deploy.sh casse** : plus de reference a `backup_db.sh`, backup integre (ligne 37-40), tests nginx/direct OK (ligne 62,81). CORRIGE.
+- [ ] [BUG] [DIFFERE-PROD] **HTTPS desactive** : bloc SSL commente dans `config/nginx/nginx.conf:122-198`. Template pret, a decommenter + configurer cert Let's Encrypt au passage en prod (domaine requis).
+- [ ] [BUG] **Bootstrap unsafe** : `main.py:286-322` plus de `create_all()`, warnings seulement, seed conditionnel dev. Manque fail-fast strict en prod si schema incoherent.
+- [ ] [BUG] [DIFFERE-PROD] **Passwords BDD par defaut** : `POSTGRES_PASSWORD:-optiflow` et MinIO `minioadmin:minioadmin`. OK pour env test actuel, a override obligatoirement au passage en prod.
+- [ ] [BUG] **Prometheus scrape 404** : `prometheus.yml:17` pointe vers `/api/v1/metrics` qui n'existe pas.
+- [ ] [BUG] [DIFFERE-PROD] **Grafana password par defaut** : `docker-compose.monitoring.yml:21` — `admin/admin`. Override par `GF_SECURITY_ADMIN_PASSWORD` au passage en prod.
+- [ ] **Celery beat heartbeat** : monitoring du scheduler (alerte si beat mort > 5min)
+- [x] **Redis eviction policy** : `docker-compose.yml:redis` — `--maxmemory 256mb --maxmemory-policy allkeys-lru`. CORRIGE.
+- [ ] **MinIO backup automation** : script vers stockage off-site
+- [x] **Require ENCRYPTION_KEY strict** en prod : `core/encryption.py:13-17` fail-fast RuntimeError si absent en production/staging. CORRIGE (doublon item 11).
+- [ ] [DIFFERE-PROD] **server_name explicite** dans Nginx prod (pas `_` catch-all `nginx.conf:49`). A configurer avec le vrai domaine au passage en prod.
+- [x] **client_max_body_size** : present sur `/api/` (25M, nginx.conf:85). Frontend Next.js ne recoit pas d'uploads directs (tous via /api), pas necessaire sur `/`. CORRIGE.
+- [ ] **ON DELETE CASCADE** : aucun FK n'a de cascade → orphelins en BDD. Ajouter sur toutes les FK.
+- [ ] **Indexes manquants** : `(tenant_id, created_at)` sur documents, `(tenant_id, status)` sur cases, `(tenant_id, date_paiement)` sur payments.
+- [ ] **Soft-delete inconsistant** : `Customer` a `deleted_at`, mais `Facture`, `Devis` non. Harmoniser.
 
-## 0.4 Tests E2E Docker (P1)
+## 0.4 CONTRATS FRONTEND/BACKEND (P1)
 
-- [ ] Deploy prod E2E : `docker compose -f docker-compose.prod.yml up` sans erreur
-- [ ] TLS termination test : certificat valide, redirect HTTP→HTTPS
-- [ ] Backup cycle complet : backup → drop → restore → verify
-- [ ] Multi-tenant isolation : 2 tenants, verifier qu'aucune donnee ne fuite
-- [ ] Cosium sync E2E : mock server → sync → verify data
-- [ ] Celery task profiling : mesurer temps/memoire des tasks de sync
-- [ ] Load test : 50 users concurrents, temps de reponse < 3s
+- [ ] [BUG] **Admin dashboard casse** : frontend attend `health.services` / `"healthy"`, backend renvoie `components` / `"ok"`.
+- [ ] [BUG] **metrics.totals.users absent** du backend.
+- [ ] [BUG] **Cosium admin tenant-unaware** : `_check_cosium_status()` utilise credentials globaux.
+- [ ] [BUG] **Page /admin/data-quality** referencee mais inexistante.
+- [ ] [BUG] **README.md mensonger** : annonce 740 tests (115 reels), 53 services (96 reels).
+- [x] **Clean .gitignore** : `.gitignore:52` `*.tsbuildinfo`, `.gitignore:71` `apps/api/celerybeat-schedule*`. Aucun de ces fichiers n'est tracke (verifie via git ls-files). CORRIGE.
 
-## 0.5 Documentation & Hygiene (P2)
+## 0.5 TESTS & VALIDATION (P1)
 
-- [x] **Fix README.md** : aucune mention fausse de 740 tests
-- [x] **Clean .gitignore** : `*.tsbuildinfo` et `celerybeat-schedule*` deja ignores et non trackes
-- [x] **ERD auto-genere** : `scripts/generate_erd.py` produit un Mermaid erDiagram depuis SQLAlchemy metadata.
-- [x] **CONTRIBUTING.md** : guide de contribution cree (`CONTRIBUTING.md`)
-- [x] **ADR pour chaque decision** : 5 ADRs (ajout 0004 cockpit cache local + 0005 action items pull-based)
+- [ ] Deploy E2E : `docker compose -f docker-compose.prod.yml up` sans erreur
+- [ ] TLS termination : certificat valide, redirect HTTP→HTTPS
+- [ ] Backup → drop → restore → verify
+- [ ] Multi-tenant isolation : 2 tenants, zero fuite
+- [ ] Cosium sync E2E : mock server → sync → verify
+- [ ] Celery task profiling : temps/memoire
+- [ ] Load test : 50 users concurrents < 3s
+- [ ] Test payment_service.py (creation, modification, rapprochement)
+- [ ] Test cosium_invoice_sync.py (incremental, full)
+- [ ] CI coverage threshold : passer de `--cov-fail-under=0` a `70`
+- [ ] CI security scanning : retirer `|| true` sur `pip-audit`
+- [ ] Alembic rollback + data integrity test
 
 ---
 
-# PHASE 1 — COSIUM CORE : SYNCHRONISATION COMPLETE
-> Exploiter TOUS les endpoints GET de Cosium pour avoir une copie locale riche.
-> C'est le socle de tout le reste.
+# ═══════════════════════════════════════════════
+# PHASE 1 — PWA & RESPONSIVE : MOBILE-FIRST
+# ═══════════════════════════════════════════════
+> OptiFlow doit fonctionner aussi bien sur PC que sur telephone.
+> Estimation : ~60h
 
-## 1.1 Enrichissement Client Cosium [NEW] (P0)
+## 1.1 Infrastructure PWA [NEW] (P0)
+
+- [ ] [PWA] **Creer manifest.json** : nom app, icones 192x192 + 512x512, theme_color, background_color, display: "standalone", start_url: "/dashboard"
+- [ ] [PWA] **Generer icones app** : favicon, apple-touch-icon, icones PWA (192, 384, 512)
+- [ ] [PWA] **Installer next-pwa** (`@ducanh2912/next-pwa`) et configurer dans `next.config.ts`
+- [ ] [PWA] **Service Worker** : cache des assets statiques, fallback offline, strategie stale-while-revalidate pour API
+- [ ] [PWA] **Page offline** : ecran elegant quand pas de connexion ("Vous etes hors ligne. Reconnectez-vous pour continuer.")
+- [ ] [PWA] **Viewport meta** : ajouter dans `layout.tsx` : `viewport: { width: "device-width", initialScale: 1, minimumScale: 1, viewportFit: "cover" }`
+- [ ] [PWA] **Splash screens** : iOS splash screens pour iPad et iPhone
+- [ ] [PWA] **Install prompt** : banniere native "Ajouter a l'ecran d'accueil" avec detection beforeinstallprompt
+- [ ] [PWA] **Web Vitals monitoring** : integrer `next/vitals` pour mesurer LCP, FID, CLS en production
+
+## 1.2 Layout Responsive (P0)
+
+- [ ] [BUG] **Sidebar tablette cassee** : `AuthLayout.tsx:52` — entre 768-1023px, sidebar cachee mais `lg:ml-64` applique → contenu decale. Ajouter breakpoint `md:ml-16` pour sidebar collapsed.
+- [ ] **Sidebar mobile** : hamburger menu avec overlay sombre, slide-in depuis la gauche, fermeture au clic exterieur et au swipe
+- [ ] **Bottom navigation mobile** : barre de navigation fixe en bas sur mobile (5 icones : Accueil, Clients, Devis, Notifications, Plus)
+- [ ] [PWA] **Safe area** : respecter `env(safe-area-inset-bottom)` pour iPhone avec encoche
+- [ ] **Header responsive** : masquer la barre de recherche sur mobile, icone loupe a la place
+- [ ] **PageLayout responsive** : titre + actions en colonne sur mobile, sticky footer avec `bottom: calc(64px + env(safe-area-inset-bottom))`
+- [ ] **Max-width desktop** : contenu centre `max-w-[1440px]` pour ecrans ultrawide
+
+## 1.3 Composants Responsive (P1)
+
+- [ ] [BUG] **DataTable mobile** : `DataTable.tsx:174-209` — padding trop large, colonnes non masquees. Creer vue "cards" sur mobile au lieu du tableau.
+- [ ] **Pagination mobile** : simplifier (precedent/suivant au lieu de numeros de page)
+- [ ] **Formulaires mobile** : inputs pleine largeur, labels au-dessus, zones de tap 48px minimum
+- [ ] [BUG] **Sticky footer formulaires** : conflit avec bottom nav mobile. Ajuster `bottom-20` sur mobile.
+- [ ] **Modales mobile** : plein ecran sur mobile (sheet from bottom), modale classique sur desktop
+- [ ] **KPICards mobile** : grille 2 colonnes au lieu de 4, texte reduit
+- [ ] **Graphiques responsive** : `Recharts` avec `ResponsiveContainer` + taille de police adaptative
+- [ ] **Boutons touch-friendly** : minimum 44px de zone de tap partout. Audit de tous les boutons icones.
+- [ ] [BUG] **Collapse sidebar bouton trop petit** : `Sidebar.tsx:50-63` — `p-1.5` = ~24px. Passer a `p-3` minimum.
+
+## 1.4 Images & Performance Mobile (P1)
+
+- [ ] [PERF] **Remplacer `<img>` par `next/image`** : `clientsColumns.tsx`, `AvatarUpload.tsx`, `TabDocuments.tsx` — pas de lazy loading, pas de WebP.
+- [ ] **Configurer `images.domains`** dans `next.config.ts` pour MinIO et sources externes.
+- [ ] **Font-display swap** : eviter le flash de texte invisible.
+- [ ] **React.lazy** sur toutes les pages avec graphiques (dashboard, analytics, rapprochement).
+- [ ] **Prefetch** : `Link prefetch={true}` sur les items de la sidebar.
+- [ ] **SWR dedup** : augmenter `dedupingInterval` de 2s a 5s pour eviter les requetes doubles.
+- [ ] **Bundle analyzer** : activer `@next/bundle-analyzer` pour identifier les gros modules.
+
+---
+
+# ═══════════════════════════════════════════════
+# PHASE 2 — COSIUM CORE : SYNCHRONISATION COMPLETE
+# ═══════════════════════════════════════════════
+> Exploiter TOUS les endpoints GET de Cosium pour une copie locale riche.
+> Estimation : ~150h
+
+## 2.1 Client Cosium Enrichi [NEW] (P0)
 
 - [x] GET `/customers` — recherche basique (nom, email, tel)
-- [x] [NEW] **Embed complet** : `GET /api/v1/cosium/customers/{cosium_id}/detail?embed=...` — endpoint live avec embeds par defaut (accounting, address, consents, optician, site, tags)
-- [x] [NEW] **Cartes de fidelite** : route `GET /api/v1/cosium/customers/{id}/fidelity-cards` — lecture live
-- [x] [NEW] **Parrainages** : route `GET /api/v1/cosium/customers/{id}/sponsorships` — lecture live
-- [x] [NEW] **Consentements marketing** : `GET /customers/{id}/consents` -> 4 flags (email, sms, whatsapp, exclude_all). Inclus dans `cosium-live` + cards visuels dans onglet Fidelite.
-- [x] [NEW] **Recherche fuzzy** : `GET /api/v1/cosium/customers/search?last_name=&first_name=&customer_number=` (loose match Cosium, gestion 502 gracieuse)
-- [ ] [NEW] **Adapter enrichi** : `cosium_customer_to_optiflow()` doit mapper fidelity, sponsorship, consents, tags
-- [ ] [NEW] **Migration Alembic** : tables `client_fidelity_cards`, `client_sponsorships` + champs consents sur `clients`
+- [ ] [NEW] **Embed complet** : `?embed=accounting,address,consents,optician,site,tags` en un seul appel
+- [ ] [NEW] **Recherche fuzzy** : `loose_first_name`, `loose_last_name`, `loose_customer_number`
+- [ ] [NEW] **Cartes fidelite** : GET `/customers/{id}/fidelity-cards` → table `client_fidelity_cards`
+- [ ] [NEW] **Parrainages** : GET `/customers/{id}/sponsorships` → table `client_sponsorships`
+- [ ] [NEW] **Consentements marketing** : lire flags `subscribed-to-email/sms/paper` (lecture seule)
+- [ ] [NEW] **Adapter enrichi** : mapper fidelity, sponsorship, consents, tags
+- [ ] [NEW] **Migration Alembic** : tables `client_fidelity_cards`, `client_sponsorships` + champs consents
 
-## 1.2 Dossiers Optiques Complets [NEW] (P0)
+## 2.2 Dossiers Optiques Complets [NEW] (P0)
 
-> C'est LE differenciateur. Recuperer le panier optique complet du client.
+> LE differenciateur. Le panier optique complet du client.
 
-- [x] [NEW] **Spectacle Files** : GET `/end-consumer/spectacles-files/{id}` — connector + service + route `GET /api/v1/cosium/spectacles/{file_id}`
-- [x] [NEW] **Dioptries** : GET `/end-consumer/spectacles-files/{id}/diopters` — adapter `cosium_diopter_to_optiflow`, inclus dans le dossier complet
-- [x] [NEW] **Catalogue montures** : GET `/end-consumer/catalog/optical-frames` — routes `GET /api/v1/cosium/catalog/frames[/{id}]`
-- [x] [NEW] **Catalogue verres** : GET `/end-consumer/catalog/optical-lenses` — routes `GET /api/v1/cosium/catalog/lenses[/{id}]`
-- [x] [NEW] **Options verres** : GET `/end-consumer/catalog/optical-lenses/{id}/available-options` — route `GET /api/v1/cosium/catalog/lenses/{id}/options`
-- [x] [NEW] **Selection client** : `get_spectacle_selection` integre dans `get_spectacle_file_complete`
-- [x] [NEW] **Adapter** : 3 fonctions existent (`cosium_spectacle_file_to_optiflow`, `cosium_diopter_to_optiflow`, `cosium_optical_frame_to_optiflow`)
-- [ ] [NEW] **Modeles SQLAlchemy** : `spectacle_files`, `prescriptions_detail` (catalogue lu en live, persistence reportee)
-- [ ] [NEW] **Migration Alembic** : a creer si on choisit la persistence
-- [x] [NEW] **Service** : `spectacle_service.py` — orchestrateur live (sans persistence pour l'instant)
-- [x] [NEW] **Router** : `GET /api/v1/cosium/spectacles/{file_id}` + `/customer/{cosium_id}`
-- [x] [NEW] **Frontend** : onglet "Equipements" enrichi avec section "Dossiers lunettes Cosium en cours" (live)
+- [ ] [NEW] **Spectacle Files** : GET `/end-consumer/spectacles-files/{id}` — dossier lunettes complet
+- [ ] [NEW] **Dioptries** : GET `/end-consumer/spectacles-files/{id}/diopters` — sphere, cylindre, axe, addition, prisme
+- [ ] [NEW] **Catalogue montures** : GET `/end-consumer/catalog/optical-frames` — filtres marque, type, materiau
+- [ ] [NEW] **Catalogue verres** : GET `/end-consumer/catalog/optical-lenses` + options (traitement, teinte)
+- [ ] [NEW] **Selection client** : GET `/end-consumer/spectacles-files/{id}/selection`
+- [ ] [NEW] **Adapters** : `cosium_spectacle_to_optiflow()`, `cosium_diopter_to_optiflow()`, `cosium_frame_to_optiflow()`
+- [ ] [NEW] **Modeles SQLAlchemy** : `spectacle_files`, `prescriptions_detail`, `optical_frames`, `optical_lenses`
+- [ ] [NEW] **Migration Alembic** : 4 nouvelles tables optiques
+- [ ] [NEW] **Service** : `spectacle_service.py`
+- [ ] [NEW] **Router** : `GET /api/v1/cosium/spectacles/{customer_id}`
+- [ ] [NEW] **Frontend** : onglet "Equipements optiques" dans fiche client
 
-## 1.3 Facturation & Paiements Enrichis [NEW] (P1)
+## 2.3 Facturation & Paiements Enrichis [NEW] (P1)
 
-- [x] GET `/invoices` — factures basiques
-- [x] GET `/invoiced-items` — lignes de facture
-- [x] [NEW] **Paiements facture** : `GET /api/v1/cosium/invoice-payments/{payment_id}` (live) — connector + endpoint avec gestion 502 gracieuse
-- [x] [NEW] **Liens de paiement** : `GET /api/v1/cosium/invoices/{id}/payment-links` (live) — connector + endpoint avec gestion 502.
-- [x] [NEW] **16 types de documents** : `CosiumInvoice.type` accepte tous les types Cosium. Vue comptable expose 6 types reels (INVOICE, QUOTE, CREDIT_NOTE, SUPPLIER_ORDER_FORM, SUPPLIER_DELIVERY_NOTE, SUPPLIER_INVOICE).
-- [x] [NEW] **Filtres avances** : `archived`, `has_outstanding`, `min_amount`, `max_amount` ajoutes a `/cosium/factures-cosium` (settled deja existant). Validé : 208 factures > 100€ avec encours.
-- [x] [NEW] **Adapter enrichi** : `share_social_security`, `share_private_insurance`, `outstanding_balance` deja stockes/exposes (vue comptable + cockpit + analyse financiere live).
-- [x] [NEW] **Vue comptable** : page `/analytics-cosium` (sidebar Cosium > Analyse financiere) — table ventilee par type avec count/TI/SS/AMC/RAC/encours. Endpoint `GET /api/v1/analytics/financial-breakdown[?date_from=&date_to=]`. Live : 6 types Cosium, INVOICE 3.25M€.
+- [x] GET `/invoices` + GET `/invoiced-items`
+- [ ] [NEW] **Paiements facture** : GET `/invoice-payments/{id}` — detail reglements
+- [ ] [NEW] **Liens paiement** : GET `/invoices/{id}/payment-links`
+- [ ] [NEW] **16 types documents** : exploiter tous les types (INVOICE, QUOTE, CREDIT_NOTE, DELIVERY_NOTE, etc.)
+- [ ] [NEW] **Filtres avances** : `hasAdvancePayment`, `settled`, `validationQuoteDateIsPresent`
+- [ ] [NEW] **Adapter enrichi** : mapper `shareSocialSecurity`, `sharePrivateInsurance`, `outstandingBalance`
 
-## 1.4 SAV / Apres-Vente [NEW] (P1)
+## 2.4 SAV / Apres-Vente [NEW] (P1)
 
-> Module entierement nouveau. Permet de suivre les reparations et garanties.
-
-- [x] [NEW] **Liste SAV** : GET `/after-sales-services` — route `GET /api/v1/cosium/sav` avec filtres (status, resolution, date, site)
-- [x] [NEW] **Detail SAV** : GET `/after-sales-services/{id}` — route `GET /api/v1/cosium/sav/{id}`
-- [x] [NEW] **Workflow statuts** : mappes TO_REPAIR/IN_PROCESS/REPAIR_IN_PROCESS/FINISHED + RESOLVED/SOLD_OUT
-- [x] [NEW] **Adapter** : `cosium_after_sales_to_optiflow()` — 17 champs metier extraits
-- [ ] [NEW] **Modele** : `after_sales_services` (id, customer_id, status, site_id, repairer, created_at, resolved_at)
-- [ ] [NEW] **Migration Alembic** : table `after_sales_services`
+- [ ] [NEW] **Liste SAV** : GET `/after-sales-services` — filtres statut, date, site, reparateur
+- [ ] [NEW] **Detail SAV** : GET `/after-sales-services/{id}`
+- [ ] [NEW] **Adapter** : `cosium_after_sales_to_optiflow()`
+- [ ] [NEW] **Modele** : `after_sales_services`
 - [ ] [NEW] **Service** : `after_sales_service.py`
-- [ ] [NEW] **Router** : `GET /api/v1/cosium/sav` + `GET /api/v1/cosium/sav/{id}`
-- [x] [NEW] **Frontend SAV** : page `/sav` dans sidebar Cosium + filtre statut + DataTable (statut, client, produit, reparateur, site)
-- [ ] [NEW] **KPI dashboard** : nombre de SAV en cours, delai moyen de resolution, taux de cloture
+- [ ] [NEW] **Router** : `GET /api/v1/cosium/sav`
+- [ ] [NEW] **Frontend** : page SAV sidebar + onglet SAV fiche client + KPIs
 
-## 1.5 Calendrier & Rendez-vous [NEW] (P1)
+## 2.5 Calendrier & RDV [NEW] (P1)
 
-- [x] [NEW] **Evenements** : GET `/calendar-events` enrichi — filtres ISO 8601 `from_start_date`/`to_start_date` + `customer_number` + `site_name`
-- [x] [NEW] **Categories** : GET `/cosium/calendar-event-categories` — depuis cache local
-- [x] [NEW] **Detail evenement** : GET `/cosium/calendar-events/{id}`
-- [ ] [NEW] **Recurrence** : mapper les patterns de recurrence (frequence, jour, heure)
-- [x] [NEW] **Adapter enrichi** : `adapt_calendar_event()` existant + filtres date dans router
-- [ ] [NEW] **Sync incrementale** : ne recuperer que les events modifies depuis le dernier sync
-- [ ] [NEW] **Frontend** : vue calendrier (semaine/mois) avec evenements colores par categorie
-- [x] [NEW] **Widget dashboard** : `GET /cosium/calendar-events/upcoming?limit=N` — endpoint pret pour le widget
+- [ ] [NEW] **Evenements** : GET `/calendar-events` — filtres date ISO 8601
+- [ ] [NEW] **Categories** : GET `/calendar-event-categories`
+- [ ] [NEW] **Recurrence** : mapper patterns de recurrence
+- [ ] [NEW] **Sync incrementale** : events modifies depuis le dernier sync
+- [ ] [NEW] **Frontend** : vue calendrier semaine/mois + widget "Prochains RDV" dashboard
 
-## 1.6 Notes CRM [NEW] (P2)
+## 2.6 Notes CRM [NEW] (P2)
 
-- [x] [NEW] **Liste notes** : route `GET /api/v1/cosium/notes/{note_id}` — detail note
-- [x] [NEW] **Notes par client** : `GET /api/v1/cosium/notes/customer/{cosium_id}` — historique CRM
-- [x] [NEW] **Statuts notes** : `GET /api/v1/cosium/notes/statuses`
-- [x] [NEW] **Adapter** : `cosium_note_to_optiflow()` — message, dates, customer, appearance, status
-- [ ] [NEW] **Modele** : `cosium_notes` (id, customer_id, content, status, appearance, created_at)
-- [ ] [NEW] **Migration Alembic** : table `cosium_notes`
-- [ ] [NEW] **Frontend** : integration dans la timeline client (onglet "Activite")
+- [ ] [NEW] GET `/notes` + GET `/notes?customerId={id}` + GET `/notes/statuses`
+- [ ] [NEW] **Adapter** + **Modele** + **Migration** + integration timeline client
 
-## 1.7 Operations Commerciales [NEW] (P2)
+## 2.7 Operations Commerciales [NEW] (P2)
 
-- [x] [NEW] **Avantages** : routes `GET /api/v1/cosium/commercial-operations/{id}/advantages[/adv_id]`
-- [~] [NEW] **Bons d'achat** : Cosium n'expose `/vouchers` qu'en PUT — INTERDIT par charte read-only
-- [~] [NEW] **Paniers** : Cosium n'expose `/carts` qu'en PUT/DELETE — INTERDIT par charte read-only
-- [x] [NEW] **Adapter** : `cosium_advantage_to_optiflow()` — name, dates, links HAL
-- [ ] [NEW] **Modele** : `commercial_operations`, `vouchers`
-- [ ] [NEW] **Frontend** : section "Avantages actifs" dans la fiche client + alertes dans la file d'actions
+- [ ] [NEW] GET `/commercial-operations/{id}/advantages` + `/vouchers` + `/carts`
+- [ ] [NEW] **Adapter** + **Modele** + section "Avantages actifs" fiche client + alertes expiration
 
-## 1.8 Sites & Multi-magasins [NEW] (P2)
+## 2.8 Sites & Multi-magasins Enrichis [NEW] (P2)
 
-- [x] GET `/sites` basique — adapter `adapt_site()` existant
-- [ ] [NEW] **Filtres enrichis** : type (optique), code comptable, pagination
+- [x] GET `/sites` basique
 - [ ] [NEW] **Stock par site** : GET `/products/{id}/stocks-by-site` — inventaire multi-site
-- [ ] [NEW] **Vue multi-magasins** : dashboard comparatif entre sites (CA, clients, SAV, stock)
+- [ ] [NEW] **Dashboard comparatif** inter-magasins (CA, clients, SAV, stock)
 
 ---
 
-# PHASE 2 — INTELLIGENCE METIER
-> Transformer les donnees brutes en insights actionnables pour l'opticien.
+# ═══════════════════════════════════════════════
+# PHASE 3 — INTELLIGENCE METIER
+# ═══════════════════════════════════════════════
+> Transformer les donnees brutes en insights actionnables.
+> Estimation : ~120h
 
-## 2.1 File d'Actions Intelligente (P0)
+## 3.1 File d'Actions Intelligente (P0)
 
 - [x] Action items basiques
-- [x] [NEW] **Alertes renouvellement** : `_generate_renewal_opportunities` (clients dernier achat 2-5 ans, max 100, priorise par CA). Type `renouvellement` integre dans dashboard widget + page Actions. Validé live : 100 alertes generees.
-- [ ] [NEW] **Alertes SAV** : SAV en attente depuis > X jours
-- [x] [NEW] **Alertes RDV** : type `rdv_demain` (testé : 11 alertes generees) — `_generate_upcoming_appointments`
-- [ ] [NEW] **Alertes bons d'achat** : bons expirant dans < 30 jours
-- [x] [NEW] **Alertes devis non transformes** : type `devis_dormant` > 15j (testé : 100 alertes) — `_generate_stale_quotes`
-- [x] [NEW] **Alertes impaye** : type `impaye_cosium` > 30j (testé : 169 alertes) — `_generate_overdue_cosium_invoices`
-- [x] [NEW] **Priorisation auto** : impaye > 90j = high, sinon medium ; devis = medium ; RDV = medium
-- [x] [NEW] **Widget sidebar** : badge rouge sur item "Actions" avec compteur SWR auto-refresh 60s (99+ si > 99)
+- [ ] [NEW] **Alertes renouvellement** : equipement > 2 ans (via spectacle files + date facture)
+- [ ] [NEW] **Alertes SAV** : SAV en attente > X jours
+- [ ] [NEW] **Alertes RDV** : clients avec RDV demain (rappel)
+- [ ] [NEW] **Alertes bons d'achat** : expirant < 30 jours
+- [ ] [NEW] **Alertes devis** : envoyes > 15 jours sans signature
+- [ ] [NEW] **Alertes impaye** : `outstandingBalance > 0` et date > 30 jours
+- [ ] [NEW] **Priorisation IA** : classer par urgence et impact financier
+- [ ] [NEW] **Widget sidebar** : compteurs par categorie avec badge rouge
 
-## 2.2 Dashboard Cockpit Opticien (P0)
+## 3.2 Dashboard Cockpit Opticien (P0)
 
 - [x] 6 KPIs basiques
-- [x] [NEW] **KPI Cosium live** : CA jour/semaine/mois via `/api/v1/dashboard/cosium-cockpit` (testé, données réelles 4771€)
-- [x] [NEW] **KPI Panier moyen** : `panier_moyen` dans cockpit (CA mois / nb factures = 477€)
-- [x] [NEW] **KPI Taux de transformation** : `quote_to_invoice_rate` 90 derniers jours (testé : 79.5%)
-- [ ] [NEW] **KPI Delai PEC** : temps moyen de reponse mutuelles
-- [ ] [NEW] **KPI SAV** : nombre en cours, delai moyen, taux satisfaction
-- [ ] [NEW] **KPI Renouvellements** : clients eligibles ce mois vs contactes vs convertis
-- [ ] [NEW] **KPI Stock** : alertes rupture (stock < seuil) via `latent-sales` vs `stock`
-- [x] [NEW] **Graphique CA comparatif** : `ca_this_month`/`ca_last_month`/`ca_same_month_last_year` dans cockpit
-- [ ] [NEW] **Graphique mix produits** : repartition montures/verres/lentilles/accessoires
-- [x] [NEW] **Frontend cockpit dashboard** : `CosiumCockpitKPIs` integre dans `/dashboard` — 8 KPIs (CA jour/sem/mois, panier, taux, balance agee, comparatif M-1/N-1) avec auto-refresh 60s
-- [x] [NEW] **Graphique balance agee** : 4 tranches (0-30j, 30-60j, 60-90j, 90j+) dans cockpit (15694€ total)
+- [ ] [NEW] **CA live** : jour/semaine/mois depuis invoices Cosium
+- [ ] [NEW] **Panier moyen** : montant moyen par facture optique
+- [ ] [NEW] **Taux transformation** : devis → facture
+- [ ] [NEW] **Delai PEC** : temps moyen reponse mutuelles
+- [ ] [NEW] **KPI SAV** : en cours, delai moyen, satisfaction
+- [ ] [NEW] **KPI Renouvellements** : eligibles vs contactes vs convertis
+- [ ] [NEW] **Alertes stock** : rupture via `latent-sales` vs `stock`
+- [ ] [NEW] **Graphique CA comparatif** : M/M-1/A-1 (Recharts)
+- [ ] [NEW] **Graphique mix produits** : montures/verres/lentilles/accessoires
+- [ ] [NEW] **Balance agee** : `outstandingBalance` par tranche (0-30j, 30-60j, 60-90j, 90j+)
 
-## 2.3 Fiche Client 360° Ultime (P1)
+## 3.3 Fiche Client 360° Ultime (P1)
 
 - [x] Fiche client basique avec onglets
-- [x] [NEW] **Onglet Equipements** : section "Dossiers lunettes Cosium en cours" (live `/cosium/spectacles/customer/{id}`) + cache historique. Badges Dioptries/Selection/Prescripteur. Degradation gracieuse si Cosium KO.
-- [ ] [NEW] **Onglet Prescriptions** : evolution des dioptries dans le temps (graphique Recharts)
-- [x] [NEW] **Backend Fidelite** : `GET /clients/{id}/cosium-live` retourne fidelity_cards + sponsorships + notes en LIVE
-- [x] [NEW] **Frontend Onglet Fidelite** : `TabFidelite` cree, integre dans fiche client (cartes + parrainages + notes CRM, gestion erreurs gracieuse)
-- [ ] [NEW] **Onglet RDV** : historique et prochains rendez-vous depuis le calendrier Cosium (frontend)
-- [ ] [NEW] **Onglet SAV** : dossiers SAV avec statut et timeline (frontend)
-- [x] [NEW] **Backend Notes** : inclus dans `cosium-live` (live Cosium, gestion erreur gracieuse)
-- [x] [NEW] **Score client** : `GET /api/v1/clients/{id}/score` (0-100, 6 composantes : CA, freq, anciennete, mutuelle, outstanding, renouvelable). Categorie VIP/Fidele/Standard/Nouveau. Affiche en haut TabResume avec breakdown visuel. Validé live : KRYS YOHAN = 67/Fidele.
-- [ ] [NEW] **Alerte proactive** : bandeau en haut de la fiche si action requise (renouvellement, impaye, SAV en attente)
+- [ ] [NEW] **Onglet Equipements** : historique montures + verres + dioptries (timeline visuelle)
+- [ ] [NEW] **Onglet Prescriptions** : evolution dioptries dans le temps (graphique)
+- [ ] [NEW] **Onglet Fidelite** : carte, points, parrainages, bons actifs
+- [ ] [NEW] **Onglet RDV** : historique et prochains (calendrier Cosium)
+- [ ] [NEW] **Onglet SAV** : dossiers avec statut et timeline
+- [ ] [NEW] **Onglet Notes** : notes CRM Cosium dans l'activite
+- [ ] [NEW] **Score client** : scoring (frequence, panier, anciennete, PEC, renouvellement)
+- [ ] [NEW] **Alerte proactive** : bandeau si action requise
 
-## 2.4 Analyse Financiere Avancee (P1)
+## 3.4 Analyse Financiere Avancee (P1)
 
 - [x] Rapprochement bancaire basique
-- [ ] [NEW] **Ventilation par tiers** : part Secu (`shareSocialSecurity`) vs mutuelle (`sharePrivateInsurance`) vs reste a charge
-- [ ] [NEW] **Analyse par type document** : INVOICE vs QUOTE vs CREDIT_NOTE — taux de credit notes (indicateur qualite)
-- [ ] [NEW] **Acomptes** : suivi des factures `hasAdvancePayment=true` — encaisse vs restant
-- [x] [NEW] **Ventes latentes** : KPI `latent_quotes_count` + `latent_quotes_amount` (devis 90j non transformes) integre dans cockpit + carte dashboard couleur warning. Live : 39 devis = 655€ potentiel.
-- [ ] [NEW] **Export FEC enrichi** : inclure les donnees Cosium dans l'export comptable
-- [x] [NEW] **Previsionnel tresorerie** : `GET /api/v1/analytics/cashflow-forecast` + widget dashboard 3 cards (encours total / encaissable 30j / risque irrecouvrable). Heuristique aging-based (70/40/20/5%). Live : 15694€ -> 7155€ encaissable, 5380€ risque.
+- [ ] [NEW] **Ventilation tiers** : Secu vs mutuelle vs reste a charge
+- [ ] [NEW] **Analyse par type** : INVOICE vs QUOTE vs CREDIT_NOTE
+- [ ] [NEW] **Acomptes** : suivi `hasAdvancePayment=true`
+- [ ] [NEW] **Ventes latentes** : potentiel CA a convertir
+- [ ] [NEW] **Previsionnel tresorerie** : echeances PEC + paiements attendus
 
-## 2.5 Gestion de Stock Intelligente [NEW] (P2)
+## 3.5 Gestion Stock Intelligente [NEW] (P2)
 
-- [ ] [NEW] **Vue stock global** : GET `/products/{id}/stock` pour tous les produits actifs
-- [ ] [NEW] **Stock par site** : GET `/products/{id}/stocks-by-site` pour les groupes multi-magasins
-- [ ] [NEW] **Alertes rupture** : stock < seuil configurable par famille produit
-- [ ] [NEW] **Ventes latentes** : GET `/products/{id}/latent-sales` — produits reserves dans des devis
-- [ ] [NEW] **Stock disponible reel** : stock physique - ventes latentes = dispo reel
-- [x] [NEW] **Catalogue montures** : page `/catalogue` (onglet Montures) — grille cards (marque, modele, couleur, materiau, style, dimensions, prix)
-- [x] [NEW] **Catalogue verres** : page `/catalogue` (onglet Verres) — grille cards (marque, modele, materiau, indice, traitement, teinte, photochromique)
-- [ ] [NEW] **Frontend** : page "Stock" dans la sidebar avec vue grille/liste, filtres, export
+- [ ] [NEW] **Stock global** + **par site** + **alertes rupture** + **ventes latentes**
+- [ ] [NEW] **Stock disponible reel** : physique - latentes = dispo
+- [ ] [NEW] **Catalogue navigable** : montures + verres avec filtres
+- [ ] [NEW] **Frontend** : page Stock dans sidebar
 
 ---
 
-# PHASE 3 — COPILOTE IA
-> L'intelligence artificielle au service de l'opticien.
+# ═══════════════════════════════════════════════
+# PHASE 4 — COPILOTE IA
+# ═══════════════════════════════════════════════
+> L'IA au service de l'opticien.
+> Estimation : ~80h
 
-## 3.1 Assistant IA Contextuel (P1)
+## 4.1 Assistant IA Contextuel (P1)
 
-- [x] Service IA basique (`ai_service.py`)
-- [ ] [NEW] **Contexte client enrichi** : l'IA connait les equipements, prescriptions, SAV, fidelite du client
-- [x] [NEW] **Suggestion renouvellement** : `GET /api/v1/clients/{id}/ai-renewal-suggestion` — texte contextuel selon score+anciennete (VIP/Fidele/Standard, urgency high/medium/low)
-- [ ] [NEW] **Suggestion upsell** : "Ce client a des verres basiques, les verres progressifs avec traitement anti-lumiere bleue seraient adaptes vu son addition de +2.00"
-- [ ] [NEW] **Resume RDV** : avant un RDV, l'IA prepare un brief du client (dernier achat, prescription, PEC en cours, notes)
-- [ ] [NEW] **Analyse devis** : l'IA verifie la coherence d'un devis (prescription vs verres choisis, prix vs catalogue)
-- [ ] [NEW] **Chatbot opticien** : interface chat pour poser des questions ("combien de SAV ce mois ?", "quel CA verres progressifs ?")
+- [x] Service IA basique
+- [ ] [NEW] **Contexte enrichi** : equipements, prescriptions, SAV, fidelite
+- [ ] [NEW] **Suggestion renouvellement** : "equipement 3 ans, myopie -0.50 en 2 ans, proposer bilan"
+- [ ] [NEW] **Suggestion upsell** : "verres basiques, addition +2.00 → progressifs anti-lumiere bleue"
+- [ ] [NEW] **Resume pre-RDV** : brief du client (dernier achat, prescription, PEC, notes)
+- [ ] [NEW] **Analyse devis** : coherence prescription vs verres choisis
+- [ ] [NEW] **Chatbot opticien** : "combien de SAV ce mois ?", "quel CA verres progressifs ?"
 
-## 3.2 IA Renouvellement Proactif (P1)
+## 4.2 IA Renouvellement Proactif (P1)
 
 - [x] Renewal engine basique
-- [ ] [NEW] **Scoring renouvellement** : combiner anciennete equipement + evolution dioptries + date derniere visite + age client
-- [ ] [NEW] **Segmentation automatique** : classer les clients en cohortes (urgent, bientot, pas encore)
-- [ ] [NEW] **Templates messages** : email/SMS personnalises avec nom + type d'equipement + duree depuis dernier achat
-- [ ] [NEW] **Timing optimal** : l'IA determine le meilleur moment pour contacter (basee sur historique reponses)
-- [ ] [NEW] **A/B testing** : tester differents messages et mesurer le taux de conversion
+- [ ] [NEW] **Scoring** : anciennete equipement + evolution dioptries + derniere visite + age
+- [ ] [NEW] **Segmentation auto** : cohortes (urgent, bientot, pas encore)
+- [ ] [NEW] **Templates personnalises** : email/SMS avec nom + equipement + duree
+- [ ] [NEW] **Timing optimal** : meilleur moment pour contacter (historique reponses)
+- [ ] [NEW] **A/B testing** : messages differents → mesurer conversion
 
-## 3.3 IA Aide au Devis (P2)
+## 4.3 IA Aide au Devis (P2)
 
-- [ ] [NEW] **Simulation remboursement** : a partir des dioptries + mutuelle client → estimer le reste a charge
-- [ ] [NEW] **Recommandation produit** : en fonction de la prescription, proposer les montures/verres adaptes du catalogue
-- [ ] [NEW] **Comparaison devis** : si plusieurs devis pour un client, comparer les options et montants
-- [ ] [NEW] **Detection anomalie** : alerter si un devis semble anormal (prix trop bas/haut pour la prescription)
+- [ ] [NEW] **Simulation remboursement** : dioptries + mutuelle → reste a charge estime
+- [ ] [NEW] **Recommandation produit** : prescription → montures/verres adaptes du catalogue
+- [ ] [NEW] **Comparaison devis** : options et montants cote a cote
+- [ ] [NEW] **Detection anomalie** : prix anormal pour la prescription
 
-## 3.4 IA Analyse Business (P2)
+## 4.4 IA Analyse Business (P2)
 
-- [ ] [NEW] **Rapport hebdo automatique** : resume IA du CA, tendances, alertes de la semaine
-- [ ] [NEW] **Detection tendances** : evolution du mix produit, panier moyen, frequentation
-- [ ] [NEW] **Benchmark** : comparer les KPIs entre magasins (pour les groupes multi-sites)
-- [ ] [NEW] **Prevision CA** : modele predictif base sur l'historique et la saisonnalite
+- [ ] [NEW] **Rapport hebdo auto** : resume CA, tendances, alertes
+- [ ] [NEW] **Detection tendances** : evolution mix produit, panier, frequentation
+- [ ] [NEW] **Benchmark inter-magasins** : KPIs compares (groupes multi-sites)
+- [ ] [NEW] **Prevision CA** : modele predictif + saisonnalite
 
 ---
 
-# PHASE 4 — EXPERIENCE UTILISATEUR PREMIUM
+# ═══════════════════════════════════════════════
+# PHASE 5 — UX PREMIUM & POLISH
+# ═══════════════════════════════════════════════
 > Chaque ecran doit inspirer confiance et maitrise immediate.
+> Estimation : ~80h
 
-## 4.1 Composants UI Manquants (P1)
+## 5.1 Composants UI Manquants (P1)
 
-- [x] Sidebar, Header, PageLayout, DataTable, Badge, KPICard basiques
-- [ ] **CalendarView.tsx** : vue calendrier semaine/mois (events Cosium)
-- [ ] **PrescriptionCard.tsx** : affichage visuel des dioptries OD/OG avec evolution
-- [ ] **EquipmentTimeline.tsx** : frise chronologique des equipements optiques
-- [ ] **StockGauge.tsx** : jauge visuelle du niveau de stock (vert/orange/rouge)
-- [ ] **ClientScoreRadar.tsx** : graphique radar du score client (fidelite, CA, frequence, anciennete)
-- [ ] **QuoteComparison.tsx** : tableau comparatif de devis cote a cote
-- [ ] **SAVTracker.tsx** : suivi visuel du workflow SAV (stepper horizontal)
-- [ ] **VoucherCard.tsx** : carte bon d'achat avec code, montant, date expiration
-- [ ] **RenewalBanner.tsx** : bandeau d'alerte renouvellement dans la fiche client
+- [ ] **CalendarView.tsx** : vue calendrier semaine/mois
+- [ ] **PrescriptionCard.tsx** : dioptries OD/OG avec evolution
+- [ ] **EquipmentTimeline.tsx** : frise chronologique equipements optiques
+- [ ] **StockGauge.tsx** : jauge stock (vert/orange/rouge)
+- [ ] **ClientScoreRadar.tsx** : radar score client
+- [ ] **QuoteComparison.tsx** : comparatif devis cote a cote
+- [ ] **SAVTracker.tsx** : stepper horizontal workflow SAV
+- [ ] **VoucherCard.tsx** : carte bon d'achat (code, montant, expiration)
+- [ ] **RenewalBanner.tsx** : bandeau alerte renouvellement
 
-## 4.2 Pages Nouvelles (P1)
+## 5.2 Nouvelles Pages (P1)
 
-- [ ] [NEW] **Page Stock** : `/stock` — catalogue produits, niveaux de stock, alertes rupture
-- [ ] [NEW] **Page SAV** : `/sav` — liste SAV avec filtres, detail, KPIs
-- [ ] [NEW] **Page Calendrier** : `/calendrier` — vue RDV semaine/mois
-- [ ] [NEW] **Page Analyse Cosium** : `/analytics/cosium` — ventilation financiere complete
-- [ ] [NEW] **Page Catalogue Optique** : `/catalogue` — montures + verres Cosium
-- [ ] [NEW] **Page Admin Data Quality** : `/admin/data-quality` — qualite des donnees synchronisees
+- [ ] [NEW] `/stock` — catalogue produits, niveaux stock, alertes rupture
+- [ ] [NEW] `/sav` — liste SAV + detail + KPIs
+- [ ] [NEW] `/calendrier` — vue RDV semaine/mois
+- [ ] [NEW] `/analytics/cosium` — ventilation financiere complete
+- [ ] [NEW] `/catalogue` — montures + verres Cosium navigables
+- [ ] [NEW] `/admin/data-quality` — qualite donnees synchronisees
 
-## 4.3 UX Polish (P2)
+## 5.3 Accessibilite & Polish (P2)
 
-- [ ] **WCAG AA complet** : audit accessibilite, contrastes, navigation clavier
-- [ ] **Raccourcis clavier** : Ctrl+K recherche, Ctrl+N nouveau dossier, Ctrl+S sauvegarder
-- [ ] **Mode sombre** : theme dark pour les opticiens qui travaillent tard
-- [ ] **Onboarding guide** : tutoriel interactif au premier login
-- [ ] **Recherche globale enrichie** : rechercher dans clients + factures + devis + SAV + produits
-- [ ] **Notifications push** : SSE pour les alertes en temps reel (nouveau SAV, paiement recu, sync termine)
-- [ ] **Performance** : React.lazy sur toutes les pages lourdes, skeleton loaders partout
+- [ ] **WCAG AA** : audit contrastes, navigation clavier, focus visible
+- [ ] [BUG] **ARIA dropdown** : `Header.tsx:202` — `aria-haspopup="dialog"` devrait etre `"menu"`
+- [ ] **aria-describedby** sur tous les champs de formulaire
+- [ ] **Raccourcis clavier** : Ctrl+K recherche, Ctrl+N nouveau, Ctrl+S sauvegarder
+- [ ] **Dark mode** : toggle + tokens coherents
+- [ ] **Onboarding** : tutoriel interactif premier login
+- [ ] **Recherche globale enrichie** : clients + factures + devis + SAV + produits
+- [ ] **Notifications push** : SSE temps reel (nouveau SAV, paiement, sync)
+- [ ] [BUG] **SSEListener sans ErrorBoundary** : `AuthLayout.tsx:49` — crash possible de toute l'app. Wrapper dans `<ErrorBoundary>`.
+- [ ] **Messages erreur humains** : mapper 5xx → "Erreur serveur. Reessayez dans quelques minutes."
+- [ ] [PERF] **SWR retry** : ajouter exponential backoff (pas retry immediat)
+- [ ] **Print styles** : `@media print` pour devis, factures, fiches client
+
+## 5.4 TypeScript & Code Quality Frontend (P2)
+
+- [ ] **ESLint strict** : `no-explicit-any` passer de "warn" a "error"
+- [ ] **exhaustive-deps** : passer de "warn" a "error"
+- [ ] **Centraliser types** : inline types → `lib/types/`
+- [ ] **Zod schemas manquants** : facture, rapprochement, relance
+- [ ] **Bannir `any` restants**
+- [ ] **ESLint bloquant en CI** : retirer `ignoreDuringBuilds: true` de `next.config.ts`
+- [ ] **Sentry production** : wirer `sentry.client.config.ts` au DSN reel
+- [ ] **Web Vitals** : LCP, FID, CLS monitorees
 
 ---
 
-# PHASE 5 — MARKETING & CRM AVANCE
-> Transformer les donnees en actions commerciales.
-
-## 5.1 Marketing Enrichi [NEW] (P2)
+# ═══════════════════════════════════════════════
+# PHASE 6 — MARKETING & CRM AVANCE
+# ═══════════════════════════════════════════════
+> Estimation : ~40h
 
 - [x] Marketing service basique + campagnes
-- [x] [NEW] **Segments dynamiques** : `GET /api/v1/analytics/dynamic-segments` + widget `DynamicSegmentsPanel` page Marketing (5 segments live : VIP, renouvellement, inactifs >3a, impayes, avec mutuelle). Validé : 20 VIP/450k€, 620 renouvellements, 198 inactifs, 147 impayes, 778 mutuelles.
-- [ ] [NEW] **Exploitation bons d'achat** : afficher les vouchers actifs + alerter sur les expirations proches
-- [ ] [NEW] **Campagne renouvellement** : workflow automatise (segment → template → envoi → suivi conversion)
-- [ ] [NEW] **Historique interactions** : fusionner notes Cosium + emails envoyes + appels + SMS dans une timeline unique
-- [ ] [NEW] **ROI par campagne** : mesurer le CA genere par campagne (clients contactes → factures emises)
-
-## 5.2 Fidelisation [NEW] (P2)
-
-- [ ] [NEW] **Dashboard fidelite** : points cumules, parrainages actifs, bons disponibles (depuis Cosium)
-- [ ] [NEW] **Alertes parrainage** : notifier quand un parrainage est utilise
-- [x] [NEW] **Top clients** : `GET /dashboard/top-clients?limit=N&months=N` + widget `TopClientsCa` dashboard avec barre de progression CA + nb factures + outstanding flag (lien fiche client)
+- [ ] [NEW] **Segments dynamiques** : dernier achat > 2 ans, progressifs, < 40 ans...
+- [ ] [NEW] **Bons d'achat Cosium** : afficher vouchers actifs + alertes expiration
+- [ ] [NEW] **Campagne renouvellement** : workflow segment → template → envoi → conversion
+- [ ] [NEW] **Timeline unifiee** : notes Cosium + emails + appels + SMS
+- [ ] [NEW] **ROI par campagne** : CA genere par campagne
+- [ ] [NEW] **Dashboard fidelite** : points, parrainages, bons (depuis Cosium)
+- [ ] [NEW] **Top clients** : classement CA, frequence, anciennete → actions VIP
 
 ---
 
-# PHASE 6 — MULTI-TENANT & SCALE
-> Supporter 50+ magasins d'un meme groupe.
-
-## 6.1 Multi-tenant Robuste (P1)
+# ═══════════════════════════════════════════════
+# PHASE 7 — MULTI-TENANT & SCALE
+# ═══════════════════════════════════════════════
+> Supporter 50+ magasins.
+> Estimation : ~50h
 
 - [x] Architecture multi-tenant basique (tenant_id, RLS)
-- [ ] **Credentials Cosium par tenant** : verifier que chaque tenant a ses propres credentials chiffres
-- [ ] **Sync isolee par tenant** : une task Celery par tenant, pas de contamination cross-tenant
-- [ ] **Admin groupe** : dashboard agrege (`/admin/group-dashboard`) pour le directeur de groupe
-- [ ] **Switch tenant** : `/auth/switch-tenant` fonctionnel avec nouveau JWT
-- [x] [NEW] **Comparatif inter-magasins** : `GET /api/v1/analytics/group-comparison` (CA 30j, panier moyen, encours, clients par tenant)
-- [ ] [NEW] **Stock inter-magasins** : vue consolidee des stocks avec transfert suggere (magasin A en surplus → B en rupture)
-
-## 6.2 Performance a l'Echelle (P2)
-
-- [ ] **Sync incrementale** : ne synchroniser que les donnees modifiees depuis le dernier sync (delta)
-- [ ] **Cache Redis intelligent** : cacher les donnees de reference (produits, sites, payment-types) avec TTL adapte
-- [ ] **Pagination serveur** : toutes les listes > 25 items paginées cote serveur
-- [ ] **Connection pooling** : optimiser le pool PostgreSQL pour 50 tenants concurrents
-- [ ] **Rate limiting Cosium** : respecter les limites de l'API Cosium, backoff exponentiel
-
----
-
-# PHASE 7 — OBSERVABILITE & MONITORING
-> Savoir ce qui se passe en production a tout moment.
-
-## 7.1 Monitoring (P2)
-
-- [x] **Prometheus metrics** : `/api/v1/metrics` enrichi (tenants, users, customers, cosium_invoices, outstanding_balance_eur, action_items_pending + breakdown par type label)
-- [ ] **Grafana dashboards** : dashboard ops (infra) + dashboard metier (CA, clients, sync)
-- [ ] **Sentry integration** : capture erreurs frontend + backend avec contexte utilisateur
-- [ ] **Alerting** : Slack/email si sync echoue, si latence > 5s, si erreur rate > 5%
-- [ ] **Health checks** : separer liveness (`/health/live`) de readiness (`/health/ready`)
-- [ ] **Logs structures** : JSON logs avec correlation ID par requete
-
-## 7.2 Audit & Conformite (P2)
-
-- [ ] **Audit trail complet** : chaque consultation de donnee sensible logguee
-- [ ] **RGPD** : droit a l'oubli, export donnees, consentements traces
-- [x] **Retention policy** : task Celery `apply_retention_policy` (3h45 AM) — purge audit_logs > 365j + action_items resolus > 90j.
+- [ ] **Credentials Cosium par tenant** : verifier isolation chiffrement Fernet
+- [ ] **Sync isolee** : une task Celery par tenant, zero contamination
+- [ ] **Admin groupe** : `/admin/group-dashboard` agrege
+- [ ] **Switch tenant** : `/auth/switch-tenant` avec nouveau JWT
+- [ ] [NEW] **Comparatif inter-magasins** : KPIs cote a cote
+- [ ] [NEW] **Stock inter-magasins** : vue consolidee + transfert suggere
+- [ ] **Sync incrementale** : delta depuis dernier sync
+- [ ] **Cache Redis** : reference data (produits, sites, payment-types) TTL 24h
+- [ ] **Connection pooling** : optimiser pour 50 tenants concurrents
+- [ ] **Rate limiting Cosium** : backoff exponentiel
+- [ ] [PERF] **N+1 queries** : `client_service.py:52-56` — `calculate_client_completeness()` appele N fois. Batch.
+- [ ] [PERF] **COUNT(*) lent** : `client_repo.search():31` — utiliser pattern LIMIT+1 au lieu de full count.
+- [ ] [PERF] **time.sleep() bloquant** : `cosium/client.py:129,158,190` — bloque le worker thread. Utiliser asyncio.
 
 ---
 
-# PHASE 8 — NICE-TO-HAVE / VISION LONG TERME
-> Fonctionnalites differenciantes pour la V2+.
+# ═══════════════════════════════════════════════
+# PHASE 8 — OBSERVABILITE & MONITORING
+# ═══════════════════════════════════════════════
+> Estimation : ~40h
 
-## 8.1 Portail Client (P3)
-
-- [ ] **Espace client web** : le client voit ses devis, factures, RDV, prescription
-- [ ] **Prise de RDV en ligne** : formulaire lie au calendrier Cosium (lecture seule cote Cosium)
-- [ ] **Suivi SAV** : le client suit l'avancement de sa reparation
-- [ ] **Signature electronique** : signature devis en ligne (eSignature)
-
-## 8.2 Integrations Externes (P3)
-
-- [ ] **QR Code** : generation QR pour chaque dossier/devis (scan en magasin)
-- [ ] **SMS via API** : envoi SMS de rappel RDV / relance impaye
-- [ ] **Comptabilite** : export vers logiciel comptable (Sage, Cegid, QuickBooks)
-- [ ] **Carte vitale** : lecture carte vitale pour pre-remplir les infos Secu (hardware dependant)
-
-## 8.3 Mobile (P3)
-
-- [ ] **PWA responsive** : version mobile legere pour consultation en magasin (tablette)
-- [ ] **Scan produit** : scanner EAN depuis le mobile pour voir le stock et les infos produit
+- [ ] **Prometheus middleware** : implementer `/api/v1/metrics` (Counter, Histogram)
+- [ ] **Grafana dashboards** : ops (infra) + metier (CA, sync, clients)
+- [ ] **Sentry** : capture erreurs frontend + backend avec contexte
+- [ ] **Alerting** : Slack/email si sync echoue, latence > 5s, erreur > 5%
+- [ ] **Health checks** : separer `/health/live` de `/health/ready`
+- [ ] [BUG] **Health check session leak** : `main.py:335-358` — `db.execute(text("SELECT 1"))` sans commit/close
+- [ ] **Logs structures JSON** : correlation ID par requete
+- [ ] **Request/response logging** : middleware avec masquage PII
+- [ ] [BUG] **Masquage PII incomplet** : `core/logging.py:18-33` — ne masque que les cles, pas les valeurs contenant "password:xxx"
+- [ ] **Log rotation** : taille + temps
+- [ ] **Audit trail complet** : chaque consultation donnee sensible logguee
+- [ ] **RGPD** : droit a l'oubli, export, consentements
+- [ ] **Retention** : purge auto logs > 12 mois
 
 ---
 
+# ═══════════════════════════════════════════════
+# PHASE 9 — BACKEND POLISH & ARCHITECTURE
+# ═══════════════════════════════════════════════
+> Estimation : ~50h
+
+## 9.1 Architecture (P2)
+
+- [ ] [BUG] **OAuth2PasswordBearer duplique** : `core/deps.py:14` + `core/tenant_context.py:14` — centraliser dans `get_token_from_request()`
+- [ ] [BUG] **PecService erreur inversee** : `pec_service.py:81` — `BusinessError("FACTURE_NOT_FOUND", "...")` avec args inverses
+- [ ] **Services mixent audit + events** : separer avec event bus
+- [ ] **Repos return types incoherents** : standardiser (ORM objects, services convertissent)
+- [ ] **Services mixent objets et primitifs** : toujours utiliser schemas en entree
+- [ ] **CosiumClient non injectable** : instancie globalement (ligne 294). Utiliser factory + injection.
+- [ ] **Refresh token rotation** : chaque refresh = nouveau token, ancien invalide
+- [ ] **RBAC par ressource** : `@require_resource_ownership("client", client_id)` sur endpoints sensibles
+- [ ] **Timeout par appel Cosium** : pas de timeout global client (60s), timeout par endpoint
+
+## 9.2 Code Quality (P2)
+
+- [ ] **Dead code** : passer ruff pour supprimer le code mort
+- [ ] **Docstrings** : 96 services sans docstring
+- [ ] **Type hints return** : partout
+- [ ] **Prefixer methodes privees** : `_x` → `__x`
+- [ ] **Validations Pydantic** : min/max/regex sur tous les champs
+- [ ] **`__all__`** : definir les exports publics de chaque module
+- [ ] **Recherche sans limite** : `client_repo.py:20-30` — pas de `max_length` sur query. Ajouter `len(query) > 100 → erreur`.
+
+## 9.3 PEC V12 Intelligence [NEW] (P1)
+
+- [ ] [NEW] **Liaison 100% factures** : fuzzy matching via `_links.customer.href` (8h)
+- [ ] [NEW] **Table client_mutuelles** : relation N-N (2h)
+- [ ] [NEW] **Auto-detection mutuelle** : depuis TPP/invoices/documents (4h)
+- [ ] [NEW] **OCR pipeline** : Tesseract + pdfplumber (6h)
+- [ ] [NEW] **Classification documents** : ordonnance, devis, attestation, etc. (3h)
+- [ ] [NEW] **Parsers structures** : 6 types de documents (12h)
+- [ ] [NEW] **Consolidation multi-source** (8h)
+- [ ] [NEW] **Detection incoherences** + alertes (4h)
+- [ ] [NEW] **PEC assistant frontend** : onglet interactif fiche client (8h)
+
+---
+
+# ═══════════════════════════════════════════════
+# PHASE 10 — VISION LONG TERME
+# ═══════════════════════════════════════════════
+> Estimation : ~80h
+
+## 10.1 Portail Client (P3)
+
+- [ ] Espace client web : devis, factures, RDV, prescription
+- [ ] Prise de RDV en ligne
+- [ ] Suivi SAV public
+- [ ] Signature electronique devis
+
+## 10.2 Integrations Externes (P3)
+
+- [ ] QR Code par dossier/devis
+- [ ] SMS rappel RDV / relance impaye
+- [ ] Export comptable Sage/Cegid/QuickBooks
+- [ ] Carte vitale (hardware dependant)
+- [ ] Webhooks entrants
+- [ ] Connecteur Zapier/Make
+- [ ] API publique v1
+
+## 10.3 Mobile Avance (P3)
+
+- [ ] [PWA] Mode hors-ligne enrichi : consultation fiches clients cachees
+- [ ] [PWA] Scan EAN depuis camera : stock + infos produit
+- [ ] [PWA] Notifications push natives (via service worker)
+
+## 10.4 DX & Tooling (P3)
+
+- [ ] Storybook UI components
+- [ ] openapi-typescript client auto-genere
+- [ ] Semantic versioning CI tags
+- [ ] Prettier + Ruff pre-commit hooks
+- [ ] Bootstrap script nouveau dev
+- [ ] VS Code debug profiles
+- [ ] Seed data generator
+- [ ] Suite E2E Playwright
+
+---
+
+# ═══════════════════════════════════════════════
 # RESUME EXECUTIF
+# ═══════════════════════════════════════════════
 
-| Phase | Items | Priorite | Estimation |
-|-------|-------|----------|------------|
-| **Phase 0** — Fondations & dette | ~35 | P0-P2 | 80h |
-| **Phase 1** — Cosium Core sync | ~65 | P0-P2 | 150h |
-| **Phase 2** — Intelligence metier | ~45 | P0-P2 | 120h |
-| **Phase 3** — Copilote IA | ~20 | P1-P2 | 80h |
-| **Phase 4** — UX Premium | ~25 | P1-P2 | 60h |
-| **Phase 5** — Marketing & CRM | ~12 | P2 | 40h |
-| **Phase 6** — Multi-tenant & scale | ~12 | P1-P2 | 50h |
-| **Phase 7** — Observabilite | ~10 | P2 | 40h |
-| **Phase 8** — Nice-to-have | ~10 | P3 | 60h |
-| **TOTAL** | **~234 items** | | **~680h** |
-
-> **Strategie recommandee** : Phase 0 → Phase 1.1 + 1.2 (optique) → Phase 2.1 + 2.2 (dashboard) → le reste par priorite.
-> L'objectif est d'avoir un **Cosium Copilot fonctionnel** avec les dossiers optiques et le dashboard intelligent en premier.
+| Phase | Items | Effort | Priorite |
+|-------|-------|--------|----------|
+| **Phase 0** — Urgences (bugs, secu, prod) | ~50 | 80h | P0 [!] |
+| **Phase 1** — PWA & Responsive | ~35 | 60h | P0-P1 |
+| **Phase 2** — Cosium Core sync | ~55 | 150h | P0-P2 |
+| **Phase 3** — Intelligence metier | ~40 | 120h | P0-P1 |
+| **Phase 4** — Copilote IA | ~20 | 80h | P1-P2 |
+| **Phase 5** — UX Premium & Polish | ~35 | 80h | P1-P2 |
+| **Phase 6** — Marketing & CRM | ~10 | 40h | P2 |
+| **Phase 7** — Multi-tenant & Scale | ~15 | 50h | P1-P2 |
+| **Phase 8** — Observabilite | ~15 | 40h | P2 |
+| **Phase 9** — Backend Polish & PEC V12 | ~25 | 50h | P1-P2 |
+| **Phase 10** — Vision long terme | ~20 | 80h | P3 |
+| **TOTAL** | **~320 items** | **~830h** | |
 
 ---
 
-*Ce document remplace TODO.md, TODO_V2.md, TODO_V3.md, TODO_V4.md et TODO_V5.md.*
-*Les anciennes TODOs sont conservees comme archive de ce qui a ete fait.*
+## CHEMIN CRITIQUE RECOMMANDE
+
+```
+Semaine 1-2  : Phase 0 (bugs critiques + securite + deploy)
+Semaine 3-4  : Phase 1 (PWA + responsive)
+Semaine 5-8  : Phase 2.1 + 2.2 (clients enrichis + dossiers optiques)
+Semaine 9-10 : Phase 3.1 + 3.2 (file d'actions + dashboard cockpit)
+Semaine 11-12: Phase 5 (UX polish) + Phase 7 (scale)
+Semaine 13+  : Phases 4, 6, 8, 9, 10 par priorite
+```
+
+> **Objectif** : un Cosium Copilot PWA fonctionnel, securise, avec dossiers optiques
+> et dashboard intelligent en **12 semaines**.
+
+---
+
+*Ce document remplace TODO.md, TODO_V2.md, TODO_V3.md, TODO_V4.md, TODO_V5.md et l'ancien TODO_MASTER.md.*
+*Les anciennes TODOs sont conservees comme archive historique.*

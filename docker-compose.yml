@@ -22,6 +22,9 @@ services:
   redis:
     image: redis:7
     restart: unless-stopped
+    # maxmemory + allkeys-lru : eviction automatique des anciennes cles si Redis sature.
+    # Evite OOM-kill quand rate-limiter/blacklist/cache cumulent trop de cles.
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
     ports: ["127.0.0.1:6379:6379"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -96,7 +99,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "celery -A app.tasks inspect ping -d celery@$$HOSTNAME || exit 1"]
+      test: ["CMD-SHELL", "celery -A app.tasks inspect ping -d celery@$$(hostname) || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
