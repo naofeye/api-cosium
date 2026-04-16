@@ -54,8 +54,13 @@ async def import_statement(
 ) -> ImportStatementResult:
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise ValidationError("file", "Le fichier doit etre au format CSV.")
+    file_data = await file.read()
     imported, skipped = banking_service.import_statement(
-        db, tenant_id=tenant_ctx.tenant_id, file=file, user_id=tenant_ctx.user_id
+        db,
+        tenant_id=tenant_ctx.tenant_id,
+        file_data=file_data,
+        filename=file.filename,
+        user_id=tenant_ctx.user_id,
     )
     return ImportStatementResult(imported=imported, skipped=skipped)
 
