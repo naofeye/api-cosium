@@ -61,8 +61,8 @@ def _record_failed_login(email: str) -> None:
         current = r.incr(key)
         if current == 1:
             r.expire(key, _LOCKOUT_SECONDS)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("record_failed_login_redis_error", error=str(exc))
 
 
 def _clear_login_attempts(email: str) -> None:
@@ -73,18 +73,28 @@ def _clear_login_attempts(email: str) -> None:
         r = get_redis_client()
         if r is not None:
             r.delete(f"login_attempts:{email}")
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("clear_login_attempts_redis_error", error=str(exc))
 
 
 def _get_user_tenants(db: Session, user_id: int) -> list[dict]:
-    rows = tenant_user_repo.list_active_by_user(db, user_id)
-    result = []
-    for tu in rows:
-        t = db.query(Tenant).filter(Tenant.id == tu.tenant_id, Tenant.is_active).first()
-        if t:
-            result.append({"id": t.id, "name": t.name, "slug": t.slug, "role": tu.role})
-    return result
+    """Retourne tous les tenants actifs auxquels l'user a acces.
+
+    Optimisation N+1 : un seul JOIN TenantUser x Tenant au lieu de N queries.
+    """
+    from sqlalchemy import select
+    from app.models import TenantUser
+
+    rows = db.execute(
+        select(Tenant.id, Tenant.name, Tenant.slug, TenantUser.role)
+        .join(TenantUser, TenantUser.tenant_id == Tenant.id)
+        .where(
+            TenantUser.user_id == user_id,
+            TenantUser.is_active.is_(True),
+            Tenant.is_active.is_(True),
+        )
+    ).all()
+    return [{"id": r.id, "name": r.name, "slug": r.slug, "role": r.role} for r in rows]
 
 
 def _is_group_admin(db: Session, user_id: int) -> bool:
