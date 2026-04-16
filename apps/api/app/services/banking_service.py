@@ -72,7 +72,10 @@ def import_statement(db: Session, tenant_id: int, file: UploadFile, user_id: int
         try:
             content = raw.decode("latin-1")
         except UnicodeDecodeError:
-            raise BusinessError("FILE_DECODE_ERROR", "Impossible de lire le fichier. Format d'encodage non supporte.") from None
+            raise BusinessError(
+                "Impossible de lire le fichier. Format d'encodage non supporte.",
+                code="FILE_DECODE_ERROR",
+            ) from None
     reader = csv.DictReader(io.StringIO(content), delimiter=";")
 
     count = 0
@@ -155,7 +158,7 @@ def manual_match(
     if not tx:
         raise NotFoundError("bank_transaction", transaction_id)
     if tx.reconciled:
-        raise BusinessError("ALREADY_RECONCILED", "Cette transaction est deja rapprochee")
+        raise BusinessError("Cette transaction est deja rapprochee", code="ALREADY_RECONCILED")
 
     banking_repo.reconcile(db, tx=tx, payment_id=payment_id)
 

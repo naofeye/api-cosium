@@ -33,7 +33,7 @@ export function HealthStatus({ health }: HealthStatusProps) {
       </div>
       {health ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {Object.entries(health.services).map(([name, svc]) => {
+          {Object.entries(health.services ?? health.components ?? {}).map(([name, svc]) => {
             const Icon = SERVICE_ICONS[name] || Server;
             return (
               <div

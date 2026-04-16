@@ -1,15 +1,35 @@
 import "./globals.css";
 import type { ReactNode } from "react";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { ProgressBarProvider } from "@/components/layout/ProgressBar";
+import { ServiceWorkerRegister } from "@/components/layout/ServiceWorkerRegister";
+import { WebVitals } from "@/components/layout/WebVitals";
 
 export const metadata: Metadata = {
   title: "OptiFlow AI — Gestion Opticien",
   description: "Plateforme de gestion pour opticiens connectee a Cosium",
-  icons: { icon: "/favicon.svg" },
+  applicationName: "OptiFlow AI",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/icons/icon-192.png",
+  },
   keywords: ["opticien", "gestion", "cosium", "optiflow", "crm"],
   authors: [{ name: "OptiFlow AI" }],
+  appleWebApp: {
+    capable: true,
+    title: "OptiFlow",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  minimumScale: 1,
+  viewportFit: "cover",
+  themeColor: "#2563eb",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -23,6 +43,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           Aller au contenu principal
         </a>
         <ProgressBarProvider />
+        <ServiceWorkerRegister />
+        <WebVitals />
         <AuthLayout>{children}</AuthLayout>
       </body>
     </html>

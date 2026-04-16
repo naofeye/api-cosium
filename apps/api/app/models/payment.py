@@ -12,12 +12,13 @@ class Payment(Base):
     __table_args__ = (
         Index("ix_payments_tenant_id", "tenant_id"),
         Index("ix_payments_tenant_status", "tenant_id", "status"),
+        Index("ix_payments_tenant_date_paiement", "tenant_id", "date_paiement"),
         Index("ix_payments_tenant_idempotency", "tenant_id", "idempotency_key", unique=True),
     )
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False)
-    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id"), nullable=False, index=True)
-    facture_id: Mapped[int | None] = mapped_column(ForeignKey("factures.id"), nullable=True, index=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, index=True)
+    facture_id: Mapped[int | None] = mapped_column(ForeignKey("factures.id", ondelete="SET NULL"), nullable=True, index=True)
     payer_type: Mapped[str] = mapped_column(String(50), nullable=False)
     mode_paiement: Mapped[str | None] = mapped_column(String(50), nullable=True)
     reference_externe: Mapped[str | None] = mapped_column(String(255), nullable=True)

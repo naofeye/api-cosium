@@ -98,7 +98,8 @@ def authenticate(db: Session, payload: LoginRequest) -> TokenResponse:
     user = user_repo.get_user_by_email(db, payload.email)
     if not user or not verify_password(payload.password, user.password_hash):
         _record_failed_login(payload.email)
-        logger.warning("authentication_failed", email=payload.email)
+        email_hash = hashlib.sha256(payload.email.lower().encode()).hexdigest()[:12]
+        logger.warning("authentication_failed", email_hash=email_hash)
         raise AuthenticationError()
 
     tenants = _get_user_tenants(db, user.id)
@@ -258,27 +259,34 @@ def request_password_reset(db: Session, email: str) -> None:
 
 
 def reset_password(db: Session, token: str, new_password: str) -> None:
+    from sqlalchemy import update
+
     token_hash = hashlib.sha256(token.encode()).hexdigest()
-    reset = (
-        db.query(PasswordResetToken)
-        .filter(
+    now = datetime.now(UTC).replace(tzinfo=None)
+
+    # UPDATE atomique : marque used=True uniquement si encore unused ET non expire.
+    # Sur PostgreSQL/SQLite, l'execute renvoie le rowcount. Si 0 → deja utilise ou expire.
+    result = db.execute(
+        update(PasswordResetToken)
+        .where(
             PasswordResetToken.token_hash == token_hash,
             PasswordResetToken.used.is_(False),
+            PasswordResetToken.expires_at >= now,
         )
-        .first()
+        .values(used=True)
     )
-
-    if not reset:
+    if result.rowcount == 0:
         raise AuthenticationError("Lien de reinitialisation invalide ou expire")
-    if reset.expires_at < datetime.now(UTC).replace(tzinfo=None):
-        raise AuthenticationError("Lien de reinitialisation expire")
+
+    reset = db.query(PasswordResetToken).filter(PasswordResetToken.token_hash == token_hash).first()
+    if not reset:
+        raise AuthenticationError("Lien de reinitialisation invalide")
 
     user = user_repo.get_user_by_id(db, reset.user_id)
     if not user:
         raise AuthenticationError("Utilisateur introuvable")
 
     user.password_hash = hash_password(new_password)
-    reset.used = True
     refresh_token_repo.revoke_all_for_user(db, user.id)
     db.commit()
 

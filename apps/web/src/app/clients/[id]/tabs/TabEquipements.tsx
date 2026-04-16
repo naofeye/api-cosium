@@ -3,6 +3,7 @@
 import useSWR from "swr";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { DateDisplay } from "@/components/ui/DateDisplay";
+import { RenewalBanner } from "@/components/ui/RenewalBanner";
 import { Glasses, FolderOpen, Eye } from "lucide-react";
 
 interface EquipmentItem {
@@ -83,8 +84,15 @@ export function TabEquipements({ equipments, cosiumId }: TabEquipementsProps) {
     );
   }
 
+  const mostRecentDate = equipments
+    .map((e) => e.prescription_date)
+    .filter((d): d is string => !!d)
+    .sort()
+    .at(-1);
+
   return (
     <div className="space-y-3">
+      <RenewalBanner lastEquipmentDate={mostRecentDate} rdvHref="/agenda" />
       {cosiumId && <SpectaclesLive cosiumId={cosiumId} />}
       {equipments.length === 0 && (
         <p className="text-sm text-text-secondary italic">Aucun equipement historique en cache local.</p>

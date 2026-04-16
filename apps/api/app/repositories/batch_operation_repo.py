@@ -28,10 +28,12 @@ def create_batch(
 
 def create_item(
     db: Session,
+    tenant_id: int,
     batch_id: int,
     customer_id: int,
 ) -> BatchOperationItem:
     item = BatchOperationItem(
+        tenant_id=tenant_id,
         batch_id=batch_id,
         customer_id=customer_id,
     )

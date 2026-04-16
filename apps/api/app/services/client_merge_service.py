@@ -67,7 +67,7 @@ def merge_clients(
     from app.models.pec_preparation import PecPreparation
 
     if keep_id == merge_id:
-        raise BusinessError("Impossible de fusionner un client avec lui-meme", "MERGE_SAME_CLIENT")
+        raise BusinessError("Impossible de fusionner un client avec lui-meme", code="MERGE_SAME_CLIENT")
 
     keep_client = client_repo.get_by_id_active(db, client_id=keep_id, tenant_id=tenant_id)
     if not keep_client:

@@ -15,7 +15,14 @@ from app.domain.schemas.interactions import (
 )
 from app.integrations.email_sender import email_sender
 from app.repositories import client_repo
-from app.services import client_360_live_service, client_360_service, export_pdf, interaction_service, pdf_service
+from app.services import (
+    client_360_live_service,
+    client_360_service,
+    client_timeline_service,
+    export_pdf,
+    interaction_service,
+    pdf_service,
+)
 
 router = APIRouter(prefix="/api/v1", tags=["client-360"])
 
@@ -204,6 +211,29 @@ def list_interactions(
         limit=limit,
     )
     return InteractionListResponse(items=items, total=total)
+
+
+@router.get(
+    "/clients/{client_id}/timeline",
+    summary="Timeline unifiee cross-canal",
+    description=(
+        "Agrege interactions et messages marketing (campagnes envoyees) dans une chronologie "
+        "unique triee descendant. Filtre par kinds si specifie."
+    ),
+)
+def client_timeline(
+    client_id: int,
+    kinds: list[str] | None = Query(default=None),
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> dict:
+    events = client_timeline_service.build_client_timeline(
+        db,
+        tenant_id=tenant_ctx.tenant_id,
+        customer_id=client_id,
+        kinds=kinds,
+    )
+    return {"client_id": client_id, "events": events, "total": len(events)}
 
 
 @router.post(

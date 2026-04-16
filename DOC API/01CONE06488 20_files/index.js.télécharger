@@ -1,0 +1,866 @@
+if (parent !== self) {
+    parent.location.href = self.document.location;
+}
+
+angular.module('center')
+    .config(['resolverAwareRouteProvider', function (resolverAwareRouteProvider) {
+      resolverAwareRouteProvider
+            .when('/l',
+                {
+                    template: `<legacy-view ng-if="destination" destination="destination"></legacy-view>`,
+                    controller: ['$log', '$scope', '$location', 'Base64Service', function ($log, $scope, $location, Base64Service) {
+                        $log = $log.getInstance('LegacyController');
+                        var theLegacyDestination;
+                        var params = $location.search();
+                        if (params.p && !params.s) {
+                            var payload = JSON.parse(Base64Service.decode(params.p));
+                            var urlName = payload[0];
+                            var parameters = '';
+                            if (payload.length > 1) {
+                                parameters = payload[1];
+                            }
+                            var suffix = '';
+                            if (payload.length > 2) {
+                                suffix = payload[2];
+                            }
+                            if (parameters) {
+                                parameters = parameters.replace(/\${(.*)}/, function (match, token) {
+                                    return CTR.Url[token];
+                                });
+                            }
+                            theLegacyDestination = (CTR.Url[urlName] || urlName) + suffix + (parameters ? '?' + parameters : '');
+                            CTR.Legacy.destination = theLegacyDestination;
+                            $location.search('p', null);
+                            $location.search('s', null);
+                            return;
+                        } else if (params.p && params.s) {
+                            theLegacyDestination = Base64Service.decode(params.p);
+                            CTR.Legacy.destination = theLegacyDestination;
+                            $location.search('p', null);
+                            $location.search('s', null);
+                            return;
+                        } else {
+                            theLegacyDestination = CTR.Legacy.destination;
+                        }
+
+                        $log.debug('Destination is "' + theLegacyDestination + '"');
+                        $scope.destination = theLegacyDestination;
+                    }]
+                })
+            .when(
+                'instrument/base',
+                {
+                    template: '<optometry-exam-instruments-settings></optometry-exam-instruments-settings>'
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/list',
+                {
+                    template: '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<current-customer component-name="optometry-exam-list"></current-customer>'
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id',
+                {
+                    template: '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<current-customer component-name="eye-exam-general-info"></current-customer>'
+                }
+            )
+            .when(
+                '/current-customer/contactlensesfittingexam/:id',
+                {
+                    template: '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<current-customer component-name="contact-lenses-fitting-exam-general-info"></current-customer>'
+                }
+            )
+            .when('/current-customer/contactlensesaftercareexam/:id',
+                {
+                    template: '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<current-customer component-name="lens-after-care-exam-general-info"></current-customer>'
+                }
+            )
+            .when('/current-customer/contactlensesaftercareexam/:id/generalinfo',
+                {
+                    template: '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<current-customer component-name="lens-after-care-exam-general-info"></current-customer>'
+                }
+            )
+            .when(
+                '/current-customer/contactlensesaftercareexam/:id/topography-keratometry',
+                {
+                  template: function (params) {
+                    return '<legacy-view frame-height="60px" destination="\''
+                        + CTR.Url.COS_CLIENT_OPT_EYEEXAM
+                        + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                        + '<contact-lenses-aftercare-exam-topography-keratometry [entity-id]='
+                        + params.id
+                        + '></contact-lenses-aftercare-exam-topography-keratometry>'
+                  }
+                }
+            )
+            .when(
+                '/current-customer/contactlensesaftercareexam/:id/conclusion',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<optometry-exam-conclusion [entity-id]=' + params.id + ' [entity-type]="\'LENS_AFTERCARE_EXAM\'"></optometry-exam-conclusion>';
+                    }
+                }
+            )
+            .when('/current-customer/contactlensesaftercareexam/:id/:lensFittingExamId',
+                {
+                  template: '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                      + '<current-customer component-name="lens-after-care-exam-general-info"></current-customer>'
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/generalinfo',
+                {
+                    template: '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<current-customer component-name="eye-exam-general-info"></current-customer>'
+                }
+            )
+            .when(
+                '/current-customer/contactlensesfittingexam/:id/generalinfo',
+                {
+                    template: '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<current-customer component-name="contact-lenses-fitting-exam-general-info"></current-customer>'
+                }
+            )
+            .when(
+                '/current-customer/contactlensesfittingexam/:id/topography-keratometry',
+                {
+                  template: function (params) {
+                    return '<legacy-view frame-height="60px" destination="\''
+                        + CTR.Url.COS_CLIENT_OPT_EYEEXAM
+                        + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                        + '<contact-lenses-fitting-exam-topography-keratometry [entity-id]='
+                        + params.id
+                        + '></contact-lenses-fitting-exam-topography-keratometry>'
+                  }
+                }
+            )
+            .when(
+                '/current-customer/contactlensesfittingexam/:id/conclusion',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                        + '<optometry-exam-conclusion [entity-id]=' + params.id + ' [entity-type]="\'LENS_FITTING_EXAM\'"></optometry-exam-conclusion>';
+                    }
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/previous-current-rx',
+                {
+                    template: '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<current-customer component-name="eye-exam-previous-current-rx"></current-customer>'
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/cycloplegic',
+                {
+                  template: function (params) {
+                    return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                        + '<eye-exam-cycloplegic [entity-id]='+ params.id + ' ></eye-exam-cycloplegic>';
+                  }
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/retinoscopy',
+                {
+                  template: '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                      + '<current-customer component-name="eye-exam-retinoscopy"></current-customer>'
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/reserves',
+                {
+                  template: '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                      + '<current-customer component-name="eye-exam-reserves"></current-customer>'
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/final-rx',
+                {
+                  template: '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                      + '<current-customer component-name="eye-exam-final-rx"></current-customer>'
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/ext-examination',
+                {
+                  template: function (params) {
+                    return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                        + '<eye-exam-external-examination [entity-id]='+ params.id + ' ></eye-exam-external-examination>';
+                  }
+                }
+            )
+            .when(
+
+                '/current-customer/eyeexam/:id/slit-lamp',
+                {
+                  template: function (params) {
+                    return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                        + '<eye-exam-slit-lamp [entity-id]='+ params.id + ' ></eye-exam-slit-lamp>';
+                  }
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/fundus-camera',
+                {
+                  template: function (params) {
+                    return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                        + '<eye-exam-fundus-camera [entity-id]='+ params.id + ' ></eye-exam-fundus-camera>';
+                  }
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/recommendation',
+                {
+                  template: function (params) {
+                    return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                        + '<eye-exam-recommendation [entity-id]='+ params.id + ' ></eye-exam-recommendation>';
+                  }
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/topography-keratometry',
+                {
+                  template: function (params) {
+                    return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                        + '<eye-exam-topography-keratometry [entity-id]='+ params.id + ' ></eye-exam-topography-keratometry>';
+                  }
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/pachymetry',
+                {
+                  template: function (params) {
+                    return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                        + '<eye-exam-pachymetry [entity-id]='+ params.id + ' ></eye-exam-pachymetry>';
+                  }
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/non-contact-tonometry',
+                {
+                  template: function (params) {
+                    return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                        + '<eye-exam-non-contact-tonometry [entity-id]='+ params.id + ' ></eye-exam-non-contact-tonometry>';
+                  }
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/contact-tonometry',
+                {
+                  template: function (params) {
+                    return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                        + '<eye-exam-contact-tonometry [entity-id]='+ params.id + ' ></eye-exam-contact-tonometry>';
+                  }
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/binocular-status',
+                {
+                  template: function (params) {
+                    return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                        + '<eye-exam-binocular-status [entity-id]='+ params.id + ' ></eye-exam-binocular-status>';
+                  }
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/visual-field',
+                {
+                  template: function (params) {
+                    return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                        + '<eye-exam-visual-field [entity-id]='+ params.id + ' ></eye-exam-visual-field>';
+                  }
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/supp-tests',
+                {
+                  template: function (params) {
+                    return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                        + '<eye-exam-supplementary-tests [entity-id]='+ params.id + ' ></eye-exam-supplementary-tests>';
+                  }
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/gosforms',
+                {
+                    template: '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<current-customer component-name="eye-exam-gos-forms"></current-customer>'
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/gosforms-one',
+                {
+                    template: '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<current-customer component-name="eye-exam-gos-forms-one"></current-customer>'
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/gosforms-two',
+                {
+                    template: '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<current-customer component-name="eye-exam-gos-forms-two"></current-customer>'
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/gosforms-three',
+                {
+                    template: '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<current-customer component-name="eye-exam-gos-forms-three"></current-customer>'
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/gosforms-four',
+                {
+                    template: '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<current-customer component-name="eye-exam-gos-forms-four"></current-customer>'
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/summary',
+                {
+                  template: '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                      + '<current-customer component-name="eye-exam-summary"></current-customer>'
+                }
+            )
+            .when(
+                '/current-customer/eyeexam/:id/conclusion',
+                {
+                    template: function (params) {
+                      return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_EYEEXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                          + '<optometry-exam-conclusion [entity-id]='+ params.id + ' [entity-type]="\'EYE_EXAM\'"></optometry-exam-conclusion>';
+                    }
+                }
+            )
+            .when(
+                '/customer/:customerId/hearingexam/list',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<hearing-exam-list customer-id=' + params.customerId + '></hearing-exam-list>';
+                    }
+                }
+            )
+            .when(
+                '/customer/:customerId/hearing-health-review-exam/:id',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<hearing-health-review-exam-general-info hearing-exam-id=' + params.id + '></hearing-health-review-exam-general-info>';
+                    }
+                }
+            )
+            .when(
+                '/customer/:customerId/hearing-health-review-exam/:id/generalinfo',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<hearing-health-review-exam-general-info hearing-exam-id=' + params.id + '></hearing-health-review-exam-general-info>';
+                    }
+                }
+            )
+            .when(
+              '/customer/:customerId/hearing-health-review-exam/:id/medical-criteria',
+              {
+                  template: function(params) {
+                   return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                          + '<hearing-health-review-exam-medical-criteria hearing-exam-id=' + params.id + '></hearing-health-review-exam-medical-criteria>';
+                }
+              }
+            )
+            .when(
+                '/customer/:customerId/hearing-health-review-exam/:id/medication-and-ear-exam',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<hearing-health-review-exam-medication-and-ear-exam hearing-exam-id=' + params.id + '></hearing-health-review-exam-medication-and-ear-exam>';
+                    }
+                }
+            )
+            .when(
+                '/customer/:customerId/hearing-health-review-exam/:id/audiometry-and-tympanometry',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<hearing-health-review-exam-audiometry-and-tympanometry hearing-exam-id=' + params.id + '></hearing-health-review-exam-medication-and-ear-exam>';
+                    }
+                }
+            )
+        .when(
+            '/customer/:customerId/hearing-health-review-exam/:id/outcome',
+            {
+              template: function (params) {
+                return '<legacy-view frame-height="60px" destination="\''
+                    + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM
+                    + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<hearing-health-review-exam-outcome hearing-exam-id='
+                    + params.id + '></hearing-health-review-exam-outcome>';
+              }
+            }
+        )
+        .when(
+            '/customer/:customerId/hearing-health-review-exam/:id/conclusion',
+            {
+              template: function (params) {
+                return '<legacy-view frame-height="60px" destination="\''
+                    + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM
+                    + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<hearing-health-review-exam-conclusion hearing-exam-id='
+                    + params.id + '></hearing-health-review-exam-conclusion>';
+              }
+            }
+        )
+            .when(
+                '/customer/:customerId/full-hearing-consultation/:id',
+                {
+                    template: function(params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<full-hearing-consultation-exam-general-info-and-cosi hearing-exam-id=' + params.id + '></full-hearing-consultation-exam-general-info-and-cosi>';
+                    }
+                }
+            )
+            .when(
+                '/customer/:customerId/full-hearing-consultation/:id/general-info-and-cosi',
+                {
+                    template: function(params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<full-hearing-consultation-exam-general-info-and-cosi hearing-exam-id=' + params.id + '></full-hearing-consultation-exam-general-info-and-cosi>';
+                    }
+                }
+            )
+            .when(
+              '/customer/:customerId/full-hearing-consultation/:id/medical-criteria',
+              {
+                template: function(params) {
+                  return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<full-hearing-consultation-medical-criteria hearing-exam-id=' + params.id + '></full-hearing-consultation-medical-criteria>';
+                }
+              }
+            )
+            .when(
+              '/customer/:customerId/full-hearing-consultation/:id/referral-criteria',
+              {
+                template: function(params) {
+                  return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<full-hearing-consultation-referral-criteria hearing-exam-id=' + params.id + '></full-hearing-consultation-referral-criteria>';
+                }
+              }
+            )
+            .when(
+              '/customer/:customerId/full-hearing-consultation/:id/quick-sin-results',
+              {
+                template: function(params) {
+                  return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<full-hearing-consultation-quick-sin-results hearing-exam-id=' + params.id + '></full-hearing-consultation-quick-sin-results>';
+                }
+              }
+            )
+            .when(
+                '/customer/:customerId/full-hearing-consultation/:id/medication-and-ear-exam',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<full-hearing-consultation-medication-and-ear-exam hearing-exam-id=' + params.id + '></full-hearing-consultation-medication-and-ear-exam>';
+                    }
+                }
+            )
+            .when(
+                '/customer/:customerId/full-hearing-consultation/:id/audiometry-and-tympanometry',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<full-hearing-consultation-audiometry-and-tympanometry hearing-exam-id=' + params.id + '></full-hearing-consultation-audiometry-and-tympanometry>';
+                    }
+                }
+            )
+        .when(
+            '/customer/:customerId/full-hearing-consultation/:id/outcome',
+            {
+              template: function (params) {
+                return '<legacy-view frame-height="60px" destination="\''
+                    + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM
+                    + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<full-hearing-consultation-exam-outcome hearing-exam-id='
+                    + params.id + '></full-hearing-consultation-exam-outcome>';
+              }
+            }
+        )
+        .when(
+            '/customer/:customerId/full-hearing-consultation/:id/conclusion',
+            {
+              template: function (params) {
+                return '<legacy-view frame-height="60px" destination="\''
+                    + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM
+                    + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<full-hearing-consultation-exam-conclusion hearing-exam-id='
+                    + params.id
+                    + '></full-hearing-consultation-exam-conclusion>';
+              }
+            }
+        )
+            .when(
+                '/customer/:customerId/fitting-exam/:id',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<fitting-exam-general-info hearing-exam-id=' + params.id + '></fitting-exam-general-info>';
+                    }
+                }
+            )
+            .when(
+                '/customer/:customerId/fitting-exam/:id/general-info',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<fitting-exam-general-info hearing-exam-id=' + params.id + '></fitting-exam-general-info>';
+                    }
+                }
+            )
+            .when(
+                '/customer/:customerId/fitting-exam/:id/ear-exam',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<fitting-exam-ear-exam hearing-exam-id=' + params.id + '></fitting-exam-ear-exam>';
+                    }
+                }
+            )
+        .when(
+            '/customer/:customerId/fitting-exam/:id/audiogram-and-hearing-aid',
+            {
+              template: function (params) {
+                return '<legacy-view frame-height="60px" destination="\''
+                    + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM
+                    + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<fitting-exam-audiogram-and-hearing-aid hearing-exam-id='
+                    + params.id + '></fitting-exam-audiogram-and-hearing-aid>';
+              }
+            }
+        )
+        .when(
+            '/customer/:customerId/fitting-exam/:id/conclusion',
+            {
+              template: function (params) {
+                return '<legacy-view frame-height="60px" destination="\''
+                    + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM
+                    + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<fitting-exam-conclusion hearing-exam-id=' + params.id
+                    + '></fitting-exam-conclusion>';
+              }
+            }
+        )
+            .when(
+                '/customer/:customerId/hearing-check-up/:id',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<hearing-check-up-exam-general-info hearing-exam-id=' + params.id + '></hearing-check-up-exam-general-info>';
+                    }
+                }
+            )
+            .when(
+                '/customer/:customerId/hearing-check-up/:id/general-info',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<hearing-check-up-exam-general-info hearing-exam-id=' + params.id + '></hearing-check-up-exam-general-info>';
+                    }
+                }
+            )
+            .when(
+                '/customer/:customerId/hearing-check-up/:id/medical-criteria',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<hearing-check-up-medical-criteria hearing-exam-id=' + params.id + '></hearing-check-up-medical-criteria>';
+                    }
+                }
+            )
+            .when(
+                '/customer/:customerId/hearing-check-up/:id/medication-and-ear-exam',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<hearing-check-up-medication-and-ear-exam hearing-exam-id=' + params.id + '></hearing-check-up-medication-and-ear-exam>';
+                    }
+                }
+            )
+        .when(
+            '/customer/:customerId/hearing-check-up/:id/outcome',
+            {
+              template: function (params) {
+                return '<legacy-view frame-height="60px" destination="\''
+                    + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM
+                    + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<hearing-check-up-exam-outcome hearing-exam-id='
+                    + params.id + '></hearing-check-up-exam-outcome>';
+              }
+            }
+        )
+        .when(
+            '/customer/:customerId/hearing-check-up/:id/conclusion',
+            {
+              template: function (params) {
+                return '<legacy-view frame-height="60px" destination="\''
+                    + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM
+                    + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<hearing-check-up-exam-conclusion hearing-exam-id='
+                    + params.id + '></hearing-check-up-exam-conclusion>';
+              }
+            }
+        )
+            .when(
+                '/customer/:customerId/re-assessment/:id',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<re-assessment-exam-current-aids-and-audiogram-summary hearing-exam-id=' + params.id + '></re-assessment-exam-current-aids-and-audiogram-summary>';
+                    }
+                }
+            )
+            .when(
+                '/customer/:customerId/re-assessment/:id/current-aids-and-audiogram-summary',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<re-assessment-exam-current-aids-and-audiogram-summary hearing-exam-id=' + params.id + '></re-assessment-exam-current-aids-and-audiogram-summary>';
+                    }
+                }
+            )
+            .when(
+                '/customer/:customerId/re-assessment/:id/medication-and-ear-exam',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<re-assessment-medication-and-ear-exam hearing-exam-id=' + params.id + '></re-assessment-medication-and-ear-exam>';
+                    }
+                }
+            )
+            .when(
+                '/customer/:customerId/re-assessment/:id/audiometry-and-tympanometry',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<re-assessment-exam-audiometry-and-tympanometry hearing-exam-id=' + params.id + '></re-assessment-exam-audiometry-and-tympanometry>';
+                    }
+                }
+            )
+            .when(
+                '/customer/:customerId/re-assessment/:id/medical-criteria',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<re-assessment-exam-medical-criteria hearing-exam-id=' + params.id + '></re-assessment-exam-medical-criteria>';
+                    }
+                }
+            )
+            .when(
+                '/customer/:customerId/re-assessment/:id/quick-sin-results',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<re-assessment-exam-quick-sin-results hearing-exam-id=' + params.id + '></re-assessment-exam-quick-sin-results>';
+                    }
+                }
+            )
+            .when(
+                '/customer/:customerId/re-assessment/:id/referral-criteria',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<re-assessment-exam-referral-criteria hearing-exam-id=' + params.id + '></re-assessment-exam-referral-criteria>';
+                    }
+                }
+            )
+        .when(
+            '/customer/:customerId/re-assessment/:id/outcome',
+            {
+              template: function (params) {
+                return '<legacy-view frame-height="60px" destination="\''
+                    + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM
+                    + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<re-assessment-exam-outcome hearing-exam-id=' + params.id
+                    + '></re-assessment-exam-outcome>';
+              }
+            }
+        )
+        .when(
+            '/customer/:customerId/re-assessment/:id/conclusion',
+            {
+              template: function (params) {
+                return '<legacy-view frame-height="60px" destination="\''
+                    + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM
+                    + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<re-assessment-exam-conclusion hearing-exam-id='
+                    + params.id + '></re-assessment-exam-conclusion>';
+              }
+            }
+        )
+            .when(
+                '/customer/:customerId/follow-up/:id',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<follow-up-general-info-and-cosi hearing-exam-id=' + params.id + '></follow-up-general-info-and-cosi>';
+                    }
+                }
+            )
+            .when(
+                '/customer/:customerId/follow-up/:id/general-info-and-cosi',
+                {
+                    template: function (params) {
+                        return '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                            + '<follow-up-general-info-and-cosi hearing-exam-id=' + params.id + '></follow-up-general-info-and-cosi>';
+                    }
+                }
+            )
+        .when(
+            '/customer/:customerId/follow-up/:id/outcome',
+            {
+              template: function (params) {
+                return '<legacy-view frame-height="60px" destination="\''
+                    + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM
+                    + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<follow-up-outcome hearing-exam-id=' + params.id
+                    + '></follow-up-outcome>';
+              }
+            }
+        )
+        .when(
+            '/customer/:customerId/follow-up/:id/conclusion',
+            {
+              template: function (params) {
+                return '<legacy-view frame-height="60px" destination="\''
+                    + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM
+                    + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                    + '<follow-up-conclusion hearing-exam-id=' + params.id
+                    + '></follow-up-conclusion>';
+              }
+            }
+        )
+        .when(
+            '/current-customer/optical-prescriptions/spectacles',
+            {
+              template: '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_SPECTACLES_FILES + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                  + '<spectacles-files-list></spectacles-files-list>'
+            }
+        )
+        .when(
+            '/current-customer/optical-prescriptions/contact-lenses',
+            {
+              template: '<legacy-view frame-height="60px" destination="\'' + CTR.Url.COS_CLIENT_CONTACT_LENSES_FILES + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                  + '<contact-lenses-files-list></contact-lenses-files-list>'
+            }
+        )
+          .when(
+              '/customer/:customerId/optic2000/rcu',
+              {
+                  template: function (params) {
+                      return '<legacy-view frame-height="60px" destination="\''
+                          + CTR.Url.COS_CLIENT_OPT_HEARING_EXAM
+                          + '\'" class="row col-md-12" style="position: fixed; z-index: 100;"></legacy-view>'
+                          + '<optic2000-customer-rcu customer-id=' + params.customerId
+                          + '></optic2000-customer-rcu>';
+                  }
+              }
+          )
+    }]);
+
+angular.module('center')
+    .component('legacyView', {
+        bindings: {
+            destination: '<',
+            frameHeight: '@'
+        },
+        template: '<div ng-bind-html="$ctrl.renderMainFrame()"></div>',
+        controller: ['$scope', '$log', '$sce', '$cookies', '$location', 'UserContextService', 'signInHandler', 'Base64Service',  function ($scope, $log, $sce, $cookies, $location, UserContextService, signInHandler, base64Service) {
+            $log = $log.getInstance('legacyViewDirective');
+
+            var self = this;
+
+            this.$onInit = function () {
+                var legacyFrameName = $cookies.get('main-frame-name') || CTR.Legacy.frameName;
+                var theLegacyDestination = self.destination;
+
+                window.angularInjector = angular.element(document.querySelector('[ng-controller]')).injector();
+
+                /**
+                 * Cache of all listener destroy callbacks
+                 * @type {Array}
+                 */
+                var currentScopeListeners = [];
+                window.angularScope = $scope;
+                $scope.$on('$destroy', function() {
+                    if (window.angularScope !== $scope) {
+                        return;
+                    }
+                    window.angularScope = null;
+                });
+
+                var legacyOn = $scope.$on;
+                $scope.$on = function () {
+                    var listener = legacyOn.apply(this, arguments);
+                    currentScopeListeners.push(listener);
+                    return listener;
+                };
+
+                var beforeMainFrameUnLoad = function() {
+                    $log.debug('Destroying ' + currentScopeListeners.length + ' scope listeners');
+                    currentScopeListeners.forEach(function (cb) {
+                        cb();
+                    });
+                    currentScopeListeners = [];
+                };
+                window.onLoadedMainFrame = function (contentWindow) {
+                  UserContextService.refreshLegacyContext();
+
+                  const currentLocationHashProvider = () => {
+                    const payload = JSON.stringify([contentWindow.location.pathname]);
+                    const p = base64Service.encode(payload);
+                    return `#/l?p=${p}`;
+                  };
+                  signInHandler.registerCurrentLocationHashProvider(currentLocationHashProvider);
+                  contentWindow.addEventListener('unload', () => signInHandler.unRegisterCurrentLocationHashProvider(currentLocationHashProvider), {once: true});
+                  contentWindow.addEventListener('unload', beforeMainFrameUnLoad.bind(self), {once: true});
+                };
+
+
+                if (!self.frameHeight) {
+                    self.frameHeight = 'calc(100vh - 81px)';
+                }
+
+                self.renderMainFrame = function () {
+                    var html = '<iframe onLoad="onLoadedMainFrame(this.contentWindow);" ' +
+                        'style="left:1px; z-index: 1019; display: block; border: none; margin: 0; padding: 0; width:100%; height: ' + self.frameHeight + '; overflow: hidden;" ' +
+                        'name="' + legacyFrameName + '" id="AudiOpticCenter" src="' + theLegacyDestination + '"></iframe>';
+                    return $sce.trustAsHtml(html);
+                };
+            };
+
+        }]
+    });
+
+angular.module('center').service('legacyUserContextDestructionService', ['$log', 'UserContextService', function ($log, UserContextService) {
+    $log = $log.getInstance('legacyUserContextDestructionService');
+
+    var self = this;
+    this.init = function () {
+        UserContextService.$promise.then(function (userContext) {
+            $log.debug('Subscribing to user context destruction');
+            userContext.destructionPromise.then(function () {
+                $log.debug('Resetting to default destination: ' + CTR.Legacy.defaultDestination);
+                CTR.Legacy.destination = CTR.Legacy.defaultDestination;
+                self.init();
+            });
+        })
+    }
+}])
+    .run(['legacyUserContextDestructionService', function (legacyUserContextDestructionService) {
+        legacyUserContextDestructionService.init();
+    }]);

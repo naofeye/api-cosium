@@ -19,7 +19,7 @@ class ClientMutuelle(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
-    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), nullable=False, index=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True)
     mutuelle_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     mutuelle_name: Mapped[str] = mapped_column(String(255), nullable=False)
     numero_adherent: Mapped[str | None] = mapped_column(String(100), nullable=True)

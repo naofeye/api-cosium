@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
@@ -86,10 +87,13 @@ export function AvatarUpload({
     <div className="flex items-center gap-4 mb-6">
       <div className="relative group">
         {avatarUrl ? (
-          <img
+          <Image
             src={`${API_BASE}/clients/${clientId}/avatar`}
             alt={`${firstName} ${lastName}`}
+            width={64}
+            height={64}
             className="h-16 w-16 rounded-full object-cover border-2 border-border"
+            unoptimized
           />
         ) : (
           <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center text-xl font-bold text-blue-700 border-2 border-border">

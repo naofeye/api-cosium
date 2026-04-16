@@ -278,6 +278,15 @@ class CosiumConnector(ERPConnector):
         logger.info("cosium_invoice_payments_fetched", total=len(result))
         return result
 
+    def list_invoiced_items(self, page_size: int = 100, max_pages: int = 500) -> list[dict]:
+        """GET /invoiced-items (liste paginee) — lignes de factures. Lecture seule."""
+        from app.integrations.cosium.adapter import cosium_invoiced_item_to_optiflow
+
+        items = self._client.get_paginated("/invoiced-items", page_size=page_size, max_pages=max_pages)
+        result = [m for m in (cosium_invoiced_item_to_optiflow(r) for r in items) if m.get("cosium_id")]
+        logger.info("cosium_invoiced_items_fetched", total=len(result))
+        return result
+
     def get_third_party_payments(self, page: int = 0, page_size: int = 50) -> list[dict]:
         """GET /third-party-payments — tiers payant secu + mutuelle (lecture seule)."""
         # TPP endpoint is very slow on Cosium servers — limit to avoid timeouts

@@ -10,6 +10,7 @@ from app.models.client_mutuelle import ClientMutuelle  # noqa: F401
 from app.models.cosium_data import (  # noqa: F401
     CosiumDocument,
     CosiumInvoice,
+    CosiumInvoicedItem,
     CosiumPayment,
     CosiumPrescription,
     CosiumProduct,

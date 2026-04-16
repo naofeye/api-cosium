@@ -504,3 +504,28 @@ def cosium_spectacle_file_to_optiflow(raw: dict) -> dict:
         "has_doctor_address": "doctor-address" in links,
         "creation_date": raw.get("creationDate") or raw.get("date"),
     }
+
+
+def cosium_invoiced_item_to_optiflow(raw: dict) -> dict:
+    """Mappe un `/invoiced-items` Cosium vers la shape CosiumInvoicedItem."""
+    try:
+        cid = int(raw.get("id") or raw.get("invoicedItemId") or 0)
+    except (TypeError, ValueError):
+        return {}
+    invoice_raw = raw.get("invoiceId")
+    if invoice_raw is None and isinstance(raw.get("invoice"), dict):
+        invoice_raw = raw["invoice"].get("id")
+    try:
+        invoice_cosium_id = int(invoice_raw) if invoice_raw else 0
+    except (TypeError, ValueError):
+        invoice_cosium_id = 0
+    return {
+        "cosium_id": cid,
+        "invoice_cosium_id": invoice_cosium_id,
+        "product_cosium_id": str(raw.get("productId") or "") or None,
+        "product_label": raw.get("label") or raw.get("productLabel") or "",
+        "product_family": raw.get("productFamily") or raw.get("familyType") or "",
+        "quantity": int(raw.get("quantity") or 1),
+        "unit_price_ti": float(raw.get("unitPriceTI") or raw.get("unitPrice") or 0),
+        "total_ti": float(raw.get("totalTI") or raw.get("totalPrice") or 0),
+    }

@@ -15,6 +15,7 @@ export function SidebarItem({ item, active, showLabel, onClick, badge }: Props) 
   return (
     <Link
       href={item.href}
+      prefetch
       onClick={onClick}
       aria-current={active ? "page" : undefined}
       aria-label={!showLabel ? `${item.label}${badgeText ? ` (${badge} actions)` : ""}` : undefined}

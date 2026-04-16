@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
+from app.core.idempotency import IdempotencyContext, idempotency
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.devis import (
@@ -27,8 +28,15 @@ def create_devis(
     payload: DevisCreate,
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
+    idem: IdempotencyContext = Depends(idempotency("devis:create")),
 ) -> DevisResponse:
-    return devis_service.create_devis(db, tenant_id=tenant_ctx.tenant_id, payload=payload, user_id=tenant_ctx.user_id)
+    if idem.cached:
+        return DevisResponse(**idem.cached)
+    result = devis_service.create_devis(
+        db, tenant_id=tenant_ctx.tenant_id, payload=payload, user_id=tenant_ctx.user_id
+    )
+    idem.store(result.model_dump(mode="json"))
+    return result
 
 
 @router.get(

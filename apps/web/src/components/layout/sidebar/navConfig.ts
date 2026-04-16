@@ -26,6 +26,7 @@ import {
   FolderDown,
   Briefcase,
   RotateCcw,
+  Gift,
   type LucideIcon,
 } from "lucide-react";
 
@@ -104,6 +105,7 @@ export const navGroups: NavGroup[] = [
       { href: "/marketing", label: "Marketing", icon: Megaphone },
       { href: "/relances", label: "Relances", icon: Send },
       { href: "/renewals", label: "Renouvellements", icon: RefreshCw },
+      { href: "/fidelite", label: "Fidelite", icon: Gift },
     ],
   },
   {

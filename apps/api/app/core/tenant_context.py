@@ -2,16 +2,14 @@ from dataclasses import dataclass
 
 import jwt
 from fastapi import Depends, Request
-from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
+from app.core.deps import oauth2_scheme
 from app.core.exceptions import AuthenticationError
 from app.db.session import get_db
 from app.models import TenantUser
 from app.repositories import user_repo
 from app.security import decode_access_token
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
 
 @dataclass

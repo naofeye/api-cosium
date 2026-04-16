@@ -62,11 +62,18 @@ def _check_cosium_status(db: Session, tenant_id: int | None = None) -> dict:
 @router.get(
     "/health",
     response_model=HealthCheckResponse,
-    summary="Verification de sante",
-    description="Verifie l'etat de sante de tous les services (PostgreSQL, Redis, MinIO, Cosium).",
+    summary="Verification de sante (admin)",
+    description=(
+        "Verifie l'etat detaille des services (PostgreSQL, Redis, MinIO, Celery beat). "
+        "Endpoint sous auth admin pour eviter le fingerprinting. "
+        "Utiliser /health (racine) pour le liveness check public du load balancer."
+    ),
 )
-def health_check(db: Session = Depends(get_db)) -> HealthCheckResponse:
-    """Public health check for load balancer. No auth required."""
+def health_check(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin")),
+) -> HealthCheckResponse:
+    """Detailed health check — admin only. /health (public) reste pour load balancer."""
     from app.main import _APP_START_TIME, _APP_VERSION
 
     checks: dict[str, dict] = {}
@@ -120,8 +127,8 @@ def health_check(db: Session = Depends(get_db)) -> HealthCheckResponse:
     except Exception:
         checks["minio"] = {"status": "error", "error": "unavailable"}
 
-    # Cosium
-    checks["cosium"] = _check_cosium_status(db)
+    # Cosium: not checked here because health is public (no tenant context).
+    # Use tenant-scoped /api/v1/admin/cosium-test instead.
 
     all_ok = all(c["status"] == "ok" for c in checks.values())
     uptime_seconds = int(time.time() - _APP_START_TIME)

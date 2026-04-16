@@ -18,6 +18,7 @@ import { TabFidelite } from "../tabs/TabFidelite";
 import { TabPEC } from "../tabs/TabPEC";
 import { TabActivite } from "../tabs/TabActivite";
 import { TabRapprochement } from "../tabs/TabRapprochement";
+import { TabSAV } from "../tabs/TabSAV";
 
 export type Tab =
   | "resume"
@@ -33,6 +34,7 @@ export type Tab =
   | "rendez-vous"
   | "equipements"
   | "fidelite"
+  | "sav"
   | "pec"
   | "rapprochement";
 
@@ -130,6 +132,7 @@ export function ClientTabs({
     { key: "rendez-vous", label: "Rendez-vous", count: cd?.calendar_events?.length ?? 0 },
     { key: "equipements", label: "Equipements", count: cd?.equipments?.length ?? 0 },
     ...(cosiumId ? [{ key: "fidelite" as Tab, label: "Fidelite" }] : []),
+    ...(cosiumId ? [{ key: "sav" as Tab, label: "SAV" }] : []),
     ...(cosiumId ? [{ key: "cosium-docs" as Tab, label: "Docs Cosium" }] : []),
     { key: "rapprochement" as Tab, label: "Rapprochement" },
     { key: "pec" as Tab, label: "Assistance PEC" },
@@ -240,6 +243,11 @@ export function ClientTabs({
       {activeTab === "fidelite" && (
         <ErrorBoundary name="TabFidelite">
           <TabFidelite clientId={clientId} />
+        </ErrorBoundary>
+      )}
+      {activeTab === "sav" && (
+        <ErrorBoundary name="TabSAV">
+          <TabSAV cosiumId={cosiumId} />
         </ErrorBoundary>
       )}
       {activeTab === "rapprochement" && (

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { Column } from "@/components/ui/DataTable";
 import { DateDisplay } from "@/components/ui/DateDisplay";
 import { API_BASE } from "@/lib/api";
@@ -35,11 +36,13 @@ function NameCell({ row }: { row: Customer }) {
   return (
     <div className="flex items-center gap-2">
       {row.avatar_url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           src={`${API_BASE}/clients/${row.id}/avatar`}
           alt={`Photo de ${row.first_name} ${row.last_name}`}
+          width={32}
+          height={32}
           className="h-8 w-8 rounded-full object-cover"
+          unoptimized
         />
       ) : (
         <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-700">

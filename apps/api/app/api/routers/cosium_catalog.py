@@ -4,6 +4,7 @@ Expose au frontend le catalogue montures + verres pour navigation et selection.
 Pas de persistance locale — lecture live via Cosium.
 """
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.tenant_context import TenantContext, get_tenant_context
@@ -107,3 +108,25 @@ def get_lens_options(
 ) -> dict:
     connector = _get_cosium_connector(db, tenant_ctx.tenant_id)
     return connector.get_optical_lens_options(lens_id, code=code)
+
+
+class StockBySiteItem(BaseModel):
+    product_erp_id: str
+    site: str
+    quantity: int
+
+
+@router.get(
+    "/products/{product_id}/stocks-by-site",
+    response_model=list[StockBySiteItem],
+    summary="Stock d'un produit ventile par site",
+    description="Retourne le stock d'un produit pour chaque magasin (lecture seule Cosium).",
+)
+def get_product_stocks_by_site(
+    product_id: str,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> list[StockBySiteItem]:
+    connector = _get_cosium_connector(db, tenant_ctx.tenant_id)
+    stocks = connector.get_product_stock(product_id)
+    return [StockBySiteItem(**s.model_dump()) for s in stocks]

@@ -16,7 +16,7 @@ class Facture(Base):
     )
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False)
-    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id"), nullable=False, index=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, index=True)
     devis_id: Mapped[int] = mapped_column(ForeignKey("devis.id"), nullable=False, index=True)
     numero: Mapped[str] = mapped_column(String(50), nullable=False)
     date_emission: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
@@ -25,6 +25,7 @@ class Facture(Base):
     montant_ttc: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="emise", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
 
     case: Mapped["Case"] = relationship("Case", back_populates="factures", lazy="noload")  # type: ignore[name-defined]  # noqa: F821
 

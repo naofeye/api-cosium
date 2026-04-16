@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
@@ -23,6 +23,11 @@ def _invalidate_tenant_caches(tenant_id: int) -> None:
     cache_delete_pattern(f"admin:data_quality:{tenant_id}")
     cache_delete_pattern(f"client:quick:{tenant_id}:*")
     cache_delete_pattern(f"dashboard:*:{tenant_id}*")
+
+
+def _acquire_sync_lock(lock_key: str, message: str, ttl: int = 1200) -> None:
+    if not acquire_lock(lock_key, ttl=ttl):
+        raise BusinessError(message=message, code="SYNC_IN_PROGRESS")
 
 
 @router.post(
@@ -64,8 +69,11 @@ def sync_customers(
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> SyncResultResponse:
     lock_key = f"sync:customers:{tenant_ctx.tenant_id}"
-    if not acquire_lock(lock_key, ttl=600):
-        raise BusinessError("SYNC_IN_PROGRESS", "Une synchronisation des clients est deja en cours. Veuillez patienter.")
+    _acquire_sync_lock(
+        lock_key,
+        "Une synchronisation des clients est deja en cours. Veuillez patienter.",
+        ttl=600,
+    )
     try:
         result = erp_sync_service.sync_customers(
             db,
@@ -93,14 +101,23 @@ def sync_invoices(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> SyncResultResponse:
-    result = erp_sync_service.sync_invoices(
-        db,
-        tenant_id=tenant_ctx.tenant_id,
-        user_id=tenant_ctx.user_id,
-        full=full,
+    lock_key = f"sync:invoices:{tenant_ctx.tenant_id}"
+    _acquire_sync_lock(
+        lock_key,
+        "Une synchronisation des factures est deja en cours. Veuillez patienter.",
+        ttl=1200,
     )
-    _invalidate_tenant_caches(tenant_ctx.tenant_id)
-    return result
+    try:
+        result = erp_sync_service.sync_invoices(
+            db,
+            tenant_id=tenant_ctx.tenant_id,
+            user_id=tenant_ctx.user_id,
+            full=full,
+        )
+        _invalidate_tenant_caches(tenant_ctx.tenant_id)
+        return result
+    finally:
+        release_lock(lock_key)
 
 
 @router.post(
@@ -113,11 +130,48 @@ def sync_products(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> SyncResultResponse:
-    return erp_sync_service.sync_products(
-        db,
-        tenant_id=tenant_ctx.tenant_id,
-        user_id=tenant_ctx.user_id,
+    lock_key = f"sync:products:{tenant_ctx.tenant_id}"
+    _acquire_sync_lock(
+        lock_key,
+        "Une synchronisation des produits est deja en cours. Veuillez patienter.",
+        ttl=1200,
     )
+    try:
+        return erp_sync_service.sync_products(
+            db,
+            tenant_id=tenant_ctx.tenant_id,
+            user_id=tenant_ctx.user_id,
+        )
+    finally:
+        release_lock(lock_key)
+
+
+@router.post(
+    "/invoiced-items",
+    summary="Synchroniser les lignes de factures (invoiced-items)",
+    description=(
+        "Sync Cosium `/invoiced-items` → table locale `cosium_invoiced_items`. "
+        "Permet ensuite la ventilation par famille produit via /dashboard/product-mix."
+    ),
+)
+def sync_invoiced_items(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
+) -> dict:
+    from app.services import cosium_invoiced_items_sync
+
+    lock_key = f"sync:invoiced-items:{tenant_ctx.tenant_id}"
+    _acquire_sync_lock(
+        lock_key,
+        "Une synchronisation des lignes factures est deja en cours. Veuillez patienter.",
+        ttl=1800,
+    )
+    try:
+        return cosium_invoiced_items_sync.sync_invoiced_items(
+            db, tenant_id=tenant_ctx.tenant_id, user_id=tenant_ctx.user_id
+        )
+    finally:
+        release_lock(lock_key)
 
 
 @router.post(
@@ -134,14 +188,23 @@ def sync_payments(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> SyncResultResponse:
-    result = erp_sync_service.sync_payments(
-        db,
-        tenant_id=tenant_ctx.tenant_id,
-        user_id=tenant_ctx.user_id,
-        full=full,
+    lock_key = f"sync:payments:{tenant_ctx.tenant_id}"
+    _acquire_sync_lock(
+        lock_key,
+        "Une synchronisation des paiements est deja en cours. Veuillez patienter.",
+        ttl=1200,
     )
-    _invalidate_tenant_caches(tenant_ctx.tenant_id)
-    return result
+    try:
+        result = erp_sync_service.sync_payments(
+            db,
+            tenant_id=tenant_ctx.tenant_id,
+            user_id=tenant_ctx.user_id,
+            full=full,
+        )
+        _invalidate_tenant_caches(tenant_ctx.tenant_id)
+        return result
+    finally:
+        release_lock(lock_key)
 
 
 @router.post(
@@ -154,11 +217,20 @@ def sync_third_party_payments(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> SyncResultResponse:
-    return erp_sync_service.sync_third_party_payments(
-        db,
-        tenant_id=tenant_ctx.tenant_id,
-        user_id=tenant_ctx.user_id,
+    lock_key = f"sync:third-party-payments:{tenant_ctx.tenant_id}"
+    _acquire_sync_lock(
+        lock_key,
+        "Une synchronisation des tiers payants est deja en cours. Veuillez patienter.",
+        ttl=1200,
     )
+    try:
+        return erp_sync_service.sync_third_party_payments(
+            db,
+            tenant_id=tenant_ctx.tenant_id,
+            user_id=tenant_ctx.user_id,
+        )
+    finally:
+        release_lock(lock_key)
 
 
 @router.post(
@@ -175,12 +247,21 @@ def sync_prescriptions(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> SyncResultResponse:
-    return erp_sync_service.sync_prescriptions(
-        db,
-        tenant_id=tenant_ctx.tenant_id,
-        user_id=tenant_ctx.user_id,
-        full=full,
+    lock_key = f"sync:prescriptions:{tenant_ctx.tenant_id}"
+    _acquire_sync_lock(
+        lock_key,
+        "Une synchronisation des ordonnances est deja en cours. Veuillez patienter.",
+        ttl=1200,
     )
+    try:
+        return erp_sync_service.sync_prescriptions(
+            db,
+            tenant_id=tenant_ctx.tenant_id,
+            user_id=tenant_ctx.user_id,
+            full=full,
+        )
+    finally:
+        release_lock(lock_key)
 
 
 @router.post(
@@ -193,16 +274,16 @@ def sync_prescriptions(
     ),
 )
 def enrich_clients(
-    limit: int = 500,
+    limit: int = Query(500, ge=1, le=1000),
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> dict:
     lock_key = f"sync:enrich:{tenant_ctx.tenant_id}"
-    if not acquire_lock(lock_key, ttl=1200):
-        raise BusinessError(
-            "ENRICH_IN_PROGRESS",
-            "Un enrichissement est deja en cours. Veuillez patienter.",
-        )
+    _acquire_sync_lock(
+        lock_key,
+        "Un enrichissement est deja en cours. Veuillez patienter.",
+        ttl=1200,
+    )
     try:
         return erp_sync_service.enrich_top_clients_metadata(
             db,
@@ -230,8 +311,11 @@ def sync_all(
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ):
     lock_key = f"sync:all:{tenant_ctx.tenant_id}"
-    if not acquire_lock(lock_key, ttl=1200):
-        raise BusinessError("SYNC_IN_PROGRESS", "Une synchronisation complete est deja en cours. Veuillez patienter.")
+    _acquire_sync_lock(
+        lock_key,
+        "Une synchronisation complete est deja en cours. Veuillez patienter.",
+        ttl=1200,
+    )
     try:
         results: dict[str, object] = {}
         has_errors = False
@@ -303,11 +387,11 @@ def import_cosium_quotes(
     from app.services.devis_import_service import import_cosium_quotes_as_devis
 
     lock_key = f"sync:import_quotes:{tenant_ctx.tenant_id}"
-    if not acquire_lock(lock_key, ttl=1200):
-        raise BusinessError(
-            "IMPORT_IN_PROGRESS",
-            "Un import de devis est deja en cours. Veuillez patienter.",
-        )
+    _acquire_sync_lock(
+        lock_key,
+        "Un import de devis est deja en cours. Veuillez patienter.",
+        ttl=1200,
+    )
     try:
         result = import_cosium_quotes_as_devis(
             db,

@@ -177,7 +177,7 @@ export default function NewDevisPage() {
           reste={reste}
         />
 
-        <div className="sticky bottom-0 rounded-xl border border-border bg-bg-card p-4 shadow-sm flex justify-end gap-2">
+        <div className="sticky bottom-20 lg:bottom-0 rounded-xl border border-border bg-bg-card p-4 shadow-sm flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => router.push("/devis")}>
             Annuler
           </Button>

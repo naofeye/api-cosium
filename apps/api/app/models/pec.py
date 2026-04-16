@@ -33,7 +33,7 @@ class PecRequest(Base):
     __tablename__ = "pec_requests"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
-    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id"), nullable=False, index=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, index=True)
     organization_id: Mapped[int] = mapped_column(ForeignKey("payer_organizations.id"), nullable=False, index=True)
     facture_id: Mapped[int | None] = mapped_column(ForeignKey("factures.id"), nullable=True, index=True)
     montant_demande: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)

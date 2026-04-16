@@ -16,6 +16,34 @@ from app.models import (
 from app.models.cosium_data import CosiumInvoice, CosiumPayment, CosiumPrescription
 
 
+def get_customer_by_id(db: Session, customer_id: int, tenant_id: int) -> Customer | None:
+    """Return a Customer row scoped to tenant (or None)."""
+    return db.scalars(
+        select(Customer).where(Customer.id == customer_id, Customer.tenant_id == tenant_id)
+    ).first()
+
+
+def get_devis_with_lines(db: Session, devis_id: int, tenant_id: int):
+    """Return devis + lines + parent case.customer_id (tenant scoped)."""
+    from app.models.devis import DevisLigne
+
+    devis = db.scalars(
+        select(Devis).where(Devis.id == devis_id, Devis.tenant_id == tenant_id)
+    ).first()
+    if not devis:
+        return None, [], None
+    lines = db.scalars(
+        select(DevisLigne).where(
+            DevisLigne.devis_id == devis_id,
+            DevisLigne.tenant_id == tenant_id,
+        )
+    ).all()
+    case = db.scalars(
+        select(Case).where(Case.id == devis.case_id, Case.tenant_id == tenant_id)
+    ).first()
+    return devis, list(lines), (case.customer_id if case else None)
+
+
 def get_case_with_customer(db: Session, case_id: int, tenant_id: int):
     """Return case + customer joined row for context building."""
     return db.execute(

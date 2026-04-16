@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -18,9 +18,12 @@ class DocumentType(Base):
 
 class Document(Base):
     __tablename__ = "documents"
+    __table_args__ = (
+        Index("ix_documents_tenant_uploaded_at", "tenant_id", "uploaded_at"),
+    )
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
-    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id"), nullable=False, index=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, index=True)
     type: Mapped[str] = mapped_column(String(80), nullable=False)
     document_type_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("document_types.id"), nullable=True)
     filename: Mapped[str] = mapped_column(String(255), nullable=False)

@@ -24,7 +24,7 @@ export function PecActionBar({
   onSubmit,
 }: Props) {
   return (
-    <div className="sticky bottom-0 bg-white border-t border-gray-200 mt-6 p-4 flex justify-between items-center rounded-b-xl shadow-sm">
+    <div className="sticky bottom-20 lg:bottom-0 bg-white border-t border-gray-200 mt-6 p-4 flex justify-between items-center rounded-b-xl shadow-sm">
       <div className="flex gap-2">
         <Button variant="outline" onClick={onRefresh} loading={refreshing}>
           <RefreshCw className="h-4 w-4 mr-1" aria-hidden="true" /> Rafraichir

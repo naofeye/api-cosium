@@ -1,0 +1,45 @@
+# Pre-commit hooks OptiFlow AI
+# Install : `pip install pre-commit && pre-commit install`
+# Run all : `pre-commit run --all-files`
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=500"]
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+
+  # Python (backend)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.8
+    hooks:
+      - id: ruff
+        files: ^apps/api/
+        args: [--fix]
+      - id: ruff-format
+        files: ^apps/api/
+
+  # Secrets scanning (détecte tokens, clés API)
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.0
+    hooks:
+      - id: gitleaks
+
+  # Frontend : prettier + eslint via scripts npm (plus robuste que les hooks pre-commit npm)
+  - repo: local
+    hooks:
+      - id: prettier-web
+        name: Prettier (frontend)
+        entry: bash -c 'cd apps/web && npx prettier --check "$@"' --
+        language: system
+        files: ^apps/web/src/.*\.(ts|tsx|css|md)$
+        pass_filenames: true

@@ -125,7 +125,7 @@ def update_devis(db: Session, tenant_id: int, devis_id: int, payload: DevisUpdat
     if not devis:
         raise NotFoundError("devis", devis_id)
     if devis.status != "brouillon":
-        raise BusinessError("DEVIS_NOT_EDITABLE", "Seul un devis en brouillon peut etre modifie")
+        raise BusinessError("Seul un devis en brouillon peut etre modifie", code="DEVIS_NOT_EDITABLE")
 
     part_secu = payload.part_secu if payload.part_secu is not None else float(devis.part_secu)
     part_mutuelle = payload.part_mutuelle if payload.part_mutuelle is not None else float(devis.part_mutuelle)
