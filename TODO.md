@@ -33,11 +33,11 @@
 ### Sécurité / comptes
 - [x] ~~MFA/TOTP backup codes~~ : 10 codes 8-hex, hashés bcrypt, usage unique. Endpoints `POST /auth/mfa/backup-codes/generate` + `GET /auth/mfa/backup-codes/count`. Migration `w8x9y0z1a2b3`. 16 tests unit + 2 tests endpoint. `LoginRequest.totp_code` accepte TOTP (6 digits) OU backup (8 hex, avec/sans tiret/lowercase).
 - [x] ~~MFA forcée pour admins~~ : flag `Tenant.require_admin_mfa` (défaut False). Login refuse avec `MFA_SETUP_REQUIRED` si user admin (TenantUser.role) dans un tenant où le flag est on et n'a pas TOTP. Endpoints `GET/PATCH /api/v1/admin/tenant/security` (audit trail). Migration `x9y0z1a2b3c4`. 8 tests (4 service + 4 endpoints).
-- [ ] **IDOR avatar client** : délégation service qui filtre `Customer.id AND tenant_id` — `clients.py:257-263`
+- [x] ~~IDOR avatar client~~ : faux positif audit — vérifié `client_service.get_avatar_url` filtre déjà par `tenant_id` via `client_repo.get_by_id_active`, et storage_key inclut `tenants/{tenant_id}/avatars/...` (isolation physique).
 - [ ] **Token blacklist fail-closed + alerting Sentry** : exception Redis capturée au lieu de swallow silencieux — `security.py:98`
 - [ ] **Cookie SameSite=Strict** : passer `samesite="lax"` → `"strict"` sur cookie auth principal — `auth.py:28`
-- [ ] **Mass-assignment whitelist** sur tous les repos (pas uniquement `client_repo`)
-- [ ] **Rate limit local ≠ test** : garder rate limit actif en `local` avec valeurs relaxées — `rate_limiter.py:119`
+- [x] ~~Mass-assignment whitelist tous repos~~ : étendu à `onboarding_repo.create_organization/tenant/user` (3 whitelists `_ORG_WRITABLE`, `_TENANT_WRITABLE`, `_USER_WRITABLE`). Protège contre injection `totp_enabled=True`, `require_admin_mfa=True`, `is_god_mode`, etc. 4 tests.
+- [x] ~~Rate limit local ≠ test~~ : déjà fait dans `core/rate_limiter.py:120` (`if settings.app_env == "test": ...`). Local garde bien le rate limit actif.
 - [x] ~~blacklist_access_token silent~~ : `logger.warning("blacklist_setex_failed")` ajouté — `security.py:88-95`
 - [x] ~~Content-Disposition RFC 5987~~ : helper central `core/http.py::content_disposition()` + migration de toutes les occurrences (exports, pec_preparation, gdpr, factures, devis, cosium_documents, client_360, clients, batch_export_service)
 - [x] ~~Audit log DELETE client `force=True`~~ : `audit_service.log_action(..., new_value={"force": force})` + route refuse `force=True` si rôle ≠ admin — `clients.py:197-208`, `client_service.py:252-256`

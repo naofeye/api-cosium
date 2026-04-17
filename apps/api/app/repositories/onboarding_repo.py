@@ -5,6 +5,23 @@ from sqlalchemy.orm import Session
 
 from app.models import Customer, Organization, Tenant, TenantUser, User
 
+# Whitelists mass-assignment : protege contre un caller qui passerait
+# `**payload.model_dump()` avec des champs non souhaites (is_active, role, etc.).
+_ORG_WRITABLE = frozenset({
+    "name", "slug", "contact_email", "plan", "trial_ends_at",
+})
+_TENANT_WRITABLE = frozenset({
+    "organization_id", "name", "slug", "erp_type", "erp_config",
+    "cosium_tenant", "cosium_login", "cosium_password_enc",
+})
+_USER_WRITABLE = frozenset({
+    "email", "password_hash", "role", "is_active",
+})
+
+
+def _filter(kwargs: dict, allowed: frozenset) -> dict:
+    return {k: v for k, v in kwargs.items() if k in allowed}
+
 
 def get_user_by_email(db: Session, email: str) -> User | None:
     """Find a user by email."""
@@ -57,24 +74,29 @@ def has_customers(db: Session, tenant_id: int) -> bool:
 
 
 def create_organization(db: Session, **kwargs) -> Organization:
-    """Create and flush an organization."""
-    org = Organization(**kwargs)
+    """Create and flush an organization (whitelisted fields)."""
+    org = Organization(**_filter(kwargs, _ORG_WRITABLE))
     db.add(org)
     db.flush()
     return org
 
 
 def create_tenant(db: Session, **kwargs) -> Tenant:
-    """Create and flush a tenant."""
-    tenant = Tenant(**kwargs)
+    """Create and flush a tenant (whitelisted fields). `require_admin_mfa`
+    est volontairement exclu : seul l'endpoint admin dedie peut le toggler.
+    """
+    tenant = Tenant(**_filter(kwargs, _TENANT_WRITABLE))
     db.add(tenant)
     db.flush()
     return tenant
 
 
 def create_user(db: Session, **kwargs) -> User:
-    """Create and flush a user."""
-    user = User(**kwargs)
+    """Create and flush a user (whitelisted fields). Exclut `totp_enabled`,
+    `totp_secret_enc`, `totp_backup_codes_hash_json` : MFA uniquement via
+    son flow dedie.
+    """
+    user = User(**_filter(kwargs, _USER_WRITABLE))
     db.add(user)
     db.flush()
     return user
