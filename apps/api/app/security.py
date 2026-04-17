@@ -85,8 +85,14 @@ def blacklist_access_token(token: str) -> None:
         exp = payload.get("exp", 0)
         ttl = max(int(exp - datetime.now(UTC).timestamp()), 60)
         r.setex(_token_blacklist_key(token), ttl, "1")
-    except Exception:
-        pass
+    except Exception as exc:
+        from app.core.logging import get_logger
+
+        get_logger(__name__).warning(
+            "blacklist_setex_failed",
+            error=str(exc),
+            error_type=type(exc).__name__,
+        )
 
 
 def is_token_blacklisted(token: str) -> bool:

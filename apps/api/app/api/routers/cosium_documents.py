@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_tenant_role
+from app.core.http import content_disposition
 from app.core.logging import get_logger
 from app.core.tenant_context import TenantContext
 from app.db.session import get_db
@@ -198,7 +199,7 @@ def download_local_document(
     return Response(
         content=content,
         media_type=content_type,
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": content_disposition(filename)},
     )
 
 
@@ -263,5 +264,5 @@ def download_document(
     return Response(
         content=content,
         media_type=content_type,
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": content_disposition(filename)},
     )

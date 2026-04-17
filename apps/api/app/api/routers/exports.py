@@ -5,6 +5,7 @@ from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_tenant_role
+from app.core.http import content_disposition
 from app.core.tenant_context import TenantContext
 from app.db.session import get_db
 from app.services import export_service
@@ -30,7 +31,7 @@ def export_balance_clients(
     return StreamingResponse(
         iter([data]),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": content_disposition(filename)},
     )
 
 
@@ -52,7 +53,7 @@ def export_balance_clients_pdf(
     return StreamingResponse(
         iter([data]),
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": content_disposition(filename)},
     )
 
 
@@ -74,7 +75,7 @@ def export_dashboard_pdf(
     return StreamingResponse(
         iter([data]),
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": content_disposition(filename)},
     )
 
 
@@ -105,7 +106,7 @@ def export_monthly_report(
     return StreamingResponse(
         iter([data]),
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": content_disposition(filename)},
     )
 
 
@@ -133,7 +134,7 @@ def export_fec(
     return StreamingResponse(
         iter([data]),
         media_type="text/plain; charset=utf-8",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": content_disposition(filename)},
     )
 
 
@@ -162,7 +163,7 @@ def export_clients_complet(
     return StreamingResponse(
         iter([data]),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": content_disposition(filename)},
     )
 
 
@@ -190,7 +191,7 @@ def export_data(
         return Response(
             content=data,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f"attachment; filename={entity_type}.xlsx"},
+            headers={"Content-Disposition": content_disposition(f"{entity_type}.xlsx")},
         )
     data = export_service.export_to_csv(
         db,
@@ -202,5 +203,5 @@ def export_data(
     return Response(
         content=data,
         media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": f"attachment; filename={entity_type}.csv"},
+        headers={"Content-Disposition": content_disposition(f"{entity_type}.csv")},
     )

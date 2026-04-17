@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
+from app.core.http import content_disposition
 from app.core.idempotency import IdempotencyContext, idempotency
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
@@ -117,5 +118,5 @@ def download_devis_pdf(
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="devis_{devis_id}.pdf"'},
+        headers={"Content-Disposition": content_disposition(f"devis_{devis_id}.pdf")},
     )

@@ -3,6 +3,7 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError, ValidationError
+from app.core.http import content_disposition
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.client_360 import Client360Response, CosiumDataBundle
@@ -167,7 +168,7 @@ def download_client_360_pdf(
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename=client_{client_id}_360.pdf"},
+        headers={"Content-Disposition": content_disposition(f"client_{client_id}_360.pdf")},
     )
 
 
@@ -186,7 +187,7 @@ def export_client_pdf_endpoint(
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename=fiche_client_{client_id}.pdf"},
+        headers={"Content-Disposition": content_disposition(f"fiche_client_{client_id}.pdf")},
     )
 
 

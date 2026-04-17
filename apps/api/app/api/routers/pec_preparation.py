@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.orm import Session
 
+from app.core.http import content_disposition
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.pec_preparation import (
@@ -69,7 +70,7 @@ def export_preparations_xlsx(
     return StreamingResponse(
         iter([data]),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": content_disposition(filename)},
     )
 
 
@@ -322,6 +323,6 @@ def export_preparation_pdf(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f'attachment; filename="pec_preparation_{preparation_id}.pdf"',
+            "Content-Disposition": content_disposition(f"pec_preparation_{preparation_id}.pdf"),
         },
     )

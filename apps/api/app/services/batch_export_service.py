@@ -5,6 +5,8 @@ from datetime import datetime
 
 from fastapi.responses import StreamingResponse
 
+from app.core.http import content_disposition
+
 
 def export_batch_excel(enriched: dict) -> StreamingResponse:
     """Generate a professional 2-sheet Excel export of batch summary."""
@@ -119,7 +121,7 @@ def export_batch_excel(enriched: dict) -> StreamingResponse:
     return StreamingResponse(
         buf,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": content_disposition(filename)},
     )
 
 
@@ -156,5 +158,5 @@ def export_batch_csv(enriched: dict) -> StreamingResponse:
     return StreamingResponse(
         io.BytesIO(content),
         media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": content_disposition(filename)},
     )

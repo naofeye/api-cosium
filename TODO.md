@@ -38,14 +38,14 @@
 - [ ] **Cookie SameSite=Strict** : passer `samesite="lax"` → `"strict"` sur cookie auth principal — `auth.py:28`
 - [ ] **Mass-assignment whitelist** sur tous les repos (pas uniquement `client_repo`)
 - [ ] **Rate limit local ≠ test** : garder rate limit actif en `local` avec valeurs relaxées — `rate_limiter.py:119`
-- [ ] **blacklist_access_token silent** : `except Exception: pass` sans log — ajouter `logger.error("blacklist_setex_failed")` — `security.py:88-89`
-- [ ] **Content-Disposition RFC 5987** : échapper filenames dynamiques (`urllib.parse.quote` + `filename*=UTF-8''`) — `exports.py:29,193,205`, `client_360.py:170`, `cosium_documents.py:201`, `pec_preparation.py:72`
-- [ ] **Audit log DELETE client `force=True`** : vérifier que hard-delete trace `audit_service.log_action(..., extra={"force": True})` et exige role admin — `clients.py:197-203`
+- [x] ~~blacklist_access_token silent~~ : `logger.warning("blacklist_setex_failed")` ajouté — `security.py:88-95`
+- [x] ~~Content-Disposition RFC 5987~~ : helper central `core/http.py::content_disposition()` + migration de toutes les occurrences (exports, pec_preparation, gdpr, factures, devis, cosium_documents, client_360, clients, batch_export_service)
+- [x] ~~Audit log DELETE client `force=True`~~ : `audit_service.log_action(..., new_value={"force": force})` + route refuse `force=True` si rôle ≠ admin — `clients.py:197-208`, `client_service.py:252-256`
 - [ ] **Banking CSV magic bytes** : validation signature avant decode (BOM UTF-8 ou ASCII) comme dans `document_service.py` — `banking_service.py:78`
 - [ ] **Harmoniser max_length search** : 50 caractères partout (déjà sur `clients.py:32`, étendre autres routers)
 
 ### Qualité / régression
-- [ ] **Aligner coverage CI vs pyproject** : CI à `--cov-fail-under=45` mais `pyproject.toml` déclare `fail_under=80`. Aligner sur baseline réaliste + trajectoire d'incrément — `ci.yml:61`, `pyproject.toml`
+- [x] ~~Aligner coverage CI vs pyproject~~ : `pyproject.toml` passe à `fail_under=45` (baseline actuelle) avec commentaire trajectoire cible 80% — `pyproject.toml:55`
 - [ ] **Migration `CREATE TABLE IF NOT EXISTS`** : `alembic/versions/h3b4c5d6e7f8_*.py` utilise IF NOT EXISTS sur 20 tables Cosium (create_all déguisé). Refactoriser en migrations atomiques ou bootstrap one-shot
 - [ ] **Smoke tests services critiques** : `analytics_cosium_service`, `pec_consolidation_service`, `client_merge_service`, `marketing_service`, `consolidation_service`, `client_360_finance`, `client_360_documents`, `batch_processing_service`, `erp_sync_invoices`, `erp_sync_payments`
 - [ ] **Tests E2E Playwright frontend** : login → liste clients → création → logout

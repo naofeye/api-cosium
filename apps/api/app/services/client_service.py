@@ -250,7 +250,10 @@ def delete_client(db: Session, tenant_id: int, client_id: int, user_id: int, for
             )
 
     client_repo.delete(db, customer)
-    audit_service.log_action(db, tenant_id, user_id, "delete", "client", client_id)
+    audit_service.log_action(
+        db, tenant_id, user_id, "delete", "client", client_id,
+        new_value={"force": force},
+    )
     logger.info("client_deleted", tenant_id=tenant_id, client_id=client_id, user_id=user_id, force=force)
 
 

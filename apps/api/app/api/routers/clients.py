@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.constants import ROLE_ADMIN
 from app.core.deps import require_tenant_role
 from app.core.exceptions import BusinessError, ValidationError
+from app.core.http import content_disposition
 from app.core.redis_cache import acquire_lock, release_lock
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
@@ -71,7 +72,7 @@ def download_import_template() -> Response:
     return Response(
         content=data,
         media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": "attachment; filename=modele_import_clients.csv"},
+        headers={"Content-Disposition": content_disposition("modele_import_clients.csv")},
     )
 
 
@@ -200,6 +201,11 @@ def delete_client(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> dict[str, str]:
+    if force and tenant_ctx.role != ROLE_ADMIN:
+        raise BusinessError(
+            "FORCE_DELETE_ADMIN_ONLY",
+            "La suppression forcee est reservee aux administrateurs.",
+        )
     client_service.delete_client(db, tenant_id=tenant_ctx.tenant_id, client_id=client_id, user_id=tenant_ctx.user_id, force=force)
     return {"message": "Client supprime avec succes"}
 

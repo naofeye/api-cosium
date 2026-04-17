@@ -3,6 +3,7 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_tenant_role
+from app.core.http import content_disposition
 from app.core.tenant_context import TenantContext
 from app.db.session import get_db
 from app.domain.schemas.gdpr import AnonymizeResponse, ClientDataResponse
@@ -49,7 +50,7 @@ def export_client_data(
     return Response(
         content=data,
         media_type="application/json",
-        headers={"Content-Disposition": f"attachment; filename=client_{client_id}_data.json"},
+        headers={"Content-Disposition": content_disposition(f"client_{client_id}_data.json")},
     )
 
 
