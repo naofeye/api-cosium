@@ -127,20 +127,12 @@ def is_token_blacklisted(token: str) -> bool:
 def _report_security_incident_to_sentry(exc: Exception, tag: str) -> None:
     """Capture explicite vers Sentry pour les incidents securite (blacklist, auth).
 
-    Une log warning seule peut passer inapercue en prod. Sentry notifie l'equipe
-    on-call immediatement. Best-effort : si Sentry pas init, no-op silencieux.
+    Wraps `report_incident_to_sentry` avec category=security. Conserve le nom
+    historique pour compatibilite.
     """
-    if not settings.sentry_dsn:
-        return
-    try:
-        import sentry_sdk
+    from app.core.sentry_helpers import report_incident_to_sentry
 
-        with sentry_sdk.push_scope() as scope:
-            scope.set_tag("security_incident", tag)
-            scope.set_level("error")
-            sentry_sdk.capture_exception(exc)
-    except Exception:  # noqa: BLE001 — Sentry failure ne doit jamais casser l'auth
-        pass
+    report_incident_to_sentry(exc, tag, category="security")
 
 
 def generate_refresh_token() -> str:

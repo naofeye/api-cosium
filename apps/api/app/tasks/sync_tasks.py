@@ -77,6 +77,15 @@ def sync_all_tenants(self) -> dict[str, int]:
                         pass
             except Exception as e:
                 logger.error("tenant_sync_failed", tenant_id=tenant.id, error=str(e))
+                from app.core.sentry_helpers import report_incident_to_sentry
+
+                report_incident_to_sentry(
+                    e,
+                    "cosium_sync_failed",
+                    category="sync",
+                    tenant_id=tenant.id,
+                    tenant_name=tenant.name,
+                )
                 db.rollback()
                 failed += 1
             finally:
@@ -87,6 +96,16 @@ def sync_all_tenants(self) -> dict[str, int]:
 
         if failed > 0:
             logger.error("sync_all_tenants_partial_failure", failed=failed, total=total)
+            from app.core.sentry_helpers import report_incident_to_sentry
+
+            report_incident_to_sentry(
+                RuntimeError(f"{failed}/{total} tenants failed sync"),
+                "cosium_sync_partial_failure",
+                category="sync",
+                level="warning",
+                failed=failed,
+                total=total,
+            )
             # Creer une notification admin pour chaque tenant actif
             try:
                 from app.models import Notification
@@ -144,6 +163,15 @@ def _sync_single_tenant(db, tenant_id: int) -> dict[str, dict]:
                 tenant_id=tenant_id,
                 domain=name,
                 error=str(e),
+            )
+            from app.core.sentry_helpers import report_incident_to_sentry
+
+            report_incident_to_sentry(
+                e,
+                "cosium_sync_domain_failed",
+                category="sync",
+                tenant_id=tenant_id,
+                domain=name,
             )
 
     return results
@@ -277,6 +305,14 @@ def bulk_download_cosium_documents(
         return result
     except Exception as e:
         logger.error("bulk_download_failed", tenant_id=tenant_id, error=str(e))
+        from app.core.sentry_helpers import report_incident_to_sentry
+
+        report_incident_to_sentry(
+            e,
+            "cosium_bulk_download_failed",
+            category="sync",
+            tenant_id=tenant_id,
+        )
         return {"error": str(e)}
     finally:
         db.close()

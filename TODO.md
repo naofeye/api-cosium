@@ -64,7 +64,7 @@
 - [ ] **Splash screens iOS** : assets PNG iPad 2732×2048, iPhone X 1125×2436 etc. (icônes PNG 192/512 déjà présentes)
 
 ### Admin / observabilité
-- [ ] **Alerting** : Slack/email si sync Cosium échoue, latence > 5s, taux erreur > 5%
+- [x] ~~Alerting sync Cosium échoue~~ : helper central `core/sentry_helpers.py::report_incident_to_sentry(exc, tag, category=..., **context)`. Capture + tags indexés (incident_category, incident, tenant_id, domain). Câblé dans `tasks/sync_tasks.py` aux 4 callsites (`cosium_sync_failed`, `cosium_sync_partial_failure`, `cosium_sync_domain_failed`, `cosium_bulk_download_failed`). Best-effort (no-op si `sentry_dsn` vide, try/except interne). Refacto `security.py` pour réutiliser le helper. 4 tests. Latence/taux erreur relèvent de Prometheus alertmanager (hors scope backend).
 - [x] ~~Log rotation~~ : ancre YAML `x-default-logging` dans `docker-compose.prod.yml` avec driver json-file, `max-size: 50m`, `max-file: 5`, compression gzip. Appliquée à tous les services (postgres, redis, minio, api, web, worker, beat, nginx) = plafond 250MB par container.
 
 ---
