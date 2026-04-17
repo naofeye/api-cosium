@@ -99,7 +99,6 @@
 - [ ] **CompletionBar inline style** : `style={{ width: '${pct}%' }}` → Tailwind classe dynamique — `operations-batch/[id]/page.tsx:41`
 
 ### Infra / CI
-- [ ] **Dependabot** : `.github/dependabot.yml` (pip + npm + github-actions)
 - [ ] **Pre-commit hooks** : ruff, gitleaks, prettier, YAML/JSON/TOML (config existe, à activer côté dev)
 - [ ] **Indexes composites audit_logs** : `(tenant_id, created_at, action)` via pg_stat_statements staging
 - [ ] **Connection pooling** : optimiser pour 50 tenants concurrents
