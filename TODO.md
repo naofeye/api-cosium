@@ -54,7 +54,11 @@
 - [ ] **pip-audit strict en CI** : retirer `|| true` après upgrade starlette via FastAPI compatible — `ci.yml:94`
 
 ### Infra bloquante
-- [ ] **Réseau Docker isolé** : `docker-compose.yml` services partagent le bridge par défaut. Déclarer `networks: { optiflow: { driver: bridge } }` + retirer `ports:` publics sauf nginx — `docker-compose.yml:47-120`
+- [x] ~~Réseau Docker isolé~~ : segmentation **2 réseaux** en prod (`docker-compose.prod.yml`) :
+  - `internal` (`internal: true` = pas d'egress internet) pour postgres/redis/minio/beat
+  - `public` pour web/nginx
+  - api + worker sur les 2 (besoin Cosium/SMTP externe + DB/Redis interne)
+  - Si web compromis → pas d'accès direct aux datastores. Défense en profondeur OWASP A05.
 
 ### PWA / UX
 - [ ] **Splash screens iOS** : assets PNG iPad 2732×2048, iPhone X 1125×2436 etc. (icônes PNG 192/512 déjà présentes)

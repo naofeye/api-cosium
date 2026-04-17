@@ -1,8 +1,25 @@
-# Override production : limites ressources + nginx + pas d'exposition ports hors nginx.
+# Override production : limites ressources + nginx + segmentation reseau (defense en profondeur).
 # Usage : docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Reseaux :
+#   - public   : expose vers l'exterieur via nginx. Trafic web/api.
+#   - internal : sans acces internet (`internal: true`). Postgres/Redis/MinIO
+#                joignables uniquement par api/worker/beat. Si web est compromis,
+#                ces datastores restent inaccessibles directement.
+
+networks:
+  public:
+    name: optiflow_public
+    driver: bridge
+  internal:
+    name: optiflow_internal
+    driver: bridge
+    internal: true  # bloque tout trafic vers l'exterieur (egress)
+
 services:
   postgres:
     ports: !reset []
+    networks: [internal]
     deploy:
       resources:
         limits:
@@ -13,6 +30,7 @@ services:
 
   redis:
     ports: !reset []
+    networks: [internal]
     command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
     deploy:
       resources:
@@ -22,6 +40,7 @@ services:
 
   minio:
     ports: !reset []
+    networks: [internal]
     deploy:
       resources:
         limits:
@@ -34,6 +53,9 @@ services:
 
   api:
     ports: !reset []
+    # api a besoin des 2 reseaux : internal pour DB/redis/minio, public pour
+    # Cosium/Claude/Stripe (appels sortants via internet) et reception trafic via nginx.
+    networks: [internal, public]
     deploy:
       resources:
         limits:
@@ -44,6 +66,7 @@ services:
 
   web:
     ports: !reset []
+    networks: [public]
     deploy:
       resources:
         limits:
@@ -51,6 +74,8 @@ services:
           memory: 1G
 
   worker:
+    # worker execute les tasks de sync Cosium + envoi email SMTP -> besoin internet
+    networks: [internal, public]
     deploy:
       resources:
         limits:
@@ -60,6 +85,7 @@ services:
           memory: 512M
 
   beat:
+    networks: [internal]
     deploy:
       resources:
         limits:
@@ -69,6 +95,7 @@ services:
   nginx:
     image: nginx:alpine
     restart: unless-stopped
+    networks: [public]
     depends_on:
       api:
         condition: service_healthy
