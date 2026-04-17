@@ -18,7 +18,7 @@ def send_weekly_reports() -> dict:
     from sqlalchemy import select
 
     from app.models import Tenant, TenantUser, User
-    from app.services import analytics_kpi_service, action_item_service
+    from app.services import action_item_service, analytics_kpi_service
     from app.tasks.email_tasks import send_email_async
 
     db = SessionLocal()

@@ -197,9 +197,11 @@ def get_campaign_stats(db: Session, tenant_id: int, campaign_id: int) -> Campaig
 def get_campaign_roi(db: Session, tenant_id: int, campaign_id: int) -> dict:
     """ROI basique : CA genere par les clients cibles dans les 30j suivant l'envoi."""
     from datetime import timedelta
+
     from sqlalchemy import func, select
-    from app.models.marketing import Campaign, MessageLog
+
     from app.models.cosium_data import CosiumInvoice
+    from app.models.marketing import MessageLog
 
     campaign = marketing_repo.get_campaign(db, campaign_id=campaign_id, tenant_id=tenant_id)
     if not campaign:
@@ -269,6 +271,7 @@ def get_campaign_roi(db: Session, tenant_id: int, campaign_id: int) -> dict:
 def get_campaign_ab_stats(db: Session, tenant_id: int, campaign_id: int) -> dict:
     """Compare les variantes A/B d'une campagne : taux d'ouverture/clic/reponse par variant_key."""
     from sqlalchemy import func, select
+
     from app.models.marketing import MessageLog
 
     campaign = marketing_repo.get_campaign(db, campaign_id=campaign_id, tenant_id=tenant_id)

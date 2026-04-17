@@ -29,12 +29,12 @@ def _fk_name(table: str, column: str) -> str:
 
 
 def upgrade() -> None:
+    # DROP CONSTRAINT IF EXISTS (SQL brut) : un op.drop_constraint() qui echoue
+    # aborte la transaction PostgreSQL en DDL transactionnel. IF EXISTS garantit
+    # l'idempotence sans avoir a attraper l'exception.
     for table, column, parent_table, parent_column in _SET_NULL_FKS:
         fk_name = _fk_name(table, column)
-        try:
-            op.drop_constraint(fk_name, table, type_="foreignkey")
-        except Exception:  # noqa: BLE001 — constraint name varies across DBs
-            pass
+        op.execute(f'ALTER TABLE "{table}" DROP CONSTRAINT IF EXISTS "{fk_name}"')
         op.create_foreign_key(
             fk_name,
             table,
@@ -48,10 +48,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     for table, column, parent_table, parent_column in _SET_NULL_FKS:
         fk_name = _fk_name(table, column)
-        try:
-            op.drop_constraint(fk_name, table, type_="foreignkey")
-        except Exception:  # noqa: BLE001
-            pass
+        op.execute(f'ALTER TABLE "{table}" DROP CONSTRAINT IF EXISTS "{fk_name}"')
         op.create_foreign_key(
             fk_name,
             table,

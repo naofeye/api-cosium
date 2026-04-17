@@ -59,7 +59,7 @@ class IdempotencyContext:
         if not self._redis_key or self.body_hash is None:
             return
         try:
-            payload = response if isinstance(response, (dict, list)) else json.loads(
+            payload = response if isinstance(response, dict | list) else json.loads(
                 json.dumps(response, default=lambda o: getattr(o, "model_dump", lambda: str(o))())
             )
         except Exception:

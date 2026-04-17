@@ -9,7 +9,6 @@ REGLES DE SECURITE ABSOLUES :
 
 from app.core.logging import get_logger
 from app.integrations.cosium.adapter import (
-    cosium_customer_to_optiflow,
     cosium_invoice_to_optiflow,
     cosium_payment_to_optiflow,
     cosium_prescription_to_optiflow,

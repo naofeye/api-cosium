@@ -83,6 +83,7 @@ def _get_user_tenants(db: Session, user_id: int) -> list[dict]:
     Optimisation N+1 : un seul JOIN TenantUser x Tenant au lieu de N queries.
     """
     from sqlalchemy import select
+
     from app.models import TenantUser
 
     rows = db.execute(

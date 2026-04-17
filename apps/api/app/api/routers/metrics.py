@@ -106,9 +106,7 @@ def prometheus_metrics(db: Session = Depends(get_db)) -> Response:
         for type_name, count in types_rows:
             output.append(f'optiflow_action_items_by_type{{type="{type_name}"}} {count}\n')
 
-    # Metrics MFA (sécurité)
-    from app.models.user import User
-
+    # Metrics MFA (securite) — User deja importe en haut
     users_mfa_enabled = db.scalar(
         select(func.count()).select_from(User).where(User.totp_enabled.is_(True))
     ) or 0
@@ -117,9 +115,7 @@ def prometheus_metrics(db: Session = Depends(get_db)) -> Response:
         "Nombre d'utilisateurs avec MFA/TOTP active",
     ))
 
-    # Metrics sync Cosium (age dernier sync par tenant)
-    from app.models.cosium_data import CosiumInvoice
-
+    # Metrics sync Cosium (age dernier sync par tenant) — CosiumInvoice deja importe
     last_sync = db.scalar(
         select(func.max(CosiumInvoice.synced_at))
     )
