@@ -2,7 +2,7 @@
 
 **Date** : 2026-04-16
 **Statut** : Accepté
-**Contexte audit** : Passe 7 post-audit, TODO_MASTER_AUDIT Phase 2.1
+**Contexte audit** : Passe 7 post-audit (voir `TODO.md` section P1 Sécurité/comptes)
 
 ## Contexte
 

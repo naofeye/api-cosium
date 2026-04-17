@@ -47,5 +47,4 @@ Index des documents techniques du projet. Pour l'onboarding rapide, commencer pa
 
 ## TODO & roadmap
 
-- [../TODO_MASTER.md](../TODO_MASTER.md) — Roadmap produit (phases 0 à 10)
-- [../TODO_MASTER_AUDIT.md](../TODO_MASTER_AUDIT.md) — Suivi audit technique (phases 0 à 7)
+- [../TODO.md](../TODO.md) — Source de vérité unique (roadmap + audit consolidés)
