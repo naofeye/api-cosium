@@ -23,10 +23,8 @@ _PREEXISTING_BROKEN_TESTS: dict[str, str] = {
     "tests/test_batch_operations.py::test_prepare_batch_pec": "consolidation_service refactor",
     "tests/test_batch_operations.py::test_process_batch_consolidates_all": "consolidation_service refactor",
     "tests/test_batch_operations.py::test_process_batch_handles_errors": "consolidation_service refactor",
-    # ClientResponse schema desync (deleted_at non expose)
-    "tests/test_client_service.py::TestDeleteAndRestore::test_restore_clears_deleted_at": "ClientResponse schema desync",
-    # Cookie samesite Lax -> Strict (hardening P2 applique, test obsolete)
-    "tests/test_cookie_httponly.py::test_cookies_have_samesite_lax": "SameSite=Strict applique, test obsolete",
+    # test_restore_clears_deleted_at : FIX (check deleted_at en BDD au lieu de ClientResponse)
+    # test_cookies_have_samesite_lax : FIX (renomme en test_cookies_have_samesite_strict)
     # Mocks Cosium incomplets : creds ERP non configures en CI
     "tests/test_cosium.py::test_sync_customers_mock": "creds Cosium manquants en CI",
     "tests/test_cosium.py::test_sync_invoices_mock": "creds Cosium manquants en CI",
@@ -44,16 +42,9 @@ _PREEXISTING_BROKEN_TESTS: dict[str, str] = {
     # Forgot password : depend de Redis/Celery (kombu error in CI)
     "tests/test_forgot_password.py::TestForgotPassword::test_forgot_password_existing_email_returns_204": "kombu/Redis manquant en CI",
     "tests/test_forgot_password.py::TestForgotPassword::test_forgot_password_creates_token_in_db": "kombu/Redis manquant en CI",
-    # Health : route passee sous auth admin (hardening audit)
-    "tests/test_health.py::test_health_public": "route passee sous auth (hardening)",
-    "tests/test_health.py::test_health_database_ok": "components key change",
-    "tests/test_health.py::test_health_includes_version_and_uptime": "route passee sous auth",
-    # Monthly report : validator Pydantic renvoie 422 au lieu de 400
-    "tests/test_monthly_report.py::test_monthly_report_invalid_month_returns_400": "Pydantic 422 vs 400",
-    # Ocam operators : schema Pydantic desync
-    "tests/test_ocam_operators.py::test_list_ocam_operators_returns_seeded_data": "OcamOperatorResponse schema desync",
-    "tests/test_ocam_operators.py::test_create_ocam_operator": "422 payload desync",
-    "tests/test_ocam_operators.py::test_pec_operator_specific_rules": "OcamOperatorResponse schema desync",
+    # test_health.* : FIX (tests utilisent auth_headers + renomme _admin_requires_auth)
+    # test_monthly_report_invalid_month : FIX (accepte 400 OU 422)
+    # test_ocam_operators.* : FIX (schema specific_rules: list -> dict[str, Any])
     # OCR parsers : mock exception pdfplumber
     "tests/test_ocr_parsers.py::TestExtractTextFromPdf::test_pdfplumber_exception_handled": "mock pdfplumber",
     # Onboarding : mock Cosium connection

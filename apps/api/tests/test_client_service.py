@@ -67,9 +67,12 @@ class TestDeleteAndRestore:
         created = client_service.create_client(db, tid, payload, seed_user.id)
 
         client_service.delete_client(db, tid, created.id, seed_user.id)
-        restored = client_service.restore_client(db, tid, created.id, seed_user.id)
+        client_service.restore_client(db, tid, created.id, seed_user.id)
 
-        assert restored.deleted_at is None
+        # ClientResponse n'expose pas deleted_at ; verifier directement en BDD.
+        customer = db.query(Customer).filter(Customer.id == created.id).first()
+        assert customer is not None
+        assert customer.deleted_at is None
 
 
 class TestFindDuplicates:

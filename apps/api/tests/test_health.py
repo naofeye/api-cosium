@@ -1,9 +1,20 @@
 from fastapi.testclient import TestClient
 
 
-def test_health_public(client: TestClient) -> None:
-    """Health check should work without auth (public for load balancer)."""
+def test_health_admin_requires_auth(client: TestClient) -> None:
+    """/api/v1/admin/health est sous auth admin (hardening anti-fingerprinting)."""
     resp = client.get("/api/v1/admin/health")
+    assert resp.status_code == 401
+
+
+def test_health_liveness_public(client: TestClient) -> None:
+    """/health (racine) reste public pour load balancer liveness."""
+    resp = client.get("/health")
+    assert resp.status_code == 200
+
+
+def test_health_admin_returns_components(client: TestClient, auth_headers: dict) -> None:
+    resp = client.get("/api/v1/admin/health", headers=auth_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert "status" in data
@@ -11,15 +22,15 @@ def test_health_public(client: TestClient) -> None:
     assert "database" in data["components"]
 
 
-def test_health_database_ok(client: TestClient) -> None:
-    resp = client.get("/api/v1/admin/health")
+def test_health_database_ok(client: TestClient, auth_headers: dict) -> None:
+    resp = client.get("/api/v1/admin/health", headers=auth_headers)
     data = resp.json()
     assert data["components"]["database"]["status"] == "ok"
     assert data["components"]["database"]["response_ms"] >= 0
 
 
-def test_health_includes_version_and_uptime(client: TestClient) -> None:
-    resp = client.get("/api/v1/admin/health")
+def test_health_includes_version_and_uptime(client: TestClient, auth_headers: dict) -> None:
+    resp = client.get("/api/v1/admin/health", headers=auth_headers)
     data = resp.json()
     assert "version" in data
     assert "uptime_seconds" in data

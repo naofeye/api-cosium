@@ -45,13 +45,13 @@ def test_cookies_have_httponly_flag(client, seed_user):
     assert "HttpOnly" not in authenticated_cookie, "optiflow_authenticated doit etre lisible JS"
 
 
-def test_cookies_have_samesite_lax(client, seed_user):
-    """SameSite=Lax pour bloquer CSRF cross-site GET non-top-level."""
+def test_cookies_have_samesite_strict(client, seed_user):
+    """SameSite=Strict pour bloquer CSRF cross-site (hardening audit)."""
     resp = _login(client)
     set_cookies = resp.headers.get_list("set-cookie")
     for c in set_cookies:
         if c.startswith(("optiflow_token=", "optiflow_refresh=", "optiflow_authenticated=")):
-            assert "samesite=lax" in c.lower(), f"SameSite Lax manquant : {c[:80]}"
+            assert "samesite=strict" in c.lower(), f"SameSite Strict manquant : {c[:80]}"
 
 
 def test_cookies_secure_disabled_in_test_env(client, seed_user):

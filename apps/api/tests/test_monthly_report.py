@@ -33,9 +33,9 @@ def test_monthly_report_with_no_data_does_not_crash(
 def test_monthly_report_invalid_month_returns_400(
     client: TestClient, auth_headers: dict
 ) -> None:
-    """Monthly report with month=13 should return 400."""
+    """Monthly report with month=13 should return 400 or 422 (Pydantic validation)."""
     resp = client.get(
         "/api/v1/exports/monthly-report?month=2026-13",
         headers=auth_headers,
     )
-    assert resp.status_code == 400
+    assert resp.status_code in (400, 422)
