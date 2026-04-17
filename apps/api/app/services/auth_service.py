@@ -103,6 +103,29 @@ def _is_group_admin(db: Session, user_id: int) -> bool:
     return len(rows) > 1
 
 
+def _user_must_have_mfa(db: Session, user_id: int) -> bool:
+    """True si l'user est admin dans au moins un tenant avec require_admin_mfa=True.
+
+    Implique que l'user doit avoir MFA active pour se connecter.
+    """
+    from sqlalchemy import select as sa_select
+
+    from app.models import Tenant, TenantUser
+
+    rows = db.execute(
+        sa_select(Tenant.require_admin_mfa)
+        .join(TenantUser, TenantUser.tenant_id == Tenant.id)
+        .where(
+            TenantUser.user_id == user_id,
+            TenantUser.is_active.is_(True),
+            TenantUser.role == "admin",
+            Tenant.require_admin_mfa.is_(True),
+        )
+        .limit(1)
+    ).first()
+    return rows is not None
+
+
 def authenticate(db: Session, payload: LoginRequest) -> TokenResponse:
     _check_account_lockout(payload.email)
 
@@ -112,6 +135,13 @@ def authenticate(db: Session, payload: LoginRequest) -> TokenResponse:
         email_hash = hashlib.sha256(payload.email.lower().encode()).hexdigest()[:12]
         logger.warning("authentication_failed", email_hash=email_hash)
         raise AuthenticationError()
+
+    # MFA enforcement : user admin dans un tenant avec require_admin_mfa=True
+    # DOIT avoir MFA active. Refus login si non setup.
+    if not user.totp_enabled and _user_must_have_mfa(db, user.id):
+        email_hash = hashlib.sha256(payload.email.lower().encode()).hexdigest()[:12]
+        logger.warning("authentication_mfa_enforcement_missing", email_hash=email_hash, user_id=user.id)
+        raise AuthenticationError("MFA_SETUP_REQUIRED")
 
     # MFA check si active sur le compte
     if user.totp_enabled:

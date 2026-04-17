@@ -32,7 +32,7 @@
 
 ### Sécurité / comptes
 - [x] ~~MFA/TOTP backup codes~~ : 10 codes 8-hex, hashés bcrypt, usage unique. Endpoints `POST /auth/mfa/backup-codes/generate` + `GET /auth/mfa/backup-codes/count`. Migration `w8x9y0z1a2b3`. 16 tests unit + 2 tests endpoint. `LoginRequest.totp_code` accepte TOTP (6 digits) OU backup (8 hex, avec/sans tiret/lowercase).
-- [ ] **MFA forcée pour admins** : flag `require_mfa_for_admins` par tenant, blocage login si role=admin sans MFA
+- [x] ~~MFA forcée pour admins~~ : flag `Tenant.require_admin_mfa` (défaut False). Login refuse avec `MFA_SETUP_REQUIRED` si user admin (TenantUser.role) dans un tenant où le flag est on et n'a pas TOTP. Endpoints `GET/PATCH /api/v1/admin/tenant/security` (audit trail). Migration `x9y0z1a2b3c4`. 8 tests (4 service + 4 endpoints).
 - [ ] **IDOR avatar client** : délégation service qui filtre `Customer.id AND tenant_id` — `clients.py:257-263`
 - [ ] **Token blacklist fail-closed + alerting Sentry** : exception Redis capturée au lieu de swallow silencieux — `security.py:98`
 - [ ] **Cookie SameSite=Strict** : passer `samesite="lax"` → `"strict"` sur cookie auth principal — `auth.py:28`

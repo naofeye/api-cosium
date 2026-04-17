@@ -38,6 +38,9 @@ class Tenant(Base):
     stripe_subscription_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     subscription_status: Mapped[str] = mapped_column(String(30), nullable=False, default="trial")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Security policy : exige MFA active pour les users avec role admin sur ce tenant.
+    # Si True et un admin n'a pas totp_enabled : login rejete avec MFA_SETUP_REQUIRED.
+    require_admin_mfa: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
 
 
