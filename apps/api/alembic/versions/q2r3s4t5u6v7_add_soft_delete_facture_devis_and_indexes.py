@@ -21,29 +21,12 @@ def upgrade() -> None:
     op.add_column("devis", sa.Column("deleted_at", sa.DateTime(), nullable=True))
     op.create_index("ix_devis_deleted_at", "devis", ["deleted_at"])
 
-    # Indexes composites requis par l'audit (queries frequentes tenant-scoped)
-    op.create_index(
-        "ix_documents_tenant_uploaded_at",
-        "documents",
-        ["tenant_id", "uploaded_at"],
-    )
-    op.create_index(
-        "ix_cases_tenant_status",
-        "cases",
-        ["tenant_id", "status"],
-    )
-    op.create_index(
-        "ix_payments_tenant_date_paiement",
-        "payments",
-        ["tenant_id", "date_paiement"],
-    )
+    # Note : les indexes composites ix_documents_tenant_uploaded_at, ix_cases_tenant_status,
+    # ix_payments_tenant_date_paiement sont deja crees par la migration a2b3c4d5e6f7.
+    # Ils avaient ete ajoutes ici par erreur (doublon detecte en CI upgrade head).
 
 
 def downgrade() -> None:
-    op.drop_index("ix_payments_tenant_date_paiement", table_name="payments")
-    op.drop_index("ix_cases_tenant_status", table_name="cases")
-    op.drop_index("ix_documents_tenant_uploaded_at", table_name="documents")
-
     op.drop_index("ix_devis_deleted_at", table_name="devis")
     op.drop_column("devis", "deleted_at")
 
