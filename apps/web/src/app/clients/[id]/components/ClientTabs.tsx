@@ -14,17 +14,35 @@ import { TabOrdonnances } from "../tabs/TabOrdonnances";
 import { TabRendezVous } from "../tabs/TabRendezVous";
 import { TabEquipements } from "../tabs/TabEquipements";
 
-// Tabs secondaires (lazy-loaded → reduction bundle initial)
-const tabLoading = { loading: () => <LoadingState text="Chargement..." /> };
-const TabMarketing = dynamic(() => import("../tabs/TabMarketing").then((m) => m.TabMarketing), tabLoading);
-const TabHistorique = dynamic(() => import("../tabs/TabHistorique").then((m) => m.TabHistorique), tabLoading);
-const TabCosiumDocuments = dynamic(() => import("../tabs/TabCosiumDocuments").then((m) => m.TabCosiumDocuments), tabLoading);
-const TabCosiumPaiements = dynamic(() => import("../tabs/TabCosiumPaiements").then((m) => m.TabCosiumPaiements), tabLoading);
-const TabFidelite = dynamic(() => import("../tabs/TabFidelite").then((m) => m.TabFidelite), tabLoading);
-const TabPEC = dynamic(() => import("../tabs/TabPEC").then((m) => m.TabPEC), tabLoading);
-const TabActivite = dynamic(() => import("../tabs/TabActivite").then((m) => m.TabActivite), tabLoading);
-const TabRapprochement = dynamic(() => import("../tabs/TabRapprochement").then((m) => m.TabRapprochement), tabLoading);
-const TabSAV = dynamic(() => import("../tabs/TabSAV").then((m) => m.TabSAV), tabLoading);
+// Tabs secondaires (lazy-loaded → reduction bundle initial).
+// Next.js exige que le 2e argument de `dynamic()` soit un object literal (pas une reference).
+const TabMarketing = dynamic(() => import("../tabs/TabMarketing").then((m) => m.TabMarketing), {
+  loading: () => <LoadingState text="Chargement..." />,
+});
+const TabHistorique = dynamic(() => import("../tabs/TabHistorique").then((m) => m.TabHistorique), {
+  loading: () => <LoadingState text="Chargement..." />,
+});
+const TabCosiumDocuments = dynamic(() => import("../tabs/TabCosiumDocuments").then((m) => m.TabCosiumDocuments), {
+  loading: () => <LoadingState text="Chargement..." />,
+});
+const TabCosiumPaiements = dynamic(() => import("../tabs/TabCosiumPaiements").then((m) => m.TabCosiumPaiements), {
+  loading: () => <LoadingState text="Chargement..." />,
+});
+const TabFidelite = dynamic(() => import("../tabs/TabFidelite").then((m) => m.TabFidelite), {
+  loading: () => <LoadingState text="Chargement..." />,
+});
+const TabPEC = dynamic(() => import("../tabs/TabPEC").then((m) => m.TabPEC), {
+  loading: () => <LoadingState text="Chargement..." />,
+});
+const TabActivite = dynamic(() => import("../tabs/TabActivite").then((m) => m.TabActivite), {
+  loading: () => <LoadingState text="Chargement..." />,
+});
+const TabRapprochement = dynamic(() => import("../tabs/TabRapprochement").then((m) => m.TabRapprochement), {
+  loading: () => <LoadingState text="Chargement..." />,
+});
+const TabSAV = dynamic(() => import("../tabs/TabSAV").then((m) => m.TabSAV), {
+  loading: () => <LoadingState text="Chargement..." />,
+});
 
 export type Tab =
   | "resume"
