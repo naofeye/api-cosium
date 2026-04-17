@@ -31,25 +31,32 @@ def _mock_storage(monkeypatch):
     monkeypatch.setattr(storage_instance, "ensure_bucket", MagicMock(return_value=None))
 
 
+@pytest.fixture(autouse=True)
+def _mock_celery_delay(monkeypatch):
+    """Mock Celery `.delay()` : Redis/kombu n'est pas dispo en CI.
+
+    Toute `task.delay(...)` essaie de publier vers Redis broker -> kombu.OperationalError.
+    Remplace la methode `.delay` sur chaque task Celery utilisee par un MagicMock.
+    """
+    from app.tasks.email_tasks import send_email_async
+
+    monkeypatch.setattr(send_email_async, "delay", MagicMock())
+
+
 # Tests preexistants casses — CI rouge depuis 2026-04-12.
 # Ces suites dependent de services externes absents en CI (Redis, creds Cosium)
 # ou sont desynchronisees avec le code (services refactores, schemas modifies).
 # Skip explicite avec raison claire + tracking dans TODO.md P1 section "Tests preexistants".
 # Chaque ligne = `nodeid` pytest (chemin::classe::methode ou chemin::methode).
 _PREEXISTING_BROKEN_TESTS: dict[str, str] = {
-    # consolidation_service refactore, mocks obsoletes (documente audit 2026-04-16)
-    "tests/test_batch_operations.py::test_prepare_batch_pec": "consolidation_service refactor",
-    "tests/test_batch_operations.py::test_process_batch_consolidates_all": "consolidation_service refactor",
-    "tests/test_batch_operations.py::test_process_batch_handles_errors": "consolidation_service refactor",
+    # test_batch_operations : FIX (patches passent de batch_operation_service a batch_processing_service)
     # test_restore_clears_deleted_at : FIX (check deleted_at en BDD au lieu de ClientResponse)
     # test_cookies_have_samesite_lax : FIX (renomme en test_cookies_have_samesite_strict)
     # test_cosium.* : FIX (creds Cosium fake seeds dans db_fixture du conftest)
     # test_cosium_document_sync.py::test_sync_customer_documents_handles_download_error : FIX (service attrape Exception generale)
     # test_cosium_sync_extended : FIX (tests updated pour mocker les services actuels, pas _get_connector_for_tenant)
     # Upload document : FIX (mock storage dans _mock_storage autouse fixture)
-    # Forgot password : depend de Redis/Celery (kombu error in CI)
-    "tests/test_forgot_password.py::TestForgotPassword::test_forgot_password_existing_email_returns_204": "kombu/Redis manquant en CI",
-    "tests/test_forgot_password.py::TestForgotPassword::test_forgot_password_creates_token_in_db": "kombu/Redis manquant en CI",
+    # test_forgot_password : FIX (mock send_email_async.delay dans _mock_celery_delay autouse)
     # test_health.* : FIX (tests utilisent auth_headers + renomme _admin_requires_auth)
     # test_monthly_report_invalid_month : FIX (accepte 400 OU 422)
     # test_ocam_operators.* : FIX (schema specific_rules: list -> dict[str, Any])
@@ -57,23 +64,11 @@ _PREEXISTING_BROKEN_TESTS: dict[str, str] = {
     "tests/test_ocr_parsers.py::TestExtractTextFromPdf::test_pdfplumber_exception_handled": "mock pdfplumber",
     # Onboarding : mock Cosium connection
     "tests/test_onboarding.py::test_connect_cosium_failure": "mock Cosium connection",
-    # PEC intelligence : services refactores (correct_field, create_pec_from_preparation absents)
-    "tests/test_pec_intelligence.py::TestPecPreparation::test_correct_field": "pec_preparation_service refactor",
-    "tests/test_pec_intelligence.py::TestPecPreparation::test_add_and_list_documents": "service refactor",
-    "tests/test_pec_intelligence.py::TestPecPreparation::test_refresh_preparation": "service refactor",
-    "tests/test_pec_intelligence.py::TestPecPreparation::test_refresh_preserves_corrections": "service refactor",
-    "tests/test_pec_intelligence.py::TestPecPreparation::test_submit_not_ready_fails": "service refactor",
-    "tests/test_pec_intelligence.py::TestPecPreparation::test_submit_preparation_creates_pec": "service refactor",
-    "tests/test_pec_real_flow.py::TestPecRealFlow::test_full_pec_flow_end_to_end": "service refactor",
-    "tests/test_pec_real_flow.py::TestPecRealFlow::test_pec_preparation_auto_attaches_documents": "service refactor",
+    # test_pec_intelligence + test_pec_real_flow : FIX (re-exports pec_consolidation_service + pec_precontrol_service dans pec_preparation_service)
     # test_sync_integrity + test_sync_transactions : FIX (creds Cosium fake seeds dans db_fixture)
     # sauf test_sync_all_returns_has_errors_on_partial_failure qui a un bug 207 vs 200 a investiguer
     "tests/test_sync_transactions.py::test_sync_all_returns_has_errors_on_partial_failure": "TODO: endpoint retourne 207 au lieu de 200",
-    # v12 e2e : services refactores
-    "tests/test_v12_e2e.py::TestPecFullFlow::test_05_correct_field": "pec_preparation_service refactor",
-    "tests/test_v12_e2e.py::TestPecFullFlow::test_06_refresh_preparation": "service refactor",
-    "tests/test_v12_e2e.py::TestPecFullFlow::test_07_submit_preparation_creates_pec": "service refactor",
-    "tests/test_v12_e2e.py::TestPecFullFlow::test_08_submit_with_errors_rejected": "service refactor",
+    # test_v12_e2e : FIX (re-exports pec_preparation_service)
 }
 
 

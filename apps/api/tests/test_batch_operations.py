@@ -91,7 +91,7 @@ def test_create_batch(db, client: TestClient, auth_headers: dict, default_tenant
     assert all(i.status == "en_attente" for i in items)
 
 
-@patch("app.services.batch_operation_service.consolidation_service.consolidate_client_for_pec")
+@patch("app.services.batch_processing_service.consolidation_service.consolidate_client_for_pec")
 def test_process_batch_consolidates_all(mock_consolidate, db, client: TestClient, auth_headers: dict, default_tenant: Tenant):
     """Process batch consolidates all clients."""
     from app.domain.schemas.consolidation import ConsolidatedClientProfile
@@ -118,7 +118,7 @@ def test_process_batch_consolidates_all(mock_consolidate, db, client: TestClient
     assert mock_consolidate.call_count == 2
 
 
-@patch("app.services.batch_operation_service.consolidation_service.consolidate_client_for_pec")
+@patch("app.services.batch_processing_service.consolidation_service.consolidate_client_for_pec")
 def test_process_batch_handles_errors(mock_consolidate, db, client: TestClient, auth_headers: dict, default_tenant: Tenant):
     """Process batch handles individual client errors gracefully."""
     from app.domain.schemas.consolidation import ConsolidatedClientProfile
@@ -148,8 +148,8 @@ def test_process_batch_handles_errors(mock_consolidate, db, client: TestClient, 
     assert data["clients_erreur"] == 1
 
 
-@patch("app.services.batch_operation_service.pec_preparation_service.prepare_pec")
-@patch("app.services.batch_operation_service.consolidation_service.consolidate_client_for_pec")
+@patch("app.services.batch_processing_service.pec_preparation_service.prepare_pec")
+@patch("app.services.batch_processing_service.consolidation_service.consolidate_client_for_pec")
 def test_prepare_batch_pec(mock_consolidate, mock_prepare, db, client: TestClient, auth_headers: dict, default_tenant: Tenant):
     """Prepare batch PEC creates PEC for pret items."""
     from unittest.mock import MagicMock

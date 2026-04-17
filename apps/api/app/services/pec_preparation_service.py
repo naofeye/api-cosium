@@ -25,14 +25,36 @@ from app.repositories import pec_audit_repo, pec_preparation_repo
 from app.services import audit_service, consolidation_service
 from app.services.incoherence_detector import detect_incoherences
 
-# Re-exports for backward compatibility
+# Re-exports for backward compatibility (API publique historique).
+# Les fonctions metier vivent maintenant dans pec_consolidation_service
+# et pec_precontrol_service ; ce module garde la facade stable.
 from app.services.pec_consolidation_service import (
     _to_response,
+    correct_field,
+    refresh_preparation,
 )
 from app.services.pec_precontrol_service import (
     _auto_attach_documents,
     _validate_customer,
+    add_document,
+    create_pec_from_preparation,
+    list_documents,
 )
+
+__all__ = [
+    "list_all_preparations",
+    "prepare_pec",
+    "get_preparation",
+    "list_preparations_for_customer",
+    "validate_field",
+    # Re-exports pec_consolidation_service
+    "correct_field",
+    "refresh_preparation",
+    # Re-exports pec_precontrol_service
+    "add_document",
+    "create_pec_from_preparation",
+    "list_documents",
+]
 
 logger = get_logger("pec_preparation_service")
 
