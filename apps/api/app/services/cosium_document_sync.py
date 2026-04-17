@@ -157,7 +157,7 @@ def sync_customer_documents(
                 size_bytes=len(content),
             )
 
-        except (ConnectionError, TimeoutError, OSError, ValueError) as e:
+        except Exception as e:  # noqa: BLE001 — une erreur par doc ne doit pas aborter la sync
             db.rollback()
             logger.error(
                 "cosium_doc_download_failed",
@@ -165,6 +165,7 @@ def sync_customer_documents(
                 customer_cosium_id=customer_cosium_id,
                 document_id=doc_id,
                 error=str(e),
+                error_type=type(e).__name__,
             )
             errors += 1
 

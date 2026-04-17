@@ -185,18 +185,15 @@ class TestPrescriptionAdapter:
 class TestDocumentProxy:
     def test_list_documents(self, client, auth_headers, db, default_tenant):
         """GET /api/v1/cosium-documents/{id} returns documents list."""
-        mock_connector = MagicMock(spec=CosiumConnector)
-        mock_connector.get_customer_documents.return_value = [
+        docs_payload = [
             {"document_id": 1, "label": "Ordonnance", "type": "PRESCRIPTION", "date": "2026-03-20", "size": 12345},
             {"document_id": 2, "label": "Devis", "type": "QUOTE", "date": "2026-03-21", "size": None},
         ]
 
         with patch(
-            "app.api.routers.cosium_documents._get_connector_for_tenant"
-        ) as mock_get, patch(
-            "app.api.routers.cosium_documents._authenticate_connector"
+            "app.api.routers.cosium_documents.list_customer_documents_from_cosium",
+            return_value=docs_payload,
         ):
-            mock_get.return_value = (mock_connector, default_tenant)
             resp = client.get("/api/v1/cosium-documents/99", headers=auth_headers)
 
         assert resp.status_code == 200
@@ -207,15 +204,10 @@ class TestDocumentProxy:
 
     def test_download_document(self, client, auth_headers, db, default_tenant):
         """GET /api/v1/cosium-documents/{id}/{doc_id}/download proxies binary content."""
-        mock_connector = MagicMock(spec=CosiumConnector)
-        mock_connector.get_document_content.return_value = b"%PDF-1.4 fake content"
-
         with patch(
-            "app.api.routers.cosium_documents._get_connector_for_tenant"
-        ) as mock_get, patch(
-            "app.api.routers.cosium_documents._authenticate_connector"
+            "app.api.routers.cosium_documents.download_document_with_fallback",
+            return_value=(b"%PDF-1.4 fake content", "application/pdf", "doc.pdf"),
         ):
-            mock_get.return_value = (mock_connector, default_tenant)
             resp = client.get("/api/v1/cosium-documents/99/1/download", headers=auth_headers)
 
         assert resp.status_code == 200
@@ -224,15 +216,12 @@ class TestDocumentProxy:
 
     def test_download_cosium_error(self, client, auth_headers, db, default_tenant):
         """Download returns 502 when Cosium fails."""
-        mock_connector = MagicMock(spec=CosiumConnector)
-        mock_connector.get_document_content.side_effect = Exception("Cosium timeout")
+        from app.core.exceptions import ExternalServiceError
 
         with patch(
-            "app.api.routers.cosium_documents._get_connector_for_tenant"
-        ) as mock_get, patch(
-            "app.api.routers.cosium_documents._authenticate_connector"
+            "app.api.routers.cosium_documents.download_document_with_fallback",
+            side_effect=ExternalServiceError("Cosium timeout", service="cosium"),
         ):
-            mock_get.return_value = (mock_connector, default_tenant)
             resp = client.get("/api/v1/cosium-documents/99/1/download", headers=auth_headers)
 
         assert resp.status_code == 502

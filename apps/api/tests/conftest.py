@@ -43,14 +43,9 @@ _PREEXISTING_BROKEN_TESTS: dict[str, str] = {
     "tests/test_batch_operations.py::test_process_batch_handles_errors": "consolidation_service refactor",
     # test_restore_clears_deleted_at : FIX (check deleted_at en BDD au lieu de ClientResponse)
     # test_cookies_have_samesite_lax : FIX (renomme en test_cookies_have_samesite_strict)
-    # Mocks Cosium incomplets : creds ERP non configures en CI
-    "tests/test_cosium.py::test_sync_customers_mock": "creds Cosium manquants en CI",
-    "tests/test_cosium.py::test_sync_invoices_mock": "creds Cosium manquants en CI",
-    "tests/test_cosium.py::test_sync_products_mock": "creds Cosium manquants en CI",
-    "tests/test_cosium_document_sync.py::test_sync_customer_documents_handles_download_error": "mock HTTP incomplet",
-    "tests/test_cosium_sync_extended.py::TestDocumentProxy::test_list_documents": "_get_connector_for_tenant renomme",
-    "tests/test_cosium_sync_extended.py::TestDocumentProxy::test_download_document": "_get_connector_for_tenant renomme",
-    "tests/test_cosium_sync_extended.py::TestDocumentProxy::test_download_cosium_error": "_get_connector_for_tenant renomme",
+    # test_cosium.* : FIX (creds Cosium fake seeds dans db_fixture du conftest)
+    # test_cosium_document_sync.py::test_sync_customer_documents_handles_download_error : FIX (service attrape Exception generale)
+    # test_cosium_sync_extended : FIX (tests updated pour mocker les services actuels, pas _get_connector_for_tenant)
     # Upload document : FIX (mock storage dans _mock_storage autouse fixture)
     # Forgot password : depend de Redis/Celery (kombu error in CI)
     "tests/test_forgot_password.py::TestForgotPassword::test_forgot_password_existing_email_returns_204": "kombu/Redis manquant en CI",
@@ -71,16 +66,9 @@ _PREEXISTING_BROKEN_TESTS: dict[str, str] = {
     "tests/test_pec_intelligence.py::TestPecPreparation::test_submit_preparation_creates_pec": "service refactor",
     "tests/test_pec_real_flow.py::TestPecRealFlow::test_full_pec_flow_end_to_end": "service refactor",
     "tests/test_pec_real_flow.py::TestPecRealFlow::test_pec_preparation_auto_attaches_documents": "service refactor",
-    # Sync integrity / transactions : mocks Cosium incomplets
-    "tests/test_sync_integrity.py::test_sync_creates_correct_customers": "mocks Cosium incomplets",
-    "tests/test_sync_integrity.py::test_sync_no_duplicates": "mocks Cosium incomplets",
-    "tests/test_sync_integrity.py::test_sync_updates_missing_fields": "mocks Cosium incomplets",
-    "tests/test_sync_transactions.py::test_batch_errors_counted_in_service_result": "mocks Cosium incomplets",
-    "tests/test_sync_transactions.py::test_sync_all_returns_has_errors_on_partial_failure": "207 vs 200",
-    "tests/test_sync_transactions.py::test_sync_continues_after_record_failure": "mocks Cosium incomplets",
-    "tests/test_sync_transactions.py::test_sync_customers_flushes_in_batches": "mocks Cosium incomplets",
-    "tests/test_sync_transactions.py::test_sync_preserves_existing_data_on_failure": "mocks Cosium incomplets",
-    "tests/test_sync_transactions.py::test_sync_with_empty_erp_data": "mocks Cosium incomplets",
+    # test_sync_integrity + test_sync_transactions : FIX (creds Cosium fake seeds dans db_fixture)
+    # sauf test_sync_all_returns_has_errors_on_partial_failure qui a un bug 207 vs 200 a investiguer
+    "tests/test_sync_transactions.py::test_sync_all_returns_has_errors_on_partial_failure": "TODO: endpoint retourne 207 au lieu de 200",
     # v12 e2e : services refactores
     "tests/test_v12_e2e.py::TestPecFullFlow::test_05_correct_field": "pec_preparation_service refactor",
     "tests/test_v12_e2e.py::TestPecFullFlow::test_06_refresh_preparation": "service refactor",
@@ -111,7 +99,16 @@ def db_fixture():
     org = Organization(name="Test Org", slug="test-org", plan="solo")
     db.add(org)
     db.flush()
-    tenant = Tenant(organization_id=org.id, name="Test Magasin", slug="test-magasin")
+    tenant = Tenant(
+        organization_id=org.id,
+        name="Test Magasin",
+        slug="test-magasin",
+        # Creds Cosium fake pour satisfaire _authenticate_connector dans les tests
+        # qui mockent get_connector mais pas _authenticate_connector.
+        cosium_tenant="test-tenant",
+        cosium_login="test-login",
+        cosium_password_enc="test-password-not-encrypted",
+    )
     db.add(tenant)
     db.flush()
     # Seed document types for completeness tests
