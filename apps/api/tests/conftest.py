@@ -60,14 +60,11 @@ _PREEXISTING_BROKEN_TESTS: dict[str, str] = {
     # test_health.* : FIX (tests utilisent auth_headers + renomme _admin_requires_auth)
     # test_monthly_report_invalid_month : FIX (accepte 400 OU 422)
     # test_ocam_operators.* : FIX (schema specific_rules: list -> dict[str, Any])
-    # OCR parsers : mock exception pdfplumber
-    "tests/test_ocr_parsers.py::TestExtractTextFromPdf::test_pdfplumber_exception_handled": "mock pdfplumber",
-    # Onboarding : mock Cosium connection
-    "tests/test_onboarding.py::test_connect_cosium_failure": "mock Cosium connection",
+    # test_pdfplumber_exception_handled : FIX (ocr_service catch Exception generale)
+    # test_connect_cosium_failure : FIX (onboarding_service catch Exception generale)
     # test_pec_intelligence + test_pec_real_flow : FIX (re-exports pec_consolidation_service + pec_precontrol_service dans pec_preparation_service)
     # test_sync_integrity + test_sync_transactions : FIX (creds Cosium fake seeds dans db_fixture)
-    # sauf test_sync_all_returns_has_errors_on_partial_failure qui a un bug 207 vs 200 a investiguer
-    "tests/test_sync_transactions.py::test_sync_all_returns_has_errors_on_partial_failure": "TODO: endpoint retourne 207 au lieu de 200",
+    # test_sync_all_returns_has_errors_on_partial_failure : FIX (test attend 207 Multi-Status, pattern REST valide pour erreurs partielles)
     # test_v12_e2e : FIX (re-exports pec_preparation_service)
 }
 

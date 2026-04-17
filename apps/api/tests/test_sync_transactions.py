@@ -127,7 +127,8 @@ def test_sync_all_returns_has_errors_on_partial_failure(
 ) -> None:
     """sync_all should return has_errors=True when one domain fails."""
     resp = client.post("/api/v1/sync/all", headers=auth_headers)
-    assert resp.status_code == 200
+    # 207 Multi-Status sur echec partiel (pattern REST : sous-operations mixtes)
+    assert resp.status_code == 207
     data = resp.json()
     assert data["has_errors"] is True
 

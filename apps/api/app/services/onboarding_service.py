@@ -140,8 +140,8 @@ def connect_cosium(db: Session, tenant_id: int, payload: ConnectCosiumRequest) -
             login=payload.cosium_login,
             password=payload.cosium_password,
         )
-    except (ConnectionError, TimeoutError, OSError, ValueError) as e:
-        logger.warning("erp_connection_failed", tenant_id=tenant_id, error=str(e))
+    except Exception as e:  # noqa: BLE001 — echec auth ERP = erreur metier, pas 500
+        logger.warning("erp_connection_failed", tenant_id=tenant_id, error=str(e), error_type=type(e).__name__)
         raise BusinessError("Connexion ERP echouee. Verifiez vos identifiants et reessayez.") from e
 
     tenant.cosium_tenant = payload.cosium_tenant

@@ -214,8 +214,8 @@ def extract_text_from_pdf(file_bytes: bytes) -> ExtractedDocument:
             for page in pdf.pages:
                 page_text = page.extract_text() or ""
                 text_parts.append(page_text)
-    except (ValueError, TypeError, OSError) as exc:
-        logger.warning("pdfplumber_extraction_failed", error=str(exc))
+    except Exception as exc:  # noqa: BLE001 — un PDF corrompu ne doit pas aborter, fallback OCR
+        logger.warning("pdfplumber_extraction_failed", error=str(exc), error_type=type(exc).__name__)
 
     native_text = "\n".join(text_parts).strip()
 
