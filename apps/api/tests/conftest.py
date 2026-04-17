@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -11,6 +13,22 @@ from app.main import app
 from app.models import DocumentType, Organization, ReminderTemplate, Tenant, TenantUser, User
 from app.security import hash_password
 from app.seed import DOCUMENT_TYPES
+
+
+@pytest.fixture(autouse=True)
+def _mock_storage(monkeypatch):
+    """Mock methodes S3/MinIO : MinIO n'est pas disponible en CI (seul postgres est service).
+
+    Patch les methodes de l'instance singleton pour couvrir les modules qui
+    importent `from app.integrations.storage import storage` (binding deja fige).
+    """
+    from app.integrations.storage import storage as storage_instance
+
+    monkeypatch.setattr(storage_instance, "upload_file", MagicMock(return_value="mocked-key"))
+    monkeypatch.setattr(storage_instance, "get_download_url", MagicMock(return_value="http://mocked-url/download"))
+    monkeypatch.setattr(storage_instance, "download_file", MagicMock(return_value=b"mocked content"))
+    monkeypatch.setattr(storage_instance, "delete_file", MagicMock(return_value=None))
+    monkeypatch.setattr(storage_instance, "ensure_bucket", MagicMock(return_value=None))
 
 
 # Tests preexistants casses — CI rouge depuis 2026-04-12.
@@ -33,12 +51,7 @@ _PREEXISTING_BROKEN_TESTS: dict[str, str] = {
     "tests/test_cosium_sync_extended.py::TestDocumentProxy::test_list_documents": "_get_connector_for_tenant renomme",
     "tests/test_cosium_sync_extended.py::TestDocumentProxy::test_download_document": "_get_connector_for_tenant renomme",
     "tests/test_cosium_sync_extended.py::TestDocumentProxy::test_download_cosium_error": "_get_connector_for_tenant renomme",
-    # Upload document : validation magic bytes plus stricte -> tests retournent 400 au lieu de 201
-    "tests/test_document_service.py::TestListDocuments::test_list_documents_after_upload": "upload 400 (magic bytes)",
-    "tests/test_document_service.py::TestUploadDocument::test_upload_pdf_success": "upload 400 (magic bytes)",
-    "tests/test_document_service.py::TestUploadDocument::test_upload_image_jpeg": "upload 400 (magic bytes)",
-    "tests/test_document_service.py::TestUploadDocument::test_upload_multiple_documents": "upload 400 (magic bytes)",
-    "tests/test_documents.py::test_upload_document": "upload 400 (magic bytes)",
+    # Upload document : FIX (mock storage dans _mock_storage autouse fixture)
     # Forgot password : depend de Redis/Celery (kombu error in CI)
     "tests/test_forgot_password.py::TestForgotPassword::test_forgot_password_existing_email_returns_204": "kombu/Redis manquant en CI",
     "tests/test_forgot_password.py::TestForgotPassword::test_forgot_password_creates_token_in_db": "kombu/Redis manquant en CI",
