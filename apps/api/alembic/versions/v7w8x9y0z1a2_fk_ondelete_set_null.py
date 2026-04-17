@@ -13,11 +13,12 @@ depends_on = None
 
 
 # (table, column, parent_table, parent_column)
+# Note : cosium_third_party_payments n'a pas de colonne customer_id (liaison
+# via invoice_cosium_id uniquement), donc absente de cette liste.
 _SET_NULL_FKS = [
     ("cosium_documents", "customer_id", "customers", "id"),
     ("cosium_invoices", "customer_id", "customers", "id"),
     ("cosium_payments", "customer_id", "customers", "id"),
-    ("cosium_third_party_payments", "customer_id", "customers", "id"),
     ("cosium_customer_tags", "customer_id", "customers", "id"),
     ("documents", "document_type_id", "document_types", "id"),
     ("interactions", "created_by", "users", "id"),
