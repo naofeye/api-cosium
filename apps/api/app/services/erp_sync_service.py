@@ -129,10 +129,15 @@ def sync_customers(db: Session, tenant_id: int, user_id: int = 0) -> dict:
         if processed % BATCH_SIZE == 0:
             try:
                 db.flush()
-            except SQLAlchemyError as e:
+            except Exception as e:  # noqa: BLE001 — un batch rate ne doit pas aborter la sync
                 db.rollback()
                 batch_errors += 1
-                logger.error("sync_customers_batch_error", batch=processed // BATCH_SIZE, error=str(e))
+                logger.error(
+                    "sync_customers_batch_error",
+                    batch=processed // BATCH_SIZE,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
 
     # Final commit for remaining records + tenant sync timestamp
     try:
@@ -242,8 +247,8 @@ def enrich_top_clients_metadata(
         if enriched % 50 == 0 and enriched > 0:
             try:
                 db.flush()
-            except SQLAlchemyError as e:
-                logger.error("enrich_batch_flush_error", error=str(e))
+            except Exception as e:  # noqa: BLE001 — un batch rate ne doit pas aborter l'enrichissement
+                logger.error("enrich_batch_flush_error", error=str(e), error_type=type(e).__name__)
 
     try:
         db.commit()
