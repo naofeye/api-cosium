@@ -320,3 +320,50 @@ def mfa_disable(
         from app.core.exceptions import AuthenticationError
         raise AuthenticationError("Mot de passe incorrect")
     mfa_service.disable_mfa(db, current_user, password_verified=True)
+
+
+# --- MFA Backup codes ---
+
+
+class MfaBackupCodesResponse(BaseModel):
+    codes: list[str]
+    remaining: int
+
+
+class MfaBackupCodesCountResponse(BaseModel):
+    remaining: int
+
+
+@router.post(
+    "/mfa/backup-codes/generate",
+    response_model=MfaBackupCodesResponse,
+    summary="Generer 10 codes de secours MFA",
+    description=(
+        "Remplace les anciens codes. Les codes ne sont montres QU'UNE SEULE FOIS : "
+        "l'utilisateur doit les stocker immediatement (print / password manager). "
+        "Chaque code est utilisable une fois en remplacement du code TOTP."
+    ),
+)
+def mfa_backup_codes_generate(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> MfaBackupCodesResponse:
+    from app.services import mfa_service
+
+    codes = mfa_service.generate_backup_codes(db, current_user)
+    return MfaBackupCodesResponse(codes=codes, remaining=len(codes))
+
+
+@router.get(
+    "/mfa/backup-codes/count",
+    response_model=MfaBackupCodesCountResponse,
+    summary="Nombre de codes de secours restants",
+)
+def mfa_backup_codes_count(
+    current_user: User = Depends(get_current_user),
+) -> MfaBackupCodesCountResponse:
+    from app.services import mfa_service
+
+    return MfaBackupCodesCountResponse(
+        remaining=mfa_service.count_remaining_backup_codes(current_user),
+    )

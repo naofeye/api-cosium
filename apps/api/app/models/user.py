@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -18,6 +18,9 @@ class User(Base):
     totp_secret_enc: Mapped[str | None] = mapped_column(String(255), nullable=True)
     totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     totp_last_used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Codes de secours MFA : JSON list de bcrypt hashes, invalides a usage unique.
+    # Stocke en Text (pouvant depasser 255 chars avec 10 hashes bcrypt).
+    totp_backup_codes_hash_json: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class PasswordResetToken(Base):

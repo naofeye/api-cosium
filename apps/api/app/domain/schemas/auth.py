@@ -38,7 +38,14 @@ class ResetPasswordRequest(BaseModel, PasswordMixin):
 class LoginRequest(BaseModel):
     email: str = Field(..., min_length=1, max_length=255)
     password: str = Field(..., min_length=1)
-    totp_code: str | None = Field(default=None, min_length=6, max_length=6, pattern=r"^\d{6}$")
+    # Accepte soit un code TOTP 6 digits, soit un backup code 8 hex chars
+    # (avec ou sans tiret XXXX-XXXX). Validation fine dans mfa_service.verify_login_code.
+    totp_code: str | None = Field(
+        default=None,
+        min_length=6,
+        max_length=16,
+        pattern=r"^[A-Za-z0-9\-\s]{6,16}$",
+    )
 
 
 class ChangePasswordRequest(BaseModel, PasswordMixin):
