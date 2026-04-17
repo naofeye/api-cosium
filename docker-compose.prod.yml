@@ -16,10 +16,21 @@ networks:
     driver: bridge
     internal: true  # bloque tout trafic vers l'exterieur (egress)
 
+# Log rotation par defaut pour tous les services (driver json-file Docker).
+# 50MB par fichier, 5 fichiers max = 250MB plafond par container.
+# Evite le remplissage du disque sur un incident verbose.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "50m"
+    max-file: "5"
+    compress: "true"
+
 services:
   postgres:
     ports: !reset []
     networks: [internal]
+    logging: *default-logging
     deploy:
       resources:
         limits:
@@ -31,6 +42,7 @@ services:
   redis:
     ports: !reset []
     networks: [internal]
+    logging: *default-logging
     command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
     deploy:
       resources:
@@ -41,6 +53,7 @@ services:
   minio:
     ports: !reset []
     networks: [internal]
+    logging: *default-logging
     deploy:
       resources:
         limits:
@@ -56,6 +69,7 @@ services:
     # api a besoin des 2 reseaux : internal pour DB/redis/minio, public pour
     # Cosium/Claude/Stripe (appels sortants via internet) et reception trafic via nginx.
     networks: [internal, public]
+    logging: *default-logging
     deploy:
       resources:
         limits:
@@ -67,6 +81,7 @@ services:
   web:
     ports: !reset []
     networks: [public]
+    logging: *default-logging
     deploy:
       resources:
         limits:
@@ -76,6 +91,7 @@ services:
   worker:
     # worker execute les tasks de sync Cosium + envoi email SMTP -> besoin internet
     networks: [internal, public]
+    logging: *default-logging
     deploy:
       resources:
         limits:
@@ -86,6 +102,7 @@ services:
 
   beat:
     networks: [internal]
+    logging: *default-logging
     deploy:
       resources:
         limits:
@@ -96,6 +113,7 @@ services:
     image: nginx:alpine
     restart: unless-stopped
     networks: [public]
+    logging: *default-logging
     depends_on:
       api:
         condition: service_healthy

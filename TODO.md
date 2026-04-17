@@ -34,7 +34,7 @@
 - [x] ~~MFA/TOTP backup codes~~ : 10 codes 8-hex, hashés bcrypt, usage unique. Endpoints `POST /auth/mfa/backup-codes/generate` + `GET /auth/mfa/backup-codes/count`. Migration `w8x9y0z1a2b3`. 16 tests unit + 2 tests endpoint. `LoginRequest.totp_code` accepte TOTP (6 digits) OU backup (8 hex, avec/sans tiret/lowercase).
 - [x] ~~MFA forcée pour admins~~ : flag `Tenant.require_admin_mfa` (défaut False). Login refuse avec `MFA_SETUP_REQUIRED` si user admin (TenantUser.role) dans un tenant où le flag est on et n'a pas TOTP. Endpoints `GET/PATCH /api/v1/admin/tenant/security` (audit trail). Migration `x9y0z1a2b3c4`. 8 tests (4 service + 4 endpoints).
 - [x] ~~IDOR avatar client~~ : faux positif audit — vérifié `client_service.get_avatar_url` filtre déjà par `tenant_id` via `client_repo.get_by_id_active`, et storage_key inclut `tenants/{tenant_id}/avatars/...` (isolation physique).
-- [ ] **Token blacklist fail-closed + alerting Sentry** : exception Redis capturée au lieu de swallow silencieux — `security.py:98`
+- [x] ~~Token blacklist fail-closed + alerting Sentry~~ : helper `_report_security_incident_to_sentry(exc, tag)` dans `security.py`, appelé dans `blacklist_setex_failed`, `blacklist_redis_unavailable`, `blacklist_check_failed`. Tag `security_incident` + level `error`. Best-effort (no-op si Sentry non configuré).
 - [ ] **Cookie SameSite=Strict** : passer `samesite="lax"` → `"strict"` sur cookie auth principal — `auth.py:28`
 - [x] ~~Mass-assignment whitelist tous repos~~ : étendu à `onboarding_repo.create_organization/tenant/user` (3 whitelists `_ORG_WRITABLE`, `_TENANT_WRITABLE`, `_USER_WRITABLE`). Protège contre injection `totp_enabled=True`, `require_admin_mfa=True`, `is_god_mode`, etc. 4 tests.
 - [x] ~~Rate limit local ≠ test~~ : déjà fait dans `core/rate_limiter.py:120` (`if settings.app_env == "test": ...`). Local garde bien le rate limit actif.
@@ -65,7 +65,7 @@
 
 ### Admin / observabilité
 - [ ] **Alerting** : Slack/email si sync Cosium échoue, latence > 5s, taux erreur > 5%
-- [ ] **Log rotation** : taille + temps (fichier + stdout Docker)
+- [x] ~~Log rotation~~ : ancre YAML `x-default-logging` dans `docker-compose.prod.yml` avec driver json-file, `max-size: 50m`, `max-file: 5`, compression gzip. Appliquée à tous les services (postgres, redis, minio, api, web, worker, beat, nginx) = plafond 250MB par container.
 
 ---
 

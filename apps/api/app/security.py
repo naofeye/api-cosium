@@ -93,6 +93,7 @@ def blacklist_access_token(token: str) -> None:
             error=str(exc),
             error_type=type(exc).__name__,
         )
+        _report_security_incident_to_sentry(exc, "blacklist_setex_failed")
 
 
 def is_token_blacklisted(token: str) -> bool:
@@ -111,11 +112,35 @@ def is_token_blacklisted(token: str) -> bool:
         r = get_redis_client()
         if r is None:
             logger.warning("blacklist_redis_unavailable", fail_closed=fail_closed)
+            _report_security_incident_to_sentry(
+                RuntimeError("Redis unavailable for token blacklist"),
+                "blacklist_redis_unavailable",
+            )
             return fail_closed
         return bool(r.exists(_token_blacklist_key(token)))
     except Exception as exc:
         logger.warning("blacklist_check_failed", error=str(exc), fail_closed=fail_closed)
+        _report_security_incident_to_sentry(exc, "blacklist_check_failed")
         return fail_closed
+
+
+def _report_security_incident_to_sentry(exc: Exception, tag: str) -> None:
+    """Capture explicite vers Sentry pour les incidents securite (blacklist, auth).
+
+    Une log warning seule peut passer inapercue en prod. Sentry notifie l'equipe
+    on-call immediatement. Best-effort : si Sentry pas init, no-op silencieux.
+    """
+    if not settings.sentry_dsn:
+        return
+    try:
+        import sentry_sdk
+
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("security_incident", tag)
+            scope.set_level("error")
+            sentry_sdk.capture_exception(exc)
+    except Exception:  # noqa: BLE001 — Sentry failure ne doit jamais casser l'auth
+        pass
 
 
 def generate_refresh_token() -> str:
