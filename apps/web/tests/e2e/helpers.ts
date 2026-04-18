@@ -35,15 +35,19 @@ export async function apiLogin(
  */
 export async function uiLogin(page: Page, email: string, password: string): Promise<void> {
   await page.goto("/login", { waitUntil: "networkidle" });
-  // S'assure que React a hydraté : sinon onSubmit pas attaché -> GET natif
-  await page.waitForFunction(() => {
-    const btn = document.querySelector<HTMLButtonElement>('button[type="submit"]');
-    // React attache `__reactProps$...` sur le DOM après hydratation
-    return btn !== null && Object.keys(btn).some((k) => k.startsWith("__reactProps"));
-  }, { timeout: 10_000 });
+  // Laisse React hydrater (Next standalone + React 19 : ~500ms après networkidle).
+  // Sans ce délai, onSubmit n'est pas attaché au <form> -> submit GET natif
+  // avec password dans l'URL.
+  await page.waitForTimeout(1000);
   await page.getByLabel("Adresse email").fill(email);
   await page.getByLabel("Mot de passe").fill(password);
-  await page.getByRole("button", { name: /se connecter/i }).click();
+  // submit via JS dispatch pour bypass tout risque de GET natif résiduel :
+  // on appelle requestSubmit() sur le form qui trigger React onSubmit
+  // (preventDefault fait par handleSubmit de react-hook-form).
+  await page.evaluate(() => {
+    const form = document.querySelector<HTMLFormElement>("form");
+    form?.requestSubmit();
+  });
 }
 
 /**
