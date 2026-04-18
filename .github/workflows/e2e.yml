@@ -1,16 +1,16 @@
 name: E2E Playwright
 
-# Trigger manuel uniquement pour l'instant.
-# Raison : en CI, frontend (:3000) et API (:8000) sont cross-origin.
-# Les cookies httpOnly posés par l'API ne sont pas visibles pour les
-# fetch client-side suivants dans certaines configurations headless,
-# ce qui fait échouer les 8 tests UI qui dépendent d'un login cookie-based.
-# Les tests API-direct (5) et le flow MFA API passent.
-# Solution propre : reverse proxy nginx localhost:80 -> api:8000 + web:3000
-# (comme en prod). À faire dans une itération dédiée.
-# En local : `docker compose up` puis `cd apps/web && npm run test:e2e`
-# fonctionne car nginx proxy tout sur un seul origin.
 on:
+  push:
+    branches: [main, master]
+    paths:
+      - "apps/web/**"
+      - "apps/api/**"
+      - ".github/workflows/e2e.yml"
+  pull_request:
+    paths:
+      - "apps/web/**"
+      - "apps/api/**"
   workflow_dispatch:
 
 jobs:
@@ -41,15 +41,63 @@ jobs:
       S3_ACCESS_KEY: minioadmin
       S3_SECRET_KEY: minioadmin
       S3_BUCKET: optiflow-docs
-      # CORS : frontend appelle l'API localhost:3000 -> localhost:8000
-      CORS_ORIGINS: http://localhost:3000
-      # Public API URL exposée au frontend (build Next)
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
-      # Playwright
-      E2E_BASE_URL: http://localhost:3000
-      E2E_API_URL: http://localhost:8000
+      # nginx reverse proxy sur :80 -> frontend + API same-origin.
+      # Permet aux cookies httpOnly (SameSite=Strict) d'être consommés
+      # par les fetch client-side après login UI.
+      CORS_ORIGINS: http://localhost
+      # URL relative : le frontend build fait des fetch("/api/v1/...")
+      # qui résolvent en http://localhost/api/v1/... via le proxy.
+      NEXT_PUBLIC_API_BASE_URL: /api/v1
+      # Playwright tape le proxy nginx (même origin frontend + API)
+      E2E_BASE_URL: http://localhost
+      E2E_API_URL: http://localhost
     steps:
       - uses: actions/checkout@v4
+
+      # --- nginx reverse proxy (same-origin pour cookies httpOnly) ---
+      - name: Configure nginx reverse proxy
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y nginx
+          sudo tee /etc/nginx/sites-available/default > /dev/null <<'EOF'
+          server {
+            listen 80 default_server;
+            server_name _;
+
+            # API FastAPI
+            location /api/ {
+              proxy_pass http://127.0.0.1:8000;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+            }
+
+            # Health endpoints de l'API (hors /api/)
+            location = /health {
+              proxy_pass http://127.0.0.1:8000/health;
+              proxy_set_header Host $host;
+            }
+            location /health/ {
+              proxy_pass http://127.0.0.1:8000;
+              proxy_set_header Host $host;
+            }
+
+            # Frontend Next.js (tout le reste)
+            location / {
+              proxy_pass http://127.0.0.1:3000;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_http_version 1.1;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection "upgrade";
+            }
+          }
+          EOF
+          sudo nginx -t
+          sudo systemctl reload nginx
 
       # --- Backend ---
       - uses: actions/setup-python@v5
@@ -67,10 +115,10 @@ jobs:
           cd apps/api
           nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > /tmp/api.log 2>&1 &
           echo $! > /tmp/api.pid
-          # Attendre que l'API réponde (max 30s)
+          # Attendre que l'API réponde (via proxy nginx, max 30s)
           for i in $(seq 1 30); do
-            if curl -fsS http://localhost:8000/health >/dev/null 2>&1; then
-              echo "API up after ${i}s"
+            if curl -fsS http://localhost/health >/dev/null 2>&1; then
+              echo "API up via proxy after ${i}s"
               exit 0
             fi
             sleep 1
@@ -93,8 +141,8 @@ jobs:
           nohup npm start > /tmp/web.log 2>&1 &
           echo $! > /tmp/web.pid
           for i in $(seq 1 30); do
-            if curl -fsS http://localhost:3000/login >/dev/null 2>&1; then
-              echo "Web up after ${i}s"
+            if curl -fsS http://localhost/login >/dev/null 2>&1; then
+              echo "Web up via proxy after ${i}s"
               exit 0
             fi
             sleep 1

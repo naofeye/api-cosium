@@ -47,7 +47,7 @@ npx playwright test tests/e2e/login.spec.ts
 
 - **MFA cleanup** : le test MFA désactive MFA à la fin. Si le test crashe au milieu, le user seed peut rester en état MFA actif ; désactiver manuellement via SQL ou POST `/auth/mfa/disable`.
 - **Sérialisation** : `fullyParallel: false` + `mode: "serial"` sur MFA — les tests touchent le même user seed.
-- **CI** : `.github/workflows/e2e.yml` est en `workflow_dispatch` uniquement (trigger manuel). Raison : en CI sans reverse proxy, frontend (:3000) et API (:8000) sont cross-origin, et les cookies httpOnly posés par l'API ne sont pas consommés par les fetch client-side dans tous les contextes headless. Les 5 tests API-direct + flow MFA API passent ; les 8 tests UI cookie-based nécessitent un same-origin setup. **Solution propre à venir** : ajouter nginx au workflow comme reverse proxy (comme en prod), ou ajouter un `rewrites()` conditionnel dans `next.config.ts` pour servir `/api/v1/*` via proxy Next.
+- **CI** : `.github/workflows/e2e.yml` tourne sur push master + PR touchant `apps/web|apps/api`, plus `workflow_dispatch`. Utilise nginx comme reverse proxy sur port 80 : `/api/*` → backend `:8000`, `/*` → frontend `:3000`. Même origin garantit que les cookies httpOnly SameSite=Strict sont consommés par les fetch client-side. `NEXT_PUBLIC_API_BASE_URL=/api/v1` (relatif) pour que le frontend tape le proxy.
 - **Local** : `docker compose up` fonctionne intégralement car nginx proxy tout sur un seul origin.
 
 ## Ajouter un test
