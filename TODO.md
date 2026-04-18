@@ -83,7 +83,7 @@
 - [ ] `cosium_reference.py` router (401 L) → split par entité référentielle
 - [ ] `apps/web/src/app/clients/[id]/tabs/TabResume.tsx` (560 L) → sous-composants
 - [ ] `apps/web/src/app/clients/[id]/tabs/TabCosiumDocuments.tsx` (432 L) → extraire `DocumentList` + `ExtractionPanel`
-- [ ] `apps/web/src/lib/hooks/use-api.ts` (331 L, 48 hooks) → split `hooks/clients.ts`, `hooks/cosium.ts`, `hooks/ai.ts`, `hooks/marketing.ts`, `hooks/dashboard.ts` (re-export depuis `use-api.ts` pour compat)
+- [x] ~~`apps/web/src/lib/hooks/use-api.ts` split par domaine~~ : 331 L → 5 fichiers domaine + barrel 15 L. `clients.ts` (103 L, 13 hooks) / `cosium.ts` (197 L, 11 hooks) / `ai.ts` (18 L, 4 hooks) / `marketing.ts` (10 L, 2 hooks) / `dashboard.ts` (28 L, 5 hooks). `use-api.ts` ne fait plus que `export *` pour compat. 160/160 vitest verts, TS strict vert. Facilite tree-shaking et prépare le `dynamic()` lazy-loading par domaine.
 - [ ] `apps/api/app/services/ocr_service.py` (383 L) → split `_ocr_handlers.py` (extracteurs) + `classification.py`
 
 ### Architecture backend
