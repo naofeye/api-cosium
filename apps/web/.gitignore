@@ -1,2 +1,7 @@
 node_modules
 .next
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/

@@ -1,0 +1,128 @@
+name: E2E Playwright
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "apps/web/**"
+      - "apps/api/**"
+      - ".github/workflows/e2e.yml"
+  pull_request:
+    paths:
+      - "apps/web/**"
+      - "apps/api/**"
+  workflow_dispatch:
+
+jobs:
+  playwright:
+    name: Playwright E2E (chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: optiflow_test
+          POSTGRES_USER: optiflow
+          POSTGRES_PASSWORD: optiflow
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql+psycopg://optiflow:optiflow@localhost:5432/optiflow_test
+      JWT_SECRET: ci-test-secret-key-not-for-prod
+      ENCRYPTION_KEY: WM973v2ZmRwE1PSjiBQcFpc3lhF0Q2zrJOSdPjALgQw=
+      APP_ENV: test
+      # S3 stubs — les tests E2E n'uploadent pas vers MinIO
+      S3_ENDPOINT: http://localhost:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_BUCKET: optiflow-docs
+      # CORS : frontend appelle l'API localhost:3000 -> localhost:8000
+      CORS_ORIGINS: http://localhost:3000
+      # Public API URL exposée au frontend (build Next)
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
+      # Playwright
+      E2E_BASE_URL: http://localhost:3000
+      E2E_API_URL: http://localhost:8000
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- Backend ---
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/api/requirements.txt
+      - run: pip install -r apps/api/requirements.txt
+      - name: Apply migrations
+        run: cd apps/api && alembic upgrade head
+      - name: Seed default user/tenant
+        run: cd apps/api && python -c "from app.db.session import SessionLocal; from app.seed import seed_data; db=SessionLocal(); seed_data(db); db.close()"
+      - name: Start API (uvicorn)
+        run: |
+          cd apps/api
+          nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > /tmp/api.log 2>&1 &
+          echo $! > /tmp/api.pid
+          # Attendre que l'API réponde (max 30s)
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/health >/dev/null 2>&1; then
+              echo "API up after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "API n'a pas démarré en 30s"
+          cat /tmp/api.log
+          exit 1
+
+      # --- Frontend ---
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: cd apps/web && npm ci
+      - run: cd apps/web && npm run build
+      - name: Start Next
+        run: |
+          cd apps/web
+          nohup npm start > /tmp/web.log 2>&1 &
+          echo $! > /tmp/web.pid
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3000/login >/dev/null 2>&1; then
+              echo "Web up after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Web n'a pas démarré en 30s"
+          cat /tmp/web.log
+          exit 1
+
+      # --- Playwright ---
+      - name: Install Playwright browsers
+        run: cd apps/web && npx playwright install --with-deps chromium
+      - name: Run Playwright tests
+        run: cd apps/web && npm run test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
+
+      - name: Upload API/Web logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-logs
+          path: |
+            /tmp/api.log
+            /tmp/web.log
+          retention-days: 7
