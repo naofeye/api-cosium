@@ -28,26 +28,20 @@ export async function apiLogin(
  * Login via la page UI (utile pour récupérer un state authentifié dans le navigateur).
  * Reste sur /login si MFA requise — à l'appelant de vérifier la suite.
  *
- * Important : on attend l'hydratation React avant de cliquer, sinon le form
- * submit en GET natif (querystring visible dans l'URL), court-circuitant
- * le handleSubmit de react-hook-form. On détecte l'hydratation en attendant
- * que window.__NEXT_DATA__ soit présent ET networkidle.
+ * Submit via Enter au lieu de cliquer le bouton : le bouton reste `disabled`
+ * tant que react-hook-form (mode: onChange + Zod resolver) n'a pas revalidé
+ * le formulaire, ce qui est async et pas garanti après pressSequentially.
+ * Enter déclenche onSubmit du <form>, qui passe par handleSubmit + validation.
  */
 export async function uiLogin(page: Page, email: string, password: string): Promise<void> {
-  await page.goto("/login", { waitUntil: "networkidle" });
-  // Laisse React hydrater (Next standalone + React 19 : ~500ms après networkidle).
-  // Sans ce délai, onSubmit n'est pas attaché au <form> -> submit GET natif
-  // avec password dans l'URL.
-  await page.waitForTimeout(1000);
-  await page.getByLabel("Adresse email").fill(email);
-  await page.getByLabel("Mot de passe").fill(password);
-  // submit via JS dispatch pour bypass tout risque de GET natif résiduel :
-  // on appelle requestSubmit() sur le form qui trigger React onSubmit
-  // (preventDefault fait par handleSubmit de react-hook-form).
-  await page.evaluate(() => {
-    const form = document.querySelector<HTMLFormElement>("form");
-    form?.requestSubmit();
-  });
+  await page.goto("/login");
+  const emailField = page.getByLabel("Adresse email");
+  await emailField.click();
+  await emailField.pressSequentially(email);
+  const pwField = page.getByLabel("Mot de passe");
+  await pwField.click();
+  await pwField.pressSequentially(password);
+  await pwField.press("Enter");
 }
 
 /**
