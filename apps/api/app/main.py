@@ -1,75 +1,14 @@
 import time as _time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from starlette.middleware.gzip import GZipMiddleware as _BaseGZipMiddleware
+from fastapi import FastAPI
 
 from app import models  # noqa: F401, E402
-from app.api.routers import (
-    action_items,
-    admin_health,
-    admin_tenant_security,
-    admin_users,
-    ai,
-    ai_usage,
-    analytics,
-    audit,
-    auth,
-    banking,
-    batch_operations,
-    billing,
-    cases,
-    client_360,
-    client_mutuelles,
-    clients,
-    consents,
-    cosium_catalog,
-    cosium_commercial,
-    cosium_documents,
-    cosium_fidelity,
-    cosium_invoices,
-    cosium_notes,
-    cosium_reference,
-    cosium_sav,
-    cosium_spectacles,
-    dashboard,
-    devis,
-    documents,
-    exports,
-    extractions,
-    factures,
-    gdpr,
-    marketing,
-    metrics,
-    notifications,
-    ocam_operators,
-    onboarding,
-    payments,
-    pec,
-    pec_preparation,
-    reconciliation,
-    reminders,
-    renewals,
-    search,
-    sse,
-    sync,
-    web_vitals,
-)
+from app.api.registry import register_routers
 from app.core.config import settings
-from app.core.exceptions import (
-    AuthenticationError,
-    BusinessError,
-    ExternalServiceError,
-    ForbiddenError,
-    NotFoundError,
-    ValidationError,
-)
+from app.core.exception_handlers import register_exception_handlers
 from app.core.logging import get_logger
-from app.core.rate_limiter import RateLimiterMiddleware
-from app.core.request_id import RequestIdMiddleware
-from app.core.security_headers import SecurityHeadersMiddleware
+from app.core.middleware_setup import setup_middlewares
 from app.db.session import SessionLocal
 from app.seed import seed_data
 
@@ -79,7 +18,6 @@ _APP_START_TIME = _time.time()
 logger = get_logger("main")
 
 # Sentry (optional)
-
 if settings.sentry_dsn:
     import sentry_sdk
 
@@ -232,111 +170,10 @@ app = FastAPI(
     ],
 )
 
-# --- Selective GZip that skips SSE / file-download streams ---
-
-_GZIP_SKIP_SEGMENTS = ("/sse", "/download", "/export")
-
-
-class SelectiveGZipMiddleware(_BaseGZipMiddleware):
-    """GZip middleware that bypasses streaming responses (SSE, PDF downloads)."""
-
-    async def __call__(self, scope, receive, send):  # type: ignore[override]
-        if scope["type"] == "http":
-            path: str = scope.get("path", "")
-            if any(seg in path for seg in _GZIP_SKIP_SEGMENTS):
-                await self.app(scope, receive, send)
-                return
-        await super().__call__(scope, receive, send)
-
-
-# Middleware stack — last added = outermost in Starlette.
-# Desired order (outer → inner): CORS > SecurityHeaders > RequestId > RateLimiter > GZip
-# So we add them innermost-first:
-
-app.add_middleware(SelectiveGZipMiddleware, minimum_size=1000)
-app.add_middleware(RateLimiterMiddleware)
-app.add_middleware(RequestIdMiddleware)
-app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Idempotency-Key"],
-)
-
-
-def _inject_request_id(request: Request, body: dict) -> dict:
-    """Add request_id from headers into the error response body."""
-    rid = request.headers.get("X-Request-ID", "")
-    if "error" in body and isinstance(body["error"], dict):
-        body["error"]["request_id"] = rid
-    return body
-
-
-@app.exception_handler(NotFoundError)
-async def not_found_handler(request: Request, exc: NotFoundError) -> JSONResponse:
-    body = _inject_request_id(request, exc.to_dict())
-    return JSONResponse(status_code=404, content=body)
-
-
-@app.exception_handler(AuthenticationError)
-async def auth_error_handler(request: Request, exc: AuthenticationError) -> JSONResponse:
-    body = _inject_request_id(request, exc.to_dict())
-    return JSONResponse(status_code=401, content=body)
-
-
-@app.exception_handler(ForbiddenError)
-async def forbidden_handler(request: Request, exc: ForbiddenError) -> JSONResponse:
-    body = _inject_request_id(request, exc.to_dict())
-    return JSONResponse(status_code=403, content=body)
-
-
-@app.exception_handler(ValidationError)
-async def validation_error_handler(request: Request, exc: ValidationError) -> JSONResponse:
-    body = _inject_request_id(request, exc.to_dict())
-    return JSONResponse(status_code=422, content=body)
-
-
-@app.exception_handler(ExternalServiceError)
-async def external_service_error_handler(request: Request, exc: ExternalServiceError) -> JSONResponse:
-    body = _inject_request_id(request, exc.to_dict())
-    return JSONResponse(status_code=502, content=body)
-
-
-@app.exception_handler(BusinessError)
-async def business_error_handler(request: Request, exc: BusinessError) -> JSONResponse:
-    body = _inject_request_id(request, exc.to_dict())
-    return JSONResponse(status_code=400, content=body)
-
-
-@app.exception_handler(Exception)
-async def unhandled_error_handler(request: Request, exc: Exception) -> JSONResponse:
-    exc_type = type(exc).__name__
-    sanitized_msg = str(exc)[:200]
-    logger.error("unhandled_exception", path=request.url.path, exc_type=exc_type, error_truncated=sanitized_msg)
-    rid = request.headers.get("X-Request-ID", "")
-    body = {"error": {"code": "INTERNAL_ERROR", "message": "Une erreur interne est survenue"}}
-    body = _inject_request_id(request, body)
-    return JSONResponse(status_code=500, content=body, headers={"X-Request-ID": rid})
-
-
-@app.middleware("http")
-async def log_response_time(request: Request, call_next):  # type: ignore[no-untyped-def]
-    start = _time.time()
-    response = await call_next(request)
-    duration_ms = (_time.time() - start) * 1000
-    response.headers["X-Response-Time"] = f"{int(duration_ms)}ms"
-    response.headers["X-API-Version"] = _APP_VERSION
-    response.headers["X-Powered-By"] = "OptiFlow AI"
-    if duration_ms > 1000:
-        logger.warning(
-            "slow_request",
-            path=request.url.path,
-            method=request.method,
-            duration_ms=int(duration_ms),
-        )
-    return response
+# Setup : middlewares → exception handlers → routers
+setup_middlewares(app, _APP_VERSION)
+register_exception_handlers(app)
+register_routers(app)
 
 
 @app.get(
@@ -349,12 +186,20 @@ def api_version() -> dict:
     return {"version": _APP_VERSION, "api": "v1", "build": "2026-04-06"}
 
 
-@app.get("/health", summary="Liveness check", description="Verification rapide que l'API est en ligne (pour load balancer).")
+@app.get(
+    "/health",
+    summary="Liveness check",
+    description="Verification rapide que l'API est en ligne (pour load balancer).",
+)
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/health/ready", summary="Readiness check", description="Verifie que PostgreSQL et Redis sont accessibles.")
+@app.get(
+    "/health/ready",
+    summary="Readiness check",
+    description="Verifie que PostgreSQL et Redis sont accessibles.",
+)
 def health_ready() -> dict:
     from sqlalchemy import text
 
@@ -371,6 +216,7 @@ def health_ready() -> dict:
 
     try:
         import redis as redis_lib
+
         r = redis_lib.Redis.from_url(settings.redis_url, socket_timeout=2)
         r.ping()
         checks["redis"] = "ok"
@@ -380,53 +226,3 @@ def health_ready() -> dict:
 
     all_ok = all(v == "ok" for v in checks.values())
     return {"status": "ready" if all_ok else "not_ready", "checks": checks}
-
-
-app.include_router(action_items.router)
-app.include_router(ai.router)
-app.include_router(cosium_documents.router)
-app.include_router(cosium_invoices.router)
-app.include_router(ai_usage.router)
-app.include_router(analytics.router)
-app.include_router(audit.router)
-app.include_router(banking.router)
-app.include_router(billing.router)
-app.include_router(auth.router)
-app.include_router(cases.router)
-app.include_router(client_mutuelles.router)
-app.include_router(clients.router)
-app.include_router(devis.router)
-app.include_router(documents.router)
-app.include_router(extractions.router)
-app.include_router(factures.router)
-app.include_router(notifications.router)
-app.include_router(payments.router)
-app.include_router(pec.router)
-app.include_router(pec_preparation.router)
-app.include_router(reconciliation.router)
-app.include_router(reminders.router)
-app.include_router(renewals.router)
-app.include_router(consents.router)
-app.include_router(marketing.router)
-app.include_router(metrics.router)
-app.include_router(web_vitals.router)
-app.include_router(search.router)
-app.include_router(sync.router)
-app.include_router(exports.router)
-app.include_router(gdpr.router)
-app.include_router(client_360.router)
-app.include_router(admin_health.router)
-app.include_router(admin_tenant_security.router)
-app.include_router(admin_users.router)
-app.include_router(dashboard.router)
-app.include_router(onboarding.router)
-app.include_router(cosium_reference.router)
-app.include_router(cosium_spectacles.router)
-app.include_router(cosium_catalog.router)
-app.include_router(cosium_sav.router)
-app.include_router(cosium_notes.router)
-app.include_router(cosium_fidelity.router)
-app.include_router(cosium_commercial.router)
-app.include_router(ocam_operators.router)
-app.include_router(batch_operations.router)
-app.include_router(sse.router)
