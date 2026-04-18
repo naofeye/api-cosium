@@ -98,9 +98,9 @@
 - [ ] **Zod schemas manquants** : facture, rapprochement, relance (`apps/web/src/lib/schemas/`)
 - [ ] **ESLint strict** : `no-explicit-any` + `exhaustive-deps` passer de `"warn"` → `"error"`
 - [ ] **Bons d'achat Cosium frontend** : affichage + alertes expiration (backend `/commercial-operations/{id}/advantages` déjà live)
-- [ ] **Accessibilité divs cliquables** : ajouter `role="button"` + `tabIndex={0}` + `onKeyDown` (Enter/Escape) — `ImportDialog.tsx:42`, `DuplicatesPanel.tsx:146`, `marketing/components/DynamicSegments.tsx:47-49`
-- [ ] **Boutons relances sans `disabled`** : envoi relance / fermeture PEC déclenchables pendant loading — `app/relances/page.tsx`
-- [ ] **Filtres numériques Cosium factures** : `minAmount` / `maxAmount` sans guard `isNaN` avant `useCosiumInvoices()` — `cosium-factures/page.tsx`
+- [x] ~~Accessibilité divs cliquables~~ : `ImportDialog.tsx` a maintenant Escape key + `role="dialog" aria-modal="true" aria-label`. `DuplicatesPanel.tsx:135` utilise déjà `<button>` natif (faux positif audit). `DynamicSegments.tsx` : `cursor-pointer` sans onClick = WIP feature "création campagne" laissée en l'état (texte "Cliquez pour créer" annonce la feature à venir).
+- [x] ~~Boutons relances sans `disabled`~~ : `relances/plans/page.tsx` — state `inFlightId` + guard early-return + `disabled={inFlightId !== null}` sur Play/Toggle buttons + classes `disabled:opacity-50 disabled:cursor-not-allowed`. Empêche double-clic executePlan/togglePlan.
+- [x] ~~Filtres numériques Cosium factures~~ : `cosium-factures/page.tsx` — IIFE + `Number.isNaN(n)` guard sur `min_amount` et `max_amount`. Empêche l'envoi de `NaN` à l'API si l'utilisateur tape "abc".
 - [ ] **CompletionBar inline style** : `style={{ width: '${pct}%' }}` → Tailwind classe dynamique — `operations-batch/[id]/page.tsx:41`
 
 ### Infra / CI

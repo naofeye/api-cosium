@@ -63,8 +63,14 @@ export default function CosiumFacturesPage() {
     date_from: dateFrom || undefined,
     date_to: dateTo || undefined,
     has_outstanding: hasOutstanding ?? undefined,
-    min_amount: minAmount ? Number(minAmount) : undefined,
-    max_amount: maxAmount ? Number(maxAmount) : undefined,
+    min_amount: (() => {
+      const n = Number(minAmount);
+      return minAmount && !Number.isNaN(n) ? n : undefined;
+    })(),
+    max_amount: (() => {
+      const n = Number(maxAmount);
+      return maxAmount && !Number.isNaN(n) ? n : undefined;
+    })(),
   };
 
   const { data, error, isLoading, mutate } = useCosiumInvoices({

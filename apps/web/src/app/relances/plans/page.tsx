@@ -31,6 +31,7 @@ export default function PlansPage() {
   const [minAmount, setMinAmount] = useState(0);
   const [maxReminders, setMaxReminders] = useState(3);
   const [error, setError] = useState<string | null>(null);
+  const [inFlightId, setInFlightId] = useState<number | null>(null);
 
   const {
     register,
@@ -69,16 +70,28 @@ export default function PlansPage() {
   };
 
   const togglePlan = async (planId: number, isActive: boolean) => {
-    await fetchJson(`/reminders/plans/${planId}/toggle?is_active=${!isActive}`, { method: "PATCH" });
-    mutate();
+    if (inFlightId !== null) return;
+    setInFlightId(planId);
+    try {
+      await fetchJson(`/reminders/plans/${planId}/toggle?is_active=${!isActive}`, { method: "PATCH" });
+      mutate();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur");
+    } finally {
+      setInFlightId(null);
+    }
   };
 
   const executePlan = async (planId: number) => {
+    if (inFlightId !== null) return;
+    setInFlightId(planId);
     try {
       await fetchJson(`/reminders/plans/${planId}/execute`, { method: "POST" });
       mutate();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur");
+    } finally {
+      setInFlightId(null);
     }
   };
 
@@ -236,12 +249,18 @@ export default function PlansPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <Button variant="outline" onClick={() => executePlan(plan.id)} title="Executer maintenant">
+                  <Button
+                    variant="outline"
+                    onClick={() => executePlan(plan.id)}
+                    disabled={inFlightId !== null}
+                    title="Executer maintenant"
+                  >
                     <Play className="h-4 w-4" />
                   </Button>
                   <button
                     onClick={() => togglePlan(plan.id, plan.is_active)}
-                    className="rounded-lg p-2 hover:bg-gray-100 transition-colors"
+                    disabled={inFlightId !== null}
+                    className="rounded-lg p-2 hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title={plan.is_active ? "Desactiver" : "Activer"}
                   >
                     {plan.is_active ? (
