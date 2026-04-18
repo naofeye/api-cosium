@@ -50,8 +50,8 @@
 - [ ] **Migration `CREATE TABLE IF NOT EXISTS`** : `alembic/versions/h3b4c5d6e7f8_*.py` utilise IF NOT EXISTS sur 20 tables Cosium (create_all déguisé). Refactoriser en migrations atomiques ou bootstrap one-shot
 - [x] ~~Smoke tests services critiques~~ : les 7 services restants couverts dans `test_services_smoke_extra.py` (29 tests). `marketing_service` (list/create/refresh segments + campaigns), `consolidation_service` (customer inconnu + minimal), `client_360_finance` (aggregate/build_summary/compute_ca/fetch + isolation tenant), `client_360_documents` (prescriptions/equipments/payments/calendar/tags/ocr), `batch_processing_service` (3 NotFoundError), `erp_sync_invoices` (connector vide), `erp_sync_payments` (non-Cosium + Cosium vide). Combiné avec `test_services_smoke.py` (8 tests) = 37 smoke tests.
 - [ ] **Tests E2E Playwright frontend** : login → liste clients → création → logout
-- [ ] **Tests intégration Cosium** : `respx` ou `pytest-httpx` pour mock HTTP complet (pas uniquement `_get_connector_for_tenant`)
-- [ ] **pip-audit strict en CI** : retirer `|| true` après upgrade starlette via FastAPI compatible — `ci.yml:94`
+- [x] ~~Tests intégration Cosium (respx)~~ : `test_cosium_client_respx.py` (20 tests, respx==0.23.1 dans requirements). Couvre auth basic (token/access_token/retries/failure/creds manquants), GET (auth required, headers, retry, failure), pagination HAL + Spring Data + page vide, token refresh 25 min, get_raw bytes, règles sécurité (pas de put/delete/patch/post/request) + vérif que seuls POST /authenticate/basic et GET sont appelés.
+- [x] ~~pip-audit strict en CI~~ : déjà en place dans `ci.yml:97` (`pip-audit -r requirements.txt --strict --ignore-vuln CVE-2025-71176 --ignore-vuln CVE-2025-62727`). Pas de `|| true`. Les 2 CVEs triées documentées inline (pytest dev-only, starlette embed FastAPI).
 
 ### Infra bloquante
 - [x] ~~Réseau Docker isolé~~ : segmentation **2 réseaux** en prod (`docker-compose.prod.yml`) :
