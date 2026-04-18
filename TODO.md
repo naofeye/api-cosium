@@ -80,7 +80,7 @@
 - [x] ~~`main.py` 432 L → 228 L~~ : 3 modules extraits. `app/api/registry.py` (`register_routers`, 48 include_router) / `app/core/middleware_setup.py` (`setup_middlewares` + `SelectiveGZipMiddleware` + `log_response_time`) / `app/core/exception_handlers.py` (`register_exception_handlers` + 7 handlers). main.py garde FastAPI init, `_lifespan`, `_startup_checks`, endpoints health/version. 285 routes identiques, 67 smoke tests verts.
 - [ ] `seed_demo.py` (435 L) → déplacer dans `tests/factories/`
 - [ ] `tasks/sync_tasks.py` (404 L) → découpage par type de sync
-- [ ] `cosium_reference.py` router (401 L) → split par entité référentielle
+- [x] ~~`cosium_reference.py` router 401 L → package~~ : transformé en `routers/cosium_reference/` avec 4 sous-modules (`_sync.py` 37 L, `_calendar.py` 150 L, `_entities.py` 231 L, `_data.py` 120 L) + `__init__.py` (22 L) router composite. Import public inchangé (`from app.api.routers.cosium_reference import router`). 285 routes identiques, 57 smoke tests verts, ruff vert.
 - [ ] `apps/web/src/app/clients/[id]/tabs/TabResume.tsx` (560 L) → sous-composants
 - [ ] `apps/web/src/app/clients/[id]/tabs/TabCosiumDocuments.tsx` (432 L) → extraire `DocumentList` + `ExtractionPanel`
 - [x] ~~`apps/web/src/lib/hooks/use-api.ts` split par domaine~~ : 331 L → 5 fichiers domaine + barrel 15 L. `clients.ts` (103 L, 13 hooks) / `cosium.ts` (197 L, 11 hooks) / `ai.ts` (18 L, 4 hooks) / `marketing.ts` (10 L, 2 hooks) / `dashboard.ts` (28 L, 5 hooks). `use-api.ts` ne fait plus que `export *` pour compat. 160/160 vitest verts, TS strict vert. Facilite tree-shaking et prépare le `dynamic()` lazy-loading par domaine.
