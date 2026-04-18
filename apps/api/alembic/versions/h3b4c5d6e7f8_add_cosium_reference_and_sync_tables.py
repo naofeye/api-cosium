@@ -1,5 +1,16 @@
 """Add all Cosium reference and sync tables.
 
+⚠️  MIGRATION BOOTSTRAP HISTORIQUE — NE PAS REPRODUIRE CE PATTERN.
+
+Cette migration utilise `CREATE TABLE IF NOT EXISTS` pour rattraper un état
+de BDD divergent (tables Cosium créées via `Base.metadata.create_all()` dans
+des envs de dev pré-Alembic). Elle est acceptée comme bootstrap one-shot
+et documentée dans l'ADR 0007 (`docs/adr/0007-alembic-bootstrap-migration-accepted.md`).
+
+**Règle pour les migrations futures** : utiliser l'API Alembic standard
+(`op.create_table`, `op.add_column`, `op.create_index`). Aucun
+`CREATE ... IF NOT EXISTS` dans les migrations postérieures à celle-ci.
+
 Covers: cosium_payments, cosium_third_party_payments, cosium_prescriptions,
 cosium_documents, cosium_calendar_events, cosium_mutuelles, cosium_doctors,
 cosium_brands, cosium_suppliers, cosium_tags, cosium_sites, cosium_banks,
@@ -9,7 +20,9 @@ cosium_lens_materials, cosium_customer_tags.
 
 Also adds missing columns/indexes on cosium_invoices (customer_cosium_id, tenant_type index).
 
-Uses IF NOT EXISTS for safety on DBs where create_all already ran.
+Les 21 tables créées ici correspondent toutes à un modèle SQLAlchemy dans
+`apps/api/app/models/cosium_data.py` et `cosium_reference.py` (vérifié par
+script, cf. ADR 0007 § Implémentation).
 
 Revision ID: h3b4c5d6e7f8
 Revises: 5ae5ee2cc95d

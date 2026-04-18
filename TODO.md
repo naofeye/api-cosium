@@ -20,11 +20,11 @@
 | Dette technique | 🟡 6 fichiers >400 lignes, quelques N+1, `time.sleep` Cosium |
 
 **Bloquants passage production grand public** :
-1. MFA/TOTP complet (backup codes + enforcement admin)
+1. ~~MFA/TOTP complet~~ ✅ (backup codes + enforcement admin + UI)
 2. 4 items DIFFERE-PROD (TLS, passwords BDD/Grafana, rotation creds Cosium, `server_name`)
-3. Baseline coverage CI incohérente (45% CI vs 80% pyproject)
-4. Migration Alembic `CREATE TABLE IF NOT EXISTS` à refactorer
-5. Réseau Docker non isolé entre services
+3. ~~Baseline coverage CI incohérente~~ ✅ (45% aligné pyproject + CI)
+4. ~~Migration Alembic `CREATE TABLE IF NOT EXISTS`~~ ✅ ([ADR 0007](docs/adr/0007-alembic-bootstrap-migration-accepted.md))
+5. ~~Réseau Docker non isolé entre services~~ ✅ (2 réseaux prod, `internal: true`)
 
 ---
 
@@ -47,7 +47,7 @@
 ### Qualité / régression
 - [x] ~~Aligner coverage CI vs pyproject~~ : `pyproject.toml` passe à `fail_under=45` (baseline actuelle) avec commentaire trajectoire cible 80% — `pyproject.toml:55`
 - [x] ~~49 tests préexistants cassés à refixer~~ : dict `_PREEXISTING_BROKEN_TESTS` dans `tests/conftest.py` est désormais vide (plus de skip). CI verte confirmée depuis le commit smoke tests (2026-04-17 T10:38 UTC). Les commentaires dans conftest.py documentent l'historique des fix par catégorie. Les sync_customer_documents / cosium creds / storage / celery.delay sont désormais mockés via `_mock_storage` et `_mock_celery_delay` autouse fixtures. ~1001 tests collectés, exécutent en CI.
-- [ ] **Migration `CREATE TABLE IF NOT EXISTS`** : `alembic/versions/h3b4c5d6e7f8_*.py` utilise IF NOT EXISTS sur 20 tables Cosium (create_all déguisé). Refactoriser en migrations atomiques ou bootstrap one-shot
+- [x] ~~Migration `CREATE TABLE IF NOT EXISTS`~~ : acceptée comme bootstrap one-shot via [ADR 0007](docs/adr/0007-alembic-bootstrap-migration-accepted.md). Les 21 tables créées ont toutes un modèle SQLAlchemy correspondant (vérifié par script). Docstring enrichie dans la migration pointant vers l'ADR. **Règle** établie : aucune nouvelle migration ne doit utiliser `IF NOT EXISTS` — API Alembic standard uniquement.
 - [x] ~~Smoke tests services critiques~~ : les 7 services restants couverts dans `test_services_smoke_extra.py` (29 tests). `marketing_service` (list/create/refresh segments + campaigns), `consolidation_service` (customer inconnu + minimal), `client_360_finance` (aggregate/build_summary/compute_ca/fetch + isolation tenant), `client_360_documents` (prescriptions/equipments/payments/calendar/tags/ocr), `batch_processing_service` (3 NotFoundError), `erp_sync_invoices` (connector vide), `erp_sync_payments` (non-Cosium + Cosium vide). Combiné avec `test_services_smoke.py` (8 tests) = 37 smoke tests.
 - [x] ~~Tests E2E Playwright frontend~~ : setup `@playwright/test` + `otplib@12` dans `apps/web/`. 3 specs / 10 tests dans `tests/e2e/` (login UI+API, MFA flow TOTP dérivé, clients CRUD + logout). Helpers `helpers.ts`. Workflow CI `.github/workflows/e2e.yml` en **`workflow_dispatch` uniquement** : raison documentée = cookies httpOnly cross-origin (3000 vs 8000) non consommés par fetch client-side en CI headless. Tests API-direct + flow MFA API passent. Tests UI cookie-based à débloquer via nginx reverse proxy dans workflow (itération suivante). En local avec `docker compose up`, les 10 tests tournent (nginx proxy). Scripts npm `test:e2e` + `test:e2e:ui`.
 - [x] ~~Tests intégration Cosium (respx)~~ : `test_cosium_client_respx.py` (20 tests, respx==0.23.1 dans requirements). Couvre auth basic (token/access_token/retries/failure/creds manquants), GET (auth required, headers, retry, failure), pagination HAL + Spring Data + page vide, token refresh 25 min, get_raw bytes, règles sécurité (pas de put/delete/patch/post/request) + vérif que seuls POST /authenticate/basic et GET sont appelés.

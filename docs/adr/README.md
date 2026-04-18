@@ -18,6 +18,10 @@ Chaque ADR suit un template :
 | [0001](0001-monorepo-apps-structure.md) | Structure monorepo `apps/` | Accepted |
 | [0002](0002-multi-tenant-row-level-security.md) | Multi-tenant via `tenant_id` colonne | Accepted |
 | [0003](0003-cosium-read-only-strict.md) | Cosium en lecture seule stricte | Accepted (immutable) |
+| [0004](0004-cockpit-kpis-live-vs-cached.md) | Cockpit KPIs : live vs caché | Accepted |
+| [0005](0005-action-items-generators-pull-based.md) | Action items via generators pull-based | Accepted |
+| [0006](0006-mfa-totp-optional.md) | MFA TOTP optionnel par compte | Accepted |
+| [0007](0007-alembic-bootstrap-migration-accepted.md) | Migration bootstrap `h3b4c5d6e7f8` avec `IF NOT EXISTS` acceptée | Accepted |
 
 ## Quand créer un ADR ?
 
