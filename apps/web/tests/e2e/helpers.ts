@@ -28,21 +28,22 @@ export async function apiLogin(
  * Login via la page UI (utile pour récupérer un state authentifié dans le navigateur).
  * Reste sur /login si MFA requise — à l'appelant de vérifier la suite.
  *
- * Soumission via clic sur le bouton, en attendant qu'il soit enabled.
- * Le bouton est gated par `canSubmit = email && password` via watch() RHF.
- * On utilise fill() qui dispatch `input` + `change` events, que
- * react-hook-form register() capte correctement (contrairement à
- * pressSequentially qui dispatchait seulement keyboard events).
+ * Important : on attend l'hydratation React avant de cliquer, sinon le form
+ * submit en GET natif (querystring visible dans l'URL), court-circuitant
+ * le handleSubmit de react-hook-form. On détecte l'hydratation en attendant
+ * que window.__NEXT_DATA__ soit présent ET networkidle.
  */
 export async function uiLogin(page: Page, email: string, password: string): Promise<void> {
-  await page.goto("/login");
+  await page.goto("/login", { waitUntil: "networkidle" });
+  // S'assure que React a hydraté : sinon onSubmit pas attaché -> GET natif
+  await page.waitForFunction(() => {
+    const btn = document.querySelector<HTMLButtonElement>('button[type="submit"]');
+    // React attache `__reactProps$...` sur le DOM après hydratation
+    return btn !== null && Object.keys(btn).some((k) => k.startsWith("__reactProps"));
+  }, { timeout: 10_000 });
   await page.getByLabel("Adresse email").fill(email);
   await page.getByLabel("Mot de passe").fill(password);
-  // Blur explicite pour finaliser la validation react-hook-form onChange
-  await page.getByLabel("Mot de passe").press("Tab");
-  const submitBtn = page.getByRole("button", { name: /se connecter/i });
-  await submitBtn.waitFor({ state: "visible" });
-  await submitBtn.click({ force: false });
+  await page.getByRole("button", { name: /se connecter/i }).click();
 }
 
 /**
