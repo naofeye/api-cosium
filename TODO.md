@@ -77,7 +77,7 @@
 ### Fichiers >400 lignes à découper
 - [ ] `analytics_cosium_extras.py` (481 L) → split score / segments / forecast / comparison
 - [ ] `sync.py` router (420 L) → orchestration dans `erp_sync_service.sync_all()`
-- [ ] `main.py` (419 L) → extraire `setup_logging()`, `setup_middlewares()`, `register_routers()`
+- [x] ~~`main.py` 432 L → 228 L~~ : 3 modules extraits. `app/api/registry.py` (`register_routers`, 48 include_router) / `app/core/middleware_setup.py` (`setup_middlewares` + `SelectiveGZipMiddleware` + `log_response_time`) / `app/core/exception_handlers.py` (`register_exception_handlers` + 7 handlers). main.py garde FastAPI init, `_lifespan`, `_startup_checks`, endpoints health/version. 285 routes identiques, 67 smoke tests verts.
 - [ ] `seed_demo.py` (435 L) → déplacer dans `tests/factories/`
 - [ ] `tasks/sync_tasks.py` (404 L) → découpage par type de sync
 - [ ] `cosium_reference.py` router (401 L) → split par entité référentielle
