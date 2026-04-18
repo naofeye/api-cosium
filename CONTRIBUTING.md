@@ -81,6 +81,44 @@ docker compose exec api mypy app/
 docker compose exec web npm run lint
 ```
 
+### Reformatage manuel avant PR
+
+Les hooks pre-commit défensifs sont actifs (voir ci-dessous), mais le reformatage automatique est volontairement désactivé pour ne pas toucher au legacy. À run manuellement quand tu modifies un fichier :
+
+```bash
+# Python (auto-fix + format)
+cd apps/api && python -m ruff check app/ --fix
+cd apps/api && python -m ruff format app/
+
+# Frontend (prettier)
+cd apps/web && npm run format
+```
+
+## Pre-commit hooks
+
+Installation ponctuelle (une fois par clone) :
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+Les hooks tournent automatiquement sur `git commit` et bloquent si un problème est détecté. Scope actuel :
+
+- **check-yaml / check-json / check-toml** : syntaxe des fichiers de config
+- **check-merge-conflict** : détecte les marqueurs `<<<<<<<` oubliés
+- **check-added-large-files** : refuse > 500 kB
+- **detect-private-key** : refuse clés privées commitées
+- **gitleaks** : scan anti-secrets (tokens, API keys, credentials)
+
+Config : `.pre-commit-config.yaml` à la racine. Les hooks `ruff` / `prettier` / line-endings sont désactivés pour l'instant (ils réécriraient 200+ fichiers legacy au premier run). À réactiver après un commit de nettoyage global.
+
+Diagnostic manuel sur tout le repo :
+
+```bash
+pre-commit run --all-files
+```
+
 ## Commit messages
 
 Suivre la convention [Conventional Commits](https://www.conventionalcommits.org) :

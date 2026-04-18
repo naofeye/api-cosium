@@ -1,45 +1,46 @@
 # Pre-commit hooks OptiFlow AI
+#
 # Install : `pip install pre-commit && pre-commit install`
-# Run all : `pre-commit run --all-files`
+# Run diagnostic : `pre-commit run --all-files`
+# Run sur commit courant : automatique via `git commit`
+#
+# Scope actuel : hooks défensifs uniquement (sanity syntaxe + sécurité secrets).
+# Les hooks réécrivant du contenu (ruff-format, prettier, end-of-file-fixer,
+# mixed-line-ending, trailing-whitespace) sont désactivés pour cette itération
+# car ils toucheraient 200+ fichiers legacy au premier run. À ré-activer
+# progressivement après un commit de nettoyage global dédié.
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
-      - id: trailing-whitespace
-      - id: end-of-file-fixer
+      # Validation syntaxe des fichiers de config
+      # --unsafe tolère les tags YAML custom (ex: !reset dans docker-compose)
       - id: check-yaml
+        args: ["--unsafe"]
       - id: check-json
       - id: check-toml
+      # Sanity : conflits de merge oubliés
       - id: check-merge-conflict
+      # Sécurité : gros binaires + clés privées
       - id: check-added-large-files
         args: ["--maxkb=500"]
       - id: detect-private-key
-      - id: mixed-line-ending
-        args: ["--fix=lf"]
 
-  # Python (backend)
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.8
-    hooks:
-      - id: ruff
-        files: ^apps/api/
-        args: [--fix]
-      - id: ruff-format
-        files: ^apps/api/
-
-  # Secrets scanning (détecte tokens, clés API)
+  # Secrets scanning — détecte tokens, clés API, credentials
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.21.0
     hooks:
       - id: gitleaks
 
-  # Frontend : prettier + eslint via scripts npm (plus robuste que les hooks pre-commit npm)
-  - repo: local
-    hooks:
-      - id: prettier-web
-        name: Prettier (frontend)
-        entry: bash -c 'cd apps/web && npx prettier --check "$@"' --
-        language: system
-        files: ^apps/web/src/.*\.(ts|tsx|css|md)$
-        pass_filenames: true
+  # --- HOOKS DÉSACTIVÉS (réécrivent massivement le legacy) ---
+  #
+  # Python : ruff check --fix + ruff format — à run manuellement avant PR :
+  #   cd apps/api && python -m ruff check app/ --fix
+  #   cd apps/api && python -m ruff format app/
+  #
+  # Frontend : prettier — à run manuellement avant PR :
+  #   cd apps/web && npm run format
+  #
+  # Line endings (mixed-line-ending, end-of-file-fixer, trailing-whitespace) :
+  # à ré-activer après un commit de normalisation CRLF → LF global.

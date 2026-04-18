@@ -107,7 +107,7 @@
 - [ ] **CompletionBar inline style** : `style={{ width: '${pct}%' }}` → Tailwind classe dynamique — `operations-batch/[id]/page.tsx:41`
 
 ### Infra / CI
-- [ ] **Pre-commit hooks** : ruff, gitleaks, prettier, YAML/JSON/TOML (config existe, à activer côté dev)
+- [x] ~~Pre-commit hooks activés (scope défensif)~~ : config `.pre-commit-config.yaml` nettoyée : `check-yaml --unsafe` (tags docker-compose), `check-json`, `check-toml`, `check-merge-conflict`, `check-added-large-files 500kB`, `detect-private-key`, `gitleaks`. Les hooks réécrivant du contenu (ruff-format, prettier, mixed-line-ending, end-of-file-fixer, trailing-whitespace) sont désactivés pour éviter un diff massif sur le legacy (288 fichiers ruff-format + 193 prettier au premier run). À ré-activer après un commit de nettoyage global dédié. `CONTRIBUTING.md` enrichi (install + commands manuelles reformatage).
 - [ ] **Indexes composites audit_logs** : `(tenant_id, created_at, action)` via pg_stat_statements staging
 - [ ] **Connection pooling** : optimiser pour 50 tenants concurrents
 - [ ] **Rate limiting Cosium** : backoff exponentiel côté client
