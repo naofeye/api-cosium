@@ -75,7 +75,7 @@
 ## 🟠 P2 — Qualité / maintenabilité
 
 ### Fichiers >400 lignes à découper
-- [ ] `analytics_cosium_extras.py` (481 L) → split score / segments / forecast / comparison
+- [x] ~~`analytics_cosium_extras.py` 481 L → package 4 modules~~ : `analytics_cosium_extras/` avec `_score.py` (181 L), `_segments.py` (172 L), `_forecast.py` (97 L), `_comparison.py` (128 L), `__init__.py` (28 L) re-exporte les 8 fonctions publiques. Import public inchangé. 285 routes identiques, 67 smoke tests verts.
 - [x] ~~`sync.py` router 420 L → package + orchestration dans service~~ : `routers/sync/` avec 5 fichiers (`__init__.py` 23 L, `_meta.py` 54 L, `_domains.py` 278 L, `_all.py` 58 L, `_helpers.py` 19 L). Orchestration déplacée : `erp_sync_service.sync_all(db, tenant_id, user_id, full)` contient la logique (customers + invoices/payments/prescriptions + reference, isolation d'erreurs par domaine). Le routeur `_all.py` délègue + gère lock Redis + HTTP 207 Multi-Status si has_errors. 285 routes identiques, 67 smoke tests verts.
 - [x] ~~`main.py` 432 L → 228 L~~ : 3 modules extraits. `app/api/registry.py` (`register_routers`, 48 include_router) / `app/core/middleware_setup.py` (`setup_middlewares` + `SelectiveGZipMiddleware` + `log_response_time`) / `app/core/exception_handlers.py` (`register_exception_handlers` + 7 handlers). main.py garde FastAPI init, `_lifespan`, `_startup_checks`, endpoints health/version. 285 routes identiques, 67 smoke tests verts.
 - [ ] `seed_demo.py` (435 L) → déplacer dans `tests/factories/`
