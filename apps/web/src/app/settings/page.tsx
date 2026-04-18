@@ -7,6 +7,7 @@ import { fetchJson } from "@/lib/api";
 import { logger } from "@/lib/logger";
 import { ProfileSection } from "./components/ProfileSection";
 import { SecuritySection } from "./components/SecuritySection";
+import { MfaSection } from "./components/MfaSection";
 import { PreferencesSection } from "./components/PreferencesSection";
 import { SettingsLinks } from "./components/SettingsLinks";
 import { AboutSection } from "./components/AboutSection";
@@ -153,6 +154,7 @@ export default function SettingsPage() {
         onSubmit={handleChangePassword}
         inputClasses={inputClasses}
       />
+      <MfaSection />
       <PreferencesSection
         preferences={preferences}
         prefsLoaded={prefsLoaded}

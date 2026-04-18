@@ -62,16 +62,42 @@ export interface LoginResult {
   available_tenants: AvailableTenant[];
 }
 
-export async function login(email: string, password: string): Promise<LoginResult> {
+export type MfaRequiredReason = "MFA_CODE_REQUIRED" | "MFA_SETUP_REQUIRED" | "MFA_CODE_INVALID";
+
+export class MfaRequiredError extends Error {
+  reason: MfaRequiredReason;
+  constructor(reason: MfaRequiredReason, message?: string) {
+    super(message ?? reason);
+    this.name = "MfaRequiredError";
+    this.reason = reason;
+  }
+}
+
+const MFA_MARKERS: MfaRequiredReason[] = [
+  "MFA_CODE_REQUIRED",
+  "MFA_SETUP_REQUIRED",
+  "MFA_CODE_INVALID",
+];
+
+export async function login(
+  email: string,
+  password: string,
+  totpCode?: string,
+): Promise<LoginResult> {
+  const body: Record<string, unknown> = { email, password };
+  if (totpCode) body.totp_code = totpCode;
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(data?.error?.message || data?.message || "Email ou mot de passe incorrect");
+    const rawMessage: string = data?.error?.message || data?.message || "";
+    const marker = MFA_MARKERS.find((m) => rawMessage === m);
+    if (marker) throw new MfaRequiredError(marker, rawMessage);
+    throw new Error(rawMessage || "Email ou mot de passe incorrect");
   }
   const data = await res.json();
   // Tokens are in httpOnly cookies — we only read non-sensitive info from body

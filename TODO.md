@@ -60,6 +60,9 @@
   - api + worker sur les 2 (besoin Cosium/SMTP externe + DB/Redis interne)
   - Si web compromis → pas d'accès direct aux datastores. Défense en profondeur OWASP A05.
 
+### MFA / Auth
+- [x] ~~MFA frontend UI~~ : composant `MfaSection` (setup TOTP avec QR code via `qrcode.react`, input vérification 6 digits, backup codes générés + affichés une fois, désactivation avec mot de passe). Intégré dans `/settings`. Login étendu avec flow TOTP : `MfaRequiredError` typé, champ code affiché conditionnellement (`MFA_CODE_REQUIRED` / `MFA_CODE_INVALID`), message admin pour `MFA_SETUP_REQUIRED`. Page `/admin/security` pour toggle `require_admin_mfa` par tenant (confirm dialog + warning lockout). Lien ajouté dans panel admin. 0 warning lint, TS vert.
+
 ### PWA / UX
 - [ ] **Splash screens iOS** : assets PNG iPad 2732×2048, iPhone X 1125×2436 etc. (icônes PNG 192/512 déjà présentes)
 

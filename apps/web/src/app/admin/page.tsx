@@ -6,7 +6,7 @@ import useSWR from "swr";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { KPICard } from "@/components/ui/KPICard";
 import { LoadingState } from "@/components/ui/LoadingState";
-import { Users, FileText, Activity, FolderOpen, Shield, Database, Trash2 } from "lucide-react";
+import { Users, FileText, Activity, FolderOpen, Shield, Database, Trash2, ShieldCheck } from "lucide-react";
 import dynamic from "next/dynamic";
 import { SkeletonCard } from "@/components/ui/SkeletonCard";
 
@@ -109,6 +109,13 @@ export default function AdminPage() {
         >
           <Trash2 className="h-4 w-4 text-text-secondary" aria-hidden="true" />
           Clients supprimes
+        </Link>
+        <Link
+          href="/admin/security"
+          className="inline-flex items-center gap-2 rounded-lg border border-border bg-bg-card px-4 py-3 text-sm font-medium text-text-primary shadow-sm hover:bg-gray-50 transition-colors"
+        >
+          <ShieldCheck className="h-4 w-4 text-text-secondary" aria-hidden="true" />
+          Politique MFA du magasin
         </Link>
       </div>
     </PageLayout>
