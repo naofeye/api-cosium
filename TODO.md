@@ -111,7 +111,7 @@
 - [ ] **Indexes composites audit_logs** : `(tenant_id, created_at, action)` via pg_stat_statements staging
 - [ ] **Connection pooling** : optimiser pour 50 tenants concurrents
 - [ ] **Rate limiting Cosium** : backoff exponentiel côté client
-- [ ] **Celery beat schedule volatile** : `--schedule=/tmp/celerybeat-schedule` perdu au restart — volume nommé `celerybeat_schedule:/app/celery-schedule` — `docker-compose.yml:112`
+- [x] ~~Celery beat schedule volatile~~ : volume nommé `celerybeat_schedule:/app/celery-schedule` ajouté sur le service beat (`docker-compose.yml`). Schedule persisté au path `/app/celery-schedule/schedule.db`. Healthcheck mis à jour sur ce path. Évite la re-exécution de toutes les tasks planifiées au restart container.
 - [ ] **CI jobs manquants** : `docker build` prod dry-run API/Web, scan image Trivy/Snyk, SBOM cyclonedx
 - [x] ~~`web.depends_on api.service_healthy`~~ : override `depends_on.api.condition: service_healthy` ajouté dans `docker-compose.prod.yml:85-87`. Web attend que l'API soit `healthy` (pas juste started) avant démarrage.
 - [ ] **Grafana dashboards JSON** : `config/grafana/provisioning/dashboards/` vide — créer `ops.json` (CPU/RAM/disk/erreurs) + `business.json` (sync Cosium, taux sync, CA par tenant)

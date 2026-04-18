@@ -109,15 +109,19 @@ services:
       context: ./apps/api
       dockerfile: Dockerfile
     restart: unless-stopped
-    command: celery -A app.tasks beat --loglevel=info --schedule=/tmp/celerybeat-schedule
+    # Schedule persisté sur volume nommé : évite que Beat re-déclenche toutes
+    # les tasks planifiées au restart container (bug précédent avec /tmp).
+    command: celery -A app.tasks beat --loglevel=info --schedule=/app/celery-schedule/schedule.db
     env_file: [.env]
+    volumes:
+      - celerybeat_schedule:/app/celery-schedule
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "test -f /tmp/celerybeat-schedule && find /tmp/celerybeat-schedule -mmin -5 | grep -q . || exit 1"]
+      test: ["CMD-SHELL", "test -f /app/celery-schedule/schedule.db && find /app/celery-schedule/schedule.db -mmin -5 | grep -q . || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -125,3 +129,4 @@ services:
 volumes:
   postgres_data:
   minio_data:
+  celerybeat_schedule:
