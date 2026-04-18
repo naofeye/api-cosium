@@ -264,6 +264,67 @@ def enrich_top_clients_metadata(
     return result
 
 
+def sync_all(db: Session, tenant_id: int, user_id: int = 0, *, full: bool = False) -> dict:
+    """Orchestrate sync de tous les domaines ERP. Retourne dict keyé par domaine.
+
+    Capture les erreurs par domaine pour ne pas aborter l'orchestration : chaque
+    domaine en erreur produit `{"error": "..."}` dans son slot, les autres continuent.
+    Le flag `has_errors` est ajouté au résultat pour que le caller puisse décider
+    (HTTP 207 Multi-Status vs 200).
+
+    Domaines (dans l'ordre) :
+    - customers (sync incrémentale par nature — upsert par cosium_id)
+    - invoices / payments / prescriptions (supportent `full`)
+    - reference (calendar, mutuelles, doctors, brands, etc.)
+    """
+    results: dict[str, object] = {}
+    has_errors = False
+
+    # Customers sync (deja incremental par nature — upsert par cosium_id)
+    try:
+        results["customers"] = sync_customers(db, tenant_id=tenant_id, user_id=user_id)
+    except Exception as e:
+        logger.error("sync_domain_failed", domain="customers", error=str(e))
+        results["customers"] = {
+            "error": "Echec de la synchronisation. Consultez les logs pour plus de details."
+        }
+        has_errors = True
+
+    # Sync with incremental support (full=True force un re-fetch complet)
+    for sync_name, sync_fn in [
+        ("invoices", sync_invoices),
+        ("payments", sync_payments),
+        ("prescriptions", sync_prescriptions),
+    ]:
+        try:
+            results[sync_name] = sync_fn(
+                db, tenant_id=tenant_id, user_id=user_id, full=full,
+            )
+        except Exception as e:
+            logger.error("sync_domain_failed", domain=sync_name, error=str(e))
+            results[sync_name] = {
+                "error": "Echec de la synchronisation. Consultez les logs pour plus de details."
+            }
+            has_errors = True
+
+    # Sync reference data (calendar, mutuelles, doctors, etc.)
+    try:
+        from app.services.cosium_reference_sync import sync_all_reference
+
+        results["reference"] = sync_all_reference(
+            db, tenant_id=tenant_id, user_id=user_id
+        )
+    except Exception as e:
+        logger.error("sync_reference_failed", error=str(e))
+        results["reference"] = {
+            "error": "Echec de la synchronisation des donnees de reference."
+        }
+        has_errors = True
+
+    results["has_errors"] = has_errors
+    return results
+
+
 # ---------------------------------------------------------------------------
 # Re-exports for backward compatibility.
 # All symbols that were previously defined here are still importable from
@@ -283,6 +344,7 @@ from app.services.erp_sync_invoices import sync_invoices  # noqa: E402, F401
 __all__ = [
     # Orchestration
     "sync_customers",
+    "sync_all",
     "get_sync_status",
     "enrich_top_clients_metadata",
     "BATCH_SIZE",
