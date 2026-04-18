@@ -198,7 +198,7 @@ def list_calendar_categories(
 def list_mutuelles(
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
-    search: str | None = Query(None, description="Recherche par nom"),
+    search: str | None = Query(None, max_length=100, description="Recherche par nom"),
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> PaginatedMutuelles:
@@ -216,7 +216,7 @@ def list_mutuelles(
 def list_doctors(
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
-    search: str | None = Query(None, description="Recherche par nom"),
+    search: str | None = Query(None, max_length=100, description="Recherche par nom"),
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> PaginatedDoctors:
@@ -328,7 +328,7 @@ def list_frame_materials(
 def list_prescriptions(
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
-    search: str | None = Query(None, description="Recherche par nom prescripteur"),
+    search: str | None = Query(None, max_length=100, description="Recherche par nom prescripteur"),
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> PaginatedPrescriptions:
@@ -346,7 +346,7 @@ def list_prescriptions(
 def list_cosium_payments(
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
-    search: str | None = Query(None, description="Recherche par nom emetteur ou numero"),
+    search: str | None = Query(None, max_length=100, description="Recherche par nom emetteur ou numero"),
     date_from: str | None = Query(None, description="Date debut (YYYY-MM-DD)"),
     date_to: str | None = Query(None, description="Date fin (YYYY-MM-DD)"),
     db: Session = Depends(get_db),
@@ -372,7 +372,7 @@ def list_cosium_payments(
 def list_products(
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
-    search: str | None = Query(None, description="Recherche par libelle, code ou EAN"),
+    search: str | None = Query(None, max_length=100, description="Recherche par libelle, code ou EAN"),
     family: str | None = Query(None, description="Filtrer par famille de produit"),
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),

@@ -51,7 +51,7 @@ def run_reconciliation(
 def list_reconciliations(
     status: str | None = Query(None, description="Filtrer par statut"),
     confidence: str | None = Query(None, description="Filtrer par niveau de confiance"),
-    search: str | None = Query(None, description="Recherche par nom de client"),
+    search: str | None = Query(None, max_length=100, description="Recherche par nom de client"),
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
     db: Session = Depends(get_db),

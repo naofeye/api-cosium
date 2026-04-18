@@ -86,6 +86,43 @@ class TestImportStatement:
         assert len(txs) == 2
         assert any(t.reference == "REF001" for t in txs)
 
+    def test_rejects_pdf_disguised_as_csv(self, db, seed_user):
+        tid = _tenant_id(db)
+        pdf_bytes = b"%PDF-1.7\n%some garbage\nobj..."
+        with pytest.raises(BusinessError) as exc:
+            banking_service.import_statement(
+                db, tid, file_data=pdf_bytes, filename="evil.csv", user_id=seed_user.id,
+            )
+        assert exc.value.code == "FILE_NOT_CSV"
+
+    def test_rejects_zip_disguised_as_csv(self, db, seed_user):
+        tid = _tenant_id(db)
+        zip_bytes = b"PK\x03\x04\x14\x00\x00\x00\x08\x00"
+        with pytest.raises(BusinessError) as exc:
+            banking_service.import_statement(
+                db, tid, file_data=zip_bytes, filename="evil.csv", user_id=seed_user.id,
+            )
+        assert exc.value.code == "FILE_NOT_CSV"
+
+    def test_rejects_empty_file(self, db, seed_user):
+        tid = _tenant_id(db)
+        with pytest.raises(BusinessError) as exc:
+            banking_service.import_statement(
+                db, tid, file_data=b"", filename="empty.csv", user_id=seed_user.id,
+            )
+        assert exc.value.code == "FILE_EMPTY"
+
+    def test_accepts_utf8_bom(self, db, seed_user):
+        tid = _tenant_id(db)
+        csv_content = b"\xef\xbb\xbf" + (
+            b"date;libelle;montant;reference\n"
+            b"15/03/2026;Test BOM;99,00;REF-BOM\n"
+        )
+        imported, _ = banking_service.import_statement(
+            db, tid, file_data=csv_content, filename="bom.csv", user_id=seed_user.id,
+        )
+        assert imported == 1
+
 
 class TestAutoReconcile:
     def test_matches_by_amount_and_date(self, db, seed_user):

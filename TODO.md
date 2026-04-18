@@ -35,14 +35,14 @@
 - [x] ~~MFA forcée pour admins~~ : flag `Tenant.require_admin_mfa` (défaut False). Login refuse avec `MFA_SETUP_REQUIRED` si user admin (TenantUser.role) dans un tenant où le flag est on et n'a pas TOTP. Endpoints `GET/PATCH /api/v1/admin/tenant/security` (audit trail). Migration `x9y0z1a2b3c4`. 8 tests (4 service + 4 endpoints).
 - [x] ~~IDOR avatar client~~ : faux positif audit — vérifié `client_service.get_avatar_url` filtre déjà par `tenant_id` via `client_repo.get_by_id_active`, et storage_key inclut `tenants/{tenant_id}/avatars/...` (isolation physique).
 - [x] ~~Token blacklist fail-closed + alerting Sentry~~ : helper `_report_security_incident_to_sentry(exc, tag)` dans `security.py`, appelé dans `blacklist_setex_failed`, `blacklist_redis_unavailable`, `blacklist_check_failed`. Tag `security_incident` + level `error`. Best-effort (no-op si Sentry non configuré).
-- [ ] **Cookie SameSite=Strict** : passer `samesite="lax"` → `"strict"` sur cookie auth principal — `auth.py:28`
+- [x] ~~Cookie SameSite=Strict~~ : déjà fait — `auth.py:29` (`_COOKIE_OPTS["samesite"]="strict"`) + `_set_auth_cookies` + `_clear_auth_cookies` tous en `strict`. Test `test_cookies_have_samesite_strict` actif (ligne 48).
 - [x] ~~Mass-assignment whitelist tous repos~~ : étendu à `onboarding_repo.create_organization/tenant/user` (3 whitelists `_ORG_WRITABLE`, `_TENANT_WRITABLE`, `_USER_WRITABLE`). Protège contre injection `totp_enabled=True`, `require_admin_mfa=True`, `is_god_mode`, etc. 4 tests.
 - [x] ~~Rate limit local ≠ test~~ : déjà fait dans `core/rate_limiter.py:120` (`if settings.app_env == "test": ...`). Local garde bien le rate limit actif.
 - [x] ~~blacklist_access_token silent~~ : `logger.warning("blacklist_setex_failed")` ajouté — `security.py:88-95`
 - [x] ~~Content-Disposition RFC 5987~~ : helper central `core/http.py::content_disposition()` + migration de toutes les occurrences (exports, pec_preparation, gdpr, factures, devis, cosium_documents, client_360, clients, batch_export_service)
 - [x] ~~Audit log DELETE client `force=True`~~ : `audit_service.log_action(..., new_value={"force": force})` + route refuse `force=True` si rôle ≠ admin — `clients.py:197-208`, `client_service.py:252-256`
-- [ ] **Banking CSV magic bytes** : validation signature avant decode (BOM UTF-8 ou ASCII) comme dans `document_service.py` — `banking_service.py:78`
-- [ ] **Harmoniser max_length search** : 50 caractères partout (déjà sur `clients.py:32`, étendre autres routers)
+- [x] ~~Banking CSV magic bytes~~ : helper `_validate_csv_signature(file_data)` dans `banking_service.py` — rejette PDF/ZIP/PNG/JPEG/MZ/ELF/GIF/TIFF, tolère BOM UTF-8, refuse bytes de contrôle non textuels. Exceptions `FILE_EMPTY` + `FILE_NOT_CSV`. 4 tests (pdf, zip, empty, bom).
+- [x] ~~Harmoniser max_length search~~ : `max_length=100` sur tous les `search: Query(None, ...)` des routers Cosium (13 occurrences : `cosium_invoices.py`, `cosium_reference.py`, `cosium_documents.py`, `reconciliation.py`). Anti-DoS query géante. Aligné avec `clients.py:34`.
 
 ### Qualité / régression
 - [x] ~~Aligner coverage CI vs pyproject~~ : `pyproject.toml` passe à `fail_under=45` (baseline actuelle) avec commentaire trajectoire cible 80% — `pyproject.toml:55`

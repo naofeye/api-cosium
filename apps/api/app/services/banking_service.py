@@ -18,6 +18,42 @@ from app.services import audit_service, event_service
 
 logger = get_logger("banking_service")
 
+# Magic bytes de formats binaires interdits pour un CSV
+_CSV_BINARY_MAGIC = (
+    b"%PDF",          # PDF
+    b"PK\x03\x04",    # ZIP / Office (xlsx, docx, ods)
+    b"\x89PNG",       # PNG
+    b"\xff\xd8\xff",  # JPEG
+    b"MZ",            # Exécutable Windows PE
+    b"\x7fELF",       # Exécutable Linux ELF
+    b"GIF8",          # GIF
+    b"II\x2a\x00",    # TIFF little-endian
+    b"MM\x00\x2a",    # TIFF big-endian
+)
+
+
+def _validate_csv_signature(file_data: bytes) -> None:
+    """Valide qu'un fichier ressemble à un CSV (BOM UTF-8 ou ASCII imprimable).
+
+    Rejette les binaires masqués (PDF, ZIP, exécutables, images) avant tout decode.
+    """
+    if not file_data:
+        raise BusinessError("Fichier vide.", code="FILE_EMPTY")
+    for magic in _CSV_BINARY_MAGIC:
+        if file_data.startswith(magic):
+            raise BusinessError(
+                "Le fichier n'est pas un CSV (signature binaire détectée).",
+                code="FILE_NOT_CSV",
+            )
+    # Tolère BOM UTF-8, sinon exige des bytes ASCII imprimables sur les premiers octets
+    sample = file_data[3:] if file_data.startswith(b"\xef\xbb\xbf") else file_data
+    head = sample[:64]
+    if head and not all(b == 9 or b == 10 or b == 13 or 32 <= b <= 126 or b >= 128 for b in head):
+        raise BusinessError(
+            "Le fichier n'est pas un CSV valide (caractères de contrôle non textuels).",
+            code="FILE_NOT_CSV",
+        )
+
 
 @log_operation("create_payment")
 def create_payment(
@@ -74,6 +110,7 @@ def import_statement(
 
     Service decouple de FastAPI : prend `bytes + filename` (router fait `await file.read()`).
     """
+    _validate_csv_signature(file_data)
     try:
         content = file_data.decode("utf-8-sig")
     except UnicodeDecodeError:

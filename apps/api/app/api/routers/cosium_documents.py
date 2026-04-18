@@ -144,7 +144,7 @@ def get_sync_status(
 def list_all_documents(
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
-    search: str | None = Query(None, description="Recherche par nom de document ou client"),
+    search: str | None = Query(None, max_length=100, description="Recherche par nom de document ou client"),
     doc_type: str | None = Query(None, description="Filtrer par type de document (ex: ordonnance, devis)"),
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager", "operator")),
