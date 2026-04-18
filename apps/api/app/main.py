@@ -363,7 +363,8 @@ def health_ready() -> dict:
     try:
         db.execute(text("SELECT 1"))
         checks["database"] = "ok"
-    except Exception:
+    except Exception as exc:
+        logger.warning("readiness_check_db_failed", error=str(exc))
         checks["database"] = "error"
     finally:
         db.close()
@@ -373,7 +374,8 @@ def health_ready() -> dict:
         r = redis_lib.Redis.from_url(settings.redis_url, socket_timeout=2)
         r.ping()
         checks["redis"] = "ok"
-    except Exception:
+    except Exception as exc:
+        logger.warning("readiness_check_redis_failed", error=str(exc))
         checks["redis"] = "error"
 
     all_ok = all(v == "ok" for v in checks.values())

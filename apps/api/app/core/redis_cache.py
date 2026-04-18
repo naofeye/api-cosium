@@ -130,5 +130,5 @@ def release_lock(key: str) -> None:
         return
     try:
         r.delete(key)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("redis_lock_release_failed", key=key, error=str(exc))

@@ -45,8 +45,8 @@ def _check_account_lockout(email: str) -> None:
             )
     except AuthenticationError:
         raise
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("auth_lockout_check_failed", email=email, error=str(exc))
 
 
 def _record_failed_login(email: str) -> None:

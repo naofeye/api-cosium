@@ -58,7 +58,8 @@ def _get_redis_client() -> redis.Redis | None:
         r = redis.Redis.from_url(settings.redis_url, decode_responses=True, socket_timeout=1)
         r.ping()
         return r
-    except Exception:
+    except Exception as exc:
+        logger.info("rate_limiter_redis_unavailable_using_memory_fallback", error=str(exc))
         return None
 
 
