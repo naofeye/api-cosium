@@ -8,10 +8,23 @@ vi.mock("next/navigation", () => ({
 }));
 
 const mockLogin = vi.fn();
-vi.mock("@/lib/auth", () => ({
-  login: (...args: unknown[]) => mockLogin(...args),
-  isAuthenticated: () => false,
-}));
+// MfaRequiredError doit être exporté par le mock — la page login fait
+// `instanceof MfaRequiredError` dans son catch. Déclaration INLINE car
+// vi.mock est hoisté : pas d'accès aux variables top-level.
+vi.mock("@/lib/auth", () => {
+  class MfaRequiredError extends Error {
+    reason: string;
+    constructor(reason: string) {
+      super(reason);
+      this.reason = reason;
+    }
+  }
+  return {
+    login: (...args: unknown[]) => mockLogin(...args),
+    isAuthenticated: () => false,
+    MfaRequiredError,
+  };
+});
 
 vi.mock("next/link", () => ({
   default: ({ children, href }: { children: React.ReactNode; href: string }) => (
@@ -64,7 +77,11 @@ describe("LoginPage", () => {
     });
     await user.click(screen.getByRole("button", { name: /se connecter/i }));
     await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith("admin@optiflow.local", "admin123");
+      expect(mockLogin).toHaveBeenCalledWith(
+        "admin@optiflow.local",
+        "admin123",
+        undefined,
+      );
     });
   });
 
