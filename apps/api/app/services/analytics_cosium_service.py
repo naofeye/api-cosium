@@ -4,6 +4,7 @@ Contains KPI functions that query Cosium-synced data (invoices, customers,
 calendar events, prescriptions, payments).
 """
 
+import time
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
@@ -29,6 +30,7 @@ logger = get_logger("analytics_cosium_service")
 
 def get_cosium_kpis(db: Session, tenant_id: int) -> CosiumKPIs:
     """Compute KPIs from real Cosium invoice data."""
+    _started_at = time.perf_counter()
     total_facture_cosium = float(
         db.scalar(
             select(func.coalesce(func.sum(CosiumInvoice.total_ti), 0)).where(
@@ -92,7 +94,7 @@ def get_cosium_kpis(db: Session, tenant_id: int) -> CosiumKPIs:
         or 0
     )
 
-    return CosiumKPIs(
+    result = CosiumKPIs(
         total_facture_cosium=round(total_facture_cosium, 2),
         total_outstanding=round(total_outstanding, 2),
         total_paid=max(total_paid, 0),
@@ -102,6 +104,15 @@ def get_cosium_kpis(db: Session, tenant_id: int) -> CosiumKPIs:
         total_devis_cosium=round(total_devis_cosium, 2),
         total_avoirs_cosium=round(total_avoirs_cosium, 2),
     )
+    logger.info(
+        "cosium_kpis_computed",
+        tenant_id=tenant_id,
+        invoice_count=invoice_count,
+        quote_count=quote_count,
+        credit_note_count=credit_note_count,
+        elapsed_ms=round((time.perf_counter() - _started_at) * 1000, 1),
+    )
+    return result
 
 
 def get_cosium_counts(db: Session, tenant_id: int) -> CosiumCounts:
@@ -285,6 +296,7 @@ def get_financial_breakdown_by_type(
 
 def get_cosium_cockpit_kpis(db: Session, tenant_id: int) -> CosiumCockpitKPIs:
     """KPIs cockpit opticien : CA jour/semaine/mois, panier moyen, taux transformation, balance agee."""
+    _started_at = time.perf_counter()
     now = datetime.now(UTC).replace(tzinfo=None)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     tomorrow_start = today_start + timedelta(days=1)
@@ -345,7 +357,7 @@ def get_cosium_cockpit_kpis(db: Session, tenant_id: int) -> CosiumCockpitKPIs:
         )
     ).first()
 
-    return CosiumCockpitKPIs(
+    result = CosiumCockpitKPIs(
         ca_today=round(ca_today, 2),
         ca_this_week=round(ca_week, 2),
         ca_this_month=round(ca_month, 2),
@@ -363,3 +375,13 @@ def get_cosium_cockpit_kpis(db: Session, tenant_id: int) -> CosiumCockpitKPIs:
         latent_quotes_count=int(latent_row.nb) if latent_row else 0,
         latent_quotes_amount=round(float(latent_row.amount), 2) if latent_row else 0,
     )
+    logger.info(
+        "cosium_cockpit_kpis_computed",
+        tenant_id=tenant_id,
+        ca_month=result.ca_this_month,
+        nb_invoices_month=nb_month,
+        quote_to_invoice_rate=quote_to_invoice_rate,
+        aging_total=result.aging_total,
+        elapsed_ms=round((time.perf_counter() - _started_at) * 1000, 1),
+    )
+    return result

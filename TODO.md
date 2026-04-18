@@ -93,7 +93,7 @@
 - [ ] **RBAC par ressource** : décorateur `@require_resource_ownership("client", client_id)` sur endpoints sensibles
 - [ ] **Repos return types** : standardiser (ORM objects, services convertissent)
 - [ ] **Event bus** : séparer audit vs events métier dans les services
-- [ ] **Logging analytics** : `analytics_cosium_service.get_cosium_kpis/get_cosium_cockpit` n'émettent aucun `logger.info` avec `tenant_id` après calcul — ajouter traces structurées
+- [x] ~~Logging analytics~~ : `logger.info("cosium_kpis_computed", tenant_id, invoice_count, quote_count, credit_note_count, elapsed_ms)` ajouté dans `get_cosium_kpis`. `logger.info("cosium_cockpit_kpis_computed", tenant_id, ca_month, nb_invoices_month, quote_to_invoice_rate, aging_total, elapsed_ms)` dans `get_cosium_cockpit_kpis`. Mesure via `time.perf_counter()`. Observabilité : détecter N+1 latents, fréquence des calculs par tenant.
 
 ### Frontend
 - [ ] **RSC-first** : 63% des `.tsx` en `"use client"` inutile — audit systématique pages simples (`app/actions`, `app/admin/audit`, `app/aide`) ; isoler parties interactives dans enfant client
