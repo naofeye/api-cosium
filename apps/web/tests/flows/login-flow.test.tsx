@@ -53,11 +53,12 @@ describe("Login Flow - E2E style", () => {
     expect(screen.getByRole("button", { name: /se connecter/i })).toBeInTheDocument();
   });
 
-  it("shows validation error when submitting with empty fields", () => {
+  it("bouton actif au render initial (validation au submit)", () => {
     render(<LoginPage />);
     const submitBtn = screen.getByRole("button", { name: /se connecter/i });
-    // Button should be disabled when fields are empty (form validation via zod)
-    expect(submitBtn).toBeDisabled();
+    // Le bouton n'est plus gated sur form validity — zodResolver
+    // revalide au submit et affiche les erreurs inline si invalide.
+    expect(submitBtn).not.toBeDisabled();
   });
 
   it("redirects on successful login", async () => {

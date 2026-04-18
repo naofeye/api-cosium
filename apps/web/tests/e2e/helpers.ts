@@ -28,20 +28,21 @@ export async function apiLogin(
  * Login via la page UI (utile pour récupérer un state authentifié dans le navigateur).
  * Reste sur /login si MFA requise — à l'appelant de vérifier la suite.
  *
- * Submit via Enter au lieu de cliquer le bouton : le bouton reste `disabled`
- * tant que react-hook-form (mode: onChange + Zod resolver) n'a pas revalidé
- * le formulaire, ce qui est async et pas garanti après pressSequentially.
- * Enter déclenche onSubmit du <form>, qui passe par handleSubmit + validation.
+ * Soumission via clic sur le bouton, en attendant qu'il soit enabled.
+ * Le bouton est gated par `canSubmit = email && password` via watch() RHF.
+ * On utilise fill() qui dispatch `input` + `change` events, que
+ * react-hook-form register() capte correctement (contrairement à
+ * pressSequentially qui dispatchait seulement keyboard events).
  */
 export async function uiLogin(page: Page, email: string, password: string): Promise<void> {
   await page.goto("/login");
-  const emailField = page.getByLabel("Adresse email");
-  await emailField.click();
-  await emailField.pressSequentially(email);
-  const pwField = page.getByLabel("Mot de passe");
-  await pwField.click();
-  await pwField.pressSequentially(password);
-  await pwField.press("Enter");
+  await page.getByLabel("Adresse email").fill(email);
+  await page.getByLabel("Mot de passe").fill(password);
+  // Blur explicite pour finaliser la validation react-hook-form onChange
+  await page.getByLabel("Mot de passe").press("Tab");
+  const submitBtn = page.getByRole("button", { name: /se connecter/i });
+  await submitBtn.waitFor({ state: "visible" });
+  await submitBtn.click({ force: false });
 }
 
 /**

@@ -51,9 +51,11 @@ describe("LoginPage", () => {
     expect(screen.getByRole("button", { name: /se connecter/i })).toBeInTheDocument();
   });
 
-  it("bouton desactive quand les champs sont vides", () => {
+  it("bouton actif au render initial (validation Zod au submit)", () => {
     render(<LoginPage />);
-    expect(screen.getByRole("button", { name: /se connecter/i })).toBeDisabled();
+    // Le bouton n'est plus gated sur form validity — handleSubmit + zodResolver
+    // revalide et affiche les erreurs inline en cas de champs invalides.
+    expect(screen.getByRole("button", { name: /se connecter/i })).not.toBeDisabled();
   });
 
   it("affiche une erreur sur email invalide", async () => {

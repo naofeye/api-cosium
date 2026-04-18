@@ -22,7 +22,6 @@ export default function LoginPage() {
     register,
     handleSubmit,
     getValues,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -30,13 +29,9 @@ export default function LoginPage() {
     defaultValues: { email: "", password: "" },
   });
 
-  // Gating bouton sur présence de valeurs (pas sur isValid). isValid de
-  // react-hook-form avec Zod async resolver ne devient pas true de façon
-  // fiable après pressSequentially Playwright, ce qui bloquait E2E — et
-  // de toute façon Zod revalide à la soumission via handleSubmit.
-  const emailValue = watch("email");
-  const passwordValue = watch("password");
-  const canSubmit = Boolean(emailValue) && Boolean(passwordValue);
+  // Bouton jamais désactivé en présence de valeurs — handleSubmit + zodResolver
+  // revalide à la soumission et affiche les erreurs inline si invalide.
+  // Disabled uniquement pendant submit en cours (évite double-clic).
 
   const attemptLogin = async (email: string, password: string, code?: string) => {
     setServerError("");
@@ -149,7 +144,7 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <Button type="submit" disabled={!canSubmit} loading={isSubmitting} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 transition-all duration-200">
+              <Button type="submit" disabled={isSubmitting} loading={isSubmitting} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 transition-all duration-200">
                 Se connecter
               </Button>
 
