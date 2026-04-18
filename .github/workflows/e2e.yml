@@ -97,7 +97,8 @@ jobs:
           }
           EOF
           sudo nginx -t
-          sudo systemctl reload nginx
+          sudo systemctl start nginx || sudo systemctl reload nginx
+          sudo systemctl status nginx --no-pager || true
 
       # --- Backend ---
       - uses: actions/setup-python@v5
