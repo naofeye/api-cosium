@@ -27,12 +27,21 @@ export async function apiLogin(
 /**
  * Login via la page UI (utile pour récupérer un state authentifié dans le navigateur).
  * Reste sur /login si MFA requise — à l'appelant de vérifier la suite.
+ *
+ * Submit via Enter au lieu de cliquer le bouton : le bouton reste `disabled`
+ * tant que react-hook-form (mode: onChange + Zod resolver) n'a pas revalidé
+ * le formulaire, ce qui est async et pas garanti après pressSequentially.
+ * Enter déclenche onSubmit du <form>, qui passe par handleSubmit + validation.
  */
 export async function uiLogin(page: Page, email: string, password: string): Promise<void> {
   await page.goto("/login");
-  await page.getByLabel("Adresse email").fill(email);
-  await page.getByLabel("Mot de passe").fill(password);
-  await page.getByRole("button", { name: /se connecter/i }).click();
+  const emailField = page.getByLabel("Adresse email");
+  await emailField.click();
+  await emailField.pressSequentially(email);
+  const pwField = page.getByLabel("Mot de passe");
+  await pwField.click();
+  await pwField.pressSequentially(password);
+  await pwField.press("Enter");
 }
 
 /**

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { SEED_EMAIL, SEED_PASSWORD, apiLogin } from "./helpers";
+import { SEED_EMAIL, SEED_PASSWORD, apiLogin, uiLogin } from "./helpers";
 
 /**
  * Parcours login UI :
@@ -19,20 +19,12 @@ test.describe("Login UI", () => {
   });
 
   test("login valide redirige vers /actions", async ({ page }) => {
-    await page.goto("/login");
-    await page.getByLabel("Adresse email").fill(SEED_EMAIL);
-    await page.getByLabel("Mot de passe").fill(SEED_PASSWORD);
-    await page.getByRole("button", { name: /se connecter/i }).click();
-
+    await uiLogin(page, SEED_EMAIL, SEED_PASSWORD);
     await expect(page).toHaveURL(/\/actions$/, { timeout: 10_000 });
   });
 
   test("mauvais mot de passe affiche l'erreur", async ({ page }) => {
-    await page.goto("/login");
-    await page.getByLabel("Adresse email").fill(SEED_EMAIL);
-    await page.getByLabel("Mot de passe").fill("MauvaisMotDePasse1!");
-    await page.getByRole("button", { name: /se connecter/i }).click();
-
+    await uiLogin(page, SEED_EMAIL, "MauvaisMotDePasse1!");
     await expect(page).toHaveURL(/\/login$/);
     const alert = page.locator(".bg-red-50");
     await expect(alert).toBeVisible();
