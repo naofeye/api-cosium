@@ -5,6 +5,9 @@ import { caseCreateSchema } from "@/lib/schemas/case";
 import { devisLineSchema } from "@/lib/schemas/devis";
 import { signupSchema } from "@/lib/schemas/onboarding";
 import { campaignCreateSchema } from "@/lib/schemas/marketing";
+import { factureCreateSchema } from "@/lib/schemas/facture";
+import { manualMatchSchema } from "@/lib/schemas/rapprochement";
+import { reminderCreateSchema } from "@/lib/schemas/reminder";
 
 describe("loginSchema", () => {
   it("rejette un email vide", () => {
@@ -134,5 +137,97 @@ describe("campaignCreateSchema", () => {
       template: "Bonjour {{client_name}}",
     });
     expect(result.success).toBe(true);
+  });
+});
+
+describe("factureCreateSchema", () => {
+  it("rejette devis_id négatif", () => {
+    expect(factureCreateSchema.safeParse({ devis_id: -1 }).success).toBe(false);
+  });
+
+  it("rejette devis_id zéro", () => {
+    expect(factureCreateSchema.safeParse({ devis_id: 0 }).success).toBe(false);
+  });
+
+  it("rejette devis_id flottant", () => {
+    expect(factureCreateSchema.safeParse({ devis_id: 3.14 }).success).toBe(false);
+  });
+
+  it("accepte devis_id valide", () => {
+    expect(factureCreateSchema.safeParse({ devis_id: 42 }).success).toBe(true);
+  });
+});
+
+describe("manualMatchSchema", () => {
+  it("rejette transaction_id négatif", () => {
+    expect(
+      manualMatchSchema.safeParse({ transaction_id: -1, payment_id: 1 }).success,
+    ).toBe(false);
+  });
+
+  it("rejette payment_id zéro", () => {
+    expect(
+      manualMatchSchema.safeParse({ transaction_id: 1, payment_id: 0 }).success,
+    ).toBe(false);
+  });
+
+  it("accepte un match valide", () => {
+    expect(
+      manualMatchSchema.safeParse({ transaction_id: 10, payment_id: 20 }).success,
+    ).toBe(true);
+  });
+});
+
+describe("reminderCreateSchema", () => {
+  it("rejette target_type invalide", () => {
+    expect(
+      reminderCreateSchema.safeParse({
+        target_type: "autre",
+        target_id: 1,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejette target_id négatif", () => {
+    expect(
+      reminderCreateSchema.safeParse({
+        target_type: "client",
+        target_id: -5,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejette channel invalide", () => {
+    expect(
+      reminderCreateSchema.safeParse({
+        target_type: "client",
+        target_id: 1,
+        channel: "fax",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("applique la valeur par défaut channel=email", () => {
+    const result = reminderCreateSchema.safeParse({
+      target_type: "client",
+      target_id: 7,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.channel).toBe("email");
+    }
+  });
+
+  it("accepte une relance complète valide", () => {
+    expect(
+      reminderCreateSchema.safeParse({
+        target_type: "payer_organization",
+        target_id: 3,
+        facture_id: 42,
+        pec_request_id: null,
+        channel: "sms",
+        content: "Rappel amiable",
+      }).success,
+    ).toBe(true);
   });
 });

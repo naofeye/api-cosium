@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { fetchJson } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
+import { factureCreateSchema } from "@/lib/schemas/facture";
 import { Euro, FileText, ShieldCheck, Heart, XCircle } from "lucide-react";
 
 import type { DevisDetail } from "./components/DevisTimeline";
@@ -56,9 +57,10 @@ export default function DevisDetailPage() {
     setGenerating(true);
     setMutationError(null);
     try {
+      const payload = factureCreateSchema.parse({ devis_id: devis!.id });
       const resp = await fetchJson<{ id: number }>("/factures", {
         method: "POST",
-        body: JSON.stringify({ devis_id: devis!.id }),
+        body: JSON.stringify(payload),
       });
       router.push(`/factures/${resp.id}`);
     } catch (err) {

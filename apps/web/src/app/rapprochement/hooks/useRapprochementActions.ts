@@ -1,5 +1,6 @@
 import { useState, type ChangeEvent } from "react";
 import { fetchJson } from "@/lib/api";
+import { manualMatchSchema } from "@/lib/schemas/rapprochement";
 
 interface Args {
   refetchTx: () => Promise<unknown>;
@@ -62,16 +63,22 @@ export function useRapprochementActions({ refetchTx, refetchPayments }: Args) {
     setMatchResult(null);
     setMutationError(null);
     try {
+      const payload = manualMatchSchema.parse({
+        transaction_id: transactionId,
+        payment_id: paymentId,
+      });
       await fetchJson("/banking/match", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transaction_id: transactionId, payment_id: paymentId }),
+        body: JSON.stringify(payload),
       });
       await refetchTx();
       await refetchPayments();
       setMatchResult("Transaction rapprochee avec succes");
-    } catch {
-      setMutationError("Erreur lors du rapprochement manuel");
+    } catch (err) {
+      setMutationError(
+        err instanceof Error ? err.message : "Erreur lors du rapprochement manuel",
+      );
     } finally {
       setMatching(false);
     }

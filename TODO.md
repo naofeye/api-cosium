@@ -98,7 +98,7 @@
 ### Frontend
 - [ ] **RSC-first** : 63% des `.tsx` en `"use client"` inutile — audit systématique pages simples (`app/actions`, `app/admin/audit`, `app/aide`) ; isoler parties interactives dans enfant client
 - [ ] **Lazy étendu** : `dynamic()` sur tabs rarement affichés (Rapprochement, Marketing)
-- [ ] **Zod schemas manquants** : facture, rapprochement, relance (`apps/web/src/lib/schemas/`)
+- [x] ~~Zod schemas manquants~~ : `schemas/facture.ts` (`factureCreateSchema`), `schemas/rapprochement.ts` (`manualMatchSchema`), `schemas/reminder.ts` enrichi avec `reminderCreateSchema`. Intégrés aux 2 call-sites actifs (`devis/[id]/page.tsx::generateFacture` + `rapprochement/hooks/useRapprochementActions.ts::manualMatch`) : validation runtime avant POST. Le schema relance est prêt pour future UI d'envoi manuel. 12 tests ajoutés dans `tests/lib/schemas.test.ts` (30/30 passent).
 - [ ] **ESLint strict** : `no-explicit-any` + `exhaustive-deps` passer de `"warn"` → `"error"`
 - [ ] **Bons d'achat Cosium frontend** : affichage + alertes expiration (backend `/commercial-operations/{id}/advantages` déjà live)
 - [x] ~~Accessibilité divs cliquables~~ : `ImportDialog.tsx` a maintenant Escape key + `role="dialog" aria-modal="true" aria-label`. `DuplicatesPanel.tsx:135` utilise déjà `<button>` natif (faux positif audit). `DynamicSegments.tsx` : `cursor-pointer` sans onClick = WIP feature "création campagne" laissée en l'état (texte "Cliquez pour créer" annonce la feature à venir).

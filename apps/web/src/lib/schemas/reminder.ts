@@ -16,5 +16,23 @@ export const reminderTemplateSchema = z.object({
   is_default: z.boolean(),
 });
 
+/**
+ * Payload de création d'une relance manuelle — envoi ciblé client ou payer.
+ * Miroir de `ReminderCreate` (apps/api/app/domain/schemas/reminders.py).
+ * Prévu pour l'UI d'envoi de relance depuis une fiche client / facture.
+ */
+export const reminderCreateSchema = z.object({
+  target_type: z.enum(["client", "payer_organization"]),
+  target_id: z
+    .number()
+    .int("L'identifiant cible doit être un entier")
+    .positive("L'identifiant cible doit être positif"),
+  facture_id: z.number().int().positive().nullable().optional(),
+  pec_request_id: z.number().int().positive().nullable().optional(),
+  channel: z.enum(["email", "sms", "courrier", "telephone"]).default("email"),
+  content: z.string().max(5000).nullable().optional(),
+});
+
 export type ReminderPlanFormData = z.infer<typeof reminderPlanSchema>;
 export type ReminderTemplateFormData = z.infer<typeof reminderTemplateSchema>;
+export type ReminderCreateFormData = z.infer<typeof reminderCreateSchema>;
