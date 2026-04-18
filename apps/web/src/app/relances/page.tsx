@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import useSWR from "swr";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { KPICard } from "@/components/ui/KPICard";
@@ -20,10 +21,21 @@ import {
   Calendar,
 } from "lucide-react";
 import Link from "next/link";
+// Tab par défaut (overdue) : import synchrone pour pas retarder le premier render
 import { OverdueTab } from "./components/OverdueTab";
-import { Clients30Tab } from "./components/Clients30Tab";
-import { TimelineTab } from "./components/TimelineTab";
-import { HistoriqueTab } from "./components/HistoriqueTab";
+// Tabs secondaires : lazy-loadés → ~255 L en moins dans le bundle initial
+const Clients30Tab = dynamic(
+  () => import("./components/Clients30Tab").then((m) => ({ default: m.Clients30Tab })),
+  { loading: () => <LoadingState text="Chargement..." /> },
+);
+const TimelineTab = dynamic(
+  () => import("./components/TimelineTab").then((m) => ({ default: m.TimelineTab })),
+  { loading: () => <LoadingState text="Chargement..." /> },
+);
+const HistoriqueTab = dynamic(
+  () => import("./components/HistoriqueTab").then((m) => ({ default: m.HistoriqueTab })),
+  { loading: () => <LoadingState text="Chargement..." /> },
+);
 
 interface OverdueItem {
   entity_type: string;

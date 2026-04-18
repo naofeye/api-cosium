@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
 import { PageLayout } from "@/components/layout/PageLayout";
@@ -13,11 +14,25 @@ import { FileText, Euro, CheckCircle, AlertCircle, PlusCircle, Activity, Upload 
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
+// Tab par défaut (resume) : import sync
 import { TabResume } from "./tabs/TabResume";
-import { TabDocuments } from "./tabs/TabDocuments";
-import { TabFinances } from "./tabs/TabFinances";
-import { TabIA } from "./tabs/TabIA";
-import { TabHistorique } from "./tabs/TabHistorique";
+// Tabs secondaires : lazy → ~282 L en moins dans le bundle initial
+const TabDocuments = dynamic(
+  () => import("./tabs/TabDocuments").then((m) => ({ default: m.TabDocuments })),
+  { loading: () => <LoadingState text="Chargement..." /> },
+);
+const TabFinances = dynamic(
+  () => import("./tabs/TabFinances").then((m) => ({ default: m.TabFinances })),
+  { loading: () => <LoadingState text="Chargement..." /> },
+);
+const TabIA = dynamic(
+  () => import("./tabs/TabIA").then((m) => ({ default: m.TabIA })),
+  { loading: () => <LoadingState text="Chargement..." /> },
+);
+const TabHistorique = dynamic(
+  () => import("./tabs/TabHistorique").then((m) => ({ default: m.TabHistorique })),
+  { loading: () => <LoadingState text="Chargement..." /> },
+);
 import type { CaseDetail, CaseDocument, PaymentSummary, CompletenessData, CaseActivity, Tab } from "./tabs/types";
 
 export default function CaseDetailPage() {

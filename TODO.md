@@ -97,7 +97,7 @@
 
 ### Frontend
 - [ ] **RSC-first** : 63% des `.tsx` en `"use client"` inutile — audit systématique pages simples (`app/actions`, `app/admin/audit`, `app/aide`) ; isoler parties interactives dans enfant client
-- [ ] **Lazy étendu** : `dynamic()` sur tabs rarement affichés (Rapprochement, Marketing)
+- [x] ~~Lazy étendu `dynamic()` sur tabs secondaires~~ : ClientTabs (Rapprochement, Marketing + 7 autres) déjà en dynamic(). **Étendu** à : `relances/page.tsx` (3 tabs lazy : Clients30, Timeline, Historique ; seul Overdue reste sync) et `cases/[id]/page.tsx` (4 tabs lazy : Documents, Finances, IA, Historique ; seul Resume reste sync). Gain estimé : ~255 L relances + ~282 L cases hors du bundle initial. Charts (`DashboardCharts`, `StatistiquesCharts`, `ActivityChart`) déjà lazy. TS vert, 160/160 vitest.
 - [x] ~~Zod schemas manquants~~ : `schemas/facture.ts` (`factureCreateSchema`), `schemas/rapprochement.ts` (`manualMatchSchema`), `schemas/reminder.ts` enrichi avec `reminderCreateSchema`. Intégrés aux 2 call-sites actifs (`devis/[id]/page.tsx::generateFacture` + `rapprochement/hooks/useRapprochementActions.ts::manualMatch`) : validation runtime avant POST. Le schema relance est prêt pour future UI d'envoi manuel. 12 tests ajoutés dans `tests/lib/schemas.test.ts` (30/30 passent).
 - [ ] **ESLint strict** : `no-explicit-any` + `exhaustive-deps` passer de `"warn"` → `"error"`
 - [ ] **Bons d'achat Cosium frontend** : affichage + alertes expiration (backend `/commercial-operations/{id}/advantages` déjà live)
