@@ -8,12 +8,12 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.api.routers.sync._helpers import acquire_sync_lock, invalidate_tenant_caches
 from app.core.deps import require_tenant_role
 from app.core.redis_cache import release_lock
 from app.core.tenant_context import TenantContext
 from app.db.session import get_db
 from app.domain.schemas.sync import SyncAllResult
-from app.api.routers.sync._helpers import acquire_sync_lock, invalidate_tenant_caches
 from app.services import erp_sync_service
 
 router = APIRouter(prefix="/api/v1/sync", tags=["sync"])
