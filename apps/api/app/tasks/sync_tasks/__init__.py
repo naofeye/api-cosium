@@ -18,10 +18,10 @@ Préserve les imports publics existants :
   (utilisé dans `routers/cosium_documents.py`)
 """
 
-from ._bulk_download import bulk_download_cosium_documents
-from ._connectivity import test_cosium_connection
-from ._prescriptions import check_expiring_prescriptions
-from ._sync_all import sync_all_tenants
+from app.tasks.sync_tasks._bulk_download import bulk_download_cosium_documents
+from app.tasks.sync_tasks._connectivity import test_cosium_connection
+from app.tasks.sync_tasks._prescriptions import check_expiring_prescriptions
+from app.tasks.sync_tasks._sync_all import sync_all_tenants
 
 __all__ = [
     "sync_all_tenants",

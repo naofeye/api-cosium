@@ -15,7 +15,7 @@ Préserve l'import public `from app.api.routers.sync import router`
 
 from fastapi import APIRouter
 
-from . import _all, _domains, _meta
+from app.api.routers.sync import _all, _domains, _meta
 
 router = APIRouter()
 router.include_router(_meta.router)

@@ -11,10 +11,22 @@ Sous-modules :
 - `_comparison.py` : `compute_group_comparison`, `compute_best_contact_hour`
 """
 
-from ._comparison import compute_best_contact_hour, compute_group_comparison
-from ._forecast import compute_trends, get_cashflow_forecast
-from ._score import compute_client_score, get_top_clients_by_ca
-from ._segments import compute_dynamic_segments, compute_product_mix
+from app.services.analytics_cosium_extras._comparison import (
+    compute_best_contact_hour,
+    compute_group_comparison,
+)
+from app.services.analytics_cosium_extras._forecast import (
+    compute_trends,
+    get_cashflow_forecast,
+)
+from app.services.analytics_cosium_extras._score import (
+    compute_client_score,
+    get_top_clients_by_ca,
+)
+from app.services.analytics_cosium_extras._segments import (
+    compute_dynamic_segments,
+    compute_product_mix,
+)
 
 __all__ = [
     "compute_client_score",

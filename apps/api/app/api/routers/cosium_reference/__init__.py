@@ -13,7 +13,7 @@ Préserve l'import public `from app.api.routers.cosium_reference import router`
 
 from fastapi import APIRouter
 
-from . import _calendar, _data, _entities, _sync
+from app.api.routers.cosium_reference import _calendar, _data, _entities, _sync
 
 router = APIRouter()
 router.include_router(_sync.router)

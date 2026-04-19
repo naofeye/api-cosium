@@ -158,7 +158,7 @@ def test_sync_all_returns_has_errors_false_on_success(
 
 # ---------- Test 6: concurrent sync blocked by Redis lock ----------
 
-@patch("app.api.routers.sync.acquire_lock", return_value=False)
+@patch("app.api.routers.sync._helpers.acquire_lock", return_value=False)
 def test_concurrent_sync_blocked_by_redis_lock(
     mock_acquire: MagicMock,
     client: TestClient,
@@ -173,7 +173,7 @@ def test_concurrent_sync_blocked_by_redis_lock(
     assert "en cours" in detail.lower() or "SYNC_IN_PROGRESS" in str(data)
 
 
-@patch("app.api.routers.sync.acquire_lock", return_value=False)
+@patch("app.api.routers.sync._helpers.acquire_lock", return_value=False)
 def test_concurrent_sync_returns_stable_business_error_payload(
     mock_acquire: MagicMock,
     client: TestClient,
