@@ -77,6 +77,8 @@ services:
         NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
     restart: unless-stopped
     env_file: [.env]
+    environment:
+      HOSTNAME: 0.0.0.0
     depends_on:
       api:
         condition: service_started
