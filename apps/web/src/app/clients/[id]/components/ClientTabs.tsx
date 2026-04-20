@@ -3,7 +3,6 @@
 import dynamic from "next/dynamic";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { LoadingState } from "@/components/ui/LoadingState";
-import type { CosiumDataBundle } from "../types";
 
 // Tabs prioritaires (rendu sync — vus en premier)
 import { TabResume } from "../tabs/TabResume";
@@ -13,6 +12,12 @@ import { TabDocuments } from "../tabs/TabDocuments";
 import { TabOrdonnances } from "../tabs/TabOrdonnances";
 import { TabRendezVous } from "../tabs/TabRendezVous";
 import { TabEquipements } from "../tabs/TabEquipements";
+
+import { ClientTabsNav } from "./ClientTabsNav";
+import type { Tab, TabDef, ClientTabsProps } from "./ClientTabsTypes";
+
+// Re-export Tab type for consumers
+export type { Tab };
 
 // Tabs secondaires (lazy-loaded → reduction bundle initial).
 // Next.js exige que le 2e argument de `dynamic()` soit un object literal (pas une reference).
@@ -43,71 +48,6 @@ const TabRapprochement = dynamic(() => import("../tabs/TabRapprochement").then((
 const TabSAV = dynamic(() => import("../tabs/TabSAV").then((m) => m.TabSAV), {
   loading: () => <LoadingState text="Chargement..." />,
 });
-
-export type Tab =
-  | "resume"
-  | "dossiers"
-  | "finances"
-  | "documents"
-  | "marketing"
-  | "historique"
-  | "activite"
-  | "cosium-docs"
-  | "ordonnances"
-  | "cosium-paiements"
-  | "rendez-vous"
-  | "equipements"
-  | "fidelite"
-  | "sav"
-  | "pec"
-  | "rapprochement";
-
-interface TabDef {
-  key: Tab;
-  label: string;
-  count?: number;
-}
-
-interface ClientTabsProps {
-  activeTab: Tab;
-  onTabChange: (tab: Tab) => void;
-  clientId: string | number;
-  cosiumId: string | number | null;
-  cosiumData: CosiumDataBundle | null;
-  dossiers: { id: number; statut: string; source: string; created_at: string }[];
-  devis: { id: number; numero: string; statut: string; montant_ttc: number; reste_a_charge: number }[];
-  factures: { id: number; numero: string; statut: string; montant_ttc: number; date_emission: string }[];
-  paiements: { id: number; payeur: string; mode: string | null; montant_du: number; montant_paye: number; statut: string }[];
-  documents: { id: number; type: string; filename: string; uploaded_at: string }[];
-  consentements: { canal: string; consenti: boolean }[];
-  interactions: { id: number; type: string; direction: string; subject: string; content: string | null; created_at: string }[];
-  cosiumInvoices: { cosium_id: number; invoice_number: string; invoice_date: string | null; type: string; total_ti: number; outstanding_balance: number; share_social_security: number; share_private_insurance: number; settled: boolean }[];
-  // Resume tab props
-  firstName: string;
-  lastName: string;
-  phone: string | null;
-  email: string | null;
-  socialSecurityNumber: string | null;
-  postalCode: string | null;
-  city: string | null;
-  renewalEligible: boolean;
-  renewalMonths: number;
-  // Callback for data refresh
-  onDataRefresh?: () => void;
-  // Historique form state
-  showForm: boolean;
-  onShowForm: (v: boolean) => void;
-  intType: string;
-  onIntTypeChange: (v: string) => void;
-  intDir: string;
-  onIntDirChange: (v: string) => void;
-  intSubj: string;
-  onIntSubjChange: (v: string) => void;
-  intBody: string;
-  onIntBodyChange: (v: string) => void;
-  submitting: boolean;
-  onSubmit: (e: React.FormEvent) => void;
-}
 
 export function ClientTabs({
   activeTab,
@@ -167,27 +107,7 @@ export function ClientTabs({
 
   return (
     <>
-      {/* Tabs navigation */}
-      <div className="border-b border-border mb-6">
-        <div className="flex gap-0 overflow-x-auto" role="tablist" aria-label="Sections du client">
-          {tabs.map((t) => (
-            <button
-              key={t.key}
-              role="tab"
-              aria-selected={activeTab === t.key}
-              aria-controls={`tabpanel-${t.key}`}
-              id={`tab-${t.key}`}
-              onClick={() => onTabChange(t.key)}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${activeTab === t.key ? "border-primary text-primary" : "border-transparent text-text-secondary hover:text-text-primary"}`}
-            >
-              {t.label}
-              {t.count !== undefined && t.count > 0 && (
-                <span className="ml-1.5 rounded-full bg-gray-100 px-2 py-0.5 text-xs">{t.count}</span>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
+      <ClientTabsNav tabs={tabs} activeTab={activeTab} onTabChange={onTabChange} />
 
       {/* Tab panels */}
       {activeTab === "resume" && (

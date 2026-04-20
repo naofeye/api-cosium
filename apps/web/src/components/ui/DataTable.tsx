@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsUpDown, Settings2, type LucideIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsUpDown, type LucideIcon } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import { LoadingState } from "./LoadingState";
 import { ErrorState } from "./ErrorState";
 import { type ReactNode } from "react";
+import { useColumnVisibility } from "./useColumnVisibility";
+import { DataTableColumnPicker } from "./DataTableColumnPicker";
 
 export interface Column<T> {
   key: string;
@@ -19,8 +21,6 @@ export interface Column<T> {
 }
 
 type SortDirection = "asc" | "desc";
-
-const MIN_VISIBLE_COLUMNS = 3;
 
 interface DataTableProps<T> {
   columns: Column<T>[];
@@ -39,51 +39,6 @@ interface DataTableProps<T> {
   onPageChange?: (page: number) => void;
   /** Unique key for storing column visibility preference in localStorage. If omitted, column customization is disabled. */
   storageKey?: string;
-}
-
-function useColumnVisibility(storageKey: string | undefined, allColumnKeys: string[]) {
-  const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(() => {
-    if (!storageKey || typeof window === "undefined") return new Set();
-    try {
-      const stored = localStorage.getItem(`datatable-cols-${storageKey}`);
-      if (stored) return new Set(JSON.parse(stored) as string[]);
-    } catch {
-      // ignore
-    }
-    return new Set();
-  });
-
-  const persist = useCallback(
-    (hidden: Set<string>) => {
-      if (!storageKey) return;
-      try {
-        localStorage.setItem(`datatable-cols-${storageKey}`, JSON.stringify([...hidden]));
-      } catch {
-        // ignore
-      }
-    },
-    [storageKey],
-  );
-
-  const toggle = useCallback(
-    (key: string, visibleCount: number) => {
-      setHiddenColumns((prev) => {
-        const next = new Set(prev);
-        if (next.has(key)) {
-          next.delete(key);
-        } else {
-          // Prevent hiding if it would drop below MIN_VISIBLE_COLUMNS
-          if (visibleCount <= MIN_VISIBLE_COLUMNS) return prev;
-          next.add(key);
-        }
-        persist(next);
-        return next;
-      });
-    },
-    [persist],
-  );
-
-  return { hiddenColumns, toggle };
 }
 
 export function DataTable<T extends { id: number | string }>({
@@ -209,52 +164,15 @@ export function DataTable<T extends { id: number | string }>({
                 </th>
               ))}
               {storageKey && (
-                <th scope="col" className="px-2 py-3 w-8 text-right relative">
-                  <div ref={pickerRef} className="inline-block">
-                    <button
-                      type="button"
-                      onClick={() => setShowColumnPicker((v) => !v)}
-                      className="rounded p-1 text-text-secondary hover:text-text-primary hover:bg-gray-200 transition-colors"
-                      aria-label="Personnaliser les colonnes"
-                      title="Personnaliser les colonnes"
-                    >
-                      <Settings2 className="h-3.5 w-3.5" />
-                    </button>
-                    {showColumnPicker && (
-                      <div className="absolute right-0 top-full mt-1 z-50 w-56 rounded-lg border border-border bg-bg-card shadow-lg py-1">
-                        <p className="px-3 py-1.5 text-xs font-medium text-text-secondary border-b border-border">
-                          Colonnes visibles
-                        </p>
-                        {columns.map((col) => {
-                          const isHidden = hiddenColumns.has(col.key);
-                          const isAlwaysVisible = col.alwaysVisible === true;
-                          const wouldDropBelowMin = !isHidden && visibleColumns.length <= MIN_VISIBLE_COLUMNS;
-                          const disabled = isAlwaysVisible || wouldDropBelowMin;
-                          return (
-                            <label
-                              key={col.key}
-                              className={cn(
-                                "flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50",
-                                disabled && "opacity-50 cursor-not-allowed",
-                              )}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={!isHidden}
-                                disabled={disabled}
-                                onChange={() => toggleColumn(col.key, visibleColumns.length)}
-                                className="rounded border-gray-300 text-primary focus:ring-primary"
-                              />
-                              <span className="truncate">
-                                {typeof col.header === "string" ? col.header : col.key}
-                              </span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </th>
+                <DataTableColumnPicker
+                  pickerRef={pickerRef}
+                  showColumnPicker={showColumnPicker}
+                  onTogglePicker={() => setShowColumnPicker((v) => !v)}
+                  columns={columns}
+                  hiddenColumns={hiddenColumns}
+                  visibleCount={visibleColumns.length}
+                  onToggleColumn={toggleColumn}
+                />
               )}
             </tr>
           </thead>

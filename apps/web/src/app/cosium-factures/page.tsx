@@ -3,43 +3,15 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { PageLayout } from "@/components/layout/PageLayout";
-import { DataTable, type Column } from "@/components/ui/DataTable";
-import { StatusBadge } from "@/components/ui/StatusBadge";
-import { SearchInput } from "@/components/ui/SearchInput";
-import { DateDisplay } from "@/components/ui/DateDisplay";
-import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
+import { DataTable } from "@/components/ui/DataTable";
 import { Button } from "@/components/ui/Button";
 import { useCosiumInvoices, useCosiumInvoiceTotals } from "@/lib/hooks/use-api";
 import { exportToCsv } from "@/lib/export-csv";
 import { formatMoney, formatDate } from "@/lib/format";
 import { Download, Receipt, Euro, AlertCircle, FileText } from "lucide-react";
 import type { CosiumInvoice } from "@/lib/types";
-
-const TYPE_OPTIONS = [
-  { value: "INVOICE", label: "Factures uniquement" },
-  { value: "", label: "Tous les types" },
-  { value: "QUOTE", label: "Devis" },
-  { value: "CREDIT_NOTE", label: "Avoir" },
-];
-
-const SETTLED_OPTIONS = [
-  { value: "", label: "Tous les statuts" },
-  { value: "true", label: "Solde" },
-  { value: "false", label: "Impaye" },
-];
-
-function typeLabel(type: string): string {
-  switch (type) {
-    case "INVOICE":
-      return "Facture";
-    case "QUOTE":
-      return "Devis";
-    case "CREDIT_NOTE":
-      return "Avoir";
-    default:
-      return type;
-  }
-}
+import { InvoiceFilters } from "./components/InvoiceFilters";
+import { buildInvoiceColumns, typeLabel } from "./components/invoice-columns";
 
 export default function CosiumFacturesPage() {
   const router = useRouter();
@@ -107,77 +79,7 @@ export default function CosiumFacturesPage() {
     }
   };
 
-  const columns: Column<CosiumInvoice>[] = [
-    {
-      key: "invoice_number",
-      header: "Numero",
-      sortable: true,
-      render: (row) => <span className="font-mono font-medium">{row.invoice_number}</span>,
-    },
-    {
-      key: "invoice_date",
-      header: "Date",
-      sortable: true,
-      render: (row) =>
-        row.invoice_date ? <DateDisplay date={row.invoice_date} /> : <span className="text-text-secondary">-</span>,
-    },
-    {
-      key: "customer_name",
-      header: "Client",
-      sortable: true,
-      render: (row) => (
-        row.customer_id ? (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleClientClick(row);
-            }}
-            className="text-blue-600 hover:text-blue-700 hover:underline font-medium text-left"
-            title="Voir la fiche client"
-          >
-            {row.customer_name || "-"}
-          </button>
-        ) : (
-          <span>{row.customer_name || "-"}</span>
-        )
-      ),
-    },
-    {
-      key: "type",
-      header: "Type",
-      render: (row) => (
-        <StatusBadge
-          status={row.type === "INVOICE" ? "facturee" : row.type === "QUOTE" ? "brouillon" : "annulee"}
-          label={typeLabel(row.type)}
-        />
-      ),
-    },
-    {
-      key: "total_ti",
-      header: "Montant TTC",
-      sortable: true,
-      className: "text-right",
-      render: (row) => <MoneyDisplay amount={row.total_ti} bold />,
-    },
-    {
-      key: "outstanding_balance",
-      header: "Solde restant",
-      sortable: true,
-      className: "text-right",
-      render: (row) => (
-        <MoneyDisplay
-          amount={row.outstanding_balance}
-          className={row.outstanding_balance > 0 ? "text-red-600" : "text-emerald-600"}
-        />
-      ),
-    },
-    {
-      key: "settled",
-      header: "Statut",
-      render: (row) =>
-        row.settled ? <StatusBadge status="payee" label="Solde" /> : <StatusBadge status="impayee" label="Impaye" />,
-    },
-  ];
+  const columns = buildInvoiceColumns(handleClientClick);
 
   return (
     <PageLayout
@@ -223,94 +125,24 @@ export default function CosiumFacturesPage() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4 mb-6">
-        <SearchInput placeholder="Rechercher par numero ou client..." onSearch={handleSearch} />
-        <select
-          value={typeFilter}
-          onChange={(e) => {
-            setTypeFilter(e.target.value);
-            setPage(1);
-          }}
-          className="rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-          aria-label="Filtrer par type"
-        >
-          {TYPE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        <select
-          value={settledFilter}
-          onChange={(e) => {
-            setSettledFilter(e.target.value);
-            setPage(1);
-          }}
-          className="rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-          aria-label="Filtrer par statut"
-        >
-          {SETTLED_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-text-secondary" htmlFor="date-from">Du</label>
-          <input
-            id="date-from"
-            type="date"
-            value={dateFrom}
-            onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
-            className="rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-          <label className="text-sm text-text-secondary" htmlFor="date-to">au</label>
-          <input
-            id="date-to"
-            type="date"
-            value={dateTo}
-            onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
-            className="rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-        <select
-          value={hasOutstandingFilter}
-          onChange={(e) => { setHasOutstandingFilter(e.target.value); setPage(1); }}
-          className="rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-          aria-label="Filtrer par encours"
-        >
-          <option value="">Tous (encours)</option>
-          <option value="true">Avec encours &gt; 0</option>
-          <option value="false">Sans encours</option>
-        </select>
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            placeholder="Min EUR"
-            value={minAmount}
-            onChange={(e) => { setMinAmount(e.target.value); setPage(1); }}
-            className="w-24 rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-            aria-label="Montant minimum"
-          />
-          <input
-            type="number"
-            placeholder="Max EUR"
-            value={maxAmount}
-            onChange={(e) => { setMaxAmount(e.target.value); setPage(1); }}
-            className="w-24 rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-            aria-label="Montant maximum"
-          />
-          {(dateFrom || dateTo) && (
-            <button
-              onClick={() => { setDateFrom(""); setDateTo(""); setPage(1); }}
-              className="text-xs text-blue-600 hover:text-blue-700"
-            >
-              Effacer dates
-            </button>
-          )}
-        </div>
-      </div>
+      <InvoiceFilters
+        typeFilter={typeFilter}
+        settledFilter={settledFilter}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        hasOutstandingFilter={hasOutstandingFilter}
+        minAmount={minAmount}
+        maxAmount={maxAmount}
+        onSearch={handleSearch}
+        onTypeChange={(v) => { setTypeFilter(v); setPage(1); }}
+        onSettledChange={(v) => { setSettledFilter(v); setPage(1); }}
+        onDateFromChange={(v) => { setDateFrom(v); setPage(1); }}
+        onDateToChange={(v) => { setDateTo(v); setPage(1); }}
+        onHasOutstandingChange={(v) => { setHasOutstandingFilter(v); setPage(1); }}
+        onMinAmountChange={(v) => { setMinAmount(v); setPage(1); }}
+        onMaxAmountChange={(v) => { setMaxAmount(v); setPage(1); }}
+        onClearDates={() => { setDateFrom(""); setDateTo(""); setPage(1); }}
+      />
 
       <DataTable
         columns={columns}

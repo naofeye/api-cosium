@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Pencil, CheckCircle2, AlertTriangle, XCircle, Info, HelpCircle, Undo2 } from "lucide-react";
+import { Check, Pencil, CheckCircle2, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import type { ConsolidatedField, FieldStatus } from "@/lib/types/pec-preparation";
+import { STATUS_STYLES, getSourceColor, getSourceLabel } from "./consolidated-field-helpers";
+import { StatusIcon, FieldStatusBadge, AlternativesTooltip } from "./ConsolidatedFieldParts";
 
 interface ConsolidatedFieldDisplayProps {
   label: string;
@@ -19,102 +21,6 @@ interface ConsolidatedFieldDisplayProps {
   onCorrect?: (fieldName: string, newValue: string, reason?: string) => void;
   /** Callback to undo a correction (restore original value) */
   onUndoCorrection?: (fieldName: string, originalValue: string) => void;
-}
-
-const SOURCE_COLORS: Record<string, string> = {
-  cosium: "bg-blue-100 text-blue-700",
-  cosium_client: "bg-blue-100 text-blue-700",
-  devis: "bg-emerald-100 text-emerald-700",
-  document_ocr: "bg-orange-100 text-orange-700",
-  ocr: "bg-orange-100 text-orange-700",
-  manual: "bg-gray-100 text-gray-600",
-};
-
-/**
- * Border/background styling per FieldStatus.
- */
-const STATUS_STYLES: Record<FieldStatus, string> = {
-  confirmed: "border-2 border-emerald-400 bg-emerald-50/30",
-  extracted: "border border-blue-200 bg-white",
-  deduced: "border-2 border-amber-300 bg-amber-50/20",
-  missing: "border-2 border-dashed border-red-300 bg-red-50/30",
-  conflict: "border-2 border-red-400 bg-red-50/20",
-  manual: "border-2 border-gray-300 bg-gray-50/30",
-};
-
-function getSourceColor(source: string): string {
-  const key = Object.keys(SOURCE_COLORS).find((k) => source.toLowerCase().includes(k));
-  return key ? SOURCE_COLORS[key] : "bg-gray-100 text-gray-600";
-}
-
-function getSourceLabel(source: string, sourceLabel: string): string {
-  return sourceLabel || source;
-}
-
-function StatusIcon({ status }: { status: FieldStatus }) {
-  switch (status) {
-    case "confirmed":
-      return <CheckCircle2 className="h-4 w-4 text-emerald-500" aria-label="Confirme" />;
-    case "extracted":
-      return <CheckCircle2 className="h-4 w-4 text-blue-500" aria-label="Extrait" />;
-    case "deduced":
-      return <HelpCircle className="h-4 w-4 text-amber-500" aria-label="Deduit" />;
-    case "missing":
-      return <XCircle className="h-4 w-4 text-red-500" aria-label="Manquant" />;
-    case "conflict":
-      return <AlertTriangle className="h-4 w-4 text-red-500" aria-label="Conflit entre sources" />;
-    case "manual":
-      return <Pencil className="h-4 w-4 text-gray-500" aria-label="Modifie manuellement" />;
-    default:
-      return <Info className="h-4 w-4 text-gray-400" aria-label="Inconnu" />;
-  }
-}
-
-function FieldStatusBadge({ status }: { status: FieldStatus }) {
-  switch (status) {
-    case "confirmed":
-      return <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700">confirme</span>;
-    case "deduced":
-      return <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700">deduit</span>;
-    case "manual":
-      return <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600">modifie manuellement</span>;
-    case "conflict":
-      return <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700">conflit</span>;
-    default:
-      return null;
-  }
-}
-
-function AlternativesTooltip({ field }: { field: ConsolidatedField }) {
-  const [showAlternatives, setShowAlternatives] = useState(false);
-
-  if (!field.alternatives || field.alternatives.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="relative inline-block">
-      <button
-        type="button"
-        className="text-xs text-red-600 underline cursor-pointer hover:text-red-800"
-        onClick={() => setShowAlternatives(!showAlternatives)}
-        aria-label="Voir les alternatives"
-      >
-        {field.alternatives.length} alternative{field.alternatives.length > 1 ? "s" : ""}
-      </button>
-      {showAlternatives && (
-        <div className="absolute z-10 mt-1 w-64 rounded-lg border border-gray-200 bg-white shadow-lg p-3 text-sm">
-          <p className="text-xs font-medium text-gray-500 mb-2">Autres sources :</p>
-          {field.alternatives.map((alt, idx) => (
-            <div key={idx} className="flex items-center justify-between py-1 border-b border-gray-100 last:border-0">
-              <span className="text-gray-900 font-medium">{String(alt.value ?? "\u2014")}</span>
-              <span className="text-xs text-gray-500">{alt.source} ({Math.round(alt.confidence * 100)}%)</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
 }
 
 export function ConsolidatedFieldDisplay({

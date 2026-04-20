@@ -1,0 +1,8 @@
+# Override pour exposer les ports en deploiement standalone (sans Caddy)
+services:
+  api:
+    ports:
+      - "8000:8000"
+  web:
+    ports:
+      - "3000:3000"

@@ -3,22 +3,20 @@
 import { useCallback, useState } from "react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
-import Link from "next/link";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { KPICard } from "@/components/ui/KPICard";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { StatusBadge } from "@/components/ui/StatusBadge";
 import { fetchJson, API_BASE } from "@/lib/api";
 import type { BatchSummary, BatchItem } from "@/lib/types";
+import { BatchItemsTable } from "./components/BatchItemsTable";
+import { BatchActions } from "./components/BatchActions";
 import {
   Users,
   CheckCircle,
   AlertTriangle,
   AlertOctagon,
   XCircle,
-  FileDown,
-  ClipboardCheck,
 } from "lucide-react";
 
 const ITEM_STATUS_TABS = [
@@ -28,23 +26,6 @@ const ITEM_STATUS_TABS = [
   { key: "conflit", label: "Conflits" },
   { key: "erreur", label: "Erreurs" },
 ] as const;
-
-function CompletionBar({ score }: { score: number }) {
-  const pct = Math.min(100, Math.max(0, Math.round(score)));
-  const color =
-    pct >= 80 ? "bg-emerald-500" : pct >= 50 ? "bg-amber-500" : "bg-red-500";
-  return (
-    <div className="flex items-center gap-2">
-      <div className="h-2 w-24 rounded-full bg-gray-200">
-        <div
-          className={`h-2 rounded-full ${color}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className="text-xs text-text-secondary tabular-nums">{pct}%</span>
-    </div>
-  );
-}
 
 export default function BatchDetailPage() {
   const params = useParams();
@@ -100,16 +81,15 @@ export default function BatchDetailPage() {
     }
   }, [batchId]);
 
+  const breadcrumb = [
+    { label: "Groupes marketing", href: "/operations-batch" },
+    { label: "Historique", href: "/operations-batch/historique" },
+    { label: `Lot #${batchId}` },
+  ];
+
   if (isLoading) {
     return (
-      <PageLayout
-        title="Lot operations"
-        breadcrumb={[
-          { label: "Groupes marketing", href: "/operations-batch" },
-          { label: "Historique", href: "/operations-batch/historique" },
-          { label: `Lot #${batchId}` },
-        ]}
-      >
+      <PageLayout title="Lot operations" breadcrumb={breadcrumb}>
         <LoadingState text="Chargement du lot..." />
       </PageLayout>
     );
@@ -117,14 +97,7 @@ export default function BatchDetailPage() {
 
   if (fetchError || !batchSummary) {
     return (
-      <PageLayout
-        title="Lot operations"
-        breadcrumb={[
-          { label: "Groupes marketing", href: "/operations-batch" },
-          { label: "Historique", href: "/operations-batch/historique" },
-          { label: `Lot #${batchId}` },
-        ]}
-      >
+      <PageLayout title="Lot operations" breadcrumb={breadcrumb}>
         <ErrorState
           message="Impossible de charger ce lot."
           onRetry={() => window.location.reload()}
@@ -193,120 +166,16 @@ export default function BatchDetailPage() {
         ))}
       </div>
 
-      {/* Results table */}
-      <div className="overflow-x-auto rounded-xl border border-border bg-white shadow-sm mb-6">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-gray-50 text-left">
-              <th className="px-4 py-3 font-medium text-text-secondary">Client</th>
-              <th className="px-4 py-3 font-medium text-text-secondary">Statut</th>
-              <th className="px-4 py-3 font-medium text-text-secondary">Completude</th>
-              <th className="px-4 py-3 font-medium text-text-secondary">Erreurs</th>
-              <th className="px-4 py-3 font-medium text-text-secondary">Alertes</th>
-              <th className="px-4 py-3 font-medium text-text-secondary">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredItems.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-text-secondary">
-                  Aucun element dans cette categorie.
-                </td>
-              </tr>
-            ) : (
-              filteredItems.map((item) => (
-                <tr
-                  key={item.id}
-                  className="border-b border-border last:border-0 hover:bg-gray-50"
-                >
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/clients/${item.customer_id}`}
-                      className="font-medium text-blue-600 hover:underline"
-                    >
-                      {item.customer_name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={item.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <CompletionBar score={item.completude_score} />
-                  </td>
-                  <td className="px-4 py-3 tabular-nums">
-                    {item.errors_count > 0 ? (
-                      <span className="text-red-600 font-medium">{item.errors_count}</span>
-                    ) : (
-                      <span className="text-text-secondary">0</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 tabular-nums">
-                    {item.warnings_count > 0 ? (
-                      <span className="text-amber-600 font-medium">{item.warnings_count}</span>
-                    ) : (
-                      <span className="text-text-secondary">0</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {item.pec_preparation_id ? (
-                      <Link
-                        href="/pec-dashboard"
-                        className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
-                      >
-                        Voir PEC
-                      </Link>
-                    ) : (
-                      <span className="text-text-secondary text-xs">-</span>
-                    )}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <BatchItemsTable items={filteredItems} />
 
-      {/* Action buttons */}
-      <div className="flex flex-wrap items-center gap-3">
-        {batch.clients_prets > 0 && pecPreparedCount === null && (
-          <button
-            onClick={handlePreparePec}
-            disabled={preparingPec}
-            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <ClipboardCheck className="h-4 w-4" aria-hidden="true" />
-            {preparingPec ? "Preparation en cours..." : "Preparer toutes les PEC"}
-          </button>
-        )}
-
-        <button
-          onClick={handleExport}
-          className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-text-primary hover:bg-gray-50 transition-colors"
-        >
-          <FileDown className="h-4 w-4" aria-hidden="true" />
-          Exporter Excel
-        </button>
-      </div>
-
-      {/* PEC summary */}
-      {pecPreparedCount !== null && (
-        <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-6">
-          <div className="flex items-center gap-3">
-            <CheckCircle className="h-6 w-6 text-emerald-600" aria-hidden="true" />
-            <div>
-              <p className="font-semibold text-emerald-900">
-                {pecPreparedCount} fiches PEC preparees sur {batch.total_clients} dossiers
-              </p>
-              <Link
-                href="/pec-dashboard"
-                className="mt-1 inline-block text-sm text-emerald-700 hover:underline"
-              >
-                Voir le tableau de bord PEC
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
+      <BatchActions
+        clientsPrets={batch.clients_prets}
+        totalClients={batch.total_clients}
+        pecPreparedCount={pecPreparedCount}
+        preparingPec={preparingPec}
+        onPreparePec={handlePreparePec}
+        onExport={handleExport}
+      />
     </PageLayout>
   );
 }

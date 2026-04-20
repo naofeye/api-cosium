@@ -4,78 +4,16 @@ import { useState, useEffect } from "react";
 import {
   CheckCircle2,
   XCircle,
-  AlertTriangle,
-  Info,
   Shield,
   FileText,
-  ChevronDown,
-  ChevronUp,
   History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { fetchJson } from "@/lib/api";
-
-interface PreControlResult {
-  status: "pret" | "incomplet" | "conflits" | "validation_requise";
-  status_label: string;
-  completude_score: number;
-  pieces_presentes: string[];
-  pieces_manquantes: string[];
-  pieces_recommandees_manquantes: string[];
-  erreurs_bloquantes: string[];
-  alertes_verification: string[];
-  points_vigilance: string[];
-  champs_confirmes: number;
-  champs_deduits: number;
-  champs_en_conflit: number;
-  champs_manquants: number;
-  champs_manuels: number;
-  champs_extraits: number;
-}
-
-const STATUS_CONFIG: Record<
-  string,
-  { color: string; bg: string; border: string; icon: typeof CheckCircle2; label: string }
-> = {
-  pret: {
-    color: "text-emerald-700",
-    bg: "bg-emerald-50",
-    border: "border-emerald-200",
-    icon: CheckCircle2,
-    label: "Prêt",
-  },
-  incomplet: {
-    color: "text-red-700",
-    bg: "bg-red-50",
-    border: "border-red-200",
-    icon: XCircle,
-    label: "Incomplet",
-  },
-  conflits: {
-    color: "text-amber-700",
-    bg: "bg-amber-50",
-    border: "border-amber-200",
-    icon: AlertTriangle,
-    label: "Conflits",
-  },
-  validation_requise: {
-    color: "text-blue-700",
-    bg: "bg-blue-50",
-    border: "border-blue-200",
-    icon: Info,
-    label: "Validation requise",
-  },
-};
-
-const DOCUMENT_LABELS: Record<string, string> = {
-  ordonnance: "Ordonnance",
-  devis: "Devis signé",
-  attestation_mutuelle: "Attestation mutuelle",
-  carte_vitale: "Carte vitale",
-  facture: "Facture",
-  autre: "Autre document",
-};
+import { STATUS_CONFIG, DOCUMENT_LABELS } from "./pre-control-types";
+import { PreControlIssues } from "./PreControlIssues";
+import type { PreControlResult } from "./pre-control-types";
 
 interface PreControlPanelProps {
   preparationId: string;
@@ -86,9 +24,6 @@ export function PreControlPanel({ preparationId, onOpenAudit }: PreControlPanelP
   const [data, setData] = useState<PreControlResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [errorsExpanded, setErrorsExpanded] = useState(false);
-  const [warningsExpanded, setWarningsExpanded] = useState(false);
-  const [infoExpanded, setInfoExpanded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -144,11 +79,6 @@ export function PreControlPanel({ preparationId, onOpenAudit }: PreControlPanelP
       required: false,
     })),
   ];
-
-  const totalIssues =
-    data.erreurs_bloquantes.length +
-    data.alertes_verification.length +
-    data.points_vigilance.length;
 
   return (
     <div className={cn("rounded-xl border shadow-sm mb-6", config.border, config.bg)}>
@@ -234,104 +164,11 @@ export function PreControlPanel({ preparationId, onOpenAudit }: PreControlPanelP
       </div>
 
       {/* Section 3: Points à vérifier */}
-      {totalIssues > 0 && (
-        <div className="p-5">
-          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-            Points à vérifier
-          </h4>
-          <div className="space-y-2">
-            {/* Erreurs bloquantes */}
-            {data.erreurs_bloquantes.length > 0 && (
-              <div>
-                <button
-                  type="button"
-                  className="flex items-center gap-2 w-full text-left text-sm font-medium text-red-700 hover:text-red-800"
-                  onClick={() => setErrorsExpanded(!errorsExpanded)}
-                  aria-expanded={errorsExpanded}
-                >
-                  <XCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  {data.erreurs_bloquantes.length} erreur(s) bloquante(s)
-                  {errorsExpanded ? (
-                    <ChevronUp className="h-3 w-3 ml-auto" />
-                  ) : (
-                    <ChevronDown className="h-3 w-3 ml-auto" />
-                  )}
-                </button>
-                {errorsExpanded && (
-                  <ul className="mt-1 ml-6 space-y-1">
-                    {data.erreurs_bloquantes.map((msg, i) => (
-                      <li key={i} className="text-xs text-red-600">&bull; {msg}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-
-            {/* Alertes */}
-            {data.alertes_verification.length > 0 && (
-              <div>
-                <button
-                  type="button"
-                  className="flex items-center gap-2 w-full text-left text-sm font-medium text-amber-700 hover:text-amber-800"
-                  onClick={() => setWarningsExpanded(!warningsExpanded)}
-                  aria-expanded={warningsExpanded}
-                >
-                  <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  {data.alertes_verification.length} alerte(s) à vérifier
-                  {warningsExpanded ? (
-                    <ChevronUp className="h-3 w-3 ml-auto" />
-                  ) : (
-                    <ChevronDown className="h-3 w-3 ml-auto" />
-                  )}
-                </button>
-                {warningsExpanded && (
-                  <ul className="mt-1 ml-6 space-y-1">
-                    {data.alertes_verification.map((msg, i) => (
-                      <li key={i} className="text-xs text-amber-600">&bull; {msg}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-
-            {/* Points de vigilance */}
-            {data.points_vigilance.length > 0 && (
-              <div>
-                <button
-                  type="button"
-                  className="flex items-center gap-2 w-full text-left text-sm font-medium text-blue-700 hover:text-blue-800"
-                  onClick={() => setInfoExpanded(!infoExpanded)}
-                  aria-expanded={infoExpanded}
-                >
-                  <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  {data.points_vigilance.length} point(s) de vigilance
-                  {infoExpanded ? (
-                    <ChevronUp className="h-3 w-3 ml-auto" />
-                  ) : (
-                    <ChevronDown className="h-3 w-3 ml-auto" />
-                  )}
-                </button>
-                {infoExpanded && (
-                  <ul className="mt-1 ml-6 space-y-1">
-                    {data.points_vigilance.map((msg, i) => (
-                      <li key={i} className="text-xs text-blue-600">&bull; {msg}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {totalIssues === 0 && (
-        <div className="p-5">
-          <div className="flex items-center gap-2 text-sm text-emerald-700">
-            <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-            Aucun point bloquant détecté. Le dossier est prêt pour soumission.
-          </div>
-        </div>
-      )}
+      <PreControlIssues
+        erreurs_bloquantes={data.erreurs_bloquantes}
+        alertes_verification={data.alertes_verification}
+        points_vigilance={data.points_vigilance}
+      />
     </div>
   );
 }

@@ -9,7 +9,6 @@ import { KPICard } from "@/components/ui/KPICard";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { fetchJson } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
@@ -21,73 +20,13 @@ import {
   CheckCircle,
   Clock,
   RefreshCw,
-  ArrowRight,
-  AlertCircle,
   X,
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-
-interface DashboardData {
-  cases_count: number;
-  documents_count: number;
-  alerts_count: number;
-  payments_due: number;
-  payments_paid: number;
-  payments_remaining: number;
-}
-
-interface ActionItem {
-  id: number;
-  type: string;
-  title: string;
-  description: string | null;
-  entity_type: string;
-  entity_id: number;
-  priority: string;
-  status: string;
-  created_at: string;
-}
-
-interface ActionItemList {
-  items: ActionItem[];
-  total: number;
-  counts: Record<string, number>;
-}
-
-const TYPE_LABELS: Record<string, string> = {
-  dossier_incomplet: "Dossiers incomplets",
-  paiement_retard: "Paiements en attente",
-  pec_attente: "PEC en attente",
-  relance_faire: "Relances a faire",
-  devis_expiration: "Devis expirant",
-  impaye_cosium: "Impayes Cosium",
-  devis_dormant: "Devis dormants",
-  rdv_demain: "RDV demain",
-  renouvellement: "Renouvellements eligibles",
-};
-
-const TYPE_ICONS: Record<string, typeof FolderOpen> = {
-  dossier_incomplet: FolderOpen,
-  paiement_retard: Euro,
-  pec_attente: Clock,
-  relance_faire: AlertTriangle,
-  devis_expiration: FileText,
-};
-
-const PRIORITY_COLORS: Record<string, string> = {
-  critical: "bg-red-50 text-red-700 ring-1 ring-inset ring-red-200",
-  high: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200",
-  medium: "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200",
-  low: "bg-gray-50 text-gray-600 ring-1 ring-inset ring-gray-200",
-};
-
-const PRIORITY_LABELS: Record<string, string> = {
-  critical: "Critique",
-  high: "Haute",
-  medium: "Moyenne",
-  low: "Basse",
-};
+import { ActionGroup } from "./components/ActionGroup";
+import { TYPE_LABELS } from "./components/action-types";
+import type { DashboardData, ActionItem, ActionItemList } from "./components/action-types";
 
 export default function ActionsPage() {
   const router = useRouter();
@@ -217,19 +156,28 @@ export default function ActionsPage() {
           })()}, bienvenue sur OptiFlow
         </h1>
         <p className="mt-1 text-sm text-text-secondary">
-          Voici vos priorites du jour — {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          Voici vos priorites du jour —{" "}
+          {new Date().toLocaleDateString("fr-FR", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })}
         </p>
         {typeFilter && (
           <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-blue-50 border border-blue-200 px-3 py-1.5 text-sm text-blue-800">
             <span className="font-medium">Filtre :</span>
             <span>{TYPE_LABELS[typeFilter] ?? typeFilter}</span>
-            <span className="rounded-full bg-blue-200 px-2 py-0.5 text-xs font-bold tabular-nums">{filteredItems.length}</span>
+            <span className="rounded-full bg-blue-200 px-2 py-0.5 text-xs font-bold tabular-nums">
+              {filteredItems.length}
+            </span>
             <Link href="/actions" className="ml-1 hover:bg-blue-200 rounded-full p-0.5" aria-label="Retirer le filtre">
               <X className="h-3.5 w-3.5" />
             </Link>
           </div>
         )}
       </div>
+
       {showOnboarding && (
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
           <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" aria-label="Bienvenue" />
@@ -285,60 +233,16 @@ export default function ActionsPage() {
         />
       ) : (
         <div className="space-y-6">
-          {Object.entries(groupedActions).map(([type, items]) => {
-            const Icon = TYPE_ICONS[type] || AlertCircle;
-            return (
-              <div key={type} className="rounded-xl border border-border bg-bg-card shadow-sm hover:shadow-md transition-shadow duration-200">
-                <div className="flex items-center gap-3 border-b border-border px-5 py-3.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/20">
-                    <Icon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <h3 className="text-sm font-semibold text-text-primary">{TYPE_LABELS[type] || type}</h3>
-                  <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:ring-blue-800">
-                    {items.length}
-                  </span>
-                </div>
-                <div className="divide-y divide-border">
-                  {items.map((item) => (
-                    <div key={item.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/80 dark:hover:bg-gray-800/50 transition-colors duration-150">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-text-primary">{item.title}</p>
-                        {item.description && <p className="text-xs text-text-secondary mt-0.5">{item.description}</p>}
-                      </div>
-                      <span
-                        className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${PRIORITY_COLORS[item.priority] || PRIORITY_COLORS.medium}`}
-                      >
-                        {PRIORITY_LABELS[item.priority] || item.priority}
-                      </span>
-                      <div className="flex shrink-0 items-center gap-1.5">
-                        <button
-                          onClick={() => markDone(item.id)}
-                          className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 transition-colors"
-                          title="Marquer comme traite"
-                        >
-                          Traite
-                        </button>
-                        <button
-                          onClick={() => dismiss(item.id)}
-                          className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-text-secondary hover:bg-gray-100 transition-colors"
-                          title="Reporter"
-                        >
-                          Reporter
-                        </button>
-                        <button
-                          onClick={() => router.push(getEntityLink(item))}
-                          className="rounded-lg p-1.5 text-primary hover:bg-blue-50 transition-colors"
-                          aria-label="Voir le detail"
-                        >
-                          <ArrowRight className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+          {Object.entries(groupedActions).map(([type, items]) => (
+            <ActionGroup
+              key={type}
+              type={type}
+              items={items}
+              onMarkDone={markDone}
+              onDismiss={dismiss}
+              onNavigate={(item) => router.push(getEntityLink(item))}
+            />
+          ))}
         </div>
       )}
     </PageLayout>
