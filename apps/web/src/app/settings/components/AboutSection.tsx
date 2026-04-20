@@ -1,5 +1,3 @@
-"use client";
-
 import { Info, ExternalLink, HelpCircle } from "lucide-react";
 
 export function AboutSection() {

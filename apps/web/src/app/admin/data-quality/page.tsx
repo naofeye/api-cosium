@@ -1,5 +1,3 @@
-"use client";
-
 import { PageLayout } from "@/components/layout/PageLayout";
 import { DataQualitySection } from "../components/DataQualitySection";
 

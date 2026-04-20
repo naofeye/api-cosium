@@ -1,5 +1,3 @@
-"use client";
-
 interface Consentement {
   canal: string;
   consenti: boolean;

@@ -289,6 +289,3 @@ class CosiumClient:
     # def delete(...) -> INTERDIT
     # def patch(...) -> INTERDIT
     # def request(...) -> INTERDIT (methode generique)
-
-
-cosium_client = CosiumClient()

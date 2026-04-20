@@ -1,5 +1,3 @@
-"use client";
-
 import { KPICard } from "@/components/ui/KPICard";
 import { formatMoney } from "@/lib/format";
 import { Euro, TrendingUp, CheckCircle, AlertCircle, Users, FileText, ClipboardList, CreditCard, RotateCcw } from "lucide-react";

@@ -36,8 +36,8 @@ class CosiumConnector(CosiumConnectorExtrasMixin, ERPConnector):
     vers les modeles generiques ERP.
     """
 
-    def __init__(self) -> None:
-        self._client = CosiumClient()
+    def __init__(self, client: CosiumClient | None = None) -> None:
+        self._client = client or CosiumClient()
 
     @property
     def erp_type(self) -> str:

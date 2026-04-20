@@ -1,5 +1,3 @@
-"use client";
-
 import { Heart, CheckCircle, AlertCircle, Database, Server, HardDrive } from "lucide-react";
 import type { HealthCheckResponse } from "@/lib/types/admin";
 

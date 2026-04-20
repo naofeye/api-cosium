@@ -1,5 +1,3 @@
-"use client";
-
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Building2 } from "lucide-react";
 

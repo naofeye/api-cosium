@@ -1,5 +1,3 @@
-"use client";
-
 import { HelpCircle, Info } from "lucide-react";
 
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";

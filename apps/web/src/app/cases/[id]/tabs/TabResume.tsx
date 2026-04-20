@@ -1,5 +1,3 @@
-"use client";
-
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { DateDisplay } from "@/components/ui/DateDisplay";
 import { User, Phone, Mail, CheckCircle, AlertCircle, CircleDot } from "lucide-react";

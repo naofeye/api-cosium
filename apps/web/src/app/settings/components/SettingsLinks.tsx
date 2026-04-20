@@ -1,5 +1,3 @@
-"use client";
-
 import { CreditCard, Brain, Database } from "lucide-react";
 import Link from "next/link";
 

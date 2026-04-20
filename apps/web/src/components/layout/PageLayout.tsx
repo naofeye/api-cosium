@@ -1,5 +1,3 @@
-"use client";
-
 import { type ReactNode } from "react";
 import { Header } from "./Header";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";

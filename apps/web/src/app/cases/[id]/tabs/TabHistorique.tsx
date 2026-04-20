@@ -1,5 +1,3 @@
-"use client";
-
 import { EmptyState } from "@/components/ui/EmptyState";
 import { DateDisplay } from "@/components/ui/DateDisplay";
 import { Activity, FileText, Euro, ShieldCheck, Upload, MessageSquare } from "lucide-react";

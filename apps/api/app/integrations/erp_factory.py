@@ -15,11 +15,12 @@ SUPPORTED_ERP_TYPES = {"cosium"}
 PLANNED_ERP_TYPES = {"icanopee", "hexaoptic", "osmose"}
 
 
-def get_connector(erp_type: str) -> ERPConnector:
+def get_connector(erp_type: str, client: object | None = None) -> ERPConnector:
     """Retourne une instance du connecteur ERP correspondant.
 
     Args:
         erp_type: identifiant du type d'ERP ("cosium", "icanopee", etc.)
+        client: instance de client ERP optionnelle (injection de dependances)
 
     Returns:
         Instance du connecteur ERP
@@ -32,7 +33,7 @@ def get_connector(erp_type: str) -> ERPConnector:
     if erp_type == "cosium":
         from app.integrations.cosium.cosium_connector import CosiumConnector
 
-        return CosiumConnector()
+        return CosiumConnector(client=client)
 
     if erp_type in PLANNED_ERP_TYPES:
         raise ValueError(

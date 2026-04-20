@@ -1,5 +1,3 @@
-"use client";
-
 import { cn } from "@/lib/utils";
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string; ring: string }> = {

@@ -1,5 +1,3 @@
-"use client";
-
 import { EmptyState } from "@/components/ui/EmptyState";
 import { DateDisplay } from "@/components/ui/DateDisplay";
 import { Calendar, X, AlertTriangle, CheckCircle } from "lucide-react";

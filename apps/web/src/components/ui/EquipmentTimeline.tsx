@@ -1,5 +1,3 @@
-"use client";
-
 import { Glasses, Eye, Sun, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 

@@ -1,5 +1,3 @@
-"use client";
-
 import { Clock, Send, CheckCircle, AlertTriangle, Mail, MessageSquare } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/ui/StatusBadge";

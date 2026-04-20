@@ -1,5 +1,3 @@
-"use client";
-
 import { CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ConsolidatedField } from "@/lib/types/pec-preparation";

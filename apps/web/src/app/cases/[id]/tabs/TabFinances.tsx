@@ -1,5 +1,3 @@
-"use client";
-
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
 import { EmptyState } from "@/components/ui/EmptyState";

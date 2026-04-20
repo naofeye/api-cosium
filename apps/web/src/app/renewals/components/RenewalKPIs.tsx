@@ -1,5 +1,3 @@
-"use client";
-
 import { KPICard } from "@/components/ui/KPICard";
 import { formatMoney } from "@/lib/format";
 import { Target, TrendingUp, Euro, Send } from "lucide-react";

@@ -1,5 +1,3 @@
-"use client";
-
 import { Eye, CalendarDays, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
