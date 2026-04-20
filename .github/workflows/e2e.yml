@@ -1,16 +1,10 @@
 name: E2E Playwright
 
-# Trigger manuel uniquement pour l'instant.
-# Raison : en CI, frontend (:3000) et API (:8000) sont cross-origin.
-# Les cookies httpOnly posés par l'API ne sont pas visibles pour les
-# fetch client-side suivants dans certaines configurations headless,
-# ce qui fait échouer les 8 tests UI qui dépendent d'un login cookie-based.
-# Les tests API-direct (5) et le flow MFA API passent.
-# Solution propre : reverse proxy nginx localhost:80 -> api:8000 + web:3000
-# (comme en prod). À faire dans une itération dédiée.
-# En local : `docker compose up` puis `cd apps/web && npm run test:e2e`
-# fonctionne car nginx proxy tout sur un seul origin.
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -36,20 +30,27 @@ jobs:
       JWT_SECRET: ci-test-secret-key-not-for-prod
       ENCRYPTION_KEY: WM973v2ZmRwE1PSjiBQcFpc3lhF0Q2zrJOSdPjALgQw=
       APP_ENV: test
-      # S3 stubs — les tests E2E n'uploadent pas vers MinIO
       S3_ENDPOINT: http://localhost:9000
       S3_ACCESS_KEY: minioadmin
       S3_SECRET_KEY: minioadmin
       S3_BUCKET: optiflow-docs
-      # CORS : frontend appelle l'API localhost:3000 -> localhost:8000
-      CORS_ORIGINS: http://localhost:3000
-      # Public API URL exposée au frontend (build Next)
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
-      # Playwright
-      E2E_BASE_URL: http://localhost:3000
-      E2E_API_URL: http://localhost:8000
+      # Nginx unifie tout sur port 80 — meme origin pour cookies
+      CORS_ORIGINS: http://localhost
+      NEXT_PUBLIC_API_BASE_URL: /api/v1
+      # Playwright : tout passe par nginx port 80
+      E2E_BASE_URL: http://localhost
+      E2E_API_URL: http://localhost
     steps:
       - uses: actions/checkout@v4
+
+      # --- Nginx reverse proxy (same-origin pour cookies) ---
+      - name: Install & start nginx
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq nginx
+          sudo cp config/nginx/nginx.e2e.conf /etc/nginx/nginx.conf
+          sudo nginx -t
+          sudo systemctl start nginx
+          echo "Nginx started on :80"
 
       # --- Backend ---
       - uses: actions/setup-python@v5
@@ -67,17 +68,13 @@ jobs:
           cd apps/api
           nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 > /tmp/api.log 2>&1 &
           echo $! > /tmp/api.pid
-          # Attendre que l'API réponde (max 30s)
           for i in $(seq 1 30); do
             if curl -fsS http://localhost:8000/health >/dev/null 2>&1; then
               echo "API up after ${i}s"
-              exit 0
+              break
             fi
             sleep 1
           done
-          echo "API n'a pas démarré en 30s"
-          cat /tmp/api.log
-          exit 1
 
       # --- Frontend ---
       - uses: actions/setup-node@v4
@@ -95,13 +92,16 @@ jobs:
           for i in $(seq 1 30); do
             if curl -fsS http://localhost:3000/login >/dev/null 2>&1; then
               echo "Web up after ${i}s"
-              exit 0
+              break
             fi
             sleep 1
           done
-          echo "Web n'a pas démarré en 30s"
-          cat /tmp/web.log
-          exit 1
+
+      # Verify nginx proxy works end-to-end
+      - name: Verify nginx proxy
+        run: |
+          curl -fsS http://localhost/health && echo " -> API via nginx OK"
+          curl -fsS http://localhost/login >/dev/null && echo " -> Web via nginx OK"
 
       # --- Playwright ---
       - name: Install Playwright browsers
@@ -117,7 +117,7 @@ jobs:
           path: apps/web/playwright-report/
           retention-days: 7
 
-      - name: Upload API/Web logs on failure
+      - name: Upload server logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -125,4 +125,5 @@ jobs:
           path: |
             /tmp/api.log
             /tmp/web.log
+            /var/log/nginx/error.log
           retention-days: 7

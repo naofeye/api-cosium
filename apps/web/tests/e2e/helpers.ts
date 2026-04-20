@@ -1,6 +1,9 @@
 import type { APIRequestContext, Page } from "@playwright/test";
 import { authenticator } from "otplib";
 
+// En CI, nginx unifie API+Web sur le meme origin (port 80) pour que les
+// cookies httpOnly/SameSite=Strict fonctionnent dans le navigateur Playwright.
+// En local sans nginx, fallback sur le port API direct.
 export const API_BASE = process.env.E2E_API_URL ?? "http://localhost:8000";
 export const SEED_EMAIL = process.env.E2E_SEED_EMAIL ?? "admin@optiflow.com";
 export const SEED_PASSWORD = process.env.E2E_SEED_PASSWORD ?? "Admin123";
