@@ -12,6 +12,9 @@ from __future__ import annotations
 from typing import Any
 
 from app.core.config import settings
+from app.core.logging import get_logger
+
+logger = get_logger("sentry_helpers")
 
 
 def report_incident_to_sentry(
@@ -49,5 +52,12 @@ def report_incident_to_sentry(
                 if value is not None:
                     scope.set_tag(key, str(value))
             sentry_sdk.capture_exception(exc)
-    except Exception:  # noqa: BLE001 — Sentry failure ne doit jamais bloquer l'appelant
-        pass
+    except Exception as sentry_exc:  # noqa: BLE001 — Sentry failure ne doit jamais bloquer l'appelant
+        logger.warning(
+            "sentry_capture_failed",
+            tag=tag,
+            category=category,
+            sentry_error=str(sentry_exc),
+            sentry_error_type=type(sentry_exc).__name__,
+            original_error=str(exc),
+        )

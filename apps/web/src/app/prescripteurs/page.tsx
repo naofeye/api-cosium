@@ -5,6 +5,7 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SearchInput } from "@/components/ui/SearchInput";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { useCosiumDoctors } from "@/lib/hooks/use-api";
 import { Stethoscope } from "lucide-react";
 import type { CosiumDoctor } from "@/lib/types";
@@ -87,6 +88,7 @@ export default function PrescripteursPage() {
   ];
 
   return (
+    <ErrorBoundary name="Prescripteurs">
     <PageLayout
       title="Prescripteurs Cosium"
       description={`${data?.total ?? 0} prescripteurs synchronises`}
@@ -111,5 +113,6 @@ export default function PrescripteursPage() {
         emptyIcon={Stethoscope}
       />
     </PageLayout>
+    </ErrorBoundary>
   );
 }

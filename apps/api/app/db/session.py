@@ -2,6 +2,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
+from app.core.logging import get_logger
+
+logger = get_logger("db.session")
 
 # Statement timeout : 30s pour l'API, 120s pour les workers Celery.
 # Tache > 120s = signe d'un probleme (N+1, dead lock, sync non batchee) a investiguer.
@@ -42,7 +45,13 @@ def get_db():
     db = SessionLocal()
     try:
         yield db
-    except Exception:
+    except Exception as exc:
+        logger.error(
+            "db_session_error",
+            action="request_db_session",
+            error=str(exc),
+            error_type=type(exc).__name__,
+        )
         db.rollback()
         raise
     finally:

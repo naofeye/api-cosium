@@ -8,7 +8,6 @@ Rate limiting is enforced to avoid overloading the Cosium server:
 - 2 seconds delay between customers (configurable)
 """
 
-import re
 import time
 from datetime import UTC, datetime
 
@@ -20,22 +19,21 @@ from app.integrations.cosium.cosium_connector import CosiumConnector
 from app.integrations.storage import StorageAdapter
 from app.models.client import Customer
 from app.models.cosium_data import CosiumDocument
+from app.services.cosium_document_helpers import (
+    guess_content_type,
+    sanitize_filename as _sanitize_filename,
+)
+
+# Re-export helpers for backward compatibility
+from app.services.cosium_document_helpers import (  # noqa: F401, E402
+    get_local_documents,
+    get_sync_status,
+)
 
 logger = get_logger("cosium_document_sync")
 
 BUCKET = "optiflow-docs"
 KEY_PREFIX = "cosium-docs"
-
-
-def _sanitize_filename(name: str) -> str:
-    """Remove special characters from filename for safe MinIO key."""
-    if not name:
-        return "document"
-    # Keep alphanumeric, dots, hyphens, underscores
-    sanitized = re.sub(r"[^\w.\-]", "_", name)
-    # Collapse multiple underscores
-    sanitized = re.sub(r"_+", "_", sanitized).strip("_")
-    return sanitized[:200] if sanitized else "document"
 
 
 def sync_customer_documents(
@@ -116,15 +114,7 @@ def sync_customer_documents(
             safe_name = _sanitize_filename(label)
             minio_key = f"{KEY_PREFIX}/{tenant_id}/{customer_cosium_id}/{doc_id}_{safe_name}"
 
-            # Guess content type
-            content_type = "application/pdf"
-            lower_name = label.lower()
-            if lower_name.endswith(".jpg") or lower_name.endswith(".jpeg"):
-                content_type = "image/jpeg"
-            elif lower_name.endswith(".png"):
-                content_type = "image/png"
-            elif lower_name.endswith(".tiff") or lower_name.endswith(".tif"):
-                content_type = "image/tiff"
+            content_type = guess_content_type(label)
 
             storage.ensure_bucket(BUCKET)
             storage.upload_file(BUCKET, minio_key, content, content_type=content_type)
@@ -306,60 +296,4 @@ def sync_all_documents(
         "documents_downloaded": total_downloaded,
         "documents_skipped": total_skipped,
         "errors": total_errors,
-    }
-
-
-def get_local_documents(
-    db: Session, tenant_id: int, customer_cosium_id: int
-) -> list[CosiumDocument]:
-    """Get locally cached documents for a customer."""
-    return list(
-        db.scalars(
-            select(CosiumDocument)
-            .where(
-                CosiumDocument.tenant_id == tenant_id,
-                CosiumDocument.customer_cosium_id == customer_cosium_id,
-            )
-            .order_by(CosiumDocument.synced_at.desc())
-        ).all()
-    )
-
-
-def get_sync_status(db: Session, tenant_id: int) -> dict:
-    """Return progress info for document sync."""
-    from sqlalchemy import func
-
-    total_docs = db.scalar(
-        select(func.count(CosiumDocument.id)).where(CosiumDocument.tenant_id == tenant_id)
-    ) or 0
-
-    total_customers_with_docs = db.scalar(
-        select(func.count(func.distinct(CosiumDocument.customer_cosium_id))).where(
-            CosiumDocument.tenant_id == tenant_id
-        )
-    ) or 0
-
-    total_customers = db.scalar(
-        select(func.count(Customer.id)).where(
-            Customer.tenant_id == tenant_id,
-            Customer.cosium_id.isnot(None),
-            Customer.cosium_id != "",
-        )
-    ) or 0
-
-    total_size = db.scalar(
-        select(func.sum(CosiumDocument.size_bytes)).where(CosiumDocument.tenant_id == tenant_id)
-    ) or 0
-
-    last_sync = db.scalar(
-        select(func.max(CosiumDocument.synced_at)).where(CosiumDocument.tenant_id == tenant_id)
-    )
-
-    return {
-        "total_documents": total_docs,
-        "customers_with_docs": total_customers_with_docs,
-        "total_customers": total_customers,
-        "total_size_bytes": total_size,
-        "total_size_mb": round(total_size / (1024 * 1024), 1) if total_size else 0,
-        "last_sync_at": last_sync.isoformat() if last_sync else None,
     }

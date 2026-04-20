@@ -6,6 +6,7 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { Glasses, Sparkles, Search } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 
@@ -148,55 +149,57 @@ export default function CataloguePage() {
   const [search, setSearch] = useState("");
 
   return (
-    <PageLayout
-      title="Catalogue optique"
-      description="Montures et verres disponibles dans le catalogue Cosium (lecture seule)"
-      breadcrumb={[{ label: "Cosium" }, { label: "Catalogue" }]}
-    >
-      <div className="border-b border-border mb-6">
-        <div className="flex gap-0" role="tablist" aria-label="Sections du catalogue">
-          <button
-            role="tab"
-            aria-selected={tab === "frames"}
-            onClick={() => setTab("frames")}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              tab === "frames"
-                ? "border-primary text-primary"
-                : "border-transparent text-text-secondary hover:text-text-primary"
-            }`}
-          >
-            <Glasses className="h-4 w-4" />
-            Montures
-          </button>
-          <button
-            role="tab"
-            aria-selected={tab === "lenses"}
-            onClick={() => setTab("lenses")}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              tab === "lenses"
-                ? "border-primary text-primary"
-                : "border-transparent text-text-secondary hover:text-text-primary"
-            }`}
-          >
-            <Sparkles className="h-4 w-4" />
-            Verres
-          </button>
+    <ErrorBoundary name="Catalogue optique">
+      <PageLayout
+        title="Catalogue optique"
+        description="Montures et verres disponibles dans le catalogue Cosium (lecture seule)"
+        breadcrumb={[{ label: "Cosium" }, { label: "Catalogue" }]}
+      >
+        <div className="border-b border-border mb-6">
+          <div className="flex gap-0" role="tablist" aria-label="Sections du catalogue">
+            <button
+              role="tab"
+              aria-selected={tab === "frames"}
+              onClick={() => setTab("frames")}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                tab === "frames"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              <Glasses className="h-4 w-4" />
+              Montures
+            </button>
+            <button
+              role="tab"
+              aria-selected={tab === "lenses"}
+              onClick={() => setTab("lenses")}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                tab === "lenses"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              <Sparkles className="h-4 w-4" />
+              Verres
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className="mb-4 relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" aria-hidden="true" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={tab === "frames" ? "Rechercher monture (marque, modele, couleur, materiau, style)..." : "Rechercher verre (marque, modele, materiau, traitement, teinte)..."}
-          className="w-full max-w-xl pl-10 pr-3 py-2 rounded-lg border border-border bg-bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-      </div>
+        <div className="mb-4 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" aria-hidden="true" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={tab === "frames" ? "Rechercher monture (marque, modele, couleur, materiau, style)..." : "Rechercher verre (marque, modele, materiau, traitement, teinte)..."}
+            className="w-full max-w-xl pl-10 pr-3 py-2 rounded-lg border border-border bg-bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
 
-      {tab === "frames" && <FramesGrid search={search} />}
-      {tab === "lenses" && <LensesGrid search={search} />}
-    </PageLayout>
+        {tab === "frames" && <FramesGrid search={search} />}
+        {tab === "lenses" && <LensesGrid search={search} />}
+      </PageLayout>
+    </ErrorBoundary>
   );
 }

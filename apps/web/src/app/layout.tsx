@@ -20,7 +20,10 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "OptiFlow",
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
   },
 };
 

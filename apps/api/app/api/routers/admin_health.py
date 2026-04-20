@@ -1,9 +1,8 @@
-"""Admin health check, metrics, and Cosium cookie management endpoints."""
+"""Admin health check and metrics endpoints."""
 
 import time
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel, Field
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
@@ -17,49 +16,9 @@ from app.db.session import get_db
 from app.domain.schemas.admin import DataQualityResponse, ExtractionStats, HealthCheckResponse, MetricsResponse
 from app.models.cosium_data import CosiumDocument, CosiumInvoice, CosiumPayment, CosiumPrescription
 from app.models.document_extraction import DocumentExtraction
-from app.repositories import onboarding_repo
-from app.services import admin_metrics_service, onboarding_service
+from app.services import admin_metrics_service
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
-
-
-def _check_cosium_status(db: Session, tenant_id: int | None = None) -> dict:
-    """Quick Cosium connectivity check using tenant-scoped credentials.
-
-    If tenant_id is provided, uses tenant-stored cookies/credentials.
-    Otherwise falls back to global settings.
-    """
-    try:
-        from app.core.encryption import decrypt
-        from app.integrations.cosium.client import CosiumClient
-
-        client = CosiumClient()
-        client.base_url = settings.cosium_base_url
-
-        if tenant_id is not None:
-            tenant = onboarding_repo.get_tenant_by_id(db, tenant_id)
-            if not tenant:
-                return {"status": "error", "error": "tenant introuvable"}
-
-            client.tenant = tenant.cosium_tenant or settings.cosium_tenant or ""
-
-            # Try tenant-stored cookies first
-            tenant_at = getattr(tenant, "cosium_cookie_access_token_enc", None)
-            tenant_dc = getattr(tenant, "cosium_cookie_device_credential_enc", None)
-            if tenant_at and tenant_dc:
-                at_plain = decrypt(tenant_at)
-                dc_plain = decrypt(tenant_dc)
-                client._authenticate_cookie(access_token=at_plain, device_credential=dc_plain)
-                return {"status": "ok"}
-
-        # Fallback to global settings
-        client.authenticate()
-        return {"status": "ok"}
-    except Exception as exc:
-        msg = str(exc)
-        if "401" in msg:
-            return {"status": "degraded", "error": "cookie expired"}
-        return {"status": "error", "error": "unavailable"}
 
 
 @router.get(
@@ -239,89 +198,3 @@ def test_sentry(
     """Admin-only: raise a test exception captured by Sentry."""
     raise ValueError("Sentry test exception from OptiFlow")
 
-
-class CosiumConnectionTest(BaseModel):
-    connected: bool
-    error: str | None = None
-    tenant: str = ""
-    customers_total: int | None = None
-
-
-@router.get(
-    "/cosium-test",
-    response_model=CosiumConnectionTest,
-    summary="Tester la connexion Cosium",
-    description="Verifie si les cookies Cosium sont valides en faisant un appel API test.",
-)
-def test_cosium_connection(
-    db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
-) -> CosiumConnectionTest:
-    """Test Cosium connection using tenant-scoped credentials."""
-    try:
-        from app.core.encryption import decrypt
-        from app.integrations.cosium.client import CosiumClient
-
-        tenant = onboarding_repo.get_tenant_by_id(db, tenant_ctx.tenant_id)
-        client = CosiumClient()
-        client.base_url = settings.cosium_base_url
-
-        if tenant:
-            client.tenant = tenant.cosium_tenant or settings.cosium_tenant or ""
-            tenant_at = getattr(tenant, "cosium_cookie_access_token_enc", None)
-            tenant_dc = getattr(tenant, "cosium_cookie_device_credential_enc", None)
-            if tenant_at and tenant_dc:
-                at_plain = decrypt(tenant_at)
-                dc_plain = decrypt(tenant_dc)
-                client._authenticate_cookie(access_token=at_plain, device_credential=dc_plain)
-            else:
-                client.authenticate()
-        else:
-            client.authenticate()
-
-        data = client.get("/customers", {"page_size": 1, "page_number": 0})
-        total = data.get("page", {}).get("totalElements") or data.get("totalElements", 0)
-        return CosiumConnectionTest(
-            connected=True, tenant=client.tenant or "", customers_total=total
-        )
-    except Exception as e:
-        error_msg = str(e)
-        if "401" in error_msg:
-            return CosiumConnectionTest(
-                connected=False,
-                error="Cookie expire. Veuillez vous reconnecter a Cosium et copier le nouveau cookie access_token.",
-            )
-        return CosiumConnectionTest(connected=False, error="Erreur de connexion Cosium. Verifiez vos identifiants et la disponibilite du service.")
-
-
-class CosiumCookiesPayload(BaseModel):
-    access_token: str = Field(..., min_length=1, description="Cookie access_token depuis le navigateur Cosium")
-    device_credential: str = Field(
-        ..., min_length=1, description="Cookie device-credential depuis le navigateur Cosium"
-    )
-
-
-class CosiumCookiesResponse(BaseModel):
-    status: str
-    message: str
-
-
-@router.post(
-    "/cosium-cookies",
-    response_model=CosiumCookiesResponse,
-    summary="Mettre a jour les cookies Cosium",
-    description="Enregistre les cookies access_token et device-credential du navigateur Cosium (chiffres en base).",
-)
-def update_cosium_cookies(
-    payload: CosiumCookiesPayload,
-    db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(require_tenant_role("admin")),
-) -> CosiumCookiesResponse:
-    """Admin-only: store encrypted Cosium browser cookies for the tenant."""
-    onboarding_service.update_cosium_cookies(
-        db,
-        tenant_id=tenant_ctx.tenant_id,
-        access_token=payload.access_token,
-        device_credential=payload.device_credential,
-    )
-    return CosiumCookiesResponse(status="ok", message="Cookies Cosium mis a jour avec succes")

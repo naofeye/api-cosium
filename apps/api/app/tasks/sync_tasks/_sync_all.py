@@ -44,8 +44,15 @@ def sync_all_tenants(self) -> dict[str, int]:
                             idempotency_key=idempotency_key,
                         )
                         continue
-                except Exception:
-                    pass  # Redis unavailable — proceed without idempotency check
+                except Exception as redis_exc:
+                    logger.warning(
+                        "redis_idempotency_check_failed",
+                        action="tenant_sync_check",
+                        tenant_id=tenant.id,
+                        idempotency_key=idempotency_key,
+                        error=str(redis_exc),
+                        error_type=type(redis_exc).__name__,
+                    )
 
             lock_key = f"sync:tenant:{tenant.id}"
             if not acquire_lock(lock_key, ttl=1200):
@@ -61,10 +68,17 @@ def sync_all_tenants(self) -> dict[str, int]:
                 if redis_client:
                     try:
                         redis_client.setex(idempotency_key, 3600, "1")
-                    except Exception:
-                        pass
+                    except Exception as redis_exc:
+                        logger.warning(
+                            "redis_idempotency_set_failed",
+                            action="tenant_sync_mark_done",
+                            tenant_id=tenant.id,
+                            idempotency_key=idempotency_key,
+                            error=str(redis_exc),
+                            error_type=type(redis_exc).__name__,
+                        )
             except Exception as e:
-                logger.error("tenant_sync_failed", tenant_id=tenant.id, error=str(e))
+                logger.error("tenant_sync_failed", tenant_id=tenant.id, error=str(e), error_type=type(e).__name__)
                 from app.core.sentry_helpers import report_incident_to_sentry
 
                 report_incident_to_sentry(
@@ -115,8 +129,14 @@ def sync_all_tenants(self) -> dict[str, int]:
                     )
                     db.add(notif)
                 db.commit()
-            except Exception:
-                pass  # Ne pas bloquer si la notification echoue
+            except Exception as notif_exc:
+                logger.warning(
+                    "sync_failure_notification_failed",
+                    action="create_sync_failure_notification",
+                    failed_tenants=failed,
+                    total_tenants=total,
+                    error=str(notif_exc),
+                )
             raise RuntimeError(
                 f"sync_all_tenants partial failure: {failed}/{total} tenants failed"
             )

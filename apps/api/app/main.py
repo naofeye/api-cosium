@@ -65,7 +65,7 @@ def _startup_checks() -> None:
     except RuntimeError:
         raise
     except Exception as e:
-        logger.warning("alembic_check_skipped", error=str(e)[:100])
+        logger.warning("alembic_check_skipped", error=str(e)[:100], error_type=type(e).__name__)
 
     # Verifier les tables manquantes (WARNING seulement, pas de create_all)
     from app.db.base import Base
@@ -95,7 +95,7 @@ def _startup_checks() -> None:
     except RuntimeError:
         raise
     except Exception as e:
-        logger.error("table_verification_failed", error=str(e))
+        logger.error("table_verification_failed", error=str(e), error_type=type(e).__name__)
 
     # Seeding conditionnel — uniquement en dev/local et si active
     if settings.app_env in ("local", "development") and settings.seed_on_startup:
@@ -110,7 +110,7 @@ def _startup_checks() -> None:
     try:
         storage.ensure_bucket(settings.s3_bucket)
     except Exception as e:
-        logger.error("minio_bucket_init_failed", error=str(e))
+        logger.error("minio_bucket_init_failed", error=str(e), error_type=type(e).__name__)
     logger.info("application_started", env=settings.app_env)
 
 
@@ -209,7 +209,7 @@ def health_ready() -> dict:
         db.execute(text("SELECT 1"))
         checks["database"] = "ok"
     except Exception as exc:
-        logger.warning("readiness_check_db_failed", error=str(exc))
+        logger.warning("readiness_check_db_failed", error=str(exc), error_type=type(exc).__name__)
         checks["database"] = "error"
     finally:
         db.close()
@@ -221,7 +221,7 @@ def health_ready() -> dict:
         r.ping()
         checks["redis"] = "ok"
     except Exception as exc:
-        logger.warning("readiness_check_redis_failed", error=str(exc))
+        logger.warning("readiness_check_redis_failed", error=str(exc), error_type=type(exc).__name__)
         checks["redis"] = "error"
 
     all_ok = all(v == "ok" for v in checks.values())

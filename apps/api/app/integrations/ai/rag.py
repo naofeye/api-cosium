@@ -24,7 +24,13 @@ def _load_docs() -> dict[str, str]:
     for f in DOCS_DIR.glob("*.md"):
         try:
             _cache[f.stem] = f.read_text(encoding="utf-8", errors="ignore")
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "rag_doc_load_failed",
+                action="load_markdown_doc",
+                file=str(f),
+                error=str(exc),
+            )
             continue
 
     logger.info("rag_docs_loaded", count=len(_cache))

@@ -10,6 +10,7 @@ from fastapi import FastAPI
 
 from app.api.routers import (
     action_items,
+    admin_cosium,
     admin_health,
     admin_tenant_security,
     admin_users,
@@ -18,11 +19,13 @@ from app.api.routers import (
     analytics,
     audit,
     auth,
+    auth_mfa,
     banking,
     batch_operations,
     billing,
     cases,
     client_360,
+    client_360_interactions,
     client_mutuelles,
     clients,
     consents,
@@ -50,6 +53,7 @@ from app.api.routers import (
     payments,
     pec,
     pec_preparation,
+    pec_preparation_extras,
     reconciliation,
     reminders,
     renewals,
@@ -72,6 +76,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(banking.router)
     app.include_router(billing.router)
     app.include_router(auth.router)
+    app.include_router(auth_mfa.router)
     app.include_router(cases.router)
     app.include_router(client_mutuelles.router)
     app.include_router(clients.router)
@@ -83,6 +88,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(payments.router)
     app.include_router(pec.router)
     app.include_router(pec_preparation.router)
+    app.include_router(pec_preparation_extras.router)
     app.include_router(reconciliation.router)
     app.include_router(reminders.router)
     app.include_router(renewals.router)
@@ -95,7 +101,9 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(exports.router)
     app.include_router(gdpr.router)
     app.include_router(client_360.router)
+    app.include_router(client_360_interactions.router)
     app.include_router(admin_health.router)
+    app.include_router(admin_cosium.router)
     app.include_router(admin_tenant_security.router)
     app.include_router(admin_users.router)
     app.include_router(dashboard.router)

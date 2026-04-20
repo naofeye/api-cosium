@@ -1,11 +1,28 @@
 #!/bin/sh
 set -e
 
-echo "Waiting for PostgreSQL..."
-until python -c "import socket; s = socket.create_connection(('postgres', 5432), timeout=2); s.close()" 2>/dev/null; do
+# Extraire hostname et port depuis DATABASE_URL pour le wait loop.
+# Evite le bug ou le script hardcode 'postgres' mais DATABASE_URL pointe
+# vers un autre host (ex: localhost en dev, RDS en prod).
+DB_HOST=$(python -c "
+import os, re
+url = os.environ.get('DATABASE_URL', '')
+m = re.search(r'@([^/:]+)(?::(\d+))?/', url)
+print(m.group(1) if m else 'postgres')
+")
+DB_PORT=$(python -c "
+import os, re
+url = os.environ.get('DATABASE_URL', '')
+m = re.search(r'@[^/:]+:(\d+)/', url)
+print(m.group(1) if m else '5432')
+")
+
+echo "Waiting for PostgreSQL at ${DB_HOST}:${DB_PORT}..."
+until python -c "import socket; s = socket.create_connection(('${DB_HOST}', ${DB_PORT}), timeout=2); s.close()" 2>/dev/null; do
+    echo "  PostgreSQL not ready at ${DB_HOST}:${DB_PORT}, retrying in 2s..."
     sleep 2
 done
-echo "PostgreSQL is ready."
+echo "PostgreSQL is ready at ${DB_HOST}:${DB_PORT}."
 
 echo "Running Alembic migrations..."
 alembic upgrade head

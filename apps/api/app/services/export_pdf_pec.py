@@ -11,20 +11,15 @@ from sqlalchemy.orm import Session
 from app.core.logging import log_operation
 from app.services.export_pdf_base import (
     create_pdf_doc,
-    fmt_money,
+    fin_field,
     generated_timestamp,
     logger,
     make_footer_style,
     make_section_style,
     make_title_style,
     section_table_style,
+    severity_color,
 )
-
-_SEVERITY_COLORS = {"error": "#DC2626", "warning": "#D97706"}
-
-
-def _severity_color(sev: str) -> rl_colors.Color:
-    return rl_colors.HexColor(_SEVERITY_COLORS.get(sev, "#2563EB"))
 
 
 def _field_row(label: str, field: dict | None) -> list[str]:
@@ -218,15 +213,6 @@ def _append_equipment(elements: list, profile: dict, sec_style: object) -> None:
     elements.append(Spacer(1, 4 * mm))
 
 
-def _fin_field(field: dict | None) -> tuple[str, str, str]:
-    """Extract formatted (value, source, confidence) from a financial field."""
-    if not field:
-        return "-", "-", "-"
-    val = fmt_money(float(field["value"])) if field.get("value") is not None else "-"
-    source = str(field.get("source_label", "-"))
-    conf = f"{field['confidence'] * 100:.0f} %" if field.get("confidence") is not None else "-"
-    return val, source, conf
-
 
 def _append_financial(elements: list, profile: dict, sec_style: object) -> None:
     elements.append(Paragraph("5. Synthese financiere", sec_style))
@@ -235,7 +221,7 @@ def _append_financial(elements: list, profile: dict, sec_style: object) -> None:
         ("Total TTC", "montant_ttc"), ("Part Securite sociale", "part_secu"),
         ("Part Mutuelle", "part_mutuelle"), ("Reste a charge", "reste_a_charge"),
     ]:
-        val, source, conf = _fin_field(profile.get(key))
+        val, source, conf = fin_field(profile.get(key))
         fin_rows.append([label, val, source, conf])
     fin_table = Table(fin_rows, colWidths=[120, 120, 100, 60])
     fin_table.setStyle(section_table_style())
@@ -261,7 +247,14 @@ def _append_documents(elements: list, db: object, tenant_id: int, preparation_id
             elements.append(doc_table)
         else:
             elements.append(Paragraph("Aucune piece justificative attachee.", small))
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "pec_pdf_documents_load_failed",
+            action="load_pec_documents",
+            tenant_id=tenant_id,
+            preparation_id=preparation_id,
+            error=str(exc),
+        )
         elements.append(Paragraph("Impossible de charger les pieces justificatives.", small))
     elements.append(Spacer(1, 4 * mm))
 
@@ -287,7 +280,7 @@ def _append_alerts(elements: list, profile: dict, sec_style: object, small: obje
         alert_table.setStyle(alert_ts)
         for i, a in enumerate(alertes, start=1):
             sev = a.get("severity", "info")
-            color = _severity_color(sev)
+            color = severity_color(sev)
             alert_table.setStyle(TableStyle([
                 ("TEXTCOLOR", (0, i), (0, i), color),
                 ("FONTNAME", (0, i), (0, i), "Helvetica-Bold"),

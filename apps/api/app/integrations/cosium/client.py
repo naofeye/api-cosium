@@ -125,10 +125,10 @@ class CosiumClient:
             except Exception as e:
                 if attempt < MAX_RETRIES - 1:
                     delay = RETRY_DELAYS[attempt]
-                    logger.warning("cosium_oidc_retry", attempt=attempt + 1, delay=delay, error=str(e))
+                    logger.warning("cosium_oidc_retry", attempt=attempt + 1, delay=delay, error=str(e), error_type=type(e).__name__)
                     time.sleep(delay)
                 else:
-                    logger.error("cosium_oidc_failed", attempts=MAX_RETRIES, error=str(e))
+                    logger.error("cosium_oidc_failed", attempts=MAX_RETRIES, error=str(e), error_type=type(e).__name__)
                     raise
         raise RuntimeError("OIDC auth failed after retries")
 
@@ -154,10 +154,10 @@ class CosiumClient:
             except Exception as e:
                 if attempt < MAX_RETRIES - 1:
                     delay = RETRY_DELAYS[attempt]
-                    logger.warning("cosium_auth_retry", attempt=attempt + 1, delay=delay, error=str(e))
+                    logger.warning("cosium_auth_retry", attempt=attempt + 1, delay=delay, error=str(e), error_type=type(e).__name__)
                     time.sleep(delay)
                 else:
-                    logger.error("cosium_auth_failed", attempts=MAX_RETRIES, error=str(e))
+                    logger.error("cosium_auth_failed", attempts=MAX_RETRIES, error=str(e), error_type=type(e).__name__)
                     raise
         raise RuntimeError("Authentication failed after retries")
 
@@ -186,10 +186,10 @@ class CosiumClient:
                 return response.json()
             except Exception as e:
                 if attempt == 0:
-                    logger.warning("cosium_get_retry", endpoint=endpoint, error=str(e))
+                    logger.warning("cosium_get_retry", endpoint=endpoint, error=str(e), error_type=type(e).__name__)
                     time.sleep(1)
                 else:
-                    logger.error("cosium_get_failed", endpoint=endpoint, error=str(e))
+                    logger.error("cosium_get_failed", endpoint=endpoint, error=str(e), error_type=type(e).__name__)
                     raise
 
         raise RuntimeError("GET request failed after retries")
@@ -275,10 +275,10 @@ class CosiumClient:
                 return response.content
             except Exception as e:
                 if attempt == 0:
-                    logger.warning("cosium_get_raw_retry", endpoint=endpoint, error=str(e))
+                    logger.warning("cosium_get_raw_retry", endpoint=endpoint, error=str(e), error_type=type(e).__name__)
                     time.sleep(1)
                 else:
-                    logger.error("cosium_get_raw_failed", endpoint=endpoint, error=str(e))
+                    logger.error("cosium_get_raw_failed", endpoint=endpoint, error=str(e), error_type=type(e).__name__)
                     raise
 
         raise RuntimeError("GET raw request failed after retries")

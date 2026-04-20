@@ -134,3 +134,25 @@ def append_footer(elements: list, style_name: str = "Footer") -> None:
 def generated_timestamp() -> str:
     """Return current UTC timestamp formatted for PDF headers."""
     return datetime.now(UTC).strftime("%d/%m/%Y %H:%M")
+
+
+# ---------------------------------------------------------------------------
+# PEC-specific helpers (shared with export_pdf_pec.py)
+# ---------------------------------------------------------------------------
+
+_SEVERITY_COLORS = {"error": "#DC2626", "warning": "#D97706"}
+
+
+def severity_color(sev: str) -> rl_colors.Color:
+    """Map alert severity to a reportlab color."""
+    return rl_colors.HexColor(_SEVERITY_COLORS.get(sev, "#2563EB"))
+
+
+def fin_field(field: dict | None) -> tuple[str, str, str]:
+    """Extract formatted (value, source, confidence) from a financial field."""
+    if not field:
+        return "-", "-", "-"
+    val = fmt_money(float(field["value"])) if field.get("value") is not None else "-"
+    source = str(field.get("source_label", "-"))
+    conf = f"{field['confidence'] * 100:.0f} %" if field.get("confidence") is not None else "-"
+    return val, source, conf

@@ -5,6 +5,7 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { StockGauge } from "@/components/ui/StockGauge";
 import { KPICard } from "@/components/ui/KPICard";
@@ -30,6 +31,7 @@ export default function StockPage() {
   const ok = items.length - ruptures - bas;
 
   return (
+    <ErrorBoundary name="Stock">
     <PageLayout
       title="Stock"
       description="Catalogue produits Cosium avec indicateurs de disponibilite"
@@ -111,5 +113,6 @@ export default function StockPage() {
         </div>
       )}
     </PageLayout>
+    </ErrorBoundary>
   );
 }

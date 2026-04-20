@@ -2,194 +2,27 @@
 
 Extracts text from PDFs and images, classifies document types using
 regex-based keyword matching.
+
+Classification rules and format-specific handlers are in ocr_handlers.py.
 """
 
 from __future__ import annotations
 
 import io
-import re
 
 from app.core.logging import get_logger
 from app.domain.schemas.ocr import DocumentClassification, ExtractedDocument
 
+# Re-export handlers for backward compatibility — callers importing from
+# ocr_service continue to work unchanged.
+from app.services.ocr_handlers import (  # noqa: F401
+    CLASSIFICATION_RULES as _CLASSIFICATION_RULES,
+    classify_document,
+    extract_text_from_image,
+    ocr_pdf_fallback as _ocr_pdf_fallback,
+)
+
 logger = get_logger("ocr_service")
-
-# ---------------------------------------------------------------------------
-# Keyword sets for classification
-# ---------------------------------------------------------------------------
-
-_CLASSIFICATION_RULES: list[tuple[str, list[str]]] = [
-    (
-        "ordonnance",
-        [
-            "ordonnance",
-            "prescription",
-            "sphere",
-            r"sph[eè]re",
-            "cylindre",
-            "addition",
-            r"\bOD\b",
-            r"\bOG\b",
-            "acuite",
-            "correction",
-            "dioptrie",
-            "oeil droit",
-            "oeil gauche",
-            "vision de loin",
-            "vision de pr",
-            "ophtalmolog",
-        ],
-    ),
-    (
-        "devis",
-        [
-            "devis",
-            "montant ttc",
-            "montant ht",
-            "reste a charge",
-            r"reste\s*[àa]\s*charge",
-            r"part\s+(secu|mutuelle)",
-            "total ttc",
-            "monture",
-            "verres",
-            "equipement optique",
-            "bon de commande",
-            r"base\s+de\s+remboursement",
-        ],
-    ),
-    (
-        "attestation_mutuelle",
-        [
-            "attestation",
-            "mutuelle",
-            "organisme complementaire",
-            "numero adherent",
-            r"n[°o]\s*adherent",
-            "droits ouverts",
-            "date de validite",
-            "tiers payant",
-            "carte tiers",
-            r"\bamc\b",
-            r"b[eé]n[eé]ficiaire",
-        ],
-    ),
-    (
-        "facture",
-        [
-            "facture",
-            r"n[°o]\s*facture",
-            "montant ttc",
-            "montant ht",
-            r"\btva\b",
-            "net a payer",
-            "reglement",
-            "echeance",
-            r"\btotal\s+ttc\b",
-        ],
-    ),
-    (
-        "carte_mutuelle",
-        [
-            "carte mutuelle",
-            "carte de tiers payant",
-            "organisme",
-            r"n[°o]\s*adherent",
-            "code organisme",
-            "regime obligatoire",
-            r"\bamc\b",
-        ],
-    ),
-    (
-        "bon_livraison",
-        [
-            "bon de livraison",
-            "livraison",
-            "remis ce jour",
-            r"bl\s*n[°o]",
-            "bordereau de livraison",
-            "reception",
-        ],
-    ),
-    (
-        "fiche_opticien",
-        [
-            "fiche opticien",
-            "fiche client",
-            "opticien",
-            "prise de mesure",
-            r"ecart\s+pupillaire",
-            "hauteur de montage",
-        ],
-    ),
-    (
-        "fiche_ophtalmo",
-        [
-            "fiche ophtalmo",
-            "ophtalmologue",
-            "examen",
-            "fond d'oeil",
-            r"fond\s+d.oeil",
-            "tension oculaire",
-            "bilan ophtalmologique",
-        ],
-    ),
-    (
-        "consentement_rgpd",
-        [
-            "consentement",
-            r"\brgpd\b",
-            r"donn[eé]es personnelles",
-            "traitement",
-            "protection des donnees",
-            "droit d'acces",
-        ],
-    ),
-    (
-        "feuille_soins",
-        [
-            "feuille de soins",
-            "feuille de soin",
-            "organisme",
-            r"s[eé]curit[eé] sociale",
-            r"\bamo\b",
-            r"n[°o]\s*de\s*s[eé]curit[eé]",
-            "assurance maladie",
-        ],
-    ),
-    (
-        "prise_en_charge",
-        [
-            "prise en charge",
-            r"\bpec\b",
-            "accord de prise en charge",
-            r"accord\s+pr[eé]alable",
-            "demande de prise en charge",
-        ],
-    ),
-    (
-        "courrier",
-        [
-            "madame, monsieur",
-            "veuillez agr",
-            "cordialement",
-            "objet :",
-            r"r[eé]f[eé]rence\s*:",
-            "nous vous prions",
-        ],
-    ),
-    (
-        "releve_bancaire",
-        [
-            r"relev[eé]\s+(de\s+)?compte",
-            r"relev[eé]\s+bancaire",
-            "solde crediteur",
-            "solde debiteur",
-            r"\biban\b",
-            r"\bbic\b",
-            "mouvement",
-        ],
-    ),
-]
 
 
 # ---------------------------------------------------------------------------
@@ -237,126 +70,6 @@ def extract_text_from_pdf(file_bytes: bytes) -> ExtractedDocument:
 
     # Fallback: OCR via pdf2image + pytesseract
     return _ocr_pdf_fallback(file_bytes, page_count)
-
-
-def _ocr_pdf_fallback(file_bytes: bytes, page_count_hint: int) -> ExtractedDocument:
-    """OCR fallback for scanned PDFs."""
-    import pytesseract
-    from pdf2image import convert_from_bytes
-
-    images = convert_from_bytes(file_bytes, dpi=300)
-    page_count = len(images)
-    text_parts: list[str] = []
-    confidences: list[float] = []
-
-    for img in images:
-        data = pytesseract.image_to_data(img, lang="fra", output_type=pytesseract.Output.DICT)
-        page_text = " ".join(
-            word for word, conf in zip(data["text"], data["conf"], strict=False) if int(conf) > 0 and word.strip()
-        )
-        text_parts.append(page_text)
-
-        valid_confs = [int(c) for c in data["conf"] if int(c) > 0]
-        if valid_confs:
-            confidences.append(sum(valid_confs) / len(valid_confs) / 100.0)
-
-    raw_text = "\n".join(text_parts).strip()
-    avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
-
-    logger.info(
-        "pdf_ocr_extracted",
-        method="tesseract",
-        page_count=page_count,
-        text_length=len(raw_text),
-        confidence=round(avg_confidence, 3),
-    )
-
-    return ExtractedDocument(
-        raw_text=raw_text,
-        page_count=page_count,
-        extraction_method="pdfplumber+tesseract",
-        confidence=round(avg_confidence, 3),
-        language="fra",
-    )
-
-
-def extract_text_from_image(file_bytes: bytes) -> ExtractedDocument:
-    """Extract text from an image file (JPG, PNG, TIFF) using Tesseract OCR."""
-    import pytesseract
-    from PIL import Image
-
-    img = Image.open(io.BytesIO(file_bytes))
-    data = pytesseract.image_to_data(img, lang="fra", output_type=pytesseract.Output.DICT)
-
-    words = []
-    valid_confs: list[int] = []
-    for word, conf in zip(data["text"], data["conf"], strict=False):
-        c = int(conf)
-        if c > 0 and word.strip():
-            words.append(word)
-            valid_confs.append(c)
-
-    raw_text = " ".join(words)
-    avg_confidence = sum(valid_confs) / len(valid_confs) / 100.0 if valid_confs else 0.0
-
-    logger.info(
-        "image_ocr_extracted",
-        method="tesseract",
-        text_length=len(raw_text),
-        confidence=round(avg_confidence, 3),
-    )
-
-    return ExtractedDocument(
-        raw_text=raw_text,
-        page_count=1,
-        extraction_method="tesseract",
-        confidence=round(avg_confidence, 3),
-        language="fra",
-    )
-
-
-def classify_document(text: str) -> DocumentClassification:
-    """Classify a document type based on keyword matching in extracted text.
-
-    Returns the best-matching type with confidence and keywords found.
-    """
-    if not text or not text.strip():
-        return DocumentClassification(
-            document_type="autre",
-            confidence=0.0,
-            keywords_found=[],
-        )
-
-    text_lower = text.lower()
-    best_type = "autre"
-    best_score = 0.0
-    best_keywords: list[str] = []
-
-    for doc_type, keywords in _CLASSIFICATION_RULES:
-        found: list[str] = []
-        for kw in keywords:
-            if re.search(kw, text_lower):
-                found.append(kw)
-
-        if found:
-            score = len(found) / len(keywords)
-            if score > best_score:
-                best_score = score
-                best_type = doc_type
-                best_keywords = found
-
-    logger.info(
-        "document_classified",
-        document_type=best_type,
-        confidence=round(best_score, 3),
-        keywords_count=len(best_keywords),
-    )
-
-    return DocumentClassification(
-        document_type=best_type,
-        confidence=round(min(best_score, 1.0), 3),
-        keywords_found=best_keywords,
-    )
 
 
 def extract_and_classify(

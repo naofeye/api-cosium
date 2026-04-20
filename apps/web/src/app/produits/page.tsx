@@ -6,6 +6,7 @@ import { DataTable, type Column } from "@/components/ui/DataTable";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { MoneyDisplay } from "@/components/ui/MoneyDisplay";
 import { Button } from "@/components/ui/Button";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { useCosiumProducts } from "@/lib/hooks/use-api";
 import { exportToCsv } from "@/lib/export-csv";
 import { formatMoney } from "@/lib/format";
@@ -98,73 +99,75 @@ export default function ProduitsPage() {
   ];
 
   return (
-    <PageLayout
-      title="Produits Cosium"
-      description={`${data?.total ?? 0} produits synchronises depuis Cosium`}
-      breadcrumb={[{ label: "Produits Cosium" }]}
-      actions={
-        <Button variant="outline" onClick={handleExportCsv} disabled={!data?.items?.length}>
-          <Download className="h-4 w-4 mr-1" /> Exporter CSV
-        </Button>
-      }
-    >
-      {/* KPI bar */}
-      {data && data.total > 0 && (
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-4 flex items-center gap-3">
-            <div className="rounded-lg bg-blue-50 p-2">
-              <Package className="h-5 w-5 text-blue-600" />
+    <ErrorBoundary name="Produits Cosium">
+      <PageLayout
+        title="Produits Cosium"
+        description={`${data?.total ?? 0} produits synchronises depuis Cosium`}
+        breadcrumb={[{ label: "Produits Cosium" }]}
+        actions={
+          <Button variant="outline" onClick={handleExportCsv} disabled={!data?.items?.length}>
+            <Download className="h-4 w-4 mr-1" /> Exporter CSV
+          </Button>
+        }
+      >
+        {/* KPI bar */}
+        {data && data.total > 0 && (
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-4 flex items-center gap-3">
+              <div className="rounded-lg bg-blue-50 p-2">
+                <Package className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Total produits</p>
+                <p className="text-xl font-bold text-gray-900 tabular-nums">{data.total}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-gray-500">Total produits</p>
-              <p className="text-xl font-bold text-gray-900 tabular-nums">{data.total}</p>
+            <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-4 flex items-center gap-3">
+              <div className="rounded-lg bg-emerald-50 p-2">
+                <Tag className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Familles</p>
+                <p className="text-xl font-bold text-gray-900 tabular-nums">{families.length}</p>
+              </div>
             </div>
           </div>
-          <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-4 flex items-center gap-3">
-            <div className="rounded-lg bg-emerald-50 p-2">
-              <Tag className="h-5 w-5 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Familles</p>
-              <p className="text-xl font-bold text-gray-900 tabular-nums">{families.length}</p>
-            </div>
-          </div>
+        )}
+
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-4 mb-6">
+          <SearchInput placeholder="Rechercher par libelle, code ou EAN..." onSearch={handleSearch} />
+          <select
+            value={familyFilter}
+            onChange={(e) => {
+              setFamilyFilter(e.target.value);
+              setPage(1);
+            }}
+            className="rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+            aria-label="Filtrer par famille"
+          >
+            <option value="">Toutes les familles</option>
+            {families.map((f) => (
+              <option key={f} value={f}>{f}</option>
+            ))}
+          </select>
         </div>
-      )}
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4 mb-6">
-        <SearchInput placeholder="Rechercher par libelle, code ou EAN..." onSearch={handleSearch} />
-        <select
-          value={familyFilter}
-          onChange={(e) => {
-            setFamilyFilter(e.target.value);
-            setPage(1);
-          }}
-          className="rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-          aria-label="Filtrer par famille"
-        >
-          <option value="">Toutes les familles</option>
-          {families.map((f) => (
-            <option key={f} value={f}>{f}</option>
-          ))}
-        </select>
-      </div>
-
-      <DataTable
-        columns={columns}
-        data={data?.items ?? []}
-        loading={isLoading}
-        error={error?.message ?? null}
-        onRetry={() => mutate()}
-        page={page}
-        pageSize={25}
-        total={data?.total}
-        onPageChange={setPage}
-        emptyTitle="Aucun produit Cosium"
-        emptyDescription="Lancez une synchronisation depuis Parametres > Connexion ERP pour importer vos produits."
-        emptyIcon={Package}
-      />
-    </PageLayout>
+        <DataTable
+          columns={columns}
+          data={data?.items ?? []}
+          loading={isLoading}
+          error={error?.message ?? null}
+          onRetry={() => mutate()}
+          page={page}
+          pageSize={25}
+          total={data?.total}
+          onPageChange={setPage}
+          emptyTitle="Aucun produit Cosium"
+          emptyDescription="Lancez une synchronisation depuis Parametres > Connexion ERP pour importer vos produits."
+          emptyIcon={Package}
+        />
+      </PageLayout>
+    </ErrorBoundary>
   );
 }

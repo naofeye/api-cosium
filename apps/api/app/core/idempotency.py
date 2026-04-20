@@ -31,8 +31,11 @@ from typing import Any
 
 from fastapi import Depends, Header, HTTPException, Request, status
 
+from app.core.logging import get_logger
 from app.core.redis_cache import cache_get, cache_set
 from app.core.tenant_context import TenantContext, get_tenant_context
+
+logger = get_logger("idempotency")
 
 _TTL_SECONDS = 24 * 3600
 
@@ -62,7 +65,15 @@ class IdempotencyContext:
             payload = response if isinstance(response, dict | list) else json.loads(
                 json.dumps(response, default=lambda o: getattr(o, "model_dump", lambda: str(o))())
             )
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "idempotency_response_serialization_failed",
+                scope=self.scope,
+                tenant_id=self.tenant_id,
+                key=self.key,
+                error=str(exc),
+                error_type=type(exc).__name__,
+            )
             payload = {"_stored": True}
         cache_set(
             self._redis_key,

@@ -63,8 +63,15 @@ def auto_generate_reminders(self) -> dict[str, int]:
                                 idempotency_key=idem_key,
                             )
                             continue
-                    except Exception:
-                        pass  # Redis unavailable — proceed without check
+                    except Exception as redis_exc:
+                        logger.warning(
+                            "redis_idempotency_check_failed",
+                            action="reminder_plan_check",
+                            tenant_id=tenant.id,
+                            plan_id=plan.id,
+                            error=str(redis_exc),
+                            error_type=type(redis_exc).__name__,
+                        )
 
                 created = reminder_service.execute_plan(db, tenant.id, plan.id, user_id=0)
                 count = len(created)
@@ -75,8 +82,16 @@ def auto_generate_reminders(self) -> dict[str, int]:
                 if redis_client:
                     try:
                         redis_client.setex(idem_key, 86400, "1")
-                    except Exception:
-                        pass
+                    except Exception as redis_exc:
+                        logger.warning(
+                            "redis_idempotency_set_failed",
+                            action="reminder_plan_mark_done",
+                            tenant_id=tenant.id,
+                            plan_id=plan.id,
+                            idempotency_key=idem_key,
+                            error=str(redis_exc),
+                            error_type=type(redis_exc).__name__,
+                        )
 
                 # Auto-send email reminders
                 for r in created:
@@ -129,8 +144,13 @@ def check_overdue_invoices(self) -> dict[str, int]:
                         idempotency_key=overdue_idem_key,
                     )
                     return {"skipped": True, "reason": "already_executed_today"}
-            except Exception:
-                pass  # Redis unavailable — proceed without check
+            except Exception as redis_exc:
+                logger.warning(
+                    "redis_idempotency_check_failed",
+                    action="overdue_invoices_check",
+                    idempotency_key=overdue_idem_key,
+                    error=str(redis_exc),
+                )
 
         tenants = db.scalars(select(Tenant).where(Tenant.is_active.is_(True))).all()
         thirty_days_ago = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=30)  # naive datetime for DB compatibility
@@ -244,8 +264,13 @@ def check_overdue_invoices(self) -> dict[str, int]:
         if redis_client:
             try:
                 redis_client.setex(overdue_idem_key, 86400, "1")
-            except Exception:
-                pass
+            except Exception as redis_exc:
+                logger.warning(
+                    "redis_idempotency_set_failed",
+                    action="overdue_invoices_mark_done",
+                    idempotency_key=overdue_idem_key,
+                    error=str(redis_exc),
+                )
 
         return results
     except Exception as exc:
