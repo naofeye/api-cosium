@@ -88,3 +88,48 @@ def require_tenant_role(*roles: str) -> Callable:
         return tenant_ctx
 
     return role_checker
+
+
+# ---------------------------------------------------------------------------
+# Permission-based access control (resource-level RBAC)
+# ---------------------------------------------------------------------------
+
+# Default permission matrix: role → set of allowed actions.
+# Extend per-resource by overriding in the `overrides` dict below.
+_ROLE_PERMISSIONS: dict[str, set[str]] = {
+    "admin": {"view", "create", "edit", "delete", "export", "manage"},
+    "manager": {"view", "create", "edit", "delete", "export"},
+    "operator": {"view", "create", "edit"},
+    "viewer": {"view"},
+}
+
+# Per-resource overrides: resource_type → role → set of actions.
+# Example: a viewer can export clients but not cases.
+_RESOURCE_OVERRIDES: dict[str, dict[str, set[str]]] = {}
+
+
+def require_permission(action: str, resource_type: str | None = None) -> Callable:
+    """Check that the current tenant role has permission to perform `action`.
+
+    If `resource_type` is given and has overrides in _RESOURCE_OVERRIDES,
+    those are used instead of the default matrix.
+
+    Usage in routers:
+        @router.delete("/clients/{id}", dependencies=[Depends(require_permission("delete", "client"))])
+    """
+    from app.core.tenant_context import TenantContext, get_tenant_context
+
+    def permission_checker(tenant_ctx: TenantContext = Depends(get_tenant_context)) -> TenantContext:
+        role = tenant_ctx.role
+        if resource_type and resource_type in _RESOURCE_OVERRIDES:
+            allowed = _RESOURCE_OVERRIDES[resource_type].get(role, set())
+        else:
+            allowed = _ROLE_PERMISSIONS.get(role, set())
+        if action not in allowed:
+            raise ForbiddenError(
+                f"Acces refuse : le role '{role}' ne peut pas effectuer '{action}'"
+                + (f" sur '{resource_type}'" if resource_type else "")
+            )
+        return tenant_ctx
+
+    return permission_checker

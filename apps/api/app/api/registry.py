@@ -52,6 +52,7 @@ from app.api.routers import (
     onboarding,
     payments,
     pec,
+    push,
     pec_preparation,
     pec_preparation_extras,
     reconciliation,
@@ -87,6 +88,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(notifications.router)
     app.include_router(payments.router)
     app.include_router(pec.router)
+    app.include_router(push.router)
     app.include_router(pec_preparation.router)
     app.include_router(pec_preparation_extras.router)
     app.include_router(reconciliation.router)
