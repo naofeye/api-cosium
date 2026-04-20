@@ -3,6 +3,7 @@ from datetime import UTC, date, datetime
 from sqlalchemy import Date, DateTime, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.core.encryption import EncryptedString
 from app.db.base import Base
 
 
@@ -18,12 +19,12 @@ class Customer(Base):
     phone: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     customer_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    address: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    street_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
-    street_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    address: Mapped[str | None] = mapped_column(EncryptedString(500), nullable=True)
+    street_number: Mapped[str | None] = mapped_column(EncryptedString(200), nullable=True)
+    street_name: Mapped[str | None] = mapped_column(EncryptedString(500), nullable=True)
     city: Mapped[str | None] = mapped_column(String(120), nullable=True)
     postal_code: Mapped[str | None] = mapped_column(String(20), nullable=True)
-    social_security_number: Mapped[str | None] = mapped_column(String(15), nullable=True)
+    social_security_number: Mapped[str | None] = mapped_column(EncryptedString(200), nullable=True)
     optician_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     ophthalmologist_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     mobile_phone_country: Mapped[str | None] = mapped_column(String(10), nullable=True)

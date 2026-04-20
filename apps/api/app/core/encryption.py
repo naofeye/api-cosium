@@ -30,3 +30,39 @@ def encrypt(plaintext: str) -> str:
 
 def decrypt(ciphertext: str) -> str:
     return get_fernet().decrypt(ciphertext.encode()).decode()
+
+
+# ---------------------------------------------------------------------------
+# SQLAlchemy TypeDecorator — transparent column encryption
+# ---------------------------------------------------------------------------
+
+from sqlalchemy import String
+from sqlalchemy.types import TypeDecorator
+
+
+class EncryptedString(TypeDecorator):
+    """Transparent Fernet encryption for SQLAlchemy string columns.
+
+    Data is encrypted on write and decrypted on read. NULL values pass through.
+    The database column stores base64-encoded ciphertext (~2-3x plaintext size).
+    """
+
+    impl = String
+    cache_ok = True
+
+    def __init__(self, length: int = 500, **kwargs):
+        super().__init__(length=length, **kwargs)
+
+    def process_bind_param(self, value: str | None, dialect) -> str | None:
+        if value is None:
+            return None
+        return encrypt(value)
+
+    def process_result_value(self, value: str | None, dialect) -> str | None:
+        if value is None:
+            return None
+        try:
+            return decrypt(value)
+        except Exception:
+            # Fallback: existing unencrypted data during migration period
+            return value
