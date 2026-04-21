@@ -19,15 +19,15 @@ from app.integrations.cosium.cosium_connector import CosiumConnector
 from app.integrations.storage import StorageAdapter
 from app.models.client import Customer
 from app.models.cosium_data import CosiumDocument
-from app.services.cosium_document_helpers import (
-    guess_content_type,
-    sanitize_filename as _sanitize_filename,
-)
 
 # Re-export helpers for backward compatibility
 from app.services.cosium_document_helpers import (  # noqa: F401, E402
     get_local_documents,
     get_sync_status,
+    guess_content_type,
+)
+from app.services.cosium_document_helpers import (
+    sanitize_filename as _sanitize_filename,
 )
 
 logger = get_logger("cosium_document_sync")

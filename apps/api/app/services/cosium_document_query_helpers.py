@@ -6,11 +6,12 @@ Cosium API (with local MinIO fallback).
 
 from __future__ import annotations
 
+from sqlalchemy.orm import Session
+
 from app.core.exceptions import ExternalServiceError
 from app.core.logging import get_logger
 from app.integrations.cosium.cosium_connector import CosiumConnector
 from app.services.erp_sync_service import _authenticate_connector, _get_connector_for_tenant
-from sqlalchemy.orm import Session
 
 logger = get_logger("cosium_document_query_helpers")
 

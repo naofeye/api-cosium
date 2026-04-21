@@ -27,7 +27,6 @@ from app.domain.schemas.reconciliation import (
     DossierReconciliationResponse,
     InvoiceReconciliation,
     LinkPaymentsResult,
-    PaymentMatch,
     ReconciliationSummary,
 )
 from app.repositories import client_repo, reconciliation_repo
@@ -47,6 +46,8 @@ from app.services._reconciliation_helpers import (  # noqa: F401
 )
 from app.services.reconciliation_helpers import (
     aggregate_payments_by_category as _aggregate_payments_by_category,
+)
+from app.services.reconciliation_helpers import (
     build_invoice_reconciliation as _build_invoice_reconciliation,
 )
 

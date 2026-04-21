@@ -188,8 +188,11 @@ def get_cosium_ca_par_mois(db: Session, tenant_id: int) -> list[CosiumMonthlyCa]
 # Re-exported here for backward compatibility.
 from app.services.analytics_cosium_helpers import (  # noqa: E402, F401
     aging_bucket_sum as _aging_bucket_sum,
+)
+from app.services.analytics_cosium_helpers import (
     count_invoices_between as _count_invoices_between,
-    get_financial_breakdown_by_type,
+)
+from app.services.analytics_cosium_helpers import (
     sum_invoices_between as _sum_invoices_between,
 )
 

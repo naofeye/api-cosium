@@ -41,6 +41,7 @@ def _startup_checks() -> None:
         from alembic.config import Config as AlembicConfig
         from alembic.runtime.migration import MigrationContext
         from alembic.script import ScriptDirectory
+
         from app.db.session import engine  # noqa: I001
 
         alembic_cfg = AlembicConfig("alembic.ini")

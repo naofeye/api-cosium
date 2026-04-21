@@ -20,6 +20,13 @@ from app.repositories import client_repo
 from app.services import audit_service
 from app.services.client_completeness_service import calculate_client_completeness
 
+# Re-export quick view and avatar functions for backward compatibility
+from app.services.client_extras_service import (  # noqa: F401
+    get_avatar_url,
+    get_client_quick,
+    upload_avatar,
+)
+
 # Re-export extracted functions so callers using
 # ``from app.services import client_service; client_service.merge_clients(...)``
 # keep working without changes.
@@ -30,13 +37,6 @@ from app.services.client_import_service import (  # noqa: F401
 from app.services.client_merge_service import (  # noqa: F401
     find_duplicates,
     merge_clients,
-)
-
-# Re-export quick view and avatar functions for backward compatibility
-from app.services.client_extras_service import (  # noqa: F401
-    get_avatar_url,
-    get_client_quick,
-    upload_avatar,
 )
 
 logger = get_logger("client_service")

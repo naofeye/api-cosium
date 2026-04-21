@@ -187,12 +187,6 @@ def get_sync_status(db: Session, tenant_id: int) -> dict:
 
 # Orchestration handlers extracted to erp_sync_handlers.py for file size compliance.
 # Re-exported here for backward compatibility.
-from app.services.erp_sync_handlers import (  # noqa: E402, F401
-    enrich_top_clients_metadata,
-    sync_all,
-)
-
-
 # ---------------------------------------------------------------------------
 # Re-exports for backward compatibility.
 # All symbols that were previously defined here are still importable from
@@ -204,6 +198,10 @@ from app.services.erp_sync_extras import (  # noqa: E402, F401
     sync_prescriptions,
     sync_products,
     sync_third_party_payments,
+)
+from app.services.erp_sync_handlers import (  # noqa: E402, F401
+    enrich_top_clients_metadata,
+    sync_all,
 )
 from app.services.erp_sync_invoices import sync_invoices  # noqa: E402, F401
 

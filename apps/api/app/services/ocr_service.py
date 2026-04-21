@@ -17,8 +17,12 @@ from app.domain.schemas.ocr import DocumentClassification, ExtractedDocument
 # ocr_service continue to work unchanged.
 from app.services.ocr_handlers import (  # noqa: F401
     CLASSIFICATION_RULES as _CLASSIFICATION_RULES,
+)
+from app.services.ocr_handlers import (
     classify_document,
     extract_text_from_image,
+)
+from app.services.ocr_handlers import (
     ocr_pdf_fallback as _ocr_pdf_fallback,
 )
 

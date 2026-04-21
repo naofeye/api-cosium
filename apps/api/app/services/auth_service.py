@@ -20,7 +20,11 @@ from app.security import (
 from app.services import audit_service
 from app.services.auth_lockout import (
     check_account_lockout as _check_account_lockout,
+)
+from app.services.auth_lockout import (
     clear_login_attempts as _clear_login_attempts,
+)
+from app.services.auth_lockout import (
     record_failed_login as _record_failed_login,
 )
 
