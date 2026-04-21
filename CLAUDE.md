@@ -1,5 +1,11 @@
 # CLAUDE.md - Directive pour Claude CLI / Codex
 
+## Memoire persistante inter-sessions
+
+**Au demarrage de CHAQUE session (avant toute action), lire `.claude-memory/MEMORY.md` puis les fichiers qu'il reference.**
+Ce dossier est la memoire versionnee du projet (feedback utilisateur, historique sessions, deploiement VPS, etc.). Il est synchronise via `git pull` donc disponible sur toutes les machines (poste local + VPS).
+Quand tu apprends quelque chose d'important a memoriser (preference user, decision architecturale, incident resolu), ajoute/mets a jour un fichier dans `.claude-memory/` et reference-le dans `.claude-memory/MEMORY.md`, puis commit.
+
 ## Mode de fonctionnement
 
 **Au demarrage, TOUJOURS executer l'ETAPE 0 (health check) puis reprendre la prochaine etape non cochee.**
