@@ -19,6 +19,15 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    pids_limit: 200
+    mem_limit: 1g
+    memswap_limit: 1g
+    cpus: '1.0'
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+        max-file: '5'
   redis:
     image: redis:7
     restart: unless-stopped
@@ -31,6 +40,15 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    pids_limit: 200
+    mem_limit: 384m
+    memswap_limit: 384m
+    cpus: '0.5'
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+        max-file: '5'
   minio:
     image: minio/minio:latest
     restart: unless-stopped
@@ -45,10 +63,28 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    pids_limit: 200
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: '1.0'
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+        max-file: '5'
   mailhog:
     image: mailhog/mailhog:latest
     restart: unless-stopped
     ports: ["127.0.0.1:1025:1025", "127.0.0.1:8025:8025"]
+    pids_limit: 100
+    mem_limit: 128m
+    memswap_limit: 128m
+    cpus: '0.3'
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+        max-file: '5'
   api:
     build:
       context: ./apps/api
@@ -68,6 +104,15 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    pids_limit: 200
+    mem_limit: 768m
+    memswap_limit: 768m
+    cpus: '1.0'
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+        max-file: '5'
   web:
     build:
       context: ./apps/web
@@ -84,10 +129,19 @@ services:
         condition: service_healthy
     ports: ["127.0.0.1:3000:3000"]
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      test: ["CMD", "wget", "-q", "--spider", "http://0.0.0.0:3000"]
       interval: 30s
       timeout: 10s
       retries: 3
+    pids_limit: 200
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: '1.0'
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+        max-file: '5'
   worker:
     build:
       context: ./apps/api
@@ -101,11 +155,21 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "celery -A app.tasks inspect ping -d celery@$$(hostname) || exit 1"]
+      test: ["CMD-SHELL", "celery -A app.tasks inspect ping -d celery@$$(hostname)\
+            \ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
+    pids_limit: 200
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: '0.5'
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+        max-file: '5'
   beat:
     build:
       context: ./apps/api
@@ -123,11 +187,21 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "test -f /app/celery-schedule/schedule.db && find /app/celery-schedule/schedule.db -mmin -5 | grep -q . || exit 1"]
+      test: ["CMD-SHELL", "test -f /app/celery-schedule/schedule.db && find /app/celery-schedule/schedule.db\
+            \ -mmin -5 | grep -q . || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
       start_period: 60s
+    pids_limit: 100
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: '0.3'
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+        max-file: '5'
 volumes:
   postgres_data:
   minio_data:
