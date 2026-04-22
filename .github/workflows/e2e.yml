@@ -3,6 +3,10 @@ name: E2E Playwright
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'REVIEW.md'
+      - '.claude-memory/**'
   pull_request:
     branches: [main]
   workflow_dispatch:

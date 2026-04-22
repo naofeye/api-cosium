@@ -3,6 +3,11 @@ name: CI
 on:
   push:
     branches: [main, master]
+    # V12.7.1 : skip docs/REVIEW auto-commits pour economiser les minutes Actions
+    paths-ignore:
+      - '**/*.md'
+      - 'REVIEW.md'
+      - '.claude-memory/**'
   pull_request:
 
 jobs:
