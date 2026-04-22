@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
+from app.core.deps import require_tenant_role
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.services import billing_service
@@ -48,7 +49,7 @@ class MessageResponse(BaseModel):
 def create_checkout(
     payload: CheckoutRequest,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin")),
 ) -> CheckoutResponse:
     """Crée une session Stripe Checkout pour souscrire à un plan."""
     checkout_url = billing_service.initiate_checkout(db, tenant_id=tenant_ctx.tenant_id, plan=payload.plan)
@@ -98,7 +99,7 @@ def get_billing_status(
 )
 def cancel_subscription(
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin")),
 ) -> MessageResponse:
     """Annule l'abonnement du tenant (prend effet en fin de période)."""
     billing_service.cancel_subscription_for_tenant(db, tenant_id=tenant_ctx.tenant_id)

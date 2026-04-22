@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session
 
 from app.core.constants import ROLE_ADMIN
-from app.core.deps import require_tenant_role
+from app.core.deps import require_tenant_role, require_permission
 from app.core.exceptions import BusinessError, ValidationError
 from app.core.http import content_disposition
 from app.core.redis_cache import acquire_lock, release_lock
@@ -111,7 +111,7 @@ def merge_clients(
 async def import_file(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("create", "client")),
 ) -> ClientImportResult:
     allowed_extensions = (".csv", ".xlsx", ".xls")
     if not file.filename or not file.filename.lower().endswith(allowed_extensions):
@@ -163,7 +163,7 @@ def get_client(
 def create_client(
     payload: ClientCreate,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("create", "client")),
 ) -> ClientResponse:
     return client_service.create_client(db, tenant_id=tenant_ctx.tenant_id, payload=payload, user_id=tenant_ctx.user_id)
 
@@ -178,7 +178,7 @@ def update_client(
     client_id: int,
     payload: ClientUpdate,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("edit", "client")),
 ) -> ClientResponse:
     return client_service.update_client(
         db,
@@ -235,7 +235,7 @@ async def upload_avatar(
     client_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("edit", "client")),
 ) -> dict[str, str]:
     allowed = {"image/jpeg", "image/png", "image/jpg"}
     if file.content_type not in allowed:

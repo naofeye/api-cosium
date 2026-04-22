@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.core.deps import require_tenant_role
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.auth import TokenResponse
@@ -39,7 +40,7 @@ def signup(
 def connect_cosium(
     payload: ConnectCosiumRequest,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> ConnectCosiumResult:
     onboarding_service.connect_cosium(db, tenant_id=tenant_ctx.tenant_id, payload=payload)
     return ConnectCosiumResult(status="connected")
@@ -53,7 +54,7 @@ def connect_cosium(
 )
 def first_sync(
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> FirstSyncResult:
     result = onboarding_service.trigger_first_sync(db, tenant_id=tenant_ctx.tenant_id)
     return FirstSyncResult(status="completed", details=result)

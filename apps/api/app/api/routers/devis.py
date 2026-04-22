@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.http import content_disposition
 from app.core.idempotency import IdempotencyContext, idempotency
+from app.core.deps import require_permission
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.devis import (
@@ -28,7 +29,7 @@ router = APIRouter(prefix="/api/v1", tags=["devis"])
 def create_devis(
     payload: DevisCreate,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("create", "devis")),
     idem: IdempotencyContext = Depends(idempotency("devis:create")),
 ) -> DevisResponse:
     if idem.cached:
@@ -80,7 +81,7 @@ def update_devis(
     devis_id: int,
     payload: DevisUpdate,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("edit", "devis")),
 ) -> DevisResponse:
     return devis_service.update_devis(
         db, tenant_id=tenant_ctx.tenant_id, devis_id=devis_id, payload=payload, user_id=tenant_ctx.user_id
@@ -97,7 +98,7 @@ def change_status(
     devis_id: int,
     payload: DevisStatusUpdate,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("edit", "devis")),
 ) -> DevisResponse:
     return devis_service.change_status(
         db, tenant_id=tenant_ctx.tenant_id, devis_id=devis_id, new_status=payload.status, user_id=tenant_ctx.user_id

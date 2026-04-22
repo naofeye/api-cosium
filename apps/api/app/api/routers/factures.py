@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.http import content_disposition
 from app.core.idempotency import IdempotencyContext, idempotency
+from app.core.deps import require_permission
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.factures import (
@@ -26,7 +27,7 @@ router = APIRouter(prefix="/api/v1", tags=["factures"])
 def create_facture(
     payload: FactureCreate,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("create", "facture")),
     idem: IdempotencyContext = Depends(idempotency("facture:create")),
 ) -> FactureResponse:
     if idem.cached:
