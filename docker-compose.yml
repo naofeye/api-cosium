@@ -142,6 +142,9 @@ services:
       options:
         max-size: 50m
         max-file: '5'
+    networks:
+      - default
+      - interface-ia-net
   worker:
     build:
       context: ./apps/api
@@ -206,3 +209,6 @@ volumes:
   postgres_data:
   minio_data:
   celerybeat_schedule:
+networks:
+  interface-ia-net:
+    external: true
