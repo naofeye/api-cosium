@@ -11,6 +11,7 @@ Create Date: 2026-04-20 20:00:00.000000
 
 from typing import Sequence, Union
 
+import sqlalchemy as sa
 from alembic import op
 
 revision: str = "z3c4d5e6f7g8"
@@ -28,8 +29,15 @@ _INDEXES = [
 
 
 def upgrade() -> None:
+    conn = op.get_bind()
     for name, table, cols in _INDEXES:
-        op.create_index(name, table, cols)
+        if not conn.execute(
+            sa.text(
+                "SELECT 1 FROM pg_indexes WHERE indexname = :idx"
+            ),
+            {"idx": name},
+        ).scalar():
+            op.create_index(name, table, cols)
 
 
 def downgrade() -> None:
