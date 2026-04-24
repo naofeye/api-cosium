@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
+from app.core.deps import require_permission
 from app.core.http import content_disposition
 from app.core.idempotency import IdempotencyContext, idempotency
-from app.core.deps import require_permission
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.factures import (

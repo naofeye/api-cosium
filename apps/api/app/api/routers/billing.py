@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.core.logging import get_logger
 from app.core.deps import require_tenant_role
+from app.core.logging import get_logger
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.services import billing_service

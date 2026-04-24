@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session
 
 from app.core.constants import ROLE_ADMIN
-from app.core.deps import require_tenant_role, require_permission
+from app.core.deps import require_permission, require_tenant_role
 from app.core.exceptions import BusinessError, ValidationError
 from app.core.http import content_disposition
 from app.core.redis_cache import acquire_lock, release_lock

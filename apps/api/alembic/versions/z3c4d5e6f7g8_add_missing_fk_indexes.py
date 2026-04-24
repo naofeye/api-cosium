@@ -19,7 +19,6 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 _INDEXES = [
-    ("ix_ai_usage_logs_user_id", "ai_usage_logs", ["user_id"]),
     ("ix_cosium_invoices_customer_id", "cosium_invoices", ["customer_id"]),
     ("ix_documents_document_type_id", "documents", ["document_type_id"]),
     ("ix_interactions_created_by", "interactions", ["created_by"]),
