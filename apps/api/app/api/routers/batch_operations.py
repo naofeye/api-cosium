@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
+from app.core.deps import require_tenant_role
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.batch_operation import (
@@ -60,7 +61,7 @@ def list_marketing_codes(
 def create_batch(
     payload: BatchCreateRequest,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> BatchOperationResponse:
     return batch_operation_service.create_batch(
         db,
@@ -89,7 +90,7 @@ def process_batch(
         False, alias="async", description="Lancer en arriere-plan pour les gros batches"
     ),
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> BatchOperationResponse:
     batch = batch_operation_service.get_batch_by_id(
         db, tenant_ctx.tenant_id, batch_id
@@ -120,7 +121,7 @@ def process_batch(
 def prepare_batch_pec(
     batch_id: int,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> BatchPecResult:
     return batch_operation_service.prepare_batch_pec(
         db,

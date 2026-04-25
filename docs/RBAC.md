@@ -31,9 +31,32 @@ Plus le role `is_group_admin` (booleen sur `User`) pour la gestion **multi-tenan
 | `POST /devis`, `PATCH /devis/:id` | ❌ | ✅ | ✅ | ✅ | ✅ |
 | `POST /factures` | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **PEC** |
-| `GET /pec-preparations` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `POST /pec-preparations/:id/correct-field` | ❌ | ✅ | ✅ | ✅ | ✅ |
-| `POST /pec-preparations/:id/submit` | ❌ | ✅ | ✅ | ✅ | ✅ |
+| `GET /pec`, `GET /pec-preparations` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `POST /pec`, `POST /pec-preparations/*/submit` | ❌ | ✅ | ✅ | ✅ | ✅ |
+| `PATCH /pec/*/status`, `POST /pec-preparations/*/correct-field` | ❌ | ✅ | ✅ | ✅ | ✅ |
+| `POST /payer-organizations` | ❌ | ❌ | ✅ | ✅ | ✅ |
+| `GET /pec-preparations/export` | ❌ | ❌ | ✅ | ✅ | ✅ |
+| **Batch operations** |
+| `GET /batch`, `GET /batch/*` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `POST /batch/create`, `POST /batch/*/process`, `POST /batch/*/prepare-pec` | ❌ | ❌ | ✅ | ✅ | ✅ |
+| **Reconciliation** |
+| `GET /reconciliation/*` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `POST /reconciliation/link-payments`, `POST /reconciliation/run` | ❌ | ❌ | ✅ | ✅ | ✅ |
+| **Documents** |
+| `GET /cases/*/documents`, `GET /documents/*/download` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `POST /cases/*/documents` (upload) | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Interactions** |
+| `GET /clients/*/interactions`, `GET /clients/*/timeline` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `POST /interactions`, `POST /clients/*/send-email` | ❌ | ✅ | ✅ | ✅ | ✅ |
+| `DELETE /interactions/*` | ❌ | ❌ | ✅ | ✅ | ✅ |
+| **Relances (reminders)** |
+| `GET /reminders/*` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `POST /reminders` (create), `POST /reminders/*/send` | ❌ | ✅ | ✅ | ✅ | ✅ |
+| `POST /reminders/plans`, `POST /reminders/plans/*/execute`, `PATCH /reminders/plans/*/toggle` | ❌ | ❌ | ✅ | ✅ | ✅ |
+| `POST /reminders/auto-generate`, `POST /reminders/templates` | ❌ | ❌ | ✅ | ✅ | ✅ |
+| **Consents** |
+| `GET /clients/*/consents` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `PUT /clients/*/consents/*` | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **Paiements & Banking** |
 | `GET /banking/transactions` | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `POST /banking/import-statement` | ❌ | ❌ | ✅ | ✅ | ✅ |

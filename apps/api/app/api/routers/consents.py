@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.core.deps import require_permission
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.marketing import ConsentResponse, ConsentUpdate
@@ -38,7 +39,7 @@ def update_consent(
     channel: str,
     payload: ConsentUpdate,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("edit", "client")),
 ) -> ConsentResponse:
     return consent_service.update_consent(
         db,

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from app.core.deps import require_permission, require_tenant_role
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.reminders import (
@@ -79,7 +80,7 @@ def list_plans(
 def create_plan(
     payload: ReminderPlanCreate,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> ReminderPlanResponse:
     return reminder_service.create_plan(
         db,
@@ -98,7 +99,7 @@ def create_plan(
 def execute_plan(
     plan_id: int,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> list[ReminderResponse]:
     return reminder_service.execute_plan(
         db,
@@ -118,7 +119,7 @@ def toggle_plan(
     plan_id: int,
     is_active: bool = Query(...),
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> ReminderPlanResponse:
     return reminder_service.toggle_plan(
         db,
@@ -164,7 +165,7 @@ def list_reminders(
 def create_reminder(
     payload: ReminderCreate,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("create", "reminder")),
 ) -> ReminderResponse:
     return reminder_service.create_reminder(
         db,
@@ -183,7 +184,7 @@ def create_reminder(
 def send_reminder(
     reminder_id: int,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("create", "reminder")),
 ) -> ReminderResponse:
     return reminder_service.send_reminder(
         db,
@@ -201,7 +202,7 @@ def send_reminder(
 )
 def auto_generate(
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> AutoGenerateResponse:
     from app.tasks.reminder_tasks import auto_generate_reminders
 
@@ -235,7 +236,7 @@ def list_templates(
 def create_template(
     payload: ReminderTemplateCreate,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> ReminderTemplateResponse:
     return reminder_service.create_template(
         db,

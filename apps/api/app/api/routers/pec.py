@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from app.core.deps import require_permission, require_tenant_role
 from app.core.idempotency import IdempotencyContext, idempotency
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
@@ -46,7 +47,7 @@ def list_organizations(
 def create_organization(
     payload: PayerOrgCreate,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> PayerOrgResponse:
     return pec_service.create_organization(
         db, tenant_id=tenant_ctx.tenant_id, payload=payload, user_id=tenant_ctx.user_id
@@ -66,7 +67,7 @@ def create_organization(
 def create_pec(
     payload: PecCreate,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("create", "pec")),
     idem: IdempotencyContext = Depends(idempotency("pec:create")),
 ) -> PecResponse:
     if idem.cached:
@@ -120,7 +121,7 @@ def change_status(
     pec_id: int,
     payload: PecStatusUpdate,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("edit", "pec")),
 ) -> PecResponse:
     return pec_service.change_status(
         db, tenant_id=tenant_ctx.tenant_id, pec_id=pec_id, payload=payload, user_id=tenant_ctx.user_id
@@ -155,7 +156,7 @@ def create_relance(
     pec_id: int,
     payload: RelanceCreate,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("create", "pec")),
 ) -> RelanceResponse:
     return pec_service.create_relance(
         db, tenant_id=tenant_ctx.tenant_id, pec_id=pec_id, payload=payload, user_id=tenant_ctx.user_id

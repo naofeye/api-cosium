@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError, ValidationError
+from app.core.deps import require_permission
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.interactions import (
@@ -76,7 +77,7 @@ def client_timeline(
 def create_interaction(
     payload: InteractionCreate,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("create", "interaction")),
 ) -> InteractionResponse:
     return interaction_service.add_interaction(
         db,
@@ -95,7 +96,7 @@ def create_interaction(
 def delete_interaction(
     interaction_id: int,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("delete", "interaction")),
 ) -> dict[str, str]:
     interaction_service.delete_interaction(
         db,
@@ -116,7 +117,7 @@ def send_email_to_client(
     client_id: int,
     payload: EmailPayload,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("create", "interaction")),
 ) -> dict[str, str]:
     customer = client_repo.get_by_id_active(db, client_id=client_id, tenant_id=tenant_ctx.tenant_id)
     if not customer:

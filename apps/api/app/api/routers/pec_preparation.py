@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
+from app.core.deps import require_permission
 from app.core.http import content_disposition
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
@@ -55,7 +56,7 @@ def list_all_preparations(
 def export_preparations_xlsx(
     status: str | None = Query(None, description="Filtrer par statut (ex: prete)"),
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("export", "pec")),
 ) -> StreamingResponse:
     from app.services import export_service
 
@@ -81,7 +82,7 @@ def create_preparation(
     customer_id: int,
     payload: PecPreparationCreate,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("create", "pec")),
 ) -> PecPreparationResponse:
     return pec_preparation_service.prepare_pec(
         db,
@@ -144,7 +145,7 @@ def validate_field(
     preparation_id: int,
     payload: FieldValidation,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("edit", "pec")),
 ) -> PecPreparationResponse:
     return pec_preparation_service.validate_field(
         db,
@@ -165,7 +166,7 @@ def correct_field(
     preparation_id: int,
     payload: FieldCorrection,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("edit", "pec")),
 ) -> PecPreparationResponse:
     return pec_preparation_service.correct_field(
         db,
@@ -187,7 +188,7 @@ def correct_field(
 def refresh_preparation(
     preparation_id: int,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("edit", "pec")),
 ) -> PecPreparationResponse:
     return pec_preparation_service.refresh_preparation(
         db,
@@ -205,7 +206,7 @@ def refresh_preparation(
 def submit_preparation(
     preparation_id: int,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("create", "pec")),
 ) -> PecSubmissionResponse:
     data = pec_preparation_service.create_pec_from_preparation(
         db,

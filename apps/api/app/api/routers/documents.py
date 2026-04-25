@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, File, Query, UploadFile
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
+from app.core.deps import require_permission
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.documents import DocumentResponse
@@ -35,7 +36,7 @@ async def upload_document(
     case_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    tenant_ctx: TenantContext = Depends(require_permission("create", "document")),
 ) -> DocumentResponse:
     file_data = await file.read()
     return document_service.upload_document(
