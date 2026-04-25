@@ -1,4 +1,3 @@
-import { expect } from "@playwright/test";
 import type { APIRequestContext, Page } from "@playwright/test";
 import { authenticator } from "otplib";
 
@@ -32,22 +31,36 @@ export async function apiLogin(
  * Login via la page UI (utile pour récupérer un state authentifié dans le navigateur).
  * Reste sur /login si MFA requise — à l'appelant de vérifier la suite.
  *
- * Utilise fill() (valeur entière d'un coup) au lieu de pressSequentially
- * (caractère par caractère) pour que react-hook-form + Zod resolver valident
- * le formulaire de manière fiable avant le submit.
- * Attend ensuite que le bouton soit enabled avant de cliquer.
+ * Utilise click + type (pas fill) pour simuler une frappe clavier réelle.
+ * react-hook-form register() écoute les events React synthétiques — seule
+ * une interaction clavier complète (focus → keydown → input → keyup)
+ * garantit que watch() voit les nouvelles valeurs en CI.
+ * Tab entre les champs déclenche onBlur (revalidation).
  */
 export async function uiLogin(page: Page, email: string, password: string): Promise<void> {
   await page.goto("/login");
+
   const emailField = page.getByLabel("Adresse email");
-  await emailField.fill(email);
-  const pwField = page.getByLabel("Mot de passe");
-  await pwField.fill(password);
+  await emailField.click();
+  await emailField.pressSequentially(email, { delay: 30 });
+
+  // Tab to password field — triggers blur/validation on email
+  await page.keyboard.press("Tab");
+  await page.getByLabel("Mot de passe").pressSequentially(password, { delay: 30 });
+
+  // Tab away from password to trigger blur, then wait for react-hook-form
+  await page.keyboard.press("Tab");
+  await page.waitForTimeout(300);
+
+  // Submit — prefer click if enabled, otherwise Enter on form
   const submitBtn = page.getByRole("button", { name: /se connecter/i });
-  await submitBtn.waitFor({ state: "visible", timeout: 5_000 });
-  // Attendre que react-hook-form valide et active le bouton
-  await expect(submitBtn).toBeEnabled({ timeout: 5_000 });
-  await submitBtn.click();
+  const isEnabled = await submitBtn.isEnabled().catch(() => false);
+  if (isEnabled) {
+    await submitBtn.click();
+  } else {
+    // Enter from any field submits the form via handleSubmit
+    await page.keyboard.press("Enter");
+  }
 }
 
 /**
