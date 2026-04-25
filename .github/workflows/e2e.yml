@@ -88,10 +88,14 @@ jobs:
           cache-dependency-path: apps/web/package-lock.json
       - run: cd apps/web && npm ci
       - run: cd apps/web && npm run build
-      - name: Start Next
+      - name: Start Next (standalone)
         run: |
           cd apps/web
-          nohup npm start > /tmp/web.log 2>&1 &
+          # Next.js output: "standalone" requires node .next/standalone/server.js
+          # "next start" doesn't work correctly with standalone builds (router.push broken)
+          cp -r .next/static .next/standalone/.next/static 2>/dev/null || true
+          cp -r public .next/standalone/public 2>/dev/null || true
+          PORT=3000 nohup node .next/standalone/server.js > /tmp/web.log 2>&1 &
           echo $! > /tmp/web.pid
           for i in $(seq 1 30); do
             if curl -fsS http://localhost:3000/login >/dev/null 2>&1; then

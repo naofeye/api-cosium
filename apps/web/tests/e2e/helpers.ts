@@ -31,36 +31,14 @@ export async function apiLogin(
  * Login via la page UI (utile pour récupérer un state authentifié dans le navigateur).
  * Reste sur /login si MFA requise — à l'appelant de vérifier la suite.
  *
- * Utilise click + type (pas fill) pour simuler une frappe clavier réelle.
- * react-hook-form register() écoute les events React synthétiques — seule
- * une interaction clavier complète (focus → keydown → input → keyup)
- * garantit que watch() voit les nouvelles valeurs en CI.
- * Tab entre les champs déclenche onBlur (revalidation).
+ * Utilise fill() + click sur le bouton submit. Le bouton est gated sur
+ * watch() (presence de valeurs, pas isValid) donc fill() suffit.
  */
 export async function uiLogin(page: Page, email: string, password: string): Promise<void> {
   await page.goto("/login");
-
-  const emailField = page.getByLabel("Adresse email");
-  await emailField.click();
-  await emailField.pressSequentially(email, { delay: 30 });
-
-  // Tab to password field — triggers blur/validation on email
-  await page.keyboard.press("Tab");
-  await page.getByLabel("Mot de passe").pressSequentially(password, { delay: 30 });
-
-  // Tab away from password to trigger blur, then wait for react-hook-form
-  await page.keyboard.press("Tab");
-  await page.waitForTimeout(300);
-
-  // Submit — prefer click if enabled, otherwise Enter on form
-  const submitBtn = page.getByRole("button", { name: /se connecter/i });
-  const isEnabled = await submitBtn.isEnabled().catch(() => false);
-  if (isEnabled) {
-    await submitBtn.click();
-  } else {
-    // Enter from any field submits the form via handleSubmit
-    await page.keyboard.press("Enter");
-  }
+  await page.getByLabel("Adresse email").fill(email);
+  await page.getByLabel("Mot de passe").fill(password);
+  await page.getByRole("button", { name: /se connecter/i }).click();
 }
 
 /**
