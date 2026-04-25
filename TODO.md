@@ -63,6 +63,40 @@
 ### MFA / Auth
 - [x] ~~MFA frontend UI~~ : composant `MfaSection` (setup TOTP avec QR code via `qrcode.react`, input vérification 6 digits, backup codes générés + affichés une fois, désactivation avec mot de passe). Intégré dans `/settings`. Login étendu avec flow TOTP : `MfaRequiredError` typé, champ code affiché conditionnellement (`MFA_CODE_REQUIRED` / `MFA_CODE_INVALID`), message admin pour `MFA_SETUP_REQUIRED`. Page `/admin/security` pour toggle `require_admin_mfa` par tenant (confirm dialog + warning lockout). Lien ajouté dans panel admin. 0 warning lint, TS vert.
 
+### E2E Playwright — débloquer les tests UI login (jamais passés, 20+ runs fail)
+- [ ] **Root cause identifiée (2026-04-25, session vps-master)** :
+
+  **Le problème** : les 10 tests UI qui passent par `uiLogin()` échouent tous avec `toHaveURL(/\/actions$/)` timeout. Le formulaire soumet (l'API reçoit le POST login et retourne 200), mais `router.push("/actions")` ne redirige pas. Les tests API-only (sans navigateur) passent.
+
+  **Ce qui a été essayé et n'a PAS marché** :
+  1. `fill()` au lieu de `pressSequentially` → react-hook-form `register()` ne met pas à jour son store interne via `fill()`, les valeurs restent vides dans handleSubmit
+  2. `pressSequentially` sans delay → même problème, button disabled
+  3. `fill()` + `dispatchEvent(input/change)` → pas fiable
+  4. Retirer le `disabled` du bouton (commit `539255d`) → le form soumet maintenant (20 login 200 OK dans les logs API), mais la redirection échoue toujours
+  5. Standalone server `node .next/standalone/apps/web/server.js` au lieu de `next start` → le serveur démarre correctement (pas de warning), mêmes résultats
+
+  **État actuel du code après les tentatives** :
+  - `next.config.ts` : `outputFileTracingRoot: path.join(__dirname, "../../")` ajouté (monorepo)
+  - `e2e.yml` : lance le standalone server correctement (`.next/standalone/apps/web/server.js`)
+  - `helpers.ts:uiLogin()` : `pressSequentially` avec `delay: 20` + `click()` bouton
+  - `login/page.tsx` : bouton sans `disabled` (juste `loading={isSubmitting}`)
+
+  **Hypothèse la plus probable** : le middleware Next.js (`src/middleware.ts`) vérifie `request.cookies.get("optiflow_token")` pour les routes protégées. Après le login API réussi, le cookie httpOnly est setté par la réponse `fetch()`. Mais quand `router.push("/actions")` fait un RSC fetch serveur-side, le cookie n'est pas transmis ou pas reconnu. Possible causes :
+  - Cookie `SameSite=Strict` avec nginx proxy en CI (origin mismatch ?)
+  - Le RSC prefetch de Next.js 15 ne forward pas les cookies httpOnly sur les requêtes internes
+  - Le standalone server ne traite pas le middleware de la même façon
+
+  **Pour déboguer** : ajouter un `console.log` dans le middleware pour voir si le cookie arrive, et/ou intercepter les requêtes réseau Playwright (`page.on('response')`) pour vérifier les headers `Set-Cookie` de la réponse login et les headers `Cookie` des requêtes suivantes.
+
+  **Fichiers clés** :
+  - `apps/web/src/middleware.ts` — le guard auth
+  - `apps/web/src/app/login/page.tsx` — le formulaire
+  - `apps/web/src/lib/auth.ts` — `login()` fetch + `router.push`
+  - `apps/web/tests/e2e/helpers.ts` — `uiLogin()`
+  - `.github/workflows/e2e.yml` — le workflow CI
+  - `config/nginx/nginx.e2e.conf` — le proxy nginx CI
+  - `apps/api/app/api/routers/auth.py` — `_COOKIE_OPTS` (httpOnly, SameSite=Strict, secure=False en test)
+
 ### PWA / UX
 - [ ] **Splash screens iOS** : assets PNG iPad 2732×2048, iPhone X 1125×2436 etc. (icônes PNG 192/512 déjà présentes)
 
