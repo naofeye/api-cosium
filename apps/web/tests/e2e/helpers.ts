@@ -1,3 +1,4 @@
+import { expect } from "@playwright/test";
 import type { APIRequestContext, Page } from "@playwright/test";
 import { authenticator } from "otplib";
 
@@ -31,20 +32,22 @@ export async function apiLogin(
  * Login via la page UI (utile pour récupérer un state authentifié dans le navigateur).
  * Reste sur /login si MFA requise — à l'appelant de vérifier la suite.
  *
- * Submit via Enter au lieu de cliquer le bouton : le bouton reste `disabled`
- * tant que react-hook-form (mode: onChange + Zod resolver) n'a pas revalidé
- * le formulaire, ce qui est async et pas garanti après pressSequentially.
- * Enter déclenche onSubmit du <form>, qui passe par handleSubmit + validation.
+ * Utilise fill() (valeur entière d'un coup) au lieu de pressSequentially
+ * (caractère par caractère) pour que react-hook-form + Zod resolver valident
+ * le formulaire de manière fiable avant le submit.
+ * Attend ensuite que le bouton soit enabled avant de cliquer.
  */
 export async function uiLogin(page: Page, email: string, password: string): Promise<void> {
   await page.goto("/login");
   const emailField = page.getByLabel("Adresse email");
-  await emailField.click();
-  await emailField.pressSequentially(email);
+  await emailField.fill(email);
   const pwField = page.getByLabel("Mot de passe");
-  await pwField.click();
-  await pwField.pressSequentially(password);
-  await pwField.press("Enter");
+  await pwField.fill(password);
+  const submitBtn = page.getByRole("button", { name: /se connecter/i });
+  await submitBtn.waitFor({ state: "visible", timeout: 5_000 });
+  // Attendre que react-hook-form valide et active le bouton
+  await expect(submitBtn).toBeEnabled({ timeout: 5_000 });
+  await submitBtn.click();
 }
 
 /**
