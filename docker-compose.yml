@@ -105,8 +105,8 @@ services:
       timeout: 10s
       retries: 3
     pids_limit: 200
-    mem_limit: 768m
-    memswap_limit: 768m
+    mem_limit: 1536m
+    memswap_limit: 1536m
     cpus: '1.0'
     logging:
       driver: json-file
