@@ -91,23 +91,19 @@ jobs:
       - name: Start Next (standalone)
         run: |
           cd apps/web
-          # Next.js output: "standalone" in a monorepo puts server.js
-          # relative to the traced root, not necessarily in .next/standalone/
-          SERVER_JS=$(find .next/standalone -name "server.js" -path "*/apps/web/*" 2>/dev/null | head -1)
-          if [ -z "$SERVER_JS" ]; then
-            SERVER_JS=$(find .next/standalone -name "server.js" 2>/dev/null | head -1)
+          # With outputFileTracingRoot set to monorepo root, standalone output
+          # produces server.js at .next/standalone/apps/web/server.js
+          STANDALONE_DIR=".next/standalone/apps/web"
+          if [ ! -f "$STANDALONE_DIR/server.js" ]; then
+            # Fallback: try root standalone
+            STANDALONE_DIR=".next/standalone"
           fi
-          if [ -z "$SERVER_JS" ]; then
-            echo "ERROR: standalone server.js not found, falling back to next start"
-            PORT=3000 nohup npx next start -p 3000 > /tmp/web.log 2>&1 &
-          else
-            echo "Found standalone server at: $SERVER_JS"
-            STANDALONE_DIR=$(dirname "$SERVER_JS")
-            # Copy static assets + public to standalone dir
-            cp -r .next/static "$STANDALONE_DIR/.next/static" 2>/dev/null || true
-            cp -r public "$STANDALONE_DIR/public" 2>/dev/null || true
-            PORT=3000 nohup node "$SERVER_JS" > /tmp/web.log 2>&1 &
-          fi
+          echo "Using standalone dir: $STANDALONE_DIR"
+          # Copy static assets + public into standalone (required by Next.js docs)
+          mkdir -p "$STANDALONE_DIR/.next"
+          cp -r .next/static "$STANDALONE_DIR/.next/static"
+          cp -r public "$STANDALONE_DIR/public" 2>/dev/null || true
+          PORT=3000 HOSTNAME=0.0.0.0 nohup node "$STANDALONE_DIR/server.js" > /tmp/web.log 2>&1 &
           echo $! > /tmp/web.pid
           for i in $(seq 1 30); do
             if curl -fsS http://localhost:3000/login >/dev/null 2>&1; then
