@@ -413,7 +413,8 @@ class TestPushSubscribe:
 
 class TestPushUnsubscribe:
     def test_requires_auth(self, client: TestClient) -> None:
-        resp = client.delete(
+        resp = client.request(
+            "DELETE",
             "/api/v1/push/unsubscribe",
             json={"endpoint": _PUSH_ENDPOINT},
         )
@@ -428,7 +429,8 @@ class TestPushUnsubscribe:
             headers=auth_headers,
         )
         # Then unsubscribe
-        resp = client.delete(
+        resp = client.request(
+            "DELETE",
             "/api/v1/push/unsubscribe",
             json={"endpoint": endpoint},
             headers=auth_headers,
@@ -437,7 +439,8 @@ class TestPushUnsubscribe:
 
     def test_unsubscribe_non_existent_is_silent(self, client: TestClient, auth_headers: dict) -> None:
         # Unsubscribing an endpoint that does not exist should still succeed (DELETE is idempotent)
-        resp = client.delete(
+        resp = client.request(
+            "DELETE",
             "/api/v1/push/unsubscribe",
             json={"endpoint": "https://fcm.example.com/not-registered"},
             headers=auth_headers,
@@ -445,7 +448,8 @@ class TestPushUnsubscribe:
         assert resp.status_code == 204
 
     def test_missing_endpoint_returns_422(self, client: TestClient, auth_headers: dict) -> None:
-        resp = client.delete(
+        resp = client.request(
+            "DELETE",
             "/api/v1/push/unsubscribe",
             json={},
             headers=auth_headers,

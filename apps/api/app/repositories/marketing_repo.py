@@ -58,6 +58,7 @@ def upsert_consent(
         channel=channel,
         consented=consented,
         consented_at=now if consented else None,
+        revoked_at=now if not consented else None,
         source=source,
     )
     db.add(consent)

@@ -232,6 +232,9 @@ def get_operational_kpis(db: Session, tenant_id: int) -> OperationalKPIs:
             total_missing += missing
             if missing == 0:
                 complets += 1
+    else:
+        # No required document types: all cases are considered complete
+        complets = total_cases
 
     taux = round(complets / total_cases * 100, 1) if total_cases > 0 else 0
 

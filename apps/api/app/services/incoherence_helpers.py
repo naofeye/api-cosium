@@ -21,10 +21,10 @@ PD_MIN, PD_MAX = 50.0, 80.0
 
 def _parse_date(value: object) -> date | None:
     """Try to parse a date from various formats."""
-    if isinstance(value, date):
-        return value
     if isinstance(value, datetime):
         return value.date()
+    if isinstance(value, date):
+        return value
     if isinstance(value, str):
         for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"):
             try:

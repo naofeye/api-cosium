@@ -235,11 +235,12 @@ class TestUpdateUser:
 @patch("app.services.admin_user_service.audit_service.log_action")
 class TestDeactivateUser:
     def test_deactivates_user_in_tenant(self, mock_audit, db, default_tenant):
+        admin = _make_user(db, "admin@example.com")
         user = _make_user(db, "victim@example.com")
         _make_tenant_user(db, user.id, default_tenant.id, role="operator")
         db.commit()
 
-        result = admin_user_service.deactivate_user(db, default_tenant.id, user.id, admin_user_id=1)
+        result = admin_user_service.deactivate_user(db, default_tenant.id, user.id, admin_user_id=admin.id)
 
         assert result.is_active is False
         mock_audit.assert_called_once()
@@ -257,21 +258,23 @@ class TestDeactivateUser:
             admin_user_service.deactivate_user(db, default_tenant.id, 99999, admin_user_id=1)
 
     def test_deactivate_is_persisted(self, mock_audit, db, default_tenant):
+        admin = _make_user(db, "admin_persist@example.com")
         user = _make_user(db, "persist_deact@example.com")
         tu = _make_tenant_user(db, user.id, default_tenant.id, role="operator")
         db.commit()
 
-        admin_user_service.deactivate_user(db, default_tenant.id, user.id, admin_user_id=1)
+        admin_user_service.deactivate_user(db, default_tenant.id, user.id, admin_user_id=admin.id)
 
         db.refresh(tu)
         assert tu.is_active is False
 
     def test_audit_action_is_deactivate(self, mock_audit, db, default_tenant):
+        admin = _make_user(db, "admin_audit@example.com")
         user = _make_user(db, "audit_deact@example.com")
         _make_tenant_user(db, user.id, default_tenant.id, role="operator")
         db.commit()
 
-        admin_user_service.deactivate_user(db, default_tenant.id, user.id, admin_user_id=1)
+        admin_user_service.deactivate_user(db, default_tenant.id, user.id, admin_user_id=admin.id)
 
         call_args = mock_audit.call_args[0]
         assert call_args[3] == "deactivate"

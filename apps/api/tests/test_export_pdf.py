@@ -425,7 +425,7 @@ class TestExportClientPdf:
         client_360_mock.resume_financier = resume_mock
 
         with patch(
-            "app.services.export_pdf_client.get_client_360",
+            "app.services.client_360_service.get_client_360",
             return_value=client_360_mock,
         ):
             result = export_client_pdf(db, client_id=1, tenant_id=default_tenant.id)
@@ -461,7 +461,7 @@ class TestExportClientPdf:
         client_360_mock.resume_financier = resume_mock
 
         with patch(
-            "app.services.export_pdf_client.get_client_360",
+            "app.services.client_360_service.get_client_360",
             return_value=client_360_mock,
         ):
             result = export_client_pdf(db, client_id=99, tenant_id=default_tenant.id)
@@ -572,7 +572,7 @@ class TestExportDashboardPdf:
         dashboard_mock.commercial = commercial_mock
 
         with patch(
-            "app.services.export_pdf_dashboard.analytics_service.get_dashboard_full",
+            "app.services.analytics_comparison_service.get_dashboard_full",
             return_value=dashboard_mock,
         ):
             result = export_dashboard_pdf(
@@ -613,7 +613,7 @@ class TestExportDashboardPdf:
         dashboard_mock.commercial = commercial_mock
 
         with patch(
-            "app.services.export_pdf_dashboard.analytics_service.get_dashboard_full",
+            "app.services.analytics_comparison_service.get_dashboard_full",
             return_value=dashboard_mock,
         ):
             result = export_dashboard_pdf(db, tenant_id=default_tenant.id)

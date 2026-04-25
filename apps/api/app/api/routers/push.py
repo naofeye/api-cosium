@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
@@ -37,14 +38,12 @@ def subscribe(
     current_user: User = Depends(get_current_user),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> None:
-    existing = (
-        db.query(PushSubscription)
-        .filter(
+    existing = db.scalars(
+        select(PushSubscription).where(
             PushSubscription.user_id == current_user.id,
             PushSubscription.endpoint == payload.endpoint,
         )
-        .first()
-    )
+    ).first()
     if existing:
         existing.p256dh_key = payload.keys.p256dh
         existing.auth_key = payload.keys.auth
@@ -71,8 +70,10 @@ def unsubscribe(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
-    db.query(PushSubscription).filter(
-        PushSubscription.user_id == current_user.id,
-        PushSubscription.endpoint == payload.endpoint,
-    ).delete()
+    db.execute(
+        delete(PushSubscription).where(
+            PushSubscription.user_id == current_user.id,
+            PushSubscription.endpoint == payload.endpoint,
+        )
+    )
     db.commit()

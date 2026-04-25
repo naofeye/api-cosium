@@ -121,8 +121,8 @@ def require_permission(action: str, resource_type: str | None = None) -> Callabl
 
     def permission_checker(tenant_ctx: TenantContext = Depends(get_tenant_context)) -> TenantContext:
         role = tenant_ctx.role
-        if resource_type and resource_type in _RESOURCE_OVERRIDES:
-            allowed = _RESOURCE_OVERRIDES[resource_type].get(role, set())
+        if resource_type and resource_type in _RESOURCE_OVERRIDES and role in _RESOURCE_OVERRIDES[resource_type]:
+            allowed = _RESOURCE_OVERRIDES[resource_type][role]
         else:
             allowed = _ROLE_PERMISSIONS.get(role, set())
         if action not in allowed:

@@ -136,9 +136,9 @@ def test_sync_all_returns_has_errors_on_partial_failure(
 # ---------- Test 5: sync_all returns has_errors=False on full success ----------
 
 @patch("app.services.cosium_reference_sync.sync_all_reference", return_value={"total_created": 0, "total_updated": 0})
-@patch("app.services.erp_sync_service.sync_prescriptions", return_value={"created": 0, "updated": 0, "total": 0, "batch_errors": 0})
-@patch("app.services.erp_sync_service.sync_payments", return_value={"created": 0, "updated": 0, "total": 0, "batch_errors": 0})
-@patch("app.services.erp_sync_service.sync_invoices", return_value={"created": 0, "updated": 0, "total": 0, "batch_errors": 0})
+@patch("app.services.erp_sync_extras.sync_prescriptions", return_value={"created": 0, "updated": 0, "total": 0, "batch_errors": 0})
+@patch("app.services.erp_sync_extras.sync_payments", return_value={"created": 0, "updated": 0, "total": 0, "batch_errors": 0})
+@patch("app.services.erp_sync_invoices.sync_invoices", return_value={"created": 0, "updated": 0, "total": 0, "batch_errors": 0})
 @patch("app.services.erp_sync_service.sync_customers", return_value={"created": 0, "updated": 0, "unchanged": 0, "skipped": 0, "batch_errors": 0, "total": 0, "mode": "full", "warnings": []})
 def test_sync_all_returns_has_errors_false_on_success(
     mock_customers: MagicMock,

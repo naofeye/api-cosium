@@ -526,9 +526,10 @@ def _patch_sync_fns(side_effects: dict[str, Exception | dict] | None = None):
     for name in _ALL_SYNC_FN_NAMES:
         effect = (side_effects or {}).get(name)
         if isinstance(effect, Exception):
+            mock = MagicMock(side_effect=effect, __name__=name)
             p = patch(
                 f"app.services.cosium_reference_sync.{name}",
-                side_effect=effect,
+                mock,
             )
         else:
             default = effect or {"entity": name, "created": 1, "updated": 0, "total_fetched": 1}

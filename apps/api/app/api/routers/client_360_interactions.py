@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import NotFoundError, ValidationError
 from app.core.deps import require_permission
+from app.core.exceptions import NotFoundError, ValidationError
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.interactions import (

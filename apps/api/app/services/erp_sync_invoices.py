@@ -91,7 +91,7 @@ def sync_invoices(db: Session, tenant_id: int, user_id: int = 0, *, full: bool =
                     all_invoices.append(inv)
     except (ConnectionError, TimeoutError, ValueError) as e:
         logger.error("sync_invoices_failed", error=str(e), exc_info=True)
-        if "auth" in str(e).lower() or "connect" in str(e).lower() or "timeout" in str(e).lower():
+        if isinstance(e, ConnectionError | TimeoutError) or "auth" in str(e).lower():
             raise ValueError(f"Erreur critique lors de la synchronisation des factures: {e}") from e
 
     logger.info("sync_invoices_fetched", tenant_id=tenant_id, total=len(all_invoices), mode="full" if full else "incremental")

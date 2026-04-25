@@ -224,9 +224,9 @@ class TestGetClient360WithCases:
 
         assert len(result.dossiers) == 1
         dossier = result.dossiers[0]
-        assert dossier["id"] == case.id
-        assert dossier["statut"] == "en_cours"
-        assert dossier["source"] == "test"
+        assert dossier.id == case.id
+        assert dossier.statut == "en_cours"
+        assert dossier.source == "test"
 
     def test_multiple_cases_all_returned(self, db: Session, default_tenant: Tenant, customer: Customer):
         for i in range(3):
@@ -331,7 +331,7 @@ class TestGetClient360WithConsents:
             _exit_all_patches(patches)
 
         assert len(result.consentements) == 2
-        channels = {c["canal"] for c in result.consentements}
+        channels = {c.canal for c in result.consentements}
         assert channels == {"email", "sms"}
 
     def test_email_consent_value_preserved(self, db: Session, default_tenant: Tenant, customer: Customer):
@@ -350,8 +350,8 @@ class TestGetClient360WithConsents:
         finally:
             _exit_all_patches(patches)
 
-        email_consent = next(c for c in result.consentements if c["canal"] == "email")
-        assert email_consent["consenti"] is True
+        email_consent = next(c for c in result.consentements if c.canal == "email")
+        assert email_consent.consenti is True
 
 
 # ---------------------------------------------------------------------------
@@ -452,7 +452,7 @@ class TestGetClient360TenantIsolation:
             _exit_all_patches(patches)
 
         assert len(result.dossiers) == 1
-        assert result.dossiers[0]["source"] == "correct_tenant"
+        assert result.dossiers[0].source == "correct_tenant"
 
     def test_interactions_scoped_to_tenant(self, db: Session, default_tenant: Tenant, customer: Customer):
         """Interactions from another tenant must not bleed into the 360 view."""
@@ -527,7 +527,7 @@ class TestGetClient360TenantIsolation:
             _exit_all_patches(patches)
 
         assert len(result.consentements) == 1
-        assert result.consentements[0]["canal"] == "sms"
+        assert result.consentements[0].canal == "sms"
 
 
 # ---------------------------------------------------------------------------

@@ -37,12 +37,14 @@ _AVOIR_TYPES = {"AV"}
 
 
 def normalize_name(name: str) -> str:
-    """Normalize : lowercase, strip accents, remove punctuation."""
+    """Normalize : lowercase, strip accents, replace hyphens with spaces, remove punctuation."""
     if not name:
         return ""
     nfkd = unicodedata.normalize("NFKD", name)
     ascii_str = "".join(c for c in nfkd if not unicodedata.combining(c))
-    cleaned = re.sub(r"[^a-zA-Z0-9\s]", "", ascii_str.lower())
+    # Replace hyphens with spaces before removing other punctuation
+    spaced = ascii_str.replace("-", " ")
+    cleaned = re.sub(r"[^a-zA-Z0-9\s]", "", spaced.lower())
     return " ".join(cleaned.split())
 
 

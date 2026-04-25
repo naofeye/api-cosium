@@ -19,17 +19,21 @@ _COLUMN_MAP: dict[str, str] = {
     "nom": "last_name",
     "nom de famille": "last_name",
     "last_name": "last_name",
+    "last name": "last_name",
     "lastname": "last_name",
     # first_name
     "prenom": "first_name",
     "prénom": "first_name",
     "first_name": "first_name",
+    "first name": "first_name",
     "firstname": "first_name",
     # email
     "email": "email",
+    "e mail": "email",
     "e-mail": "email",
     "mail": "email",
     "adresse email": "email",
+    "adresse e mail": "email",
     "adresse e-mail": "email",
     # phone
     "telephone": "phone",
@@ -41,9 +45,11 @@ _COLUMN_MAP: dict[str, str] = {
     "mobile": "phone",
     # birth_date
     "date de naissance": "birth_date",
+    "date naissance": "birth_date",
     "date_naissance": "birth_date",
     "naissance": "birth_date",
     "birth_date": "birth_date",
+    "birth date": "birth_date",
     # address
     "adresse": "address",
     "address": "address",
@@ -55,6 +61,7 @@ _COLUMN_MAP: dict[str, str] = {
     "code_postal": "postal_code",
     "cp": "postal_code",
     "postal_code": "postal_code",
+    "postal code": "postal_code",
     # social_security_number
     "n° sécu": "social_security_number",
     "n° secu": "social_security_number",
@@ -64,6 +71,7 @@ _COLUMN_MAP: dict[str, str] = {
     "securite sociale": "social_security_number",
     "sécurité sociale": "social_security_number",
     "social_security_number": "social_security_number",
+    "social security number": "social_security_number",
     # notes
     "notes": "notes",
     "commentaire": "notes",
@@ -255,7 +263,7 @@ def import_from_file(
                     customer_kwargs["birth_date"] = _date.fromisoformat(birth_date)
                 customer = Customer(
                     tenant_id=tenant_id,
-                    **{k: v for k, v in customer_kwargs.items() if v},
+                    **{k: v for k, v in customer_kwargs.items() if v is not None},
                 )
                 db.add(customer)
                 imported += 1

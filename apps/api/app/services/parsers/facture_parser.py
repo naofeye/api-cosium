@@ -11,7 +11,7 @@ from typing import Any
 _NUMBER = r"[\d\s]+[.,]\d{2}"
 
 _NUMERO_FACTURE = re.compile(
-    r"(?:facture|n[°o]\s*facture)\s*:?\s*(?P<numero>[A-Z0-9/-]+)",
+    r"(?:n[°o]\s*facture|facture\s*n[°o]?|facture)\s*:\s*(?P<numero>[A-Z0-9][\w/-]*)",
     re.IGNORECASE,
 )
 

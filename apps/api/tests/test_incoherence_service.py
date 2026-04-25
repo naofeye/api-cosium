@@ -642,10 +642,7 @@ def _make_customer(**kwargs) -> Customer:
         updated_at=None,
     )
     defaults.update(kwargs)
-    c = Customer.__new__(Customer)
-    for k, v in defaults.items():
-        setattr(c, k, v)
-    return c
+    return Customer(**defaults)
 
 
 def _make_mutuelle(**kwargs) -> ClientMutuelle:
@@ -661,10 +658,7 @@ def _make_mutuelle(**kwargs) -> ClientMutuelle:
         confidence=0.9,
     )
     defaults.update(kwargs)
-    m = ClientMutuelle.__new__(ClientMutuelle)
-    for k, v in defaults.items():
-        setattr(m, k, v)
-    return m
+    return ClientMutuelle(**defaults)
 
 
 class TestConsolidateIdentity:

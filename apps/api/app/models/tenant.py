@@ -24,7 +24,7 @@ class Tenant(Base):
     organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
-    erp_type: Mapped[str] = mapped_column(String(30), nullable=False, default="cosium")
+    erp_type: Mapped[str] = mapped_column(String(30), nullable=False, default="cosium", server_default="cosium")
     erp_config: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     cosium_tenant: Mapped[str | None] = mapped_column(String(100), nullable=True)
     cosium_login: Mapped[str | None] = mapped_column(String(255), nullable=True)

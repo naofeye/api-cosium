@@ -283,7 +283,7 @@ class TestGetPayerPerformance:
         assert result.payers == []
 
     def test_org_with_no_pecs_excluded(self, db, default_tenant):
-        org = PayerOrganization(tenant_id=default_tenant.id, name="Orphan Org", type="mutuelle")
+        org = PayerOrganization(tenant_id=default_tenant.id, name="Orphan Org", type="mutuelle", code="ORPHAN-001")
         db.add(org)
         db.commit()
 
@@ -293,7 +293,7 @@ class TestGetPayerPerformance:
     def test_acceptance_rate_computed(self, db, default_tenant):
         customer = _make_customer(db, default_tenant.id)
         case = _make_case(db, default_tenant.id, customer.id)
-        org = PayerOrganization(tenant_id=default_tenant.id, name="MutA", type="mutuelle")
+        org = PayerOrganization(tenant_id=default_tenant.id, name="MutA", type="mutuelle", code="MUTA-001")
         db.add(org)
         db.flush()
 

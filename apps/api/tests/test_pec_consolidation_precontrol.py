@@ -581,7 +581,7 @@ class TestRunPrecontrolForPreparation:
         )
 
         with patch(
-            "app.services.pec_precontrol_service.run_precontrol",
+            "app.services.pec_precontrol.run_precontrol",
             return_value=fake_result,
         ) as mock_run:
             result = run_precontrol_for_preparation(db, default_tenant.id, prep.id)

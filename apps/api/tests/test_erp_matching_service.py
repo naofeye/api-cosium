@@ -67,12 +67,13 @@ def _customer(**kwargs) -> Customer:
         street_name=None,
         mobile_phone_country=None,
         site_id=None,
+        optician_name=None,
+        ophthalmologist_id=None,
+        notes=None,
+        avatar_url=None,
     )
     defaults.update(kwargs)
-    c = Customer.__new__(Customer)
-    for k, v in defaults.items():
-        setattr(c, k, v)
-    return c
+    return Customer(**defaults)
 
 
 # ---------------------------------------------------------------------------
@@ -358,8 +359,8 @@ class TestCustomerHasChanges:
         assert _customer_has_changes(existing, erp_c) is True
 
     def test_same_email_different_case_no_change(self):
-        # Meme email (normalise) -> pas de changement
-        existing = _customer(email="jean@example.com")
+        # Meme email (normalise) -> pas de changement quand cosium_id est deja renseigne
+        existing = _customer(email="jean@example.com", cosium_id="ERP001")
         erp_c = _erp(email="jean@example.com")
         assert _customer_has_changes(existing, erp_c) is False
 
@@ -427,7 +428,7 @@ class TestUpdateCustomerFields:
         assert existing.phone == "0600000000"
 
     def test_does_not_overwrite_existing_phone(self):
-        existing = _customer(phone="0611111111")
+        existing = _customer(phone="0611111111", cosium_id="ERP001")
         erp_c = _erp(phone="0699999999")
         changed = _update_customer_fields(existing, erp_c)
         assert changed is False
@@ -448,7 +449,7 @@ class TestUpdateCustomerFields:
         assert existing.birth_date == date(1985, 3, 22)
 
     def test_does_not_overwrite_existing_birth_date(self):
-        existing = _customer(birth_date=date(1985, 3, 22))
+        existing = _customer(birth_date=date(1985, 3, 22), cosium_id="ERP001")
         erp_c = _erp(birth_date=date(1990, 1, 1))
         changed = _update_customer_fields(existing, erp_c)
         assert changed is False

@@ -95,6 +95,7 @@ def db_fixture():
         organization_id=org.id,
         name="Test Magasin",
         slug="test-magasin",
+        erp_type="cosium",
         # Creds Cosium fake pour satisfaire _authenticate_connector dans les tests
         # qui mockent get_connector mais pas _authenticate_connector.
         cosium_tenant="test-tenant",

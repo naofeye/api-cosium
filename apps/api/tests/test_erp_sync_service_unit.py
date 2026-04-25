@@ -568,8 +568,9 @@ class TestSyncCustomersDuplicates:
 
             result = sync_customers(db, tenant_id=default_tenant.id, user_id=1)
 
-        # Second customer with same email is matched as update, not duplicate creation
-        assert result["created"] + result["updated"] == 2
+        # Second customer with same email is matched and skipped (no new empty fields to fill)
+        assert result["created"] == 1
+        assert result["unchanged"] == 1
         assert result["total"] == 2
 
 

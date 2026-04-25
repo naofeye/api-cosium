@@ -58,7 +58,7 @@ class TestSignup:
         assert result.tenant_id is not None
         assert result.tenant_name == "Optique Dupont"
         assert len(result.available_tenants) == 1
-        assert result.available_tenants[0]["role"] == "admin"
+        assert result.available_tenants[0].role == "admin"
 
     def test_signup_duplicate_email_raises_validation_error(self, db):
         """Un deuxieme signup avec le meme email doit lever ValidationError."""
@@ -366,11 +366,10 @@ class TestGetConnectorForTenant:
             _get_connector_for_tenant(db, tenant_id=999999)
 
     def test_uses_cosium_erp_type_by_default(self, db, default_tenant):
-        """Sans erp_type configure, 'cosium' est utilise par defaut."""
+        """Avec erp_type='cosium' (default), le connecteur cosium est utilise."""
         from app.services.erp_auth_service import _get_connector_for_tenant
 
-        default_tenant.erp_type = None
-        db.commit()
+        assert default_tenant.erp_type == "cosium"
 
         with patch("app.services.erp_auth_service.get_connector") as mock_gc:
             mock_gc.return_value = MagicMock()

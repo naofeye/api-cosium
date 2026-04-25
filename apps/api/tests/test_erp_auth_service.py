@@ -113,7 +113,7 @@ class TestAuthenticateConnectorBasic:
         connector = self._cosium_connector()
 
         with (
-            patch("app.services.erp_auth_service.settings") as mock_settings,
+            patch("app.core.config.settings") as mock_settings,
         ):
             mock_settings.cosium_base_url = "https://c1.cosium.biz"
             mock_settings.cosium_tenant = ""
@@ -138,7 +138,7 @@ class TestAuthenticateConnectorBasic:
         connector = self._cosium_connector()
 
         with (
-            patch("app.services.erp_auth_service.settings") as mock_settings,
+            patch("app.core.config.settings") as mock_settings,
             patch("app.services.erp_auth_service.decrypt", side_effect=Exception("bad token")),
         ):
             mock_settings.cosium_base_url = "https://c1.cosium.biz"
@@ -164,7 +164,7 @@ class TestAuthenticateConnectorBasic:
         connector = self._cosium_connector()
 
         with (
-            patch("app.services.erp_auth_service.settings") as mock_settings,
+            patch("app.core.config.settings") as mock_settings,
             patch("app.services.erp_auth_service.decrypt", return_value="pw-from-settings"),
         ):
             mock_settings.cosium_base_url = "https://c1.cosium.biz"
@@ -190,7 +190,7 @@ class TestAuthenticateConnectorBasic:
         connector = self._cosium_connector()
 
         with (
-            patch("app.services.erp_auth_service.settings") as mock_settings,
+            patch("app.core.config.settings") as mock_settings,
         ):
             mock_settings.cosium_base_url = "https://c1.cosium.biz"
             mock_settings.cosium_tenant = ""
@@ -233,7 +233,7 @@ class TestAuthenticateConnectorCookies:
         connector.erp_type = "cosium"
         connector._client = mock_client
 
-        with patch("app.services.erp_auth_service.settings") as mock_settings:
+        with patch("app.core.config.settings") as mock_settings:
             mock_settings.cosium_base_url = "https://c1.cosium.biz"
             mock_settings.cosium_tenant = "fallback-tenant"
 
@@ -266,7 +266,7 @@ class TestAuthenticateConnectorCookies:
         connector.erp_type = "cosium"
 
         with (
-            patch("app.services.erp_auth_service.settings") as mock_settings,
+            patch("app.core.config.settings") as mock_settings,
             patch("app.services.erp_auth_service.decrypt", side_effect=ValueError("decrypt failed")),
         ):
             mock_settings.cosium_base_url = "https://c1.cosium.biz"
@@ -274,9 +274,11 @@ class TestAuthenticateConnectorCookies:
             mock_settings.cosium_login = ""
             mock_settings.cosium_password = "fallback-pw"
 
-            # decrypt echoue -> credentials manquants -> ValueError
-            with pytest.raises(ValueError, match="Credentials ERP"):
-                _authenticate_connector(connector, tenant)
+            # decrypt echoue pour les cookies, fallback sur basic auth avec le mot de passe en clair
+            _authenticate_connector(connector, tenant)
+            connector.authenticate.assert_called_once_with(
+                "https://c1.cosium.biz", "t-fallback", "user@fb.fr", "fallback-pw",
+            )
 
     def test_cookie_auth_uses_settings_tenant_when_tenant_field_null(self, db):
         """Le champ cosium_tenant du tenant peut etre None; settings.cosium_tenant est utilise."""
@@ -299,7 +301,7 @@ class TestAuthenticateConnectorCookies:
         connector.erp_type = "cosium"
         connector._client = mock_client
 
-        with patch("app.services.erp_auth_service.settings") as mock_settings:
+        with patch("app.core.config.settings") as mock_settings:
             mock_settings.cosium_base_url = "https://c1.cosium.biz"
             mock_settings.cosium_tenant = "settings-tenant"
 
