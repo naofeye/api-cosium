@@ -43,6 +43,12 @@ export function SidebarItem({ item, active, showLabel, onClick, badge }: Props) 
   );
 }
 
+/** Exact match, or prefix match for sub-routes.
+ *  Special case: "/admin" must NOT match "/admin/users", "/admin/audit", etc.
+ *  because those are now separate sidebar items. */
 export function isActive(pathname: string, href: string): boolean {
-  return pathname === href || pathname.startsWith(href + "/");
+  if (pathname === href) return true;
+  // For top-level routes that have sub-items in the sidebar, only exact match
+  if (href === "/admin") return false;
+  return pathname.startsWith(href + "/");
 }

@@ -27,6 +27,11 @@ import {
   Briefcase,
   RotateCcw,
   Gift,
+  ScrollText,
+  ShieldCheck,
+  UserCog,
+  Trash2,
+  Activity,
   type LucideIcon,
 } from "lucide-react";
 
@@ -112,7 +117,12 @@ export const navGroups: NavGroup[] = [
     key: "admin",
     label: "Administration",
     items: [
-      { href: "/admin", label: "Admin", icon: Settings },
+      { href: "/admin", label: "Tableau de bord", icon: Settings },
+      { href: "/admin/users", label: "Utilisateurs", icon: UserCog },
+      { href: "/admin/audit", label: "Journal d'audit", icon: ScrollText },
+      { href: "/admin/security", label: "Securite", icon: ShieldCheck },
+      { href: "/admin/deleted-clients", label: "Clients supprimes", icon: Trash2 },
+      { href: "/admin/data-quality", label: "Qualite donnees", icon: Activity },
       { href: "/notifications", label: "Notifications", icon: Bell },
       { href: "/aide", label: "Aide", icon: HelpCircle },
     ],
