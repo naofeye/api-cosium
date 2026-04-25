@@ -91,11 +91,23 @@ jobs:
       - name: Start Next (standalone)
         run: |
           cd apps/web
-          # Next.js output: "standalone" requires node .next/standalone/server.js
-          # "next start" doesn't work correctly with standalone builds (router.push broken)
-          cp -r .next/static .next/standalone/.next/static 2>/dev/null || true
-          cp -r public .next/standalone/public 2>/dev/null || true
-          PORT=3000 nohup node .next/standalone/server.js > /tmp/web.log 2>&1 &
+          # Next.js output: "standalone" in a monorepo puts server.js
+          # relative to the traced root, not necessarily in .next/standalone/
+          SERVER_JS=$(find .next/standalone -name "server.js" -path "*/apps/web/*" 2>/dev/null | head -1)
+          if [ -z "$SERVER_JS" ]; then
+            SERVER_JS=$(find .next/standalone -name "server.js" 2>/dev/null | head -1)
+          fi
+          if [ -z "$SERVER_JS" ]; then
+            echo "ERROR: standalone server.js not found, falling back to next start"
+            PORT=3000 nohup npx next start -p 3000 > /tmp/web.log 2>&1 &
+          else
+            echo "Found standalone server at: $SERVER_JS"
+            STANDALONE_DIR=$(dirname "$SERVER_JS")
+            # Copy static assets + public to standalone dir
+            cp -r .next/static "$STANDALONE_DIR/.next/static" 2>/dev/null || true
+            cp -r public "$STANDALONE_DIR/public" 2>/dev/null || true
+            PORT=3000 nohup node "$SERVER_JS" > /tmp/web.log 2>&1 &
+          fi
           echo $! > /tmp/web.pid
           for i in $(seq 1 30); do
             if curl -fsS http://localhost:3000/login >/dev/null 2>&1; then
