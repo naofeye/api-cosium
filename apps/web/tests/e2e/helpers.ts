@@ -31,13 +31,19 @@ export async function apiLogin(
  * Login via la page UI (utile pour récupérer un state authentifié dans le navigateur).
  * Reste sur /login si MFA requise — à l'appelant de vérifier la suite.
  *
- * Utilise fill() + click sur le bouton submit. Le bouton est gated sur
- * watch() (presence de valeurs, pas isValid) donc fill() suffit.
+ * react-hook-form's register() uses an internal store updated only via
+ * its onChange handler. Playwright's fill() doesn't reliably trigger it.
+ * pressSequentially with a delay fires individual key events that React's
+ * event delegation picks up, updating the internal form state correctly.
  */
 export async function uiLogin(page: Page, email: string, password: string): Promise<void> {
   await page.goto("/login");
-  await page.getByLabel("Adresse email").fill(email);
-  await page.getByLabel("Mot de passe").fill(password);
+  const emailField = page.getByLabel("Adresse email");
+  await emailField.click();
+  await emailField.pressSequentially(email, { delay: 20 });
+  const pwField = page.getByLabel("Mot de passe");
+  await pwField.click();
+  await pwField.pressSequentially(password, { delay: 20 });
   await page.getByRole("button", { name: /se connecter/i }).click();
 }
 
