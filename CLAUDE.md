@@ -1,5 +1,9 @@
 # CLAUDE.md - Directive pour Claude CLI / Codex
 
+> Ce fichier est la source de verite pour la session `api-cosium-claude`.
+> **vps-master** peut aussi intervenir sur ce projet et doit mettre a jour ce fichier.
+> Voir la section "Dernieres interventions vps-master" en bas.
+
 ## Memoire persistante inter-sessions
 
 **Au demarrage de CHAQUE session (avant toute action), lire `.claude-memory/MEMORY.md` puis les fichiers qu'il reference.**
@@ -759,3 +763,18 @@ docker compose exec api pytest -v
 # Migrations Alembic (a configurer)
 docker compose exec api alembic upgrade head
 ```
+
+---
+
+## Dernieres interventions vps-master
+
+> Cette section est maintenue par la session `vps-master` quand elle intervient sur ce projet.
+> La session `api-cosium-claude` doit la lire au demarrage pour savoir ce qui a change.
+
+### 2026-04-25 — Audit VPS + fix OOM + CI
+
+- **Fix OOM api container** : `mem_limit` passe de 768m a 1536m dans `docker-compose.yml`. Le worker Celery `bulk_download_cosium_documents` causait des OOM kills en boucle (652 kills en une nuit). Concurrency deja reduite a 2 (session precedente).
+- **Fix CI backend** : 81 tests fails corriges (26 fichiers). Causes : `Tenant.erp_type` sans default, bugs `_parse_date`, RBAC fallback, consent opt-out, CSV import variants, name matching, facture parser regex. Commit `c8c6270`.
+- **Fix E2E workflow** : `next.config.ts` ajoute `outputFileTracingRoot` pour monorepo. `e2e.yml` lance le standalone server correctement. `login/page.tsx` retire le `disabled` du bouton (react-hook-form + Playwright incompatibles). Les tests E2E n'ont **jamais passe** — background complet dans `TODO.md` section "E2E Playwright".
+- **Sidebar admin** : 6 sous-pages admin exposees en liens directs au lieu d'un seul "Admin". Commit `4d2694a`.
+- **Hook auto-deploy** : chaque `git push` sur ce projet fait automatiquement `docker compose up -d --build` via `/home/claude-agent/.claude/hooks/auto-deploy.sh`.
