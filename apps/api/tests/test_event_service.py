@@ -4,7 +4,8 @@ from unittest.mock import patch
 
 from sqlalchemy.orm import Session
 
-from app.models import Tenant
+from app.models import Tenant, TenantUser, User
+from app.security import hash_password
 from app.services import event_service, notification_service
 
 
@@ -81,6 +82,39 @@ class TestEmitEvent:
         pec_notifs = [n for n in listing.items if n.title == "PEC refusee"]
         assert len(pec_notifs) >= 1
         assert pec_notifs[0].type == "warning"
+
+    def test_tenant_admin_with_global_user_role_receives_notifications(
+        self, db: Session, seed_user
+    ) -> None:
+        """Regression : un admin de tenant cree par admin_user_service.create_user
+        a User.role='user' mais TenantUser.role='admin'. Il doit recevoir les
+        notifications metier (filtre sur TenantUser.role, pas User.role).
+        """
+        tenant = db.query(Tenant).filter(Tenant.slug == "test-magasin").first()
+
+        tenant_admin = User(
+            email="newadmin@optiflow.com",
+            password_hash=hash_password("test123"),
+            role="user",  # User.role par defaut, pose par admin_user_service
+            is_active=True,
+        )
+        db.add(tenant_admin)
+        db.flush()
+        db.add(TenantUser(user_id=tenant_admin.id, tenant_id=tenant.id, role="admin"))
+        db.commit()
+
+        event_service.emit_event(
+            db,
+            tenant_id=tenant.id,
+            event_type="DossierCree",
+            entity_type="case",
+            entity_id=99,
+            user_id=seed_user.id,
+        )
+
+        listing = notification_service.list_notifications(db, tenant.id, tenant_admin.id)
+        titles = [n.title for n in listing.items]
+        assert "Nouveau dossier cree" in titles
 
     def test_multiple_events_create_multiple_notifications(self, db: Session, seed_user) -> None:
         """Emettre plusieurs evenements cree autant de notifications."""

@@ -134,11 +134,14 @@ def emit_event(
     if not tenant_id:
         logger.warning("emit_event_no_tenant", event_type=event_type, entity_id=entity_id)
         return
+    # Les permissions reelles vivent dans TenantUser.role, pas dans User.role
+    # (admin_user_service.create_user cree les nouveaux comptes avec User.role="user").
     query = (
         select(User)
         .join(TenantUser, TenantUser.user_id == User.id)
         .where(
-            User.role.in_(["admin", "owner"]),
+            TenantUser.role.in_(["admin", "owner"]),
+            TenantUser.is_active.is_(True),
             User.is_active.is_(True),
             TenantUser.tenant_id == tenant_id,
         )
