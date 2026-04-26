@@ -31,7 +31,7 @@
   Critères: seed fonctionne toujours au démarrage, 0 régression tests, fichier < 200L
   Niveau: 1
 
-- [ ] Remplacer 15 `except Exception:` bare par `except Exception as e: logger.warning(...)`
+- [x] Remplacer 15 `except Exception:` bare par `except Exception as e: logger.warning(...)` _(fait 2026-04-26, 270s, 6 fichiers)_
   Specs: fichiers concernés — admin_health.py, redis_cache.py, cosium_connector.py + les 12 autres occurrences
   Critères: chaque except log le contexte (fonction, paramètres), ruff vert, tests passent
   Niveau: 1
