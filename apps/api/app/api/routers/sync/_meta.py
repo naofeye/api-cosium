@@ -22,7 +22,7 @@ def seed_demo(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin")),
 ) -> SeedDemoResponse:
-    from app.seed_demo import seed_demo_data
+    from tests.factories.seed import seed_demo_data
 
     return seed_demo_data(db)
 

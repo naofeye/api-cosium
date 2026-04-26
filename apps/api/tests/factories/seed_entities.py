@@ -1,6 +1,6 @@
-"""Seed de donnees de demo enrichies pour presentations.
+"""Helpers de creation d'entites principales (orgs, clients, dossiers, devis, factures).
 
-Usage: docker compose exec api python -c "from app.seed_demo import seed_demo_data; from app.db.session import SessionLocal; seed_demo_data(SessionLocal())"
+Extrait de seed.py pour respecter la limite de 200 lignes par fichier.
 """
 
 import random
@@ -17,45 +17,12 @@ from app.models import (
     Facture,
     PayerOrganization,
     Payment,
-    Tenant,
 )
-from app.seed_demo_data import (
-    CITIES,
-    DOC_TYPES,
-    FIRST_NAMES,
-    LAST_NAMES,
-    PRODUCTS,
-    SOURCES,
-    seed_bank_transactions,
-    seed_interactions,
-    seed_marketing_and_notifications,
-    seed_pec_requests,
-)
+from tests.factories.seed_data import CITIES, DOC_TYPES, FIRST_NAMES, LAST_NAMES, PRODUCTS, SOURCES
 
 
-def seed_demo_data(db: Session) -> dict:
-    """Generate rich demo data: 50 clients, 30 cases, 15 devis, factures, payments, PEC, banking, marketing."""
-    stats = {
-        "clients": 0,
-        "cases": 0,
-        "devis": 0,
-        "factures": 0,
-        "payments": 0,
-        "pec": 0,
-        "bank_transactions": 0,
-        "campaigns": 0,
-        "interactions": 0,
-    }
-
-    if db.query(Customer).count() > 5:
-        return {"status": "skipped", "reason": "Demo data already exists"}
-
-    # Get default tenant
-    tenant = db.query(Tenant).filter(Tenant.slug == "default").first()
-    tenant_id = tenant.id if tenant else 1
-
-    # Organizations
-    orgs = []
+def seed_organizations(db: Session, tenant_id: int) -> list[PayerOrganization]:
+    orgs: list[PayerOrganization] = []
     for name, type_, code in [
         ("MGEN", "mutuelle", "MGEN"),
         ("Harmonie Mutuelle", "mutuelle", "HARM"),
@@ -72,9 +39,11 @@ def seed_demo_data(db: Session) -> dict:
             orgs.append(org)
         else:
             orgs.append(existing)
+    return orgs
 
-    # Customers
-    customers = []
+
+def seed_customers(db: Session, tenant_id: int, stats: dict) -> list[Customer]:
+    customers: list[Customer] = []
     for i in range(50):
         fn = random.choice(FIRST_NAMES)
         ln = random.choice(LAST_NAMES)
@@ -93,9 +62,11 @@ def seed_demo_data(db: Session) -> dict:
         db.flush()
         customers.append(c)
         stats["clients"] += 1
+    return customers
 
-    # Cases + documents
-    cases = []
+
+def seed_cases(db: Session, tenant_id: int, customers: list, stats: dict) -> list[Case]:
+    cases: list[Case] = []
     for _i in range(30):
         customer = random.choice(customers)
         case = Case(
@@ -110,22 +81,17 @@ def seed_demo_data(db: Session) -> dict:
         cases.append(case)
         stats["cases"] += 1
 
-        # Add some documents
         for dt in random.sample(DOC_TYPES, random.randint(0, len(DOC_TYPES))):
-            db.add(
-                Document(
-                    tenant_id=tenant_id,
-                    case_id=case.id,
-                    type=dt,
-                    filename=f"{dt}_{case.id}.pdf",
-                    storage_key=f"demo/{dt}_{case.id}.pdf",
-                )
-            )
+            db.add(Document(
+                tenant_id=tenant_id, case_id=case.id, type=dt,
+                filename=f"{dt}_{case.id}.pdf", storage_key=f"demo/{dt}_{case.id}.pdf",
+            ))
+    return cases
 
-    # Devis
-    devis_list = []
-    existing_devis = db.query(Devis).count()
-    devis_num = existing_devis + 1
+
+def seed_devis(db: Session, tenant_id: int, cases: list, stats: dict) -> list[Devis]:
+    devis_list: list[Devis] = []
+    devis_num = db.query(Devis).count() + 1
     for case in random.sample(cases, min(15, len(cases))):
         lignes_data = random.sample(PRODUCTS, random.randint(2, 4))
         total_ht = sum(p[1] * random.randint(1, 2) for p in lignes_data)
@@ -137,16 +103,9 @@ def seed_demo_data(db: Session) -> dict:
         status = random.choice(["brouillon", "envoye", "signe", "facture"])
 
         d = Devis(
-            tenant_id=tenant_id,
-            case_id=case.id,
-            numero=f"DEV-{devis_num:05d}",
-            status=status,
-            montant_ht=total_ht,
-            tva=tva,
-            montant_ttc=total_ttc,
-            part_secu=part_secu,
-            part_mutuelle=part_mut,
-            reste_a_charge=rac,
+            tenant_id=tenant_id, case_id=case.id, numero=f"DEV-{devis_num:05d}",
+            status=status, montant_ht=total_ht, tva=tva, montant_ttc=total_ttc,
+            part_secu=part_secu, part_mutuelle=part_mut, reste_a_charge=rac,
             created_at=datetime.now(UTC).replace(tzinfo=None) - timedelta(days=random.randint(0, 60)),
         )
         db.add(d)
@@ -159,32 +118,22 @@ def seed_demo_data(db: Session) -> dict:
             qty = random.randint(1, 2)
             lht = price * qty
             lttc = round(lht * 1.2, 2)
-            db.add(
-                DevisLigne(
-                    tenant_id=tenant_id,
-                    devis_id=d.id,
-                    designation=name,
-                    quantite=qty,
-                    prix_unitaire_ht=price,
-                    taux_tva=20,
-                    montant_ht=lht,
-                    montant_ttc=lttc,
-                )
-            )
+            db.add(DevisLigne(
+                tenant_id=tenant_id, devis_id=d.id, designation=name,
+                quantite=qty, prix_unitaire_ht=price, taux_tva=20,
+                montant_ht=lht, montant_ttc=lttc,
+            ))
+    return devis_list
 
-    # Factures from signed/facture devis
-    factures_created = []
-    existing_factures = db.query(Facture).count()
-    fact_num = existing_factures + 1
+
+def seed_factures_and_payments(db: Session, tenant_id: int, devis_list: list, stats: dict) -> list[Facture]:
+    factures_created: list[Facture] = []
+    fact_num = db.query(Facture).count() + 1
     for d in [dv for dv in devis_list if dv.status in ("signe", "facture")]:
         f = Facture(
-            tenant_id=tenant_id,
-            case_id=d.case_id,
-            devis_id=d.id,
+            tenant_id=tenant_id, case_id=d.case_id, devis_id=d.id,
             numero=f"F-2026-{fact_num:04d}",
-            montant_ht=float(d.montant_ht),
-            tva=float(d.tva),
-            montant_ttc=float(d.montant_ttc),
+            montant_ht=float(d.montant_ht), tva=float(d.tva), montant_ttc=float(d.montant_ttc),
             status="emise",
             created_at=datetime.now(UTC).replace(tzinfo=None) - timedelta(days=random.randint(0, 45)),
         )
@@ -192,38 +141,17 @@ def seed_demo_data(db: Session) -> dict:
         db.flush()
         fact_num += 1
         stats["factures"] += 1
+        factures_created.append(f)
 
-        # Payments
         paid_pct = random.choice([0, 0.5, 1.0])
         paid = round(float(d.montant_ttc) * paid_pct, 2)
         status_pay = "paid" if paid_pct == 1 else ("partial" if paid_pct > 0 else "pending")
-        factures_created.append(f)
-        p = Payment(
-            tenant_id=tenant_id,
-            case_id=d.case_id,
-            facture_id=f.id,
+        db.add(Payment(
+            tenant_id=tenant_id, case_id=d.case_id, facture_id=f.id,
             payer_type=random.choice(["client", "mutuelle", "secu"]),
             mode_paiement=random.choice(["cb", "virement", "cheque"]),
-            amount_due=float(d.montant_ttc),
-            amount_paid=paid,
-            status=status_pay,
+            amount_due=float(d.montant_ttc), amount_paid=paid, status=status_pay,
             created_at=datetime.now(UTC).replace(tzinfo=None) - timedelta(days=random.randint(0, 30)),
-        )
-        db.add(p)
+        ))
         stats["payments"] += 1
-
-    # Interactions
-    seed_interactions(db, tenant_id, customers)
-    stats["interactions"] = 20
-
-    # PEC Requests (from factures)
-    seed_pec_requests(db, tenant_id, factures_created, orgs, stats)
-
-    # Bank Transactions (mix rapprochees et non rapprochees)
-    seed_bank_transactions(db, tenant_id, stats)
-
-    # Marketing, Segments, Campaigns, Notifications, Reminders
-    seed_marketing_and_notifications(db, tenant_id, customers, factures_created, stats)
-
-    db.commit()
-    return stats
+    return factures_created

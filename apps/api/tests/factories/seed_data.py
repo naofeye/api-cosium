@@ -1,6 +1,6 @@
-"""Data constants and seed helpers for demo data.
+"""Constantes et helpers de seed pour donnees de demo.
 
-Extracted from seed_demo.py to keep each file under 300 lines.
+Extrait de l'ancien seed_demo_data.py, deplace dans tests/factories/.
 """
 
 import random

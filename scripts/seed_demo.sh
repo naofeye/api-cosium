@@ -28,7 +28,7 @@ docker compose exec -T api python -m app.seed
 echo "[4/4] Seed demo enrichi (clients + dossiers + factures + paiements)..."
 docker compose exec -T api python -c "
 from app.db.session import SessionLocal
-from app.seed_demo import seed_demo_data
+from tests.factories.seed import seed_demo_data
 db = SessionLocal()
 result = seed_demo_data(db)
 db.close()

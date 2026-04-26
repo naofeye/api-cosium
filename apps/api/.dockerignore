@@ -5,5 +5,7 @@ __pycache__
 htmlcov
 .git
 .gitignore
-tests/
+tests/*
+!tests/__init__.py
+!tests/factories/
 *.md
