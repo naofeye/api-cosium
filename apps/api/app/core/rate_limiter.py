@@ -52,6 +52,27 @@ _fallback_attempts: dict[str, list[float]] = defaultdict(list)
 _global_attempts = _fallback_attempts
 
 
+def _trusted_proxies_set() -> set[str]:
+    return {p.strip() for p in settings.trusted_proxies.split(",") if p.strip()}
+
+
+def _client_ip(request: Request) -> str:
+    """Resolve the request IP for rate limiting.
+
+    X-Forwarded-For can be forged by clients connecting directly. We only trust it
+    when request.client.host is in TRUSTED_PROXIES, in which case we take the LAST
+    entry of the chain (the IP the trusted proxy actually saw connecting to it,
+    via nginx's `$proxy_add_x_forwarded_for`). Otherwise we use request.client.host.
+    """
+    direct_ip = request.client.host if request.client else "unknown"
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded and direct_ip in _trusted_proxies_set():
+        parts = [p.strip() for p in forwarded.split(",") if p.strip()]
+        if parts:
+            return parts[-1]
+    return direct_ip
+
+
 def _get_redis_client() -> redis.Redis | None:
     """Create a Redis client, return None if unavailable."""
     try:
@@ -124,12 +145,7 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         rule = self._find_rule(request.url.path, request.method)
         if rule:
             max_attempts, window = rule
-            # Utiliser X-Forwarded-For si derriere un proxy (nginx)
-            forwarded = request.headers.get("X-Forwarded-For")
-            if forwarded:
-                ip = forwarded.split(",")[0].strip()
-            else:
-                ip = request.client.host if request.client else "unknown"
+            ip = _client_ip(request)
             key = f"{ip}:{request.url.path}"
 
             if not _check_rate_limit_redis(key, max_attempts, window):
