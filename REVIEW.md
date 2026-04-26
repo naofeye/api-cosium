@@ -1,181 +1,174 @@
 # Audit Codex — api-cosium
 
-_Genere automatiquement le 2026-04-26. Commit audite : `af9fb81`._
+_Genere automatiquement le 2026-04-26. Commit audite : `2d564fd`._
 
 ## Resume
 
-Le repo est dense et couvre beaucoup de surface metier, mais plusieurs points restent a corriger avant de considerer l'ensemble robuste en production. Les deux priorites sont: 1) supprimer le basculement silencieux en mode `local` sur un deploiement incomplet, et 2) invalider aussi les access tokens lors des operations de securite sensibles. J'ai aussi releve une regression fonctionnelle importante sur l'onboarding web, une faiblesse MFA sur les backup codes, une dependance frontend avec advisory connue, et plusieurs derives de config/observabilite qui vont ralentir le diagnostic en exploitation.
+Le repo est globalement structuré, mais deux défauts bloquants ressortent immédiatement : le pipeline de déploiement ne peut pas réussir dès qu'une migration Alembic est en attente, et la configuration "production" fournie force des cookies `Secure` alors que le Nginx actif ne sert que du HTTP. Côté sécurité applicative, les garde-fous existent mais certains peuvent être contournés ou mal pilotés par la configuration (`X-Forwarded-For` de confiance, URLs métiers dérivées de `CORS_ORIGINS`). Les priorités sont donc : corriger le bootstrap prod, fiabiliser la chaîne HTTPS/cookies, puis nettoyer les dérives de configuration et les scripts exposant des secrets.
 
 ## 🔴 Critiques
 
-### 1. Un deploiement partiellement configure retombe silencieusement en mode `local`
+### 1. Déploiement prod auto-bloquant avant les migrations
 
-**Fichier :** `apps/api/app/core/config.py:12`
+**Fichier :** `scripts/deploy.sh:67`, `apps/api/app/main.py:52`
 
-```python
-app_env: str = "local"
-database_url: str = _DEV_DB_URL
-jwt_secret: str = _DEV_JWT_SECRET
+```bash
+docker compose $COMPOSE_FILES up -d
+if docker compose $COMPOSE_FILES exec -T api curl -sf http://localhost:8000/health >/dev/null 2>&1; then
+docker compose $COMPOSE_FILES exec -T api alembic upgrade head
 ```
 
-**Probleme :** Si `APP_ENV` est absent ou mal renseigne sur un serveur, l'application demarre en mode `local` avec les defaults dev. Cela desactive toutes les validations "production/staging", laisse `SEED_ON_STARTUP=true` actif, garde les cookies auth en `secure=False` via `auth.py`, re-expose la doc Swagger via `main.py`, et peut recreer un compte seed `admin@optiflow.com` / `Admin123` via `seed.py`. Le script de deploiement ne verifie meme pas `APP_ENV` (`scripts/deploy.sh` ne controle que `JWT_SECRET` et `ENCRYPTION_KEY`).
+**Probleme :** Le script démarre l'API puis attend qu'elle soit saine avant d'exécuter `alembic upgrade head`. Or le boot FastAPI refuse explicitement de démarrer en `production/staging` si `current_rev != head_rev`. Résultat : toute première mise en prod ou tout déploiement avec migration pendante boucle jusqu'au timeout puis échoue avant même l'étape migrations.
 
-**Recommandation :** Rendre `APP_ENV` obligatoire hors tests, supprimer les secrets par defaut au runtime, refuser tout boot si `APP_ENV` n'est pas explicitement `local|development|test|production|staging`, et faire echouer `scripts/deploy.sh` si `APP_ENV=production` n'est pas present.
+**Recommandation :** Exécuter `alembic upgrade head` dans un conteneur one-shot avant le healthcheck applicatif, ou bien lancer un job migration dédié avant `up -d`.
 
-**Impact pour Claude :** Un assistant IA peut croire qu'un deploiement "a l'air sain" car l'app boote, alors qu'elle tourne en fait en mode dev avec des gardes de production court-circuites.
+**Impact pour Claude :** Un assistant IA qui suit `scripts/deploy.sh` à la lettre conclura à une panne applicative, alors que la vraie cause est l'ordre d'exécution du bootstrap.
 
-### 2. Changer le mot de passe ou faire `logout-all` ne coupe pas les access tokens deja emis
+### 2. Configuration prod fournie incompatible avec les cookies d'authentification
 
-**Fichier :** `apps/api/app/services/auth_service.py:225`
+**Fichier :** `apps/api/app/api/routers/auth.py:26`, `config/nginx/nginx.conf:47`
 
 ```python
-user.password_hash = hash_password(new_password)
-refresh_token_repo.revoke_all_for_user(db, user_id)
-db.commit()
+_COOKIE_OPTS: dict = {
+    "secure": settings.app_env not in ("local", "development", "test"),
 ```
 
-**Probleme :** Les flows `change_password` et `reset_password` ne revoquent que les refresh tokens. Les access tokens JWT deja emis restent valides jusqu'a leur expiration (30 min par defaut). Meme probleme sur `POST /api/v1/auth/logout-all` qui efface les cookies et revoque les refresh tokens, mais ne blackliste pas l'access token en cours. Un token vole conserve donc l'acces apres un changement de mot de passe ou une deconnexion globale.
+**Probleme :** Dès que `APP_ENV=production`, les cookies `optiflow_token` et `optiflow_refresh` passent en `Secure`. Dans le même temps, le seul serveur Nginx actif du repo écoute en clair sur `listen 80;` et le bloc HTTPS reste entièrement commenté. Sur un déploiement "par défaut", le navigateur refusera donc de persister les cookies d'auth, ce qui casse le login et pousse souvent à désactiver `Secure` au lieu d'activer TLS correctement.
 
-**Recommandation :** Ajouter un mecanisme d'invalidation des access tokens (`jti` + blacklist, ou `token_version` sur l'utilisateur/tenant verifie a chaque requete) et l'utiliser sur `change-password`, `reset-password`, `logout-all`, et idealement `switch-tenant`.
+**Recommandation :** Livrer une config Nginx prod réellement HTTPS-ready par défaut, ou faire échouer le déploiement tant que TLS n'est pas activé.
 
-**Impact pour Claude :** Les tests existants couvrent surtout la rotation des refresh tokens; ils ne revelent pas la reutilisation d'un bearer vole apres un evenement de securite.
+**Impact pour Claude :** Le symptôme visible sera "la connexion réussit mais l'utilisateur redevient anonyme", uniquement après bascule de `APP_ENV` en production.
 
 ## 🟡 Moyens
 
-### 1. Le signup d'onboarding n'installe pas la session navigateur, donc le flow web ne peut pas continuer
+### 1. Le rate limiting IP est contournable via `X-Forwarded-For`
 
-**Fichier :** `apps/api/app/api/routers/onboarding.py:20`
-
-```python
-@router.post("/signup", response_model=TokenResponse, status_code=201)
-def signup(payload: SignupRequest, db: Session = Depends(get_db)) -> TokenResponse:
-    return onboarding_service.signup(db, payload=payload)
-```
-
-**Probleme :** Contrairement a `/api/v1/auth/login`, le signup ne pose aucun cookie `optiflow_token` / `optiflow_refresh`. Cote frontend, `StepAccount` appelle pourtant `fetchJson(..., { credentials: "include" })` puis passe a `StepCosium`, qui tape des routes protegees. Le middleware Next redirige aussi `/actions` vers `/login` si le cookie `optiflow_token` manque. Resultat: l'onboarding API "reussit", mais le parcours navigateur est casse.
-
-**Recommandation :** Faire du signup un flow symetrique au login: injecter `Response`, poser les cookies d'auth depuis le backend, et ajouter un test Playwright couvrant `signup -> connect-cosium -> /actions`.
-
-**Impact pour Claude :** Les tests backend masquent le bug parce qu'ils reutilisent directement `resp.json()["access_token"]` en header Bearer au lieu de reproduire le comportement d'un navigateur.
-
-### 2. La desactivation MFA laisse les backup codes en base
-
-**Fichier :** `apps/api/app/services/mfa_service.py:80`
+**Fichier :** `apps/api/app/core/rate_limiter.py:127`
 
 ```python
-user.totp_enabled = False
-user.totp_secret_enc = None
-user.totp_last_used_at = None
+forwarded = request.headers.get("X-Forwarded-For")
+if forwarded:
+    ip = forwarded.split(",")[0].strip()
 ```
 
-**Probleme :** `disable_mfa()` efface le secret TOTP mais ne remet pas `totp_backup_codes_hash_json` a `None`. Si l'utilisateur reactive le MFA plus tard, ses anciens backup codes restent potentiellement valides, alors qu'ils auraient du etre invalides avec l'ancienne configuration MFA.
+**Probleme :** Le middleware fait confiance à n'importe quel header `X-Forwarded-For` envoyé par le client. Si l'API est accessible sans Nginx de confiance en frontal, un attaquant peut changer l'IP à chaque requête et contourner les limites sur `/auth/login`, `/forgot-password`, `/signup`, `/sync`, etc.
 
-**Recommandation :** Purger explicitement `totp_backup_codes_hash_json` dans `disable_mfa()` et ajouter un test de regression "disable -> re-enable -> old backup code rejected".
+**Recommandation :** N'accepter `X-Forwarded-For` que depuis des proxies explicitement trusted, sinon utiliser `request.client.host`.
 
-**Impact pour Claude :** Le flux parait correct tant que l'on ne teste pas un cycle complet de reenrolement MFA.
+**Impact pour Claude :** Une revue superficielle verra "rate limiting Redis en place" et ratera que la clé IP est triviale à falsifier.
 
-### 3. Le bundle frontend embarque un `postcss` avec advisory XSS connu
+### 2. Les URLs critiques dépendent de l'ordre de `CORS_ORIGINS`
 
-**Fichier :** `apps/web/package-lock.json:8889`
+**Fichier :** `apps/api/app/services/auth_service.py:258`, `apps/api/app/services/billing_service.py:62`
 
-```json
-"@swc/helpers": "0.5.15",
-"caniuse-lite": "^1.0.30001579",
-"postcss": "8.4.31",
+```python
+frontend_origin = settings.cors_origins.split(",")[0].strip()
+success_url=f"{settings.cors_origins.split(',')[0].strip()}/billing/success",
 ```
 
-**Probleme :** `npm audit` remonte actuellement une advisory moderee sur `postcss` ("PostCSS has XSS via Unescaped </style> in its CSS Stringify Output", GHSA-qx2v-qp2m-jg93) pour les versions `<8.5.10`. La CI ne la bloque pas car elle n'echoue qu'a partir de `high`.
+**Probleme :** Le lien de reset password et les retours Stripe sont construits à partir de la première entrée de `CORS_ORIGINS`. Cette variable mélange pourtant une politique de sécurité navigateur et le canonical frontend origin. Une inversion d'ordre, un `localhost` laissé en tête ou une origine HTTP non finale enverra des emails et des redirections de paiement vers le mauvais hôte.
 
-**Recommandation :** Mettre a jour la chaine `next`/`postcss` vers une resolution non vuln, puis abaisser la politique CI ou ajouter un gate specifique sur les advisories moderees web-exposed.
+**Recommandation :** Introduire une variable dédiée (`FRONTEND_BASE_URL`) et arrêter de dériver des URLs métier depuis `CORS_ORIGINS`.
 
-**Impact pour Claude :** Le pipeline vert peut faire croire que le frontend est sain alors qu'une vuln moderement exploitable reste livree.
+**Impact pour Claude :** Le bug n'apparaît qu'en environnement multi-origine et sera souvent diagnostiqué à tort comme un problème email/Stripe.
 
-### 4. La config nginx des metrics est incoherente et bloque toute exposition
+### 3. Deux templates de prod divergents maintiennent des vérités concurrentes
 
-**Fichier :** `config/nginx/nginx.conf:73`
+**Fichier :** `.env.prod.example:25`, `.env.production.example:27`
 
-```nginx
-location /api/v1/metrics {
-    allow 127.0.0.1;
-    deny all;
-    return 403;
-}
+```dotenv
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+ACCESS_TOKEN_EXPIRE_MINUTES=60
 ```
 
-**Probleme :** Le commentaire annonce un endpoint "localhost only", mais la directive `return 403;` court-circuite tout et rend la location inutilisable meme depuis loopback. En pratique, Prometheus scrape `api:8000` directement. La doc/nginx/la stack de monitoring racontent donc trois histoires differentes pour le meme endpoint.
+**Probleme :** Le repo expose à la fois `.env.prod.example` et `.env.production.example`, avec des différences réelles sur `SEED_ON_STARTUP`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `AI_MODEL`, `NEXT_PUBLIC_SENTRY_DSN`, les variables backup/monitoring et plusieurs flags runtime. Deux opérateurs peuvent donc déployer deux "productions" différentes en suivant chacun un fichier officiellement présent.
 
-**Recommandation :** Soit supprimer cette location morte, soit la faire vraiment proxifier `http://api/api/v1/metrics` avec `allow 127.0.0.1`, et aligner `config/prometheus/prometheus.yml` sur le chemin retenu.
+**Recommandation :** Conserver un seul template prod canonique et faire référencer explicitement celui-ci dans la doc et les scripts.
 
-**Impact pour Claude :** Un incident d'observabilite risque d'etre cherche du mauvais cote (Prometheus ou API) alors que le probleme vient de la config reverse proxy.
+**Impact pour Claude :** Un agent va souvent modifier le mauvais template, puis "corriger" l'autre plus tard en introduisant encore plus de dérive.
+
+### 4. Le script d'off-site backup injecte les secrets S3 dans la ligne de commande
+
+**Fichier :** `scripts/backup_offsite.sh:39`
+
+```bash
+MC="docker run --rm -e MC_HOST_offsite=${OFFSITE_ENDPOINT/https:\/\//https://${OFFSITE_ACCESS_KEY}:${OFFSITE_SECRET_KEY}@} -v ${PWD}/${BACKUP_DIR}:/data minio/mc"
+```
+
+**Probleme :** En fallback Docker, le secret d'accès distant est interpolé directement dans la commande shell. Il devient visible dans l'historique de process (`ps`, outils d'observabilité, crash dumps) et peut fuiter dans des logs d'exécution.
+
+**Recommandation :** Passer les variables via `--env-file`/`-e OFFSITE_*` sans les concaténer dans l'URL, ou utiliser `mc alias set` dans un conteneur lancé avec variables d'environnement standard.
+
+**Impact pour Claude :** Le script semble "sans hardcode", mais la fuite arrive au runtime, pas dans Git.
+
+### 5. Le worker Celery ne bascule jamais sur le timeout SQL prévu pour les workers
+
+**Fichier :** `apps/api/app/core/config.py:76`, `apps/api/app/db/session.py:11`, `docker-compose.yml:153`
+
+```python
+celery_worker: bool = False
+_statement_timeout = 120000 if settings.celery_worker else 30000
+```
+
+**Probleme :** Le code prévoit 120s de `statement_timeout` pour les workers Celery, mais le service `worker` démarre seulement avec `env_file: [.env]` et aucun `CELERY_WORKER=true`. En pratique, les tâches de sync/export utilisent donc aussi 30s, contrairement au commentaire et à l'intention du code.
+
+**Recommandation :** Définir `CELERY_WORKER=true` pour `worker` et `beat`, ou déduire le mode worker autrement que par une variable fragile.
+
+**Impact pour Claude :** Les timeouts SQL paraîtront "aléatoires" sur les tâches longues alors que le code semble déjà configuré pour les éviter.
 
 ## 🟢 Nice-to-have
 
-### 1. Deux templates de prod divergent deja entre eux
+### 1. Le frontend garde des dépendances avec advisories npm modérées
 
-**Fichier :** `.env.production.example:27`
+**Fichier :** `apps/web/package.json:20`
 
-```dotenv
-ACCESS_TOKEN_EXPIRE_MINUTES=60
-REFRESH_TOKEN_EXPIRE_DAYS=7
-AI_MODEL=claude-sonnet-4-20250514
+```json
+"@sentry/nextjs": "^10.47.0",
+"next": "15.5.15",
+"postcss": "^8.5.8",
 ```
 
-**Probleme :** Le repo maintient a la fois `.env.production.example` et `.env.prod.example`, avec des valeurs divergentes (`ACCESS_TOKEN_EXPIRE_MINUTES=60` vs `30`, `AI_MODEL` different, variables additionnelles presentes d'un seul cote). Cela introduit une derive de configuration tres probable entre docs, CI et serveurs.
+**Probleme :** `npm audit --audit-level=high --json` remonte encore des advisories modérées transitives : `postcss` (<8.5.10 via `next@15.5.15`) et `uuid` (<14 via `@sentry/webpack-plugin@5.1.1`). Ce n'est pas bloquant côté prod immédiate, mais le frontend reste en dette sécurité.
 
-**Recommandation :** Garder une seule source de verite pour la prod, ou generer les deux fichiers depuis un template unique documente.
+**Recommandation :** Planifier une montée de version `next`/`@sentry/nextjs` validée par build et tests e2e, puis verrouiller un `npm audit` sans findings modérés connus.
 
-**Impact pour Claude :** Un assistant IA peut corriger le "mauvais" template et laisser l'autre continuer a diffuser une config obsolete.
+**Impact pour Claude :** Un assistant qui ne relance pas `npm audit` croira que le build CI "vert" signifie absence d'avisories.
 
-### 2. Le seed local cree un compte admin a mot de passe constant
+### 2. Le garde-fou qualité CI accepte encore 45% de couverture backend
 
-**Fichier :** `apps/api/app/seed.py:48`
+**Fichier :** `.github/workflows/ci.yml:61`, `apps/api/pyproject.toml:57`
 
-```python
-if db.query(User).count() == 0:
-    user = User(email="admin@optiflow.com", password_hash=hash_password("Admin123"), role="admin")
+```yaml
+--cov-fail-under=45
+fail_under = 45
 ```
 
-**Probleme :** Le seed est assume "dev only", mais il s'appuie sur une cred hardcodee triviale. Pris isolément ce n'est pas dramatique; combine au fallback `APP_ENV=local`, cela devient une voie d'entree immediate.
+**Probleme :** Le seuil minimal accepté par CI reste très bas pour une base aussi métier, ce qui laisse passer facilement des régressions sur les cas d'erreur, les migrations et les flux d'auth/configuration.
 
-**Recommandation :** Soit exiger un mot de passe seed via variable d'environnement explicite, soit generer un secret aleatoire et l'afficher une seule fois au bootstrap local.
+**Recommandation :** Monter le seuil progressivement par lots, en commençant par les zones à plus fort risque opérationnel : auth, deploy, billing, sync.
 
-**Impact pour Claude :** Ce detail parait anodin tant qu'on ne le recroise pas avec les defaults de configuration.
-
-### 3. La couverture de tests ne reproduit pas le vrai parcours navigateur de l'onboarding
-
-**Fichier :** `apps/api/tests/test_onboarding.py:76`
-
-```python
-token = resp.json()["access_token"]
-status = client.get("/api/v1/onboarding/status", headers={"Authorization": f"Bearer {token}"})
-```
-
-**Probleme :** La suite de tests valide surtout un onboarding "API-first" alors que le produit reel repose sur des cookies navigateur. C'est exactement pour cela que la regression de session du signup est passee.
-
-**Recommandation :** Ajouter un test E2E Playwright qui s'interdit tout header Bearer injecte a la main et verifie la presence des `Set-Cookie` sur signup.
-
-**Impact pour Claude :** Les tests donnent une fausse impression de couverture sur un chemin utilisateur pourtant casse.
+**Impact pour Claude :** Un patch "testé" peut sembler suffisant alors qu'il n'a couvert qu'une fraction des branches critiques.
 
 ## 🧠 Angles morts Claude
 
 Elements qu'un assistant IA risque de rater sans cette note :
 
-- **`APP_ENV` est quasi obligatoire** : si la variable manque, le backend tombe en `local` avec docs actives, cookies non `Secure`, seed local actif et validations prod desactivees (`apps/api/app/core/config.py`, `apps/api/app/main.py`, `apps/api/app/api/routers/auth.py`).
-- **Le reseau `interface-ia-net` doit exister** : `docker-compose.yml` reference un reseau Docker externe pour `web`; un `docker compose up` sur une machine neuve echoue tant que ce reseau n'a pas ete cree.
-- **Redis indisponible change les garanties fonctionnelles** : rate limiting et certains verrous retombent en memoire process (`apps/api/app/core/rate_limiter.py`, `apps/api/app/core/redis_cache.py`). Avec `uvicorn --workers 2`, les compteurs et locks ne sont alors plus globaux.
-- **Le script de deploiement est destructif** : `scripts/deploy.sh` execute `git reset --hard origin/$DEPLOY_BRANCH`; toute correction manuelle non commitee sur le serveur est perdue.
-- **Le scrape monitoring reel ne passe pas par nginx** : Prometheus pointe `api:8000/api/v1/metrics`, alors que nginx renvoie 403 sur la meme route. Sans cette note, on peut debugger le mauvais composant.
+- **Réseau Docker externe obligatoire** : `docker-compose.yml:145` attache `web` à `interface-ia-net` déclaré `external: true`, mais `README.md` n'explique pas qu'il faut créer ce réseau avant `docker compose up`.
+- **HTTPS requis pour le login prod** : `auth.py` active `secure=True` dès `APP_ENV=production`; tant que le bloc 443 de `config/nginx/nginx.conf` reste commenté, les cookies d'auth ne tiennent pas côté navigateur.
+- **Ordre migrations > boot API** : `main.py` refuse le démarrage si Alembic est en retard. Toute automatisation doit migrer avant de considérer l'API "healthy".
+- **`CORS_ORIGINS` est utilisé comme URL applicative** : la première origine pilote les emails de reset et les redirections Stripe, donc l'ordre des valeurs a un impact fonctionnel caché.
+- **Flag worker implicite manquant** : `CELERY_WORKER=true` n'est pas injecté par Compose, donc les workers héritent de timeouts API plus stricts que prévu.
 
 ## ✨ Ameliorations proposees
 
 Non bloquant mais gain qualite / DX :
 
-- **Token versioning** : ajouter `token_version` ou `session_epoch` sur l'utilisateur et l'injecter dans les JWT pour invalider proprement tous les access tokens sur `change-password`, `reset-password`, `logout-all`, `disable-mfa`.
-- **Signup browser-safe** : aligner `POST /api/v1/onboarding/signup` sur `POST /api/v1/auth/login` avec `Set-Cookie` systematique et regression E2E dediee.
-- **Unifier la config prod** : fusionner `.env.production.example` et `.env.prod.example`, puis valider `APP_ENV`, `SEED_ON_STARTUP`, `NEXT_PUBLIC_API_BASE_URL` et les secrets critiques dans `scripts/deploy.sh`.
-- **Durcir la CI frontend** : faire echouer la pipeline sur les advisories `moderate` exposees au navigateur, ou au minimum ajouter une allowlist explicite et revue periodiquement.
-- **Regression MFA complete** : couvrir le cycle `setup -> enable -> backup codes -> disable -> re-enable` pour verifier que rien de l'ancien enrollement n'est reutilisable.
+- **Introduire `FRONTEND_BASE_URL`** : séparer les URLs absolues métier des politiques CORS évite les redirections cassées et simplifie les déploiements multi-origine.
+- **Fusionner les templates d'env prod** : un seul fichier de référence réduira fortement les erreurs d'exploitation et les corrections "dans le mauvais fichier".
+- **Déplacer les migrations dans un job dédié** : cela rend le déploiement idempotent et supprime la dépendance implicite entre état du schéma et healthcheck.
+- **Normaliser la confiance proxy** : une petite couche de "trusted proxies" durcit à la fois rate limiting, logs IP et futures règles anti-abus.
+- **Éviter les secrets dans les scripts shell** : encapsuler les accès off-site via variables d'environnement dédiées ou profils `mc` rend les opérations beaucoup moins fuyantes.
 
 ## Conclusion
 
-Les priorites recommandees sont claires: verrouiller le boot mode (`APP_ENV` obligatoire), corriger l'invalidation des access tokens, puis reparer le signup web pour qu'il cree une vraie session navigateur. Une fois ces points traites, le repo remonte nettement en fiabilite, mais il reste encore du travail sur la hygiene de config et la couverture E2E. Score global subjectif a ce stade: **6/10**.
+Les priorités sont nettes : 1) rendre le déploiement réellement exécutable avec migrations pendantes, 2) aligner la stack prod sur HTTPS avant tout usage de cookies `Secure`, 3) découpler les URLs frontend de `CORS_ORIGINS`, puis 4) nettoyer les dérives d'exploitation autour des templates d'env et des scripts. Score global subjectif : **6/10** — base prometteuse, mais plusieurs défauts d'intégration prod restent assez concrets pour provoquer panne, contournement ou incident opérationnel.
