@@ -26,7 +26,7 @@
 
 ### P2 — Qualité
 
-- [ ] Déplacer seed_demo.py (435L) dans tests/factories/
+- [x] Déplacer seed_demo.py (435L) dans tests/factories/ _(fait 2026-04-26, 852s, ? fichiers)_
   Specs: extraire les fonctions de seed dans tests/factories/seed.py, garder un appel dans main.py si SEED_ON_STARTUP=true
   Critères: seed fonctionne toujours au démarrage, 0 régression tests, fichier < 200L
   Niveau: 1
