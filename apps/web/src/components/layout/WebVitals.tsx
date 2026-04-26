@@ -2,6 +2,8 @@
 
 import { useReportWebVitals } from "next/web-vitals";
 
+import { API_BASE } from "@/lib/config";
+
 /**
  * Collecte les Core Web Vitals (LCP/FID/CLS/INP/TTFB).
  * En production, envoie les metriques au backend via `sendBeacon` (non-bloquant).
@@ -20,7 +22,7 @@ export function WebVitals() {
       rating: metric.rating,
       path: window.location.pathname,
     });
-    const endpoint = `${process.env.NEXT_PUBLIC_API_BASE_URL ?? ""}/api/v1/web-vitals`;
+    const endpoint = `${API_BASE}/web-vitals`;
     if (navigator.sendBeacon) {
       navigator.sendBeacon(endpoint, new Blob([body], { type: "application/json" }));
     } else {
