@@ -9,7 +9,7 @@ from app.core.exceptions import AuthenticationError
 from app.db.session import get_db
 from app.models import TenantUser
 from app.repositories import user_repo
-from app.security import decode_access_token
+from app.security import decode_access_token, is_token_blacklisted
 
 
 @dataclass
@@ -25,12 +25,13 @@ def get_tenant_context(
     token: str | None = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ) -> TenantContext:
-    if not token:
-        token = request.cookies.get("optiflow_token")
-    if not token:
+    raw_token = token or request.cookies.get("optiflow_token")
+    if not raw_token:
         raise AuthenticationError("Token manquant")
+    if is_token_blacklisted(raw_token):
+        raise AuthenticationError("Token revoque")
     try:
-        payload = decode_access_token(token)
+        payload = decode_access_token(raw_token)
     except jwt.ExpiredSignatureError:
         raise AuthenticationError("Token expiré") from None
     except jwt.InvalidTokenError:

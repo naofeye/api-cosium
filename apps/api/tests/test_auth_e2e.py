@@ -312,6 +312,35 @@ def test_logout_blacklists_token(client, seed_user):
     assert refresh_resp.status_code == 401
 
 
+def test_logout_blacklists_token_on_tenant_scoped_routes(client, seed_user):
+    """Regression: logout doit aussi revoquer le token sur les routes tenant-scoped.
+
+    Avant le fix, get_tenant_context() ne consultait pas la blacklist, donc
+    require_tenant_role()/require_permission() acceptaient un token revoque
+    jusqu'a son expiration naturelle. /api/v1/audit-logs depend de
+    require_tenant_role("admin") -> chemin tenant_context.
+    """
+    login_resp = client.post(
+        "/api/v1/auth/login",
+        json={"email": "test@optiflow.com", "password": "test123"},
+    )
+    assert login_resp.status_code == 200
+    token = login_resp.cookies.get("optiflow_token")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    audit_before = client.get("/api/v1/audit-logs", headers=headers)
+    assert audit_before.status_code == 200
+
+    logout_resp = client.post("/api/v1/auth/logout", headers=headers)
+    assert logout_resp.status_code == 204
+
+    from app.security import is_token_blacklisted
+
+    if is_token_blacklisted(token):
+        audit_after = client.get("/api/v1/audit-logs", headers=headers)
+        assert audit_after.status_code == 401
+
+
 # ---------------------------------------------------------------------------
 # 5. Test expired token rejected
 # ---------------------------------------------------------------------------
