@@ -28,18 +28,21 @@ COSIUM_PASSWORD=<secret>
 
 **Usage** : pour les tasks Celery de sync (pas de session utilisateur).
 
-## Mode 2 — OIDC (SSO entreprise)
+## Mode 2 — OIDC (Keycloak password grant)
 
-Si Cosium fédère avec un IdP (Azure AD, Okta).
+Si Cosium fédère avec un IdP qui expose un endpoint OIDC token (ex: Keycloak).
+Le code (`apps/api/app/integrations/cosium/client.py::_authenticate_oidc`) implémente un **password grant**, pas un `client_credentials`.
 
 ```python
-def get_oidc_token(self) -> str:
-    resp = self.http.post(
+# Implémentation réelle : password grant (login + password Cosium)
+def _authenticate_oidc(self, login: str, password: str) -> str:
+    resp = self._client.post(
         settings.cosium_oidc_token_url,
         data={
-            "grant_type": "client_credentials",
+            "grant_type": "password",
             "client_id": settings.cosium_oidc_client_id,
-            "scope": "cosium.api",
+            "username": login,
+            "password": password,
         },
     )
     return resp.json()["access_token"]
@@ -47,12 +50,15 @@ def get_oidc_token(self) -> str:
 
 **Variables .env** :
 ```
-COSIUM_OIDC_TOKEN_URL=https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token
-COSIUM_OIDC_CLIENT_ID=<client-id>
-COSIUM_OIDC_CLIENT_SECRET=<secret>
+COSIUM_OIDC_TOKEN_URL=https://<keycloak-host>/realms/<realm>/protocol/openid-connect/token
+COSIUM_OIDC_CLIENT_ID=<client-id-public>
+COSIUM_LOGIN=<login Cosium>
+COSIUM_PASSWORD=<password Cosium>
 ```
 
-**Usage** : environnements entreprise qui imposent SSO.
+**Note** : aucun `client_secret` n'est utilisé (client OIDC public). Si un déploiement Cosium impose `client_credentials` ou `confidential client`, ajouter le champ `cosium_oidc_client_secret` dans `core/config.py` et adapter `_authenticate_oidc()`.
+
+**Usage** : environnements qui imposent OIDC plutôt que `/authenticate/basic`.
 
 ## Mode 3 — Cookie (interactif, exceptionnel)
 
