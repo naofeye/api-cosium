@@ -46,7 +46,7 @@
   Critères: imports publics inchangés, tests passent, chaque fichier < 200L
   Niveau: 1
 
-- [ ] Coverage backend 45% → 55% : couvrir services non testés
+- [x] Coverage backend 45% → 55% : couvrir services non testés _(fait 2026-04-26, 48s, ? fichiers)_
   Specs: identifier les services sans tests (grep -L "def test_" tests/), écrire des smoke tests pour chacun
   Critères: coverage monte de 10 points, 0 régression, pas de mock excessif
   Niveau: 1
