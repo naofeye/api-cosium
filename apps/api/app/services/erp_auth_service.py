@@ -67,9 +67,21 @@ def _authenticate_connector(connector: ERPConnector, tenant: Tenant) -> None:
         try:
             password = decrypt(raw_password) if raw_password else ""
         except Exception as exc:
-            # Backward compat: fallback to raw value if not encrypted
+            # En prod/staging, refuser : un secret stocke en clair doit etre
+            # remediation explicite (re-chiffrement), pas une derive silencieuse.
+            if settings.app_env in ("production", "staging"):
+                logger.error(
+                    "cosium_password_decrypt_failed",
+                    tenant_id=tenant.id,
+                    error=str(exc),
+                )
+                raise ValueError(
+                    f"Cosium password for tenant {tenant.id} is not decryptable; "
+                    "rechiffrer la valeur (cf. docs/COSIUM_AUTH.md)"
+                ) from exc
+            # En dev/test, fallback historique pour fixtures non chiffrees.
             logger.warning(
-                "password_decrypt_fallback",
+                "password_decrypt_fallback_dev",
                 tenant_id=tenant.id,
                 error=str(exc),
             )

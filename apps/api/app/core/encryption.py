@@ -64,7 +64,15 @@ class EncryptedString(TypeDecorator):
         try:
             return decrypt(value)
         except Exception as exc:
-            # Fallback: existing unencrypted data during migration period
+            # En prod/staging, ne pas masquer une valeur en clair : forcer la
+            # remediation. En dev/test, fallback historique pour les fixtures
+            # non chiffrees (migration period).
+            if settings.app_env in ("production", "staging"):
+                logger.error(
+                    "encrypted_string_decrypt_failed",
+                    extra={"value_prefix": value[:8], "error": str(exc)},
+                )
+                raise
             logger.warning(
                 "encrypted_string_decrypt_failed_fallback_plaintext",
                 extra={"value_prefix": value[:8], "error": str(exc)},
