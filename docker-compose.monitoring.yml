@@ -17,8 +17,10 @@ services:
     image: grafana/grafana:latest
     restart: unless-stopped
     environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      # Credentials obligatoires : pas de fallback admin/admin (la stack peut
+      # finir derriere un tunnel SSH ou un reverse proxy).
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:?GRAFANA_USER must be set}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?GRAFANA_PASSWORD must be set}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_AUTH_ANONYMOUS_ENABLED: "false"
     volumes:
