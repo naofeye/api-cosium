@@ -23,11 +23,23 @@ fi
 MISSING=""
 grep -q "^JWT_SECRET=" .env || MISSING="$MISSING JWT_SECRET"
 grep -q "^ENCRYPTION_KEY=" .env || MISSING="$MISSING ENCRYPTION_KEY"
+grep -q "^APP_ENV=" .env || MISSING="$MISSING APP_ENV"
 
 if [ -n "$MISSING" ]; then
     echo "ERREUR: Variables d'environnement manquantes dans .env:$MISSING"
     exit 1
 fi
+
+# APP_ENV doit etre explicitement production ou staging pour deployer
+APP_ENV_VALUE="$(grep '^APP_ENV=' .env | head -1 | cut -d'=' -f2- | tr -d '"' | tr -d "'")"
+case "$APP_ENV_VALUE" in
+    production|staging) ;;
+    *)
+        echo "ERREUR: APP_ENV='$APP_ENV_VALUE' refuse par scripts/deploy.sh."
+        echo "       Le deploiement n'est autorise que pour APP_ENV=production ou staging."
+        exit 1
+        ;;
+esac
 
 # 0. Backup database before deployment
 echo "[0/6] Backup de la base de donnees..."

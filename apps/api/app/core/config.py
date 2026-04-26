@@ -6,6 +6,8 @@ _DEV_DB_URL = "postgresql+psycopg://optiflow:optiflow@postgres:5432/optiflow"
 _DEV_JWT_SECRET = "dev-only-change-me-super-secret"
 _DEV_S3_KEY = "minioadmin"
 
+_VALID_APP_ENVS = ("local", "development", "test", "staging", "production")
+
 
 class Settings(BaseSettings):
     # App
@@ -74,6 +76,21 @@ class Settings(BaseSettings):
     celery_worker: bool = False  # True si execute dans un worker Celery (CELERY_WORKER=true)
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    @model_validator(mode="after")
+    def _validate_app_env(self) -> "Settings":
+        """Refuse tout boot avec un APP_ENV inconnu.
+
+        Garde-fou : empeche un typo (`APP_ENV=prod` au lieu de `production`) de retomber
+        silencieusement sur les defauts dev. La valeur doit explicitement faire partie de
+        `_VALID_APP_ENVS`, sinon le boot echoue immediatement.
+        """
+        if self.app_env not in _VALID_APP_ENVS:
+            raise ValueError(
+                f"APP_ENV invalide : '{self.app_env}'. "
+                f"Valeurs autorisees : {', '.join(_VALID_APP_ENVS)}"
+            )
+        return self
 
     @model_validator(mode="after")
     def _validate_production_secrets(self) -> "Settings":
