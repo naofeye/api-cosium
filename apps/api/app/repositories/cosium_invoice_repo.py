@@ -106,7 +106,7 @@ def get_totals(
     ).select_from(CosiumInvoice)
 
     q = _apply_filters(base, tenant_id, type_filter, settled, search, date_from, date_to)
-    row = db.execute(q).first()
+    row = db.execute(q.order_by(CosiumInvoice.id)).first()
     if not row:
         return {"total_ttc": 0.0, "total_impaye": 0.0, "count": 0}
     return {
