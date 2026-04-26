@@ -41,7 +41,7 @@
   Critères: pas de changement de comportement observable, test existant passe
   Niveau: 1
 
-- [ ] Split `ocr_service.py` (383L) en `_ocr_handlers.py` (extracteurs) + `classification.py`
+- [x] Split `ocr_service.py` _(déjà fait, facade 55L + handlers 132L + classification 158L)_ (383L) en `_ocr_handlers.py` (extracteurs) + `classification.py`
   Specs: garder l'interface publique identique, extraire les fonctions d'extraction par type de document
   Critères: imports publics inchangés, tests passent, chaque fichier < 200L
   Niveau: 1
