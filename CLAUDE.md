@@ -778,3 +778,8 @@ docker compose exec api alembic upgrade head
 - **Fix E2E workflow** : `next.config.ts` ajoute `outputFileTracingRoot` pour monorepo. `e2e.yml` lance le standalone server correctement. `login/page.tsx` retire le `disabled` du bouton (react-hook-form + Playwright incompatibles). Les tests E2E n'ont **jamais passe** — background complet dans `TODO.md` section "E2E Playwright".
 - **Sidebar admin** : 6 sous-pages admin exposees en liens directs au lieu d'un seul "Admin". Commit `4d2694a`.
 - **Hook auto-deploy** : chaque `git push` sur ce projet fait automatiquement `docker compose up -d --build` via `/home/claude-agent/.claude/hooks/auto-deploy.sh`.
+
+### 2026-04-26 — Fix crash loop web container
+
+- **Revert `outputFileTracingRoot`** dans `next.config.ts` — ce setting deplacait `server.js` dans un sous-dossier, cassant le Dockerfile qui fait `COPY --from=builder /app/.next/standalone ./`. Le container web redemarrait en boucle avec `Cannot find module '/app/server.js'`. Commit `da55b30`.
+- Container web relance, healthy en 119ms.
