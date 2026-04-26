@@ -1,114 +1,114 @@
 # Audit Codex — api-cosium
 
-_Genere automatiquement le 2026-04-22. Commit audite : `eaa87a3`._
+_Genere automatiquement le 2026-04-26. Commit audite : `dae6413`._
 
 ## Resume
 
-Le repo est riche et couvre beaucoup de surface, mais plusieurs garde-fous de securite sont contournes au niveau HTTP. Les points les plus graves sont des escalades de privilege: le role `viewer` peut ecrire sur des entites coeur metier, et des endpoints tenant-wide sensibles (Cosium, billing) ne sont proteges que par une simple authentification. En second rideau, l'exposition publique de `/api/v1/metrics`, un script de deploiement incompatible avec les startup checks prod, et deux templates `.env` de production divergents augmentent le risque d'incident ou de fuite. La priorite est de verrouiller les endpoints mutateurs avec un RBAC effectif, puis de corriger les chemins d'exploitation/deploiement.
+Le repo est solide sur plusieurs bases (Pydantic, chiffrement Fernet, rate limiting, tests nombreux), mais il reste un défaut d'authentification critique : la voie d'autorisation tenant-scoped n'applique pas la blacklist des JWT revoqués. J'ai aussi relevé plusieurs incohérences de déploiement et d'intégration qui cassent soit la prod (`.env.production.example` incomplet), soit des features annoncées (OIDC Cosium, Web Vitals, notifications admins). Les priorités sont donc : corriger la révocation effective des access tokens, fiabiliser le contrat de configuration prod, puis remettre en cohérence les chemins d'intégration Cosium et frontend.
 
 ## 🔴 Critiques
 
-### 1. Le role `viewer` peut creer ou modifier des donnees metier malgre la matrice RBAC
+### 1. Les JWT revoques restent acceptes sur la plupart des routes protegees
 
-**Fichier :** `apps/api/app/api/routers/clients.py:156`
+**Fichier :** `apps/api/app/core/tenant_context.py:28`
 
-```python
-def create_client(
-    payload: ClientCreate,
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+```py
+if not token:
+    token = request.cookies.get("optiflow_token")
+if not token:
 ```
 
-**Probleme :** `docs/RBAC.md:13-32` declare explicitement `viewer` en lecture seule et interdit `POST /clients`, `POST /clients/import`, `POST /devis`, `POST /factures` et les updates. Pourtant les routes HTTP utilisent `Depends(get_tenant_context)` au lieu de `require_tenant_role(...)` ou `require_permission(...)`, ce qui laisse passer n'importe quel utilisateur authentifie du tenant, y compris `viewer`. Le meme pattern est aussi present dans `apps/api/app/api/routers/cases.py:29-36`, `apps/api/app/api/routers/devis.py:21-38`, `apps/api/app/api/routers/factures.py:19-34` et `apps/api/app/api/routers/clients.py:105-188`.
+**Probleme :** `get_tenant_context()` decode le JWT mais ne verifie jamais `is_token_blacklisted()`, contrairement a `get_current_user()`. Or `require_tenant_role()` et `require_permission()` reposent sur `get_tenant_context()`, donc un token vole puis revoque via `/api/v1/auth/logout` reste exploitable jusqu'a son expiration sur la majorite des endpoints metier. Le probleme est renforce par `apps/api/app/api/routers/auth.py:155-164`, qui blackliste bien le cookie d'access token au logout, mais cette blacklist est ensuite ignoree par la voie tenant-scoped.
 
-**Recommandation :** remplacer les dependances mutatrices par un controle de permission explicite (`require_permission("create", "client")`, `require_permission("edit", "devis")`, etc.) et ajouter des tests d'integration HTTP qui verifient qu'un `viewer` recoit `403` sur ces endpoints.
+**Recommandation :** centraliser la validation d'access token dans un helper unique qui applique decode + blacklist + verification d'appartenance tenant, puis faire consommer ce helper par `get_current_user()` et `get_tenant_context()`. Ajouter un test de regression : `login -> logout -> appel d'une route protegee par require_tenant_role -> 401`.
 
-**Impact pour Claude :** `test_rbac_permissions.py` et `docs/RBAC.md` donnent une impression de couverture correcte, alors que la faille est au niveau des routers. Un assistant qui ne lit que la matrice RBAC manquera facilement l'escalade.
-
-### 2. N'importe quel compte authentifie peut remplacer les credentials Cosium du tenant et lancer le premier sync
-
-**Fichier :** `apps/api/app/api/routers/onboarding.py:39`
-
-```python
-def connect_cosium(
-    payload: ConnectCosiumRequest,
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
-```
-
-**Probleme :** `/api/v1/onboarding/connect-cosium` et `/api/v1/onboarding/first-sync` n'imposent aucun role admin/manager. Un simple `viewer` ou `operator` peut donc ecraser `tenant.cosium_tenant`, `tenant.cosium_login`, `tenant.cosium_password_enc` puis declencher `erp_sync_service.sync_customers()` via `apps/api/app/services/onboarding_service.py:127-160`. C'est un changement tenant-wide sur l'integration ERP, pas une preference utilisateur.
-
-**Recommandation :** limiter ces endpoints a `admin` ou `manager`, journaliser l'ancien et le nouveau tenant/login Cosium dans l'audit, et exiger une confirmation explicite avant un `first-sync` deja configure.
-
-**Impact pour Claude :** la route est rangee sous `onboarding`, ce qui masque le fait qu'elle modifie des secrets de production du tenant. Sans note, un assistant peut la traiter comme une simple etape UX.
-
-### 3. Les operations Stripe du tenant sont accessibles a tout utilisateur connecte
-
-**Fichier :** `apps/api/app/api/routers/billing.py:48`
-
-```python
-def create_checkout(
-    payload: CheckoutRequest,
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
-```
-
-**Probleme :** `/api/v1/billing/checkout` et `/api/v1/billing/cancel` utilisent seulement `get_tenant_context`. Un `viewer` peut donc ouvrir un checkout Stripe ou annuler l'abonnement du tenant (`apps/api/app/api/routers/billing.py:93-105`) sans etre admin. Ce sont des actions financieres tenant-wide avec effet externe.
-
-**Recommandation :** reserver ces endpoints a `admin` au minimum, idealement via une permission dediee `manage_billing`, et tracer l'auteur dans un audit log.
-
-**Impact pour Claude :** l'absence de matrice RBAC sur le module billing peut faire croire qu'il s'agit de simples endpoints d'information, alors qu'ils pilotent un abonnement reel.
+**Impact pour Claude :** le chemin d'auth tenant-scoped n'est pas le meme que `get_current_user()`. Corriger un seul des deux chemins laissera encore des routes ouvertes.
 
 ## 🟡 Moyens
 
-### 1. `/api/v1/metrics` fuit des compteurs globaux et financiers sur Internet
-
-**Fichier :** `apps/api/app/api/routers/metrics.py:32`
-
-```python
-@router.get(
-    "/metrics",
-    description="Expose les compteurs business pour scraping Prometheus. Pas d'auth (bind 127.0.0.1).",
-```
-
-**Probleme :** le commentaire indique un endpoint protege par un bind local, mais `config/nginx/nginx.conf:72-86` proxyfie publiquement tout `/api/` vers l'API. En l'etat, un client externe peut lire `optiflow_tenants_total`, `optiflow_users_total`, `optiflow_outstanding_balance_eur` et d'autres metriques globales multi-tenant sans authentification.
-
-**Recommandation :** soit retirer completement la route publique et exporter les metriques sur un port/reseau dedie, soit bloquer explicitement `/api/v1/metrics` dans Nginx avec `allow 127.0.0.1; deny all;`.
-
-**Impact pour Claude :** les commentaires code/docs affirment que l'endpoint est local-only; un assistant risque donc de le juger "safe" sans verifier la couche reverse proxy.
-
-### 2. Le script de deploiement demarre l'API avant les migrations, en contradiction avec les startup checks prod
-
-**Fichier :** `scripts/deploy.sh:54`
-
-```bash
-# 3. Run migrations BEFORE switching
-echo "[3/6] Demarrage des services..."
-docker compose $COMPOSE_FILES up -d
-```
-
-**Probleme :** le commentaire annonce l'inverse du comportement reel. Les migrations sont lancees seulement en etape 5, alors que `apps/api/app/main.py:39-65` fait echouer le boot en `production/staging` si `current_rev != head_rev`. Resultat: un deploy avec migration pendante peut ne jamais rendre l'API healthy. En plus, `git reset --hard "origin/$DEPLOY_BRANCH"` efface silencieusement tout changement local non committe.
-
-**Recommandation :** executer `alembic upgrade head` via une commande one-shot avant de monter l'API, puis supprimer le `reset --hard` du chemin nominal ou le proteger derriere une validation explicite.
-
-**Impact pour Claude :** sans lire a la fois `scripts/deploy.sh` et `main.py`, il est facile de diagnostiquer un faux "container down" au lieu d'un ordre de deploiement invalide.
-
-### 3. Les templates de configuration prod sont divergents et l'un d'eux oublie des variables critiques
+### 1. L'exemple d'environnement production ne permet pas de demarrer une prod valide
 
 **Fichier :** `.env.production.example:24`
 
-```env
+```dotenv
 JWT_SECRET=CHANGE_ME_GENERATE_WITH_openssl_rand_hex_64
 ACCESS_TOKEN_EXPIRE_MINUTES=60
-NEXT_PUBLIC_API_BASE_URL=https://your-domain.com/api/v1
+
 ```
 
-**Probleme :** `.env.production.example` est incomplet pour un demarrage prod securise: il n'inclut pas `ENCRYPTION_KEY`, `CORS_ORIGINS`, `REFRESH_TOKEN_EXPIRE_DAYS`, `SENTRY_DSN`, `STRIPE_*` ni `MAX_UPLOAD_SIZE_MB`, alors que `.env.prod.example:16-92` les declare. Les deux fichiers se contredisent aussi sur le nom du fichier cible (`.env` vs `.env.prod`) et sur les valeurs de prod attendues.
+**Probleme :** `.env.production.example` n'inclut pas `ENCRYPTION_KEY`, `CORS_ORIGINS`, `REFRESH_TOKEN_EXPIRE_DAYS`, `SENTRY_DSN`, `MAX_UPLOAD_SIZE_MB` ni les variables Stripe pourtant consommees par `apps/api/app/core/config.py:21-96`. En production/staging, `Settings._validate_production_secrets()` refuse explicitement l'absence de `ENCRYPTION_KEY` et un `CORS_ORIGINS` mal renseigne. Suivre le fichier d'exemple tel quel produit donc soit un boot failure, soit une prod partiellement configuree.
 
-**Recommandation :** conserver un seul template de production versionne, documenter clairement le fichier cible reel, et faire verifier ce template par CI contre `app/core/config.py`.
+**Recommandation :** generer les fichiers `.env*.example` a partir du schema `Settings`, ou ajouter une CI qui compare automatiquement `config.py` aux exemples d'env. Documenter clairement quelles variables sont obligatoires selon les features actives.
 
-**Impact pour Claude :** si un assistant choisit le mauvais template, il peut proposer un deploiement "correct" qui echoue au boot ou demarre sans certaines protections attendues.
+**Impact pour Claude :** le contrat de boot prod n'est pas lisible depuis un seul endroit ; il faut croiser `config.py`, les `.env*.example` et la doc.
 
-### 4. La stack monitoring demarre Grafana avec `admin/admin` par defaut
+### 2. La documentation OIDC Cosium ne correspond pas a l'implementation reelle
 
-**Fichier :** `docker-compose.monitoring.yml:20`
+**Fichier :** `apps/api/app/integrations/cosium/client.py:103`
+
+```py
+data={
+    "grant_type": "password",
+    "client_id": settings.cosium_oidc_client_id,
+    "username": login,
+```
+
+**Probleme :** le runtime implemente un password grant sans `client_secret`, alors que `docs/COSIUM_AUTH.md:35-53` documente un flux `client_credentials` avec `COSIUM_OIDC_CLIENT_SECRET`. Le champ `cosium_oidc_client_secret` n'existe meme pas dans `apps/api/app/core/config.py`. Une equipe qui suit la doc pour un SSO entreprise arrivera sur une configuration impossible a faire fonctionner.
+
+**Recommandation :** choisir un seul contrat et l'aligner partout. Soit implementer reellement le flux documente (`client_credentials` + secret + settings associes), soit corriger la doc et les exemples pour decrire le password grant actuellement code.
+
+**Impact pour Claude :** la feature "OIDC Cosium" n'est pas autoportante ; la doc, le schema d'env et le client HTTP divergent.
+
+### 3. Les credentials ERP en clair continuent a etre acceptes silencieusement
+
+**Fichier :** `apps/api/app/services/erp_auth_service.py:66`
+
+```py
+raw_password = tenant.cosium_password_enc or settings.cosium_password or ""
+try:
+    password = decrypt(raw_password) if raw_password else ""
+```
+
+**Probleme :** en cas d'echec du decrypt, le code bascule sur `password = raw_password` (`apps/api/app/services/erp_auth_service.py:69-76`). En parallele, `EncryptedString.process_result_value()` renvoie aussi la valeur en clair sur erreur de decrypt (`apps/api/app/core/encryption.py:64-72`). Resultat : des secrets supposes chiffres peuvent rester durablement en clair en base sans casser l'app, donc sans forcer leur remediation.
+
+**Recommandation :** faire une migration one-shot qui detecte et rechiffre les lignes legacy, exposer un compteur/alerte des secrets non decryptables, puis supprimer le fallback en production pour que toute derive soit visible.
+
+**Impact pour Claude :** le suffixe `_enc` n'est pas une garantie de chiffrement effectif ; il faut verifier le comportement de fallback avant de supposer un secret protege.
+
+### 4. La collecte Web Vitals pointe vers une URL invalide en configuration standard
+
+**Fichier :** `apps/web/src/components/layout/WebVitals.tsx:23`
+
+```tsx
+const endpoint = `${process.env.NEXT_PUBLIC_API_BASE_URL ?? ""}/api/v1/web-vitals`;
+if (navigator.sendBeacon) {
+```
+
+**Probleme :** `NEXT_PUBLIC_API_BASE_URL` vaut deja `http://localhost:8000/api/v1` par defaut (`apps/web/src/lib/config.ts:1`). Le composant envoie donc vers `.../api/v1/api/v1/web-vitals`, ce qui casse la collecte des metrics frontend en production et rend l'observabilite trompeusement "silencieuse".
+
+**Recommandation :** reutiliser `API_BASE` ou envoyer vers un chemin relatif (`/api/v1/web-vitals`) quand le frontend et l'API sont serves en same-origin.
+
+**Impact pour Claude :** le projet n'a pas une convention uniforme sur ce que contient `NEXT_PUBLIC_API_BASE_URL` ; certaines callsites attendent l'origine, d'autres le prefixe API complet.
+
+### 5. Les admins crees dans un tenant peuvent ne jamais recevoir les notifications d'evenement
+
+**Fichier :** `apps/api/app/services/event_service.py:138`
+
+```py
+select(User)
+.join(TenantUser, TenantUser.user_id == User.id)
+.where(
+```
+
+**Probleme :** le filtre de destinataires s'appuie sur `User.role.in_(["admin", "owner"])` (`apps/api/app/services/event_service.py:141-143`), alors que les droits reels sont portes par `TenantUser.role`. Or `admin_user_service.create_user()` cree les nouveaux comptes avec le role global `"user"` (`apps/api/app/services/admin_user_service.py:68-71`). Un admin de tenant fraichement cree peut donc administrer le magasin mais ne jamais recevoir les notifications destinees aux admins.
+
+**Recommandation :** filtrer sur `TenantUser.role` et `TenantUser.is_active`, pas sur `User.role`. Ajouter un test d'integration qui cree un admin de tenant puis verifie la reception d'une notification metier.
+
+**Impact pour Claude :** dans ce repo, les autorisations metier vivent surtout dans `TenantUser.role`, pas dans `User.role`.
+
+### 6. La stack monitoring garde des credentials faibles par defaut
+
+**Fichier :** `docker-compose.monitoring.yml:19`
 
 ```yaml
 GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
@@ -116,64 +116,63 @@ GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
 GF_USERS_ALLOW_SIGN_UP: "false"
 ```
 
-**Probleme :** si la stack monitoring est demarree sans variables d'environnement explicites, Grafana est accessible avec des credentials triviaux. `docs/PRODUCTION_CHECKLIST.md` le mentionne bien, mais le compose reste vulnerable par defaut.
+**Probleme :** Grafana demarre avec `admin/admin` si rien n'est fourni, et `postgres-exporter` retombe aussi sur `optiflow/optiflow` via `DATA_SOURCE_NAME` (`docker-compose.monitoring.yml:33-34`). Le bind local reduit l'exposition, mais dans la pratique ce fichier finit souvent derriere un tunnel SSH, un reverse proxy ou un runner self-hosted : les mots de passe faibles persistent alors trop facilement.
 
-**Recommandation :** supprimer tout fallback faible (`:?missing GRAFANA_PASSWORD` ou equivalent), ou desactiver le service tant que les secrets ne sont pas fournis.
+**Recommandation :** rendre ces variables obligatoires (`${VAR:?missing}`), ou basculer la stack monitoring derriere un profil explicitement non-prod si les secrets ne sont pas fournis.
 
-**Impact pour Claude :** la checklist prod peut faire croire que le risque est deja traite, alors que la configuration executable reste permissive.
+**Impact pour Claude :** "bind sur 127.0.0.1" n'est pas une frontiere de securite suffisante des qu'un tunnel, un bastion ou un proxy entre en jeu.
 
 ## 🟢 Nice-to-have
 
-### 1. Un reseau Docker externe requis n'est documente nulle part dans le parcours d'installation
+### 1. Le frontend embarque encore des dependances avec advisories moderees connues
 
-**Fichier :** `docker-compose.yml:145`
+**Fichier :** `apps/web/package.json:20`
+
+```json
+"@sentry/nextjs": "^10.47.0",
+"next": "15.5.15",
+"postcss": "^8.5.8",
+```
+
+**Probleme :** `npm audit --json` remonte 5 vulnerabilites moderees dans l'arbre frontend, dont `GHSA-qx2v-qp2m-jg93` sur `postcss` via `next`. Ce n'est pas bloquant au meme niveau que le bypass d'auth, mais laisser le lockfile en l'etat maintient une dette securite evitable.
+
+**Recommandation :** regenerer le lockfile avec des versions patchees compatibles, puis faire echouer la CI tant que `npm audit --audit-level=moderate` ne repasse pas au vert.
+
+### 2. Le seuil de couverture autorise encore de grosses regressions sur du code sensible
+
+**Fichier :** `.github/workflows/ci.yml:61`
 
 ```yaml
-networks:
-  - default
-  - interface-ia-net
+python -m pytest tests/ -v --tb=short \
+  --cov=app --cov-report=xml --cov-report=term \
+  --cov-fail-under=45
 ```
 
-**Probleme :** `docker-compose.yml:212-214` declare `interface-ia-net` en `external: true`, mais ni `README.md`, ni `docs/VPS_DEPLOYMENT.md`, ni `DEPLOY.md` ne disent qu'il faut creer ce reseau avant `docker compose up`. Sur un environnement vierge, le boot du service `web` echoue immediatement.
+**Probleme :** la CI n'exige que 45% de couverture backend, seuil egalement fige dans `apps/api/pyproject.toml:53-57`. C'est trop bas pour un monorepo avec auth multi-tenant, chiffrement, refresh tokens et synchronisations ERP. Le bypass de blacklist sur `get_tenant_context()` est typiquement le genre de regression qui passe sous ce niveau de garde-fou.
 
-**Recommandation :** documenter la commande `docker network create interface-ia-net` ou rendre ce reseau optionnel via profile/override.
-
-**Impact pour Claude :** un assistant peut perdre du temps a debugguer Docker Compose alors que le prerequis manque simplement.
-
-### 2. Les tests RBAC couvrent la matrice en unite, pas l'application effective des roles sur les vraies routes
-
-**Fichier :** `apps/api/tests/test_rbac_permissions.py:97`
-
-```python
-class TestViewerRole:
-    ALLOWED = ("view",)
-    DENIED = ("create", "edit", "delete", "export", "manage")
-```
-
-**Probleme :** la suite valide surtout `require_permission()` en isolation. Elle ne protege pas contre les regressions de wiring dans les routers, ce qui explique que des routes `viewer`-read-only soient aujourd'hui mutantes en production.
-
-**Recommandation :** ajouter des tests HTTP parametrises pour `viewer`, `operator`, `manager`, `admin` sur les endpoints critiques (`clients`, `cases`, `devis`, `factures`, `billing`, `onboarding`).
-
-**Impact pour Claude :** un assistant qui voit une suite RBAC verte peut conclure trop vite que le controle d'acces de bout en bout est en place.
+**Recommandation :** remonter progressivement le seuil (60 puis 70), et cibler d'abord des tests de regression sur logout/revocation, OIDC Cosium, Web Vitals et notifications d'admins tenant.
 
 ## 🧠 Angles morts Claude
 
 Elements qu'un assistant IA risque de rater sans cette note :
 
-- **RBAC non branche sur les routers** : la matrice et les tests unitaires existent, mais plusieurs endpoints mutateurs utilisent encore `get_tenant_context` au lieu d'un vrai garde de permission.
-- **Migrations avant boot** : en `APP_ENV=production`, l'API refuse de demarrer si Alembic n'est pas a `head`; il faut migrer avant le `up -d`, pas apres.
-- **`/metrics` n'est pas local-only** : le commentaire dans le router est faux une fois Nginx en place, car `/api/` est publie tel quel.
-- **Template prod a choisir** : `.env.prod.example` est beaucoup plus complet que `.env.production.example`; prendre le mauvais fichier casse le deploiement ou degrade la securite.
-- **Reseau Docker externe** : `interface-ia-net` doit exister avant de demarrer la stack standard, sinon `docker compose up` echoue des le service `web`.
+- **Redis est critique pour la revocation en prod** : `app.security.is_token_blacklisted()` fail-close hors env local/test ; si Redis tombe, les tokens revoques deviennent indeterministes et certains parcours d'auth peuvent tous refuser.
+- **Les roles utiles sont tenant-scopes** : la plupart des permissions vivent dans `TenantUser.role`, pas dans `User.role`. Se baser sur `User.role` donne vite de faux positifs ou faux negatifs.
+- **`NEXT_PUBLIC_API_BASE_URL` contient deja `/api/v1`** : concatener encore `/api/v1/...` casse les appels. Il faut reutiliser `API_BASE` ou des chemins relatifs.
+- **`ENCRYPTION_KEY` devient obligatoire des que `APP_ENV` vaut `production` ou `staging`** : oublier cette variable provoque un refus de demarrage ou des erreurs de decrypt.
+- **Les cookies d'auth sont `secure=True` en prod** : si le bloc HTTPS de `config/nginx/nginx.conf` reste commente, le login semblera "casse" car les cookies ne partiront pas sur HTTP.
+- **Le mode cookie Cosium n'est pas juste un detail dev** : l'UI admin peut persister des cookies navigateur en base pour un tenant ; leur rotation et leur reveil post-expiration doivent etre traites comme un sujet ops.
 
 ## ✨ Ameliorations proposees
 
-- **RBAC centralise** : remplacer les `Depends(get_tenant_context)` mutateurs par `require_permission()` ou `require_tenant_role()` et factoriser un helper par ressource pour eviter les oublis.
-- **Tests d'autorisation end-to-end** : ajouter une matrice pytest HTTP `viewer/operator/manager/admin` sur les routes qui modifient l'etat.
-- **Deploiement atomique** : separer `alembic upgrade head` dans une etape pre-boot ou un job one-shot, puis verifier la health seulement apres migration reussie.
-- **Template prod unique** : fusionner `.env.prod.example` et `.env.production.example`, puis faire echouer la CI si une variable de `Settings` manque dans le template officiel.
-- **Monitoring ferme par defaut** : exiger un mot de passe Grafana fourni explicitement plutot que `admin/admin`.
+Non bloquant mais gain qualite / DX :
+
+- **Centraliser la validation JWT** : fusionner `get_current_user()` et `get_tenant_context()` autour d'un validateur commun reduira le risque de divergence future sur blacklist, issuer/audience ou controles tenant.
+- **Contrat d'env verifiable en CI** : un script qui compare `Settings` avec `.env.example` et `.env.production.example` evitera de reintroduire des variables fantomes ou manquantes.
+- **Tests de parcours revocation** : ajouter un test qui appelle une route protegee par `require_tenant_role()` apres logout couvrira exactement le trou le plus dangereux de ce commit.
+- **Verifier les secrets legacy au boot** : un startup check qui compte les valeurs ERP non decryptables permettrait de sortir du mode "fallback silencieux" sans attendre un incident.
+- **Ratchet CVE frontend** : automatiser une PR dependabot + `npm audit` avec politique de blocage sur moderate pour garder `next/postcss` propres.
 
 ## Conclusion
 
-Les priorites sont claires: 1) corriger immediatement les endpoints mutateurs qui contournent le RBAC (`viewer`, onboarding, billing), 2) fermer `/api/v1/metrics`, 3) remettre a plat le chemin de deploiement prod et les templates `.env`. En l'etat, le socle technique est exploitable pour avancer, mais pas assez verrouille pour une exposition sereine en production. Score global subjectif: **5/10**.
+La priorite immediate est de corriger la validation des tokens revoques sur les routes tenant-scoped, car c'est le seul finding directement exploitable pour conserver un acces apres logout. Ensuite viennent la remise a plat du contrat de configuration prod et l'alignement de l'integration Cosium/OIDC, qui sont aujourd'hui des sources de faux demarrages et de features "documentees mais non livrables". Score global subjectif : 6/10, avec de bonnes fondations mais encore trop de divergences entre securite theorique, runtime effectif et documentation.
