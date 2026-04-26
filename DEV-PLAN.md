@@ -36,7 +36,7 @@
   Critères: chaque except log le contexte (fonction, paramètres), ruff vert, tests passent
   Niveau: 1
 
-- [ ] Ajouter `order_by` manquant sur `cosium_invoice_repo.first()`
+- [x] Ajouter `order_by` manquant sur `cosium_invoice_repo.first()` _(fait 2026-04-26, 241s, 2 fichiers)_
   Specs: cosium_invoice_repo.py:109, ajouter .order_by(CosiumInvoice.id) ou .order_by(CosiumInvoice.created_at.desc())
   Critères: pas de changement de comportement observable, test existant passe
   Niveau: 1
