@@ -1,4 +1,3 @@
-import path from "path";
 import type { NextConfig } from "next";
 
 // Bundle analyzer opt-in : `ANALYZE=true npm run build` apres `npm i -D @next/bundle-analyzer`.
@@ -9,9 +8,6 @@ const withBundleAnalyzer = process.env.ANALYZE === "true"
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  // Monorepo: trace files from repo root so standalone server.js is at
-  // .next/standalone/apps/web/server.js with correct paths
-  outputFileTracingRoot: path.join(__dirname, "../../"),
   poweredByHeader: false,
   reactStrictMode: true,
   compress: true,
