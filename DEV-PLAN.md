@@ -9,16 +9,28 @@
 
 - Un seul item en cours à la fois
 - Checkpoint Nabil obligatoire pour les items niveau 2+
-- Max 30 min par item (timeout)
+- Max 15 min par item (timeout)
 - Commit séparé par item (revert facile)
 - NE PAS modifier les fichiers de config infra (docker-compose, .env, CI) sans validation
-- Suivre les patterns du CLAUDE.md (router→service→repo, Pydantic schemas, etc.)
+- Chaque item DOIT avoir un champ `Files:` qui liste les fichiers autorisés
+- Claude ne peut modifier QUE les fichiers listés dans `Files:` — tout le reste est revert automatiquement
+- Si un item est trop vague pour lister les fichiers → session interactive, pas dev-cycle
 
 ## Niveaux
 
 - **Niveau 1** (safe) : fix bugs, ajouter tests, docs, refactor interne — pas de checkpoint
 - **Niveau 2** (encadré) : nouvelle feature avec specs claires — checkpoint à la fin
 - **Niveau 3** (créatif) : architecture, nouveau module — validation AVANT de coder
+
+## Format d'un item
+
+```
+- [ ] Titre de la tâche
+  Files: chemin/fichier1.py, chemin/fichier2.py (+ tests/nouveau_test.py si nouveau)
+  Specs: description précise de ce qu'il faut faire
+  Critères: comment vérifier que c'est bien fait
+  Niveau: 1
+```
 
 ---
 
@@ -54,9 +66,11 @@
 ### P2 — Frontend
 
 - [ ] ESLint `no-explicit-any` warn → error
-  Specs: dans .eslintrc ou eslint.config, passer la règle en error. Fixer les any restants.
+  Files: apps/web/.eslintrc.json, apps/web/eslint.config.* (+ tout fichier .tsx/.ts avec `any` à fixer)
+  Specs: passer la règle en error dans la config. Fixer les `any` restants un par un.
   Critères: 0 erreur eslint, TS compile, vitest vert
   Niveau: 1
+  ⚠️ ITEM LARGE — préférer session interactive (beaucoup de fichiers potentiels)
 
 ---
 
