@@ -10,10 +10,13 @@ Revises: y0z1a2b3c4d5
 Create Date: 2026-04-20 18:00:00.000000
 """
 
+import logging
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+
+logger = logging.getLogger("alembic.encrypt_customer_pii")
 
 revision: str = "z1a2b3c4d5e6"
 down_revision: str = "y0z1a2b3c4d5"
@@ -74,8 +77,12 @@ def downgrade() -> None:
             if val:
                 try:
                     updates[col] = decrypt(val)
-                except Exception:
-                    pass  # Already in clear text
+                except Exception as exc:
+                    # Already in clear text — skip silently after warning
+                    logger.warning(
+                        "encrypt_customer_pii_downgrade_decrypt_skipped",
+                        extra={"row_id": row.id, "column": col, "error": str(exc)},
+                    )
         if updates:
             set_clause = ", ".join(f"{k} = :{k}" for k in updates)
             conn.execute(

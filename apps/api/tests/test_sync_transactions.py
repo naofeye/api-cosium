@@ -1,5 +1,6 @@
 """Tests for sync batch commit logic and transactional integrity."""
 
+import logging
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
@@ -8,6 +9,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.integrations.erp_models import ERPCustomer
+
+logger = logging.getLogger("tests.test_sync_transactions")
 
 
 def _make_erp_customers(count: int) -> list[ERPCustomer]:
@@ -244,9 +247,9 @@ def test_sync_preserves_existing_data_on_failure(
         resp2 = client.post("/api/v1/sync/customers", headers=auth_headers)
         # Should fail with 4xx or 5xx
         assert resp2.status_code >= 400
-    except Exception:
+    except Exception as exc:
         # Unhandled exception in starlette test client is also acceptable
-        pass
+        logger.warning("sync_customers_raised_through_test_client: %s", exc)
 
     # Original customers should still exist
     clients_resp_after = client.get("/api/v1/clients", headers=auth_headers)

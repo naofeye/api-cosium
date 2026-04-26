@@ -1,4 +1,5 @@
 """Tests E2E pour le flux d'authentification et l'isolation multi-tenant."""
+import logging
 from datetime import UTC, datetime, timedelta
 
 import jwt
@@ -6,6 +7,8 @@ import pytest
 
 from app.models import Customer, Organization, Tenant, TenantUser, User
 from app.security import hash_password
+
+logger = logging.getLogger("tests.test_auth_e2e")
 
 
 # ---------------------------------------------------------------------------
@@ -27,8 +30,8 @@ def _clear_redis_blacklist():
         if r:
             for key in r.keys("blacklist:*"):
                 r.delete(key)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("redis_blacklist_cleanup_pre_failed: %s", exc)
     yield
     try:
         from app.core.redis_cache import get_redis_client
@@ -37,8 +40,8 @@ def _clear_redis_blacklist():
         if r:
             for key in r.keys("blacklist:*"):
                 r.delete(key)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("redis_blacklist_cleanup_post_failed: %s", exc)
 
 @pytest.fixture(name="two_tenants_with_customers")
 def two_tenants_with_customers_fixture(db):
@@ -301,8 +304,8 @@ def test_logout_blacklists_token(client, seed_user):
             # Redis blacklist works: verify the token is rejected
             me_after = client.get("/api/v1/auth/me", headers=headers)
             assert me_after.status_code == 401
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("blacklist_check_unavailable: %s", exc)
 
     # Refresh token is revoked, so refresh should fail
     refresh_resp = client.post("/api/v1/auth/refresh")

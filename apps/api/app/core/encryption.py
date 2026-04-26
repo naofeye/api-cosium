@@ -63,6 +63,10 @@ class EncryptedString(TypeDecorator):
             return None
         try:
             return decrypt(value)
-        except Exception:
+        except Exception as exc:
             # Fallback: existing unencrypted data during migration period
+            logger.warning(
+                "encrypted_string_decrypt_failed_fallback_plaintext",
+                extra={"value_prefix": value[:8], "error": str(exc)},
+            )
             return value

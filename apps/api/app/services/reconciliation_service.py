@@ -213,8 +213,13 @@ def reconcile_all_customers(db: Session, tenant_id: int) -> BatchReconciliationR
             result = reconcile_customer_dossier(db, tenant_id, customer.id)
             total_processed += 1
             anomaly_count += len(result.anomalies)
-        except Exception:
-            logger.exception("reconciliation_failed", tenant_id=tenant_id, customer_id=customer.id)
+        except Exception as exc:
+            logger.exception(
+                "reconciliation_failed",
+                tenant_id=tenant_id,
+                customer_id=customer.id,
+                error=str(exc),
+            )
 
     summary = get_reconciliation_summary(db, tenant_id)
     return BatchReconciliationResult(

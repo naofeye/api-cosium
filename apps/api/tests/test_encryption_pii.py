@@ -161,6 +161,21 @@ def test_process_result_value_fallback_does_not_raise(dialect):
         pytest.fail(f"process_result_value raised unexpectedly: {exc}")
 
 
+def test_process_result_value_logs_warning_on_decrypt_failure(dialect, caplog):
+    """When decryption fails (legacy plaintext), a warning must be logged with context."""
+    import logging
+
+    col = EncryptedString()
+    legacy_value = "plain-old-unencrypted-address"
+    with caplog.at_level(logging.WARNING, logger="encryption"):
+        result = col.process_result_value(legacy_value, dialect)
+    assert result == legacy_value
+    assert any(
+        "encrypted_string_decrypt_failed_fallback_plaintext" in rec.message
+        for rec in caplog.records
+    )
+
+
 # ---------------------------------------------------------------------------
 # 5. Integration: Customer model with EncryptedString columns
 # ---------------------------------------------------------------------------
