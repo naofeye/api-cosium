@@ -63,12 +63,30 @@ git reset --hard "origin/$DEPLOY_BRANCH"
 echo "[2/6] Build des images Docker..."
 docker compose $COMPOSE_FILES build
 
-# 3. Run migrations BEFORE switching
-echo "[3/6] Demarrage des services..."
+# 3. Migrations Alembic AVANT de demarrer l'API
+# main.py refuse de booter en production/staging si current_rev != head_rev,
+# donc les migrations doivent passer avant l'API. On lance postgres seul + un one-shot.
+echo "[3/6] Migrations Alembic (postgres + one-shot api)..."
+docker compose $COMPOSE_FILES up -d postgres
+for i in $(seq 1 30); do
+    if docker compose $COMPOSE_FILES exec -T postgres pg_isready -U "${POSTGRES_USER:-optiflow}" >/dev/null 2>&1; then
+        echo "  postgres ready."
+        break
+    fi
+    if [ "$i" -eq 30 ]; then
+        echo "  ERREUR: postgres non disponible apres 60 secondes."
+        exit 1
+    fi
+    sleep 2
+done
+docker compose $COMPOSE_FILES run --rm api alembic upgrade head
+
+# 4. Demarrage du reste de la stack (api + web + worker + beat + minio + redis)
+echo "[4/6] Demarrage des services..."
 docker compose $COMPOSE_FILES up -d
 
-# 4. Wait for API to be healthy (via nginx or direct container check)
-echo "[4/6] Attente de l'API..."
+# 5. Wait for API to be healthy (via nginx or direct container check)
+echo "[5/6] Attente de l'API..."
 for i in $(seq 1 30); do
     # Utiliser docker exec pour tester le healthcheck en interne (pas localhost:8000)
     if docker compose $COMPOSE_FILES exec -T api curl -sf http://localhost:8000/health >/dev/null 2>&1; then
@@ -83,10 +101,6 @@ for i in $(seq 1 30); do
     echo "  Waiting... ($i/30)"
     sleep 2
 done
-
-# 5. Run migrations
-echo "[5/6] Migrations Alembic..."
-docker compose $COMPOSE_FILES exec -T api alembic upgrade head
 
 # 6. Verify via nginx (port 80)
 echo "[6/6] Verification finale..."
