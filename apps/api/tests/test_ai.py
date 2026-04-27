@@ -75,3 +75,58 @@ def test_copilot_without_api_key(client: TestClient, auth_headers: dict) -> None
     )
     assert resp.status_code == 200
     assert "non configuree" in resp.json()["response"].lower() or len(resp.json()["response"]) > 0
+
+
+@patch("app.services.ai_service.claude_provider")
+def test_copilot_stream_yields_chunks(
+    mock_provider: MagicMock, client: TestClient, auth_headers: dict
+) -> None:
+    """Le endpoint streaming emet des events SSE chunk + done."""
+    mock_provider.query_stream.return_value = iter(
+        [
+            {"type": "chunk", "text": "Salut "},
+            {"type": "chunk", "text": "le monde"},
+            {"type": "done", "tokens_in": 5, "tokens_out": 3, "model": "claude-test"},
+        ]
+    )
+
+    resp = client.post(
+        "/api/v1/ai/copilot/stream",
+        json={"question": "Bonjour", "mode": "marketing"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/event-stream")
+    body = resp.text
+    assert "event: chunk" in body
+    assert "Salut " in body
+    assert "le monde" in body
+    assert "event: done" in body
+    assert '"tokens_in": 5' in body
+    mock_provider.query_stream.assert_called_once()
+
+
+def test_copilot_stream_invalid_mode_returns_422(
+    client: TestClient, auth_headers: dict
+) -> None:
+    """Un mode invalide est rejete par la validation Pydantic."""
+    resp = client.post(
+        "/api/v1/ai/copilot/stream",
+        json={"question": "Test", "mode": "invalide"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 422
+
+
+def test_copilot_stream_without_api_key(client: TestClient, auth_headers: dict) -> None:
+    """Sans ANTHROPIC_API_KEY, le stream emet un message degrade puis done."""
+    resp = client.post(
+        "/api/v1/ai/copilot/stream",
+        json={"question": "Test sans cle", "mode": "marketing"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    body = resp.text
+    assert "event: chunk" in body
+    assert "event: done" in body
+    assert "non configuree" in body.lower()

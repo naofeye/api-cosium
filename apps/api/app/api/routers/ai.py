@@ -1,4 +1,8 @@
+import json
+from collections.abc import Iterator
+
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -49,6 +53,50 @@ def copilot_query(
     )
 
 
+def _format_sse_event(event: dict) -> str:
+    """Convertit un dict d'evenement en frame SSE conforme."""
+    event_type = event.get("type", "chunk")
+    data = {k: v for k, v in event.items() if k != "type"}
+    payload = json.dumps(data, ensure_ascii=False)
+    return f"event: {event_type}\ndata: {payload}\n\n"
+
+
+@router.post(
+    "/copilot/stream",
+    summary="Interroger le copilote IA en streaming SSE",
+    description=(
+        "Pose une question au copilote IA et streame la reponse en Server-Sent Events. "
+        "Chaque chunk est emis sous forme d'event SSE `chunk` ; un event final `done` "
+        "(ou `error`) cloture le flux."
+    ),
+)
+def copilot_stream(
+    payload: CopilotQuery,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> StreamingResponse:
+    def event_generator() -> Iterator[str]:
+        for event in ai_service.copilot_stream(
+            db,
+            tenant_id=tenant_ctx.tenant_id,
+            question=payload.question,
+            case_id=payload.case_id,
+            mode=payload.mode,
+            user_id=tenant_ctx.user_id,
+        ):
+            yield _format_sse_event(event)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
+
+
 class PreRdvBriefResponse(BaseModel):
     customer_id: int
     brief: str
@@ -93,7 +141,7 @@ def pre_rdv_brief(
     result = claude_provider.query_with_usage(question, context=cosium_ctx, system=system)
     return PreRdvBriefResponse(
         customer_id=customer_id,
-        brief=result.get("response", ""),
+        brief=result.get("text", ""),
         context_used=True,
     )
 
@@ -142,7 +190,7 @@ def upsell_suggestion(
     result = claude_provider.query_with_usage(question, context=cosium_ctx, system=system)
     return UpsellSuggestionResponse(
         customer_id=customer_id,
-        suggestion=result.get("response", ""),
+        suggestion=result.get("text", ""),
         context_used=True,
     )
 
@@ -223,7 +271,7 @@ def product_recommendation(
     result = claude_provider.query_with_usage(question, context=cosium_ctx, system=system)
     return ProductRecommendationResponse(
         customer_id=customer_id,
-        recommendation=result.get("response", ""),
+        recommendation=result.get("text", ""),
         context_used=True,
     )
 
@@ -280,7 +328,7 @@ def devis_analysis(
     )
     question = f"Analyse le devis #{devis.numero}."
     result = claude_provider.query_with_usage(question, context=context, system=system)
-    response_text = result.get("response", "")
+    response_text = result.get("text", "")
 
     # Extraction des warnings
     warnings: list[str] = []

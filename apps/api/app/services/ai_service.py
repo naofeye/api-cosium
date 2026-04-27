@@ -1,5 +1,7 @@
 """Service IA — copilote metier OptiFlow avec 4 modes."""
 
+from collections.abc import Iterator
+
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
@@ -188,6 +190,33 @@ def _build_case_context(db: Session, tenant_id: int, case_id: int) -> str:
     return "\n".join(parts)
 
 
+def _resolve_copilot_context(
+    db: Session, tenant_id: int, mode: str, question: str, case_id: int | None
+) -> tuple[str, str]:
+    """Retourne (system_prompt, context_string) pour un appel copilote."""
+    system = SYSTEM_PROMPTS.get(mode, SYSTEM_PROMPTS["dossier"])
+    context = ""
+
+    if mode == "documentaire":
+        rag_results = search_docs(question)
+        context = (
+            f"DOCUMENTATION COSIUM (extraits pertinents):\n\n{rag_results}"
+            if rag_results
+            else "Aucun extrait de documentation pertinent trouve."
+        )
+    elif case_id:
+        context = _build_case_context(db, tenant_id, case_id)
+    elif mode == "marketing":
+        total_clients = ai_context_repo.count_customers(db, tenant_id)
+        total_cases = ai_context_repo.count_cases(db, tenant_id)
+        context = (
+            f"CONTEXTE MARKETING:\nNombre total de clients: {total_clients}\n"
+            f"Nombre total de dossiers: {total_cases}\n"
+        )
+
+    return system, context
+
+
 def copilot_query(
     db: Session,
     tenant_id: int,
@@ -197,27 +226,7 @@ def copilot_query(
     mode: str = "dossier",
 ) -> str:
     """Point d'entree principal du copilote IA."""
-    system = SYSTEM_PROMPTS.get(mode, SYSTEM_PROMPTS["dossier"])
-    context = ""
-
-    if mode == "documentaire":
-        # RAG: recherche dans les docs Cosium
-        rag_results = search_docs(question)
-        if rag_results:
-            context = f"DOCUMENTATION COSIUM (extraits pertinents):\n\n{rag_results}"
-        else:
-            context = "Aucun extrait de documentation pertinent trouve."
-
-    elif case_id:
-        context = _build_case_context(db, tenant_id, case_id)
-
-    elif mode == "marketing":
-        # Contexte marketing global
-        total_clients = ai_context_repo.count_customers(db, tenant_id)
-        total_cases = ai_context_repo.count_cases(db, tenant_id)
-        context = (
-            f"CONTEXTE MARKETING:\nNombre total de clients: {total_clients}\nNombre total de dossiers: {total_cases}\n"
-        )
+    system, context = _resolve_copilot_context(db, tenant_id, mode, question, case_id)
 
     logger.info("copilot_query", tenant_id=tenant_id, mode=mode, case_id=case_id, question_len=len(question))
     result = claude_provider.query_with_usage(question, context=context, system=system)
@@ -235,6 +244,56 @@ def copilot_query(
     )
 
     return result["text"]
+
+
+def copilot_stream(
+    db: Session,
+    tenant_id: int,
+    question: str,
+    user_id: int,
+    case_id: int | None = None,
+    mode: str = "dossier",
+) -> Iterator[dict]:
+    """Version streaming du copilote IA.
+
+    Yields des dicts identiques a `claude_provider.query_stream` :
+    - {"type": "chunk", "text": "..."} pendant la generation
+    - {"type": "done", "tokens_in": int, "tokens_out": int, "model": str} a la fin
+    - {"type": "error", "error": str} en cas d'echec
+
+    L'usage IA est loggue en BDD apres reception de l'evenement "done".
+    """
+    system, context = _resolve_copilot_context(db, tenant_id, mode, question, case_id)
+
+    logger.info(
+        "copilot_stream",
+        tenant_id=tenant_id,
+        mode=mode,
+        case_id=case_id,
+        question_len=len(question),
+    )
+
+    tokens_in = 0
+    tokens_out = 0
+    model_used = "unknown"
+
+    for event in claude_provider.query_stream(question, context=context, system=system):
+        if event.get("type") == "done":
+            tokens_in = event.get("tokens_in", 0)
+            tokens_out = event.get("tokens_out", 0)
+            model_used = event.get("model", "unknown")
+        yield event
+
+    ai_usage_repo.create(
+        db,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        copilot_type=mode,
+        model_used=model_used,
+        tokens_in=tokens_in,
+        tokens_out=tokens_out,
+        cost_usd=_estimate_cost(tokens_in, tokens_out),
+    )
 
 
 def _estimate_cost(tokens_in: int, tokens_out: int) -> float:
