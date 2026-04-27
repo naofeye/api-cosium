@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.deps import require_tenant_role
+from app.core.deps import require_permission, require_tenant_role
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.client_mutuelle import (
@@ -38,6 +38,7 @@ def list_client_mutuelles(
     status_code=201,
     summary="Ajouter une mutuelle a un client",
     description="Ajoute manuellement une mutuelle a un client.",
+    dependencies=[Depends(require_permission("create", "client_mutuelle"))],
 )
 def add_client_mutuelle(
     client_id: int,
@@ -55,6 +56,7 @@ def add_client_mutuelle(
     status_code=204,
     summary="Supprimer une mutuelle d'un client",
     description="Supprime une association client-mutuelle.",
+    dependencies=[Depends(require_permission("delete", "client_mutuelle"))],
 )
 def delete_client_mutuelle(
     client_id: int,

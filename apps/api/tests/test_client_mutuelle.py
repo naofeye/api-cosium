@@ -228,6 +228,47 @@ def test_batch_detect_endpoint(db, client: TestClient, auth_headers: dict, defau
     assert data["total_clients_scanned"] >= 1
 
 
+# --- Test RBAC : viewer ne peut ni creer ni supprimer une mutuelle ---
+def test_viewer_cannot_create_or_delete_client_mutuelle(
+    db, client: TestClient, default_tenant
+) -> None:
+    from app.models import TenantUser, User
+    from app.security import hash_password
+
+    customer = _create_customer(db, default_tenant.id, first_name="ViewerTest", last_name="X")
+
+    viewer = User(
+        email="viewer-mut@test.local",
+        password_hash=hash_password("Viewer123"),
+        role="viewer",
+        is_active=True,
+    )
+    db.add(viewer)
+    db.flush()
+    db.add(TenantUser(user_id=viewer.id, tenant_id=default_tenant.id, role="viewer"))
+    db.commit()
+
+    login = client.post(
+        "/api/v1/auth/login",
+        json={"email": "viewer-mut@test.local", "password": "Viewer123"},
+    )
+    token = login.cookies.get("optiflow_token")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    resp_create = client.post(
+        f"/api/v1/clients/{customer.id}/mutuelles",
+        json={"mutuelle_name": "ViewerForbid", "source": "manual", "confidence": 1.0},
+        headers=headers,
+    )
+    assert resp_create.status_code == 403
+
+    resp_delete = client.delete(
+        f"/api/v1/clients/{customer.id}/mutuelles/999",
+        headers=headers,
+    )
+    assert resp_delete.status_code == 403
+
+
 # --- Test 9: Idempotent batch detection (skip existing) ---
 def test_batch_detect_idempotent(db, client: TestClient, auth_headers: dict, default_tenant) -> None:
     customer = _create_customer(db, default_tenant.id, first_name="Idem", last_name="Potent")
