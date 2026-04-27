@@ -89,14 +89,14 @@ Chaque feature implémentée doit être de **qualité professionnelle** :
 
 ### Priorité B — Polir ce qui existe
 
-- [ ] Copilot IA conversationnel — Backend : endpoint streaming SSE
-  Files: apps/api/app/api/routers/ai.py, apps/api/app/services/ai_service.py
+- [x] Copilot IA conversationnel — Backend : endpoint streaming SSE _(fait 2026-04-27, commit `4e2e594`)_
+  Files: apps/api/app/api/routers/ai.py, apps/api/app/services/ai_service.py, apps/api/app/integrations/ai/claude_provider.py, apps/api/tests/test_ai.py
   Specs: ajouter POST /api/v1/ai/copilot/stream qui retourne un SSE avec les chunks Claude. Le service ai_service a déjà copilot_query() — ajouter copilot_stream() qui yield les chunks.
   Critères: endpoint retourne text/event-stream, chaque chunk est un event SSE, timeout 60s, tests avec mock Anthropic
   Niveau: 2
 
-- [ ] Copilot IA conversationnel — Frontend : page interactive
-  Files: apps/web/src/app/copilote-ia/page.tsx (remplacer le ComingSoon), apps/web/src/app/copilote-ia/components/ChatInterface.tsx (nouveau), apps/web/src/app/copilote-ia/components/MessageBubble.tsx (nouveau)
+- [x] Copilot IA conversationnel — Frontend : page interactive _(fait 2026-04-27, commit `4e2e594`)_
+  Files: apps/web/src/app/copilote-ia/page.tsx (remplacer le ComingSoon), apps/web/src/app/copilote-ia/components/ChatInterface.tsx (nouveau), apps/web/src/app/copilote-ia/components/MessageBubble.tsx (nouveau), apps/web/tests/pages/copilote-ia.test.tsx (nouveau)
   Specs: remplacer le stub ComingSoon par un vrai chat. Input en bas, messages qui scrollent, streaming SSE affiché en temps réel. 4 modes disponibles (dossier, financier, documentaire, marketing) via tabs ou dropdown.
   Critères: le chat fonctionne en streaming, les 4 modes sont sélectionnables, loading state pendant la réponse, historique en mémoire locale (pas persisté pour V1)
   Niveau: 2
