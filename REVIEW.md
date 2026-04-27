@@ -1,174 +1,127 @@
 # Audit Codex — api-cosium
 
-_Genere automatiquement le 2026-04-26. Commit audite : `2d564fd`._
+_Genere automatiquement le 2026-04-27. Commit audite : `9cad443`._
 
 ## Resume
 
-Le repo est globalement structuré, mais deux défauts bloquants ressortent immédiatement : le pipeline de déploiement ne peut pas réussir dès qu'une migration Alembic est en attente, et la configuration "production" fournie force des cookies `Secure` alors que le Nginx actif ne sert que du HTTP. Côté sécurité applicative, les garde-fous existent mais certains peuvent être contournés ou mal pilotés par la configuration (`X-Forwarded-For` de confiance, URLs métiers dérivées de `CORS_ORIGINS`). Les priorités sont donc : corriger le bootstrap prod, fiabiliser la chaîne HTTPS/cookies, puis nettoyer les dérives de configuration et les scripts exposant des secrets.
+Le repo presente une base solide sur les garde-fous de configuration et les tests unitaires, mais plusieurs ecarts concrets restent exploitables. Les deux priorites hautes sont un contournement RBAC sur des routes mutantes et un crash runtime du rate limiter sur les endpoints sensibles en environnement non-test. Cote frontend, le lockfile embarque encore une version vulnerable de `postcss` et la CI ne remonte pas les vulnerabilites moderates. Enfin, la doc de demarrage local est incoherente avec la stack Compose reelle, ce qui cree un angle mort ops au premier boot.
 
 ## 🔴 Critiques
 
-### 1. Déploiement prod auto-bloquant avant les migrations
+### 1. Le rate limiter plante sur les endpoints sensibles en environnement reel
 
-**Fichier :** `scripts/deploy.sh:67`, `apps/api/app/main.py:52`
+**Fichier :** `apps/api/app/core/rate_limiter.py:55`
 
-```bash
-docker compose $COMPOSE_FILES up -d
-if docker compose $COMPOSE_FILES exec -T api curl -sf http://localhost:8000/health >/dev/null 2>&1; then
-docker compose $COMPOSE_FILES exec -T api alembic upgrade head
+```py
+def _trusted_proxies_set() -> set[str]:
+    return {p.strip() for p in settings.trusted_proxies.split(",") if p.strip()}
 ```
 
-**Probleme :** Le script démarre l'API puis attend qu'elle soit saine avant d'exécuter `alembic upgrade head`. Or le boot FastAPI refuse explicitement de démarrer en `production/staging` si `current_rev != head_rev`. Résultat : toute première mise en prod ou tout déploiement avec migration pendante boucle jusqu'au timeout puis échoue avant même l'étape migrations.
+**Probleme :** `settings.trusted_proxies` est appele depuis `_client_ip()` mais n’existe ni dans `Settings` ni dans `.env.example`. Des qu’une regle de rate-limit s’applique (`/api/v1/auth/login`, `/auth/forgot-password`, `/auth/reset-password`, `/auth/refresh`, etc.), l’appel peut lever `AttributeError` avant tout traitement metier et transformer un endpoint critique en `500` en `local`, `development`, `staging` et `production`. Les tests ne le voient pas car le middleware est desactive en `APP_ENV=test`.
 
-**Recommandation :** Exécuter `alembic upgrade head` dans un conteneur one-shot avant le healthcheck applicatif, ou bien lancer un job migration dédié avant `up -d`.
+**Recommandation :** Ajouter `trusted_proxies` au schema `Settings` avec une valeur par defaut explicite, le documenter dans `.env.example`, puis ajouter un test d’integration qui execute le middleware hors `APP_ENV=test` sur un endpoint rate-limite.
 
-**Impact pour Claude :** Un assistant IA qui suit `scripts/deploy.sh` à la lettre conclura à une panne applicative, alors que la vraie cause est l'ordre d'exécution du bootstrap.
+**Impact pour Claude :** Un assistant qui se fie aux tests actuels peut croire que le rate limiter fonctionne alors que le chemin runtime reel n’est jamais execute en CI.
 
-### 2. Configuration prod fournie incompatible avec les cookies d'authentification
+### 2. Contournement RBAC sur la creation d’operateurs OCAM
 
-**Fichier :** `apps/api/app/api/routers/auth.py:26`, `config/nginx/nginx.conf:47`
+**Fichier :** `apps/api/app/api/routers/ocam_operators.py:35`
 
-```python
-_COOKIE_OPTS: dict = {
-    "secure": settings.app_env not in ("local", "development", "test"),
+```py
+@router.post("/ocam-operators", ...)
+def create_operator(..., tenant_ctx: TenantContext = Depends(get_tenant_context)) -> OcamOperatorResponse:
 ```
 
-**Probleme :** Dès que `APP_ENV=production`, les cookies `optiflow_token` et `optiflow_refresh` passent en `Secure`. Dans le même temps, le seul serveur Nginx actif du repo écoute en clair sur `listen 80;` et le bloc HTTPS reste entièrement commenté. Sur un déploiement "par défaut", le navigateur refusera donc de persister les cookies d'auth, ce qui casse le login et pousse souvent à désactiver `Secure` au lieu d'activer TLS correctement.
+**Probleme :** Cette route mutante n’attache ni `require_permission("create", ...)` ni `require_tenant_role(...)`. Or la matrice RBAC du projet n’autorise `viewer` qu’a `view`. En l’etat, n’importe quel utilisateur authentifie du tenant peut injecter ou modifier le referentiel OCAM utilise par les traitements PEC/mutuelles, ce qui ouvre une elevation de privilege applicative et un risque de corruption metier durable.
 
-**Recommandation :** Livrer une config Nginx prod réellement HTTPS-ready par défaut, ou faire échouer le déploiement tant que TLS n'est pas activé.
+**Recommandation :** Ajouter au minimum `Depends(require_permission("create", "ocam_operator"))` ou `Depends(require_tenant_role("admin", "manager"))`, puis couvrir explicitement le cas `viewer/operator -> 403`.
 
-**Impact pour Claude :** Le symptôme visible sera "la connexion réussit mais l'utilisateur redevient anonyme", uniquement après bascule de `APP_ENV` en production.
+**Impact pour Claude :** Les tests RBAC valident la matrice en isolation, pas son branchement reel sur toutes les routes; un assistant risque donc de conclure a tort que la protection est homogene.
 
 ## 🟡 Moyens
 
-### 1. Le rate limiting IP est contournable via `X-Forwarded-For`
+### 1. Contournement RBAC sur l’ajout et la suppression de mutuelles client
 
-**Fichier :** `apps/api/app/core/rate_limiter.py:127`
+**Fichier :** `apps/api/app/api/routers/client_mutuelles.py:35`
 
-```python
-forwarded = request.headers.get("X-Forwarded-For")
-if forwarded:
-    ip = forwarded.split(",")[0].strip()
+```py
+def add_client_mutuelle(..., tenant_ctx: TenantContext = Depends(get_tenant_context)) -> ClientMutuelleResponse:
+    return client_mutuelle_service.add_client_mutuelle(...)
 ```
 
-**Probleme :** Le middleware fait confiance à n'importe quel header `X-Forwarded-For` envoyé par le client. Si l'API est accessible sans Nginx de confiance en frontal, un attaquant peut changer l'IP à chaque requête et contourner les limites sur `/auth/login`, `/forgot-password`, `/signup`, `/sync`, etc.
+**Probleme :** Les endpoints `POST /clients/{client_id}/mutuelles` et `DELETE /clients/{client_id}/mutuelles/{mutuelle_id}` sont ouverts a tout utilisateur authentifie du tenant. Cela contredit directement la matrice RBAC (`viewer` n’a pas `create` ni `delete`) et permet a un role lecture seule de modifier les donnees mutuelle d’un client, avec impact sur la preparation PEC et les rapprochements.
 
-**Recommandation :** N'accepter `X-Forwarded-For` que depuis des proxies explicitement trusted, sinon utiliser `request.client.host`.
+**Recommandation :** Poser des dependances explicites `require_permission("create", "client_mutuelle")` et `require_permission("delete", "client_mutuelle")`, puis ajouter des tests API de non-regression pour `viewer`.
 
-**Impact pour Claude :** Une revue superficielle verra "rate limiting Redis en place" et ratera que la clé IP est triviale à falsifier.
+**Impact pour Claude :** La presence d’un endpoint admin voisin (`/admin/detect-mutuelles`) peut faire croire qu’une protection equivalente existe sur tout le module alors que ce n’est pas le cas.
 
-### 2. Les URLs critiques dépendent de l'ordre de `CORS_ORIGINS`
+### 2. Le frontend embarque encore un `postcss` vulnerable et la CI ne le voit pas
 
-**Fichier :** `apps/api/app/services/auth_service.py:258`, `apps/api/app/services/billing_service.py:62`
+**Fichier :** `apps/web/package-lock.json:8880`
 
-```python
-frontend_origin = settings.cors_origins.split(",")[0].strip()
-success_url=f"{settings.cors_origins.split(',')[0].strip()}/billing/success",
+```json
+"node_modules/next": {
+  "version": "15.5.15",
+  "dependencies": { "postcss": "8.4.31" }
+}
 ```
 
-**Probleme :** Le lien de reset password et les retours Stripe sont construits à partir de la première entrée de `CORS_ORIGINS`. Cette variable mélange pourtant une politique de sécurité navigateur et le canonical frontend origin. Une inversion d'ordre, un `localhost` laissé en tête ou une origine HTTP non finale enverra des emails et des redirections de paiement vers le mauvais hôte.
+**Probleme :** `npm audit --omit=dev --json` remonte `GHSA-qx2v-qp2m-jg93` sur `postcss` (`<8.5.10`), ici present en transitif via `next@15.5.15`. La CI frontend utilise `npm audit --audit-level=high`, donc cette faille moderate de type XSS reste silencieuse meme avec un lockfile vulnerable.
 
-**Recommandation :** Introduire une variable dédiée (`FRONTEND_BASE_URL`) et arrêter de dériver des URLs métier depuis `CORS_ORIGINS`.
+**Recommandation :** Mettre a jour `next` vers une version qui ne traine plus `postcss@8.4.31` ou forcer une resolution saine, puis baisser le seuil CI a `--audit-level=moderate` tant que vous consommez du HTML/CSS non trivial.
 
-**Impact pour Claude :** Le bug n'apparaît qu'en environnement multi-origine et sera souvent diagnostiqué à tort comme un problème email/Stripe.
+**Impact pour Claude :** Un assistant qui lit seulement le workflow CI peut supposer qu’un `npm audit` vert signifie “pas de CVE”, ce qui est faux ici.
 
-### 3. Deux templates de prod divergents maintiennent des vérités concurrentes
+### 3. La doc de demarrage local ne correspond pas a la stack Compose effective
 
-**Fichier :** `.env.prod.example:25`, `.env.production.example:27`
+**Fichier :** `docker-compose.yml:145`
 
-```dotenv
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-ACCESS_TOKEN_EXPIRE_MINUTES=60
+```yml
+networks:
+  - default
+  - interface-ia-net
 ```
 
-**Probleme :** Le repo expose à la fois `.env.prod.example` et `.env.production.example`, avec des différences réelles sur `SEED_ON_STARTUP`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `AI_MODEL`, `NEXT_PUBLIC_SENTRY_DSN`, les variables backup/monitoring et plusieurs flags runtime. Deux opérateurs peuvent donc déployer deux "productions" différentes en suivant chacun un fichier officiellement présent.
+**Probleme :** Le service `web` depend d’un reseau Docker externe `interface-ia-net`, alors que le `README` annonce un simple `docker compose up -d --build` sans precreation de reseau. Sur une machine fraiche, le premier boot echoue avant meme les tests manuels, ce qui rend le runbook de base faux et ralentit l’onboarding/debug local.
 
-**Recommandation :** Conserver un seul template prod canonique et faire référencer explicitement celui-ci dans la doc et les scripts.
+**Recommandation :** Soit supprimer ce reseau externe du compose par defaut et le reserver a un override, soit documenter explicitement `docker network create interface-ia-net` dans `README.md` et `scripts/setup.sh`.
 
-**Impact pour Claude :** Un agent va souvent modifier le mauvais template, puis "corriger" l'autre plus tard en introduisant encore plus de dérive.
-
-### 4. Le script d'off-site backup injecte les secrets S3 dans la ligne de commande
-
-**Fichier :** `scripts/backup_offsite.sh:39`
-
-```bash
-MC="docker run --rm -e MC_HOST_offsite=${OFFSITE_ENDPOINT/https:\/\//https://${OFFSITE_ACCESS_KEY}:${OFFSITE_SECRET_KEY}@} -v ${PWD}/${BACKUP_DIR}:/data minio/mc"
-```
-
-**Probleme :** En fallback Docker, le secret d'accès distant est interpolé directement dans la commande shell. Il devient visible dans l'historique de process (`ps`, outils d'observabilité, crash dumps) et peut fuiter dans des logs d'exécution.
-
-**Recommandation :** Passer les variables via `--env-file`/`-e OFFSITE_*` sans les concaténer dans l'URL, ou utiliser `mc alias set` dans un conteneur lancé avec variables d'environnement standard.
-
-**Impact pour Claude :** Le script semble "sans hardcode", mais la fuite arrive au runtime, pas dans Git.
-
-### 5. Le worker Celery ne bascule jamais sur le timeout SQL prévu pour les workers
-
-**Fichier :** `apps/api/app/core/config.py:76`, `apps/api/app/db/session.py:11`, `docker-compose.yml:153`
-
-```python
-celery_worker: bool = False
-_statement_timeout = 120000 if settings.celery_worker else 30000
-```
-
-**Probleme :** Le code prévoit 120s de `statement_timeout` pour les workers Celery, mais le service `worker` démarre seulement avec `env_file: [.env]` et aucun `CELERY_WORKER=true`. En pratique, les tâches de sync/export utilisent donc aussi 30s, contrairement au commentaire et à l'intention du code.
-
-**Recommandation :** Définir `CELERY_WORKER=true` pour `worker` et `beat`, ou déduire le mode worker autrement que par une variable fragile.
-
-**Impact pour Claude :** Les timeouts SQL paraîtront "aléatoires" sur les tâches longues alors que le code semble déjà configuré pour les éviter.
+**Impact pour Claude :** Ce prerequis n’apparait ni dans le `README` ni dans les scripts de setup, donc un assistant qui reproduit le demarrage “standard” peut diagnostiquer a tort un probleme applicatif.
 
 ## 🟢 Nice-to-have
 
-### 1. Le frontend garde des dépendances avec advisories npm modérées
+### 1. Le chemin critique du rate limiter n’est pas vraiment teste
 
-**Fichier :** `apps/web/package.json:20`
+**Fichier :** `apps/api/tests/test_security.py:63`
 
-```json
-"@sentry/nextjs": "^10.47.0",
-"next": "15.5.15",
-"postcss": "^8.5.8",
+```py
+if settings.app_env in ("test", "local"):
+    return  # Rate limiter disabled
 ```
 
-**Probleme :** `npm audit --audit-level=high --json` remonte encore des advisories modérées transitives : `postcss` (<8.5.10 via `next@15.5.15`) et `uuid` (<14 via `@sentry/webpack-plugin@5.1.1`). Ce n'est pas bloquant côté prod immédiate, mais le frontend reste en dette sécurité.
+**Probleme :** Le test de rate limiting sort immediatement dans les environnements utilises par la CI, ce qui laisse sans couverture le middleware reel sur les endpoints sensibles. C’est la raison pour laquelle la regression `trusted_proxies` a pu passer sans detection.
 
-**Recommandation :** Planifier une montée de version `next`/`@sentry/nextjs` validée par build et tests e2e, puis verrouiller un `npm audit` sans findings modérés connus.
+**Recommandation :** Ajouter un test cible qui instancie le middleware avec `APP_ENV=development` et un `Settings` complet, sans desactiver la logique de limitation.
 
-**Impact pour Claude :** Un assistant qui ne relance pas `npm audit` croira que le build CI "vert" signifie absence d'avisories.
-
-### 2. Le garde-fou qualité CI accepte encore 45% de couverture backend
-
-**Fichier :** `.github/workflows/ci.yml:61`, `apps/api/pyproject.toml:57`
-
-```yaml
---cov-fail-under=45
-fail_under = 45
-```
-
-**Probleme :** Le seuil minimal accepté par CI reste très bas pour une base aussi métier, ce qui laisse passer facilement des régressions sur les cas d'erreur, les migrations et les flux d'auth/configuration.
-
-**Recommandation :** Monter le seuil progressivement par lots, en commençant par les zones à plus fort risque opérationnel : auth, deploy, billing, sync.
-
-**Impact pour Claude :** Un patch "testé" peut sembler suffisant alors qu'il n'a couvert qu'une fraction des branches critiques.
+**Impact pour Claude :** Sans cette note, un assistant verra “test_login_rate_limiting” et pourra surestimer la couverture securite.
 
 ## 🧠 Angles morts Claude
 
 Elements qu'un assistant IA risque de rater sans cette note :
 
-- **Réseau Docker externe obligatoire** : `docker-compose.yml:145` attache `web` à `interface-ia-net` déclaré `external: true`, mais `README.md` n'explique pas qu'il faut créer ce réseau avant `docker compose up`.
-- **HTTPS requis pour le login prod** : `auth.py` active `secure=True` dès `APP_ENV=production`; tant que le bloc 443 de `config/nginx/nginx.conf` reste commenté, les cookies d'auth ne tiennent pas côté navigateur.
-- **Ordre migrations > boot API** : `main.py` refuse le démarrage si Alembic est en retard. Toute automatisation doit migrer avant de considérer l'API "healthy".
-- **`CORS_ORIGINS` est utilisé comme URL applicative** : la première origine pilote les emails de reset et les redirections Stripe, donc l'ordre des valeurs a un impact fonctionnel caché.
-- **Flag worker implicite manquant** : `CELERY_WORKER=true` n'est pas injecté par Compose, donc les workers héritent de timeouts API plus stricts que prévu.
+- **`TRUSTED_PROXIES` implicite** : le rate limiter depend d’une variable/config absente du schema `Settings`; tant que personne ne fait tourner le middleware hors `test`, la regression reste invisible.
+- **RBAC teste mais pas branche partout** : `tests/test_rbac_permissions.py` valide la matrice `_ROLE_PERMISSIONS`, mais pas la presence des dependances `require_permission` sur chaque route mutante.
+- **Ordre critique de demarrage DB/migrations** : `app.main._startup_checks()` refuse de booter en `staging/production` si Alembic n’est pas a `head`; `scripts/deploy.sh` lance donc `alembic upgrade head` avant l’API.
+- **Reset password et billing derives de `CORS_ORIGINS`** : les URLs d’email de reset et les URLs Stripe sont construites a partir du premier element de `CORS_ORIGINS`; un ordre d’origines mal choisi peut envoyer les utilisateurs vers le mauvais host.
+- **Compose par defaut non autonome** : le reseau externe `interface-ia-net` est requis par `docker-compose.yml`, mais la doc de lancement local ne le mentionne pas.
 
 ## ✨ Ameliorations proposees
 
-Non bloquant mais gain qualite / DX :
-
-- **Introduire `FRONTEND_BASE_URL`** : séparer les URLs absolues métier des politiques CORS évite les redirections cassées et simplifie les déploiements multi-origine.
-- **Fusionner les templates d'env prod** : un seul fichier de référence réduira fortement les erreurs d'exploitation et les corrections "dans le mauvais fichier".
-- **Déplacer les migrations dans un job dédié** : cela rend le déploiement idempotent et supprime la dépendance implicite entre état du schéma et healthcheck.
-- **Normaliser la confiance proxy** : une petite couche de "trusted proxies" durcit à la fois rate limiting, logs IP et futures règles anti-abus.
-- **Éviter les secrets dans les scripts shell** : encapsuler les accès off-site via variables d'environnement dédiées ou profils `mc` rend les opérations beaucoup moins fuyantes.
+- **Verifier les CVE Python dans le meme rapport** : la CI fait deja `pip-audit`; ajouter sa sortie resumee au runbook ou au rapport de release eviterait de dependre d’un environnement local outille.
+- **Ajouter un test “route mutation sans permission”** : un test meta qui scanne les routers pour detecter les `POST/PATCH/DELETE` sans `require_permission` ou `require_tenant_role` fermerait toute une classe de regressions.
+- **Centraliser les URLs frontend publiques** : utiliser une variable dediee type `PUBLIC_APP_URL` plutot que `CORS_ORIGINS.split(",")[0]` reduirait les erreurs de configuration sur reset password et Stripe.
+- **Sortir `interface-ia-net` du compose de base** : le laisser dans un override d’integration rendrait `docker compose up` conforme au `README` et reduirait le temps d’onboarding.
 
 ## Conclusion
 
-Les priorités sont nettes : 1) rendre le déploiement réellement exécutable avec migrations pendantes, 2) aligner la stack prod sur HTTPS avant tout usage de cookies `Secure`, 3) découpler les URLs frontend de `CORS_ORIGINS`, puis 4) nettoyer les dérives d'exploitation autour des templates d'env et des scripts. Score global subjectif : **6/10** — base prometteuse, mais plusieurs défauts d'intégration prod restent assez concrets pour provoquer panne, contournement ou incident opérationnel.
+Les priorites recommandees sont : 1) corriger immediatement le branchement RBAC sur les routes mutantes identifiees, 2) ajouter `trusted_proxies` au schema de config et couvrir le middleware de rate-limit en environnement non-test, 3) mettre a jour le lockfile frontend ou la politique d’audit CI. Score global subjectif : **6/10**. La base est serieuse, mais ces ecarts montrent encore une difference nette entre la matrice de securite voulue et le comportement runtime effectif.
