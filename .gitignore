@@ -4,7 +4,7 @@
 .env.production
 .env.*.local
 !.env.example
-!.env.production.example
+!.env.prod.example
 
 # Credentials
 credential*.txt
@@ -70,3 +70,4 @@ docker-compose.override.yml
 # Project-specific artifacts
 apps/api/celerybeat-schedule*
 docs/cosium/pages/
+graphify-out/
