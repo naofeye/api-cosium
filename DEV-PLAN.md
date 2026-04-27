@@ -5,6 +5,19 @@
 > **Les agents** (Claude + Codex) exécutent et rendent compte.
 > Voir TODO.md pour le backlog complet — ce fichier ne contient que les items prêts à être implémentés.
 
+## Direction (validée par Nabil 27/04/2026)
+
+- **PAS de prod** pour l'instant (attente credentials API Cosium)
+- **Priorité B** : polir ce qui existe (copilot IA, tests E2E, UX)
+- **Priorité C** : combler les manques fonctionnels (avoirs, envoi devis, signature, SMS)
+
+## Exigence qualité
+
+Chaque feature implémentée doit être de **qualité professionnelle** :
+- Backend : pattern router→service→repo, validation Pydantic, RBAC, tests unitaires, ruff vert
+- Frontend : TypeScript strict (0 `any`), loading/error/empty states, responsive, accessibilité (aria-labels), vitest vert
+- Pas de raccourci, pas de TODO laissé, pas de code mort
+
 ## Règles
 
 - Un seul item en cours à la fois

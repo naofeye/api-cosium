@@ -4,6 +4,72 @@
 > **vps-master** peut aussi intervenir sur ce projet et doit mettre a jour ce fichier.
 > Voir la section "Dernieres interventions vps-master" en bas.
 
+---
+
+## Vue d'ensemble du projet
+
+**OptiFlow AI** est une plateforme SaaS metier pour opticiens, branchee sur l'ERP Cosium (lecture seule). Elle ajoute l'intelligence par-dessus : CRM avance, analyse financiere, PEC mutuelles automatisee, relances, IA, rapprochement bancaire, marketing.
+
+**Modele** : SaaS multi-tenant (1 opticien = 1 tenant, 1 groupe = 1 organisation). Stripe integre (trial, checkout, portal).
+
+**Stack** : Python 3.12 + FastAPI + SQLAlchemy + PostgreSQL 16 | Next.js 15 + React 19 + TypeScript strict | Celery + Redis + MinIO | Docker Compose 8 containers.
+
+**Etat au 27 avril 2026** : produit quasi complet, pas encore en production.
+- 54 routers, ~200+ endpoints, 47 migrations, ~45 tables, 2167 tests
+- 64 pages frontend fonctionnelles, 4 pages "Coming Soon"
+- Backend : auth MFA, multi-tenant, sync Cosium, PEC, analytics, exports, IA, RGPD
+- Frontend : dashboard, CRM, devis, factures, rapprochement, PEC, marketing, relances, admin
+- Integrations : Cosium (ERP), Claude/Anthropic (IA), Stripe (billing), MinIO (GED)
+
+**Ce qui bloque la prod** : credentials API Cosium (en attente du fournisseur). TLS, passwords prod, rotation secrets Cosium = actions Nabil au moment du go-live.
+
+**Direction actuelle (validee par Nabil 27/04/2026)** :
+- **PAS de mise en prod** pour l'instant (attente credentials Cosium)
+- **Priorite B** : polir ce qui existe (copilot IA conversationnel, tests E2E, UX)
+- **Priorite C** : combler les manques fonctionnels (avoirs factures, envoi devis email, signature electronique, SMS)
+- **Exigence qualite** : code de qualite professionnelle. Pas de prototype. Chaque feature : backend patterns (router→service→repo), tests, RBAC, Pydantic. Frontend : 0 `any`, loading/error/empty states, responsive, accessibilite.
+
+**Ce qui a ete implemente — resume par domaine** :
+
+| Domaine | Endpoints | Etat |
+|---------|-----------|------|
+| Auth + MFA + lockout + sessions | 11 | Complet |
+| Clients CRM (CRUD, import, doublons, merge, completude) | 12+ | Complet |
+| Client 360 (vue unifiee, interactions, timeline, PDF) | 12+ | Complet |
+| Devis (CRUD, lignes, PDF, import Cosium) | 6 | Complet |
+| Factures (CRUD, PDF, lignes) | 4 | Base — manque avoirs, email |
+| Paiements + rapprochement bancaire | 14 | Complet |
+| PEC mutuelles (preparation, pre-controle, relances, audit trail) | 17+ | Complet |
+| Sync Cosium lecture seule (clients, factures, produits, ordonnances) | 13 | Complet |
+| IA (copilot 4 modes, brief pre-RDV, OCR, simulation remboursement) | 6 | Complet |
+| Marketing (segments, campagnes, stats, ROI, A/B) | 9 | Complet |
+| Relances (plans, templates, execution par canal) | 11 | Complet |
+| Renouvellements (eligibilite, campagnes) | 5 | Complet |
+| Analytics / Dashboard (KPIs, aging, trends, previsions) | 17 | Complet |
+| Exports (CSV, XLSX, PDF, FEC comptable) | 7 | Complet |
+| GED documents (sync Cosium, OCR, extraction, classification) | 10+ | Complet |
+| Billing Stripe (checkout, portal, webhooks) | 4 | Complet |
+| Admin (users, audit log, health, Cosium stats) | 8 | Complet |
+| Multi-tenant + onboarding wizard | 4 | Complet |
+| RGPD (export, anonymisation, consentements, retention) | 5 | Complet |
+| Notifications + Push + SSE temps reel | 8+ | Complet |
+
+**Pages Coming Soon (a implementer, priorite B)** :
+- Copilot IA conversationnel (T2 2026)
+- Webhooks HTTP sortants (T3 2026)
+- API publique REST v1 (T3 2026)
+- App mobile iOS/Android (T4 2026)
+
+**Manques fonctionnels (priorite C)** :
+- Factures : avoirs/corrections, envoi email client
+- Devis : envoi email, signature electronique, expiration auto
+- Marketing : gateway SMS directe, templates visuels drag & drop
+- PEC : integration NOEMIE/SESAM-Vitale (long terme)
+- IA : streaming SSE, historique conversationnel
+- Export : EBICS
+
+---
+
 ## Memoire persistante inter-sessions
 
 **Au demarrage de CHAQUE session (avant toute action), lire `.claude-memory/MEMORY.md` puis les fichiers qu'il reference.**
