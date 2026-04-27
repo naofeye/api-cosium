@@ -71,3 +71,4 @@ docker-compose.override.yml
 apps/api/celerybeat-schedule*
 docs/cosium/pages/
 graphify-out/
+.semgrep-findings.txt
