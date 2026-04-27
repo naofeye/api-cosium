@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: str = "http://localhost:3000"
 
+    # Trusted proxies (CSV) — IPs autorisees a faire confiance au header X-Forwarded-For
+    # Vide par defaut : on n'accepte JAMAIS X-Forwarded-For sans config explicite
+    # En prod derriere nginx : "127.0.0.1" suffit ; en docker compose, ajouter l'IP du proxy
+    trusted_proxies: str = ""
+
     # Storage (MinIO/S3)
     s3_endpoint: str = "http://minio:9000"
     s3_access_key: str = _DEV_S3_KEY

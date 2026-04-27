@@ -87,6 +87,39 @@ def test_login_rate_limiting(client, seed_user):
     assert resp.status_code == 429
 
 
+def test_rate_limiter_runs_outside_test_env(monkeypatch):
+    """Le middleware doit s'executer sans AttributeError hors APP_ENV=test.
+
+    Regression : `_client_ip()` lisait `settings.trusted_proxies` qui n'existait
+    pas dans Settings — le middleware crashait en 500 sur tout endpoint
+    rate-limite des qu'on quittait le mode test.
+    """
+    from unittest.mock import MagicMock
+
+    from app.core import rate_limiter
+    from app.core.rate_limiter import RateLimiterMiddleware
+
+    monkeypatch.setattr(rate_limiter.settings, "app_env", "development")
+    monkeypatch.setattr(rate_limiter, "_check_rate_limit_redis", lambda *a, **kw: True)
+
+    middleware = RateLimiterMiddleware(app=None)
+
+    request = MagicMock()
+    request.url.path = "/api/v1/auth/login"
+    request.method = "POST"
+    request.headers = {"X-Forwarded-For": "1.2.3.4"}
+    request.client.host = "127.0.0.1"
+
+    sentinel = object()
+
+    async def call_next(_req):
+        return sentinel
+
+    import asyncio
+    result = asyncio.run(middleware.dispatch(request, call_next))
+    assert result is sentinel
+
+
 def test_expired_token_returns_401(client, seed_user):
     """Un token expire doit retourner 401."""
     from datetime import datetime, timedelta
