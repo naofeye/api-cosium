@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from app.core.deps import require_permission
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.ocam_operator import (
@@ -38,6 +39,7 @@ def list_operators(
     status_code=201,
     summary="Creer un operateur OCAM",
     description="Cree un nouvel operateur OCAM avec ses regles specifiques.",
+    dependencies=[Depends(require_permission("create", "ocam_operator"))],
 )
 def create_operator(
     payload: OcamOperatorCreate,

@@ -56,6 +56,44 @@ def test_seed_default_operators(db: Session) -> None:
     assert count2 == 0
 
 
+def test_create_ocam_operator_forbidden_for_viewer(
+    client: TestClient, db: Session
+) -> None:
+    """Un viewer ne doit PAS pouvoir creer un operateur OCAM (RBAC)."""
+    from app.models import Tenant, TenantUser, User
+    from app.security import hash_password
+
+    viewer = User(
+        email="viewer-ocam@test.local",
+        password_hash=hash_password("Viewer123"),
+        role="viewer",
+        is_active=True,
+    )
+    db.add(viewer)
+    db.flush()
+    tenant = db.query(Tenant).filter(Tenant.slug == "test-magasin").first()
+    db.add(TenantUser(user_id=viewer.id, tenant_id=tenant.id, role="viewer"))
+    db.commit()
+
+    login = client.post(
+        "/api/v1/auth/login",
+        json={"email": "viewer-ocam@test.local", "password": "Viewer123"},
+    )
+    token = login.cookies.get("optiflow_token")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    payload = {
+        "name": "Forbidden Mutuelle",
+        "code": "FORBID",
+        "required_fields": [],
+        "required_documents": [],
+        "specific_rules": {},
+        "active": True,
+    }
+    resp = client.post("/api/v1/ocam-operators", json=payload, headers=headers)
+    assert resp.status_code == 403
+
+
 def test_pec_operator_specific_rules(
     client: TestClient, auth_headers: dict, db: Session
 ) -> None:
