@@ -76,14 +76,62 @@ Chaque feature implémentée doit être de **qualité professionnelle** :
   Critères: coverage monte de 10 points, 0 régression, pas de mock excessif
   Niveau: 1
 
-### P2 — Frontend
+### P2 — Frontend qualité
 
 - [ ] ESLint `no-explicit-any` warn → error
-  Files: apps/web/.eslintrc.json, apps/web/eslint.config.* (+ tout fichier .tsx/.ts avec `any` à fixer)
-  Specs: passer la règle en error dans la config. Fixer les `any` restants un par un.
+  Files: apps/web/.eslintrc.json, apps/web/eslint.config.* (+ fichiers .tsx/.ts avec `any`)
+  Specs: passer la règle en error. Fixer les `any` restants.
   Critères: 0 erreur eslint, TS compile, vitest vert
   Niveau: 1
-  ⚠️ ITEM LARGE — préférer session interactive (beaucoup de fichiers potentiels)
+  ⚠️ ITEM LARGE — session interactive
+
+---
+
+### Priorité B — Polir ce qui existe
+
+- [ ] Copilot IA conversationnel — Backend : endpoint streaming SSE
+  Files: apps/api/app/api/routers/ai.py, apps/api/app/services/ai_service.py
+  Specs: ajouter POST /api/v1/ai/copilot/stream qui retourne un SSE avec les chunks Claude. Le service ai_service a déjà copilot_query() — ajouter copilot_stream() qui yield les chunks.
+  Critères: endpoint retourne text/event-stream, chaque chunk est un event SSE, timeout 60s, tests avec mock Anthropic
+  Niveau: 2
+
+- [ ] Copilot IA conversationnel — Frontend : page interactive
+  Files: apps/web/src/app/copilote-ia/page.tsx (remplacer le ComingSoon), apps/web/src/app/copilote-ia/components/ChatInterface.tsx (nouveau), apps/web/src/app/copilote-ia/components/MessageBubble.tsx (nouveau)
+  Specs: remplacer le stub ComingSoon par un vrai chat. Input en bas, messages qui scrollent, streaming SSE affiché en temps réel. 4 modes disponibles (dossier, financier, documentaire, marketing) via tabs ou dropdown.
+  Critères: le chat fonctionne en streaming, les 4 modes sont sélectionnables, loading state pendant la réponse, historique en mémoire locale (pas persisté pour V1)
+  Niveau: 2
+
+- [ ] Envoi devis par email au client
+  Files: apps/api/app/api/routers/devis.py, apps/api/app/services/devis_service.py, apps/api/app/integrations/email_sender.py, apps/api/app/integrations/email_templates.py, apps/web/src/app/devis/[id]/components/DevisActionButtons.tsx
+  Specs: ajouter POST /api/v1/devis/{id}/send-email (body: {to, subject?, message?}). Génère le PDF, attache au mail, envoie via EmailSender. Frontend : bouton "Envoyer par email" dans les actions du devis, dialog avec champ destinataire pré-rempli (email client).
+  Critères: email envoyé avec PDF attaché, audit log, toast confirmation frontend, test backend avec mock SMTP
+  Niveau: 2
+
+- [ ] Envoi facture par email au client
+  Files: apps/api/app/api/routers/factures.py, apps/api/app/services/facture_service.py, apps/api/app/integrations/email_sender.py, apps/web/src/app/factures/[id]/page.tsx
+  Specs: même pattern que devis — POST /api/v1/factures/{id}/send-email. Bouton "Envoyer" sur la page détail facture.
+  Critères: email envoyé avec PDF, audit log, toast, test
+  Niveau: 2
+
+### Priorité C — Manques fonctionnels
+
+- [ ] Avoirs / notes de crédit sur factures
+  Files: apps/api/app/api/routers/factures.py, apps/api/app/services/facture_service.py, apps/api/app/models/facture.py, apps/api/app/domain/schemas/factures.py, apps/api/app/repositories/facture_repo.py, apps/web/src/app/factures/[id]/page.tsx
+  Specs: POST /api/v1/factures/{id}/avoir — crée une facture de type AVOIR liée à la facture originale. Montant négatif. Le modèle Facture a déjà un champ type mais pas de valeur AVOIR. Ajouter le type + la route + l'UI (bouton "Créer un avoir" sur la page facture).
+  Critères: avoir créé avec lien vers facture originale, montant négatif, visible dans la liste factures avec badge "Avoir", PDF avec mention "AVOIR", test complet
+  Niveau: 2
+
+- [ ] Expiration automatique des devis
+  Files: apps/api/app/models/devis.py, apps/api/app/services/devis_service.py, apps/api/app/tasks/*, apps/web/src/app/devis/page.tsx
+  Specs: ajouter champ `expires_at` sur le modèle Devis (migration Alembic). Task Celery quotidienne qui passe les devis expirés en statut "expiré". Badge "Expiré" rouge dans la liste. Durée par défaut configurable (30 jours).
+  Critères: migration, task Celery, badge UI, test service + test task
+  Niveau: 2
+
+- [ ] Historique conversationnel copilot IA (persisté)
+  Files: apps/api/app/models/ai.py, apps/api/app/services/ai_service.py, apps/api/app/api/routers/ai.py, apps/api/app/repositories/ai_repo.py (nouveau)
+  Specs: table `ai_conversations` (id, tenant_id, user_id, messages JSONB, created_at, updated_at). GET /api/v1/ai/conversations (liste), POST /api/v1/ai/conversations (créer), GET /api/v1/ai/conversations/{id} (reprendre). Le copilot_stream envoie l'historique comme contexte à Claude.
+  Critères: conversations persistées, reprises, isolation tenant, migration, tests
+  Niveau: 2
 
 ---
 
