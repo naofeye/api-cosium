@@ -72,3 +72,4 @@ apps/api/celerybeat-schedule*
 docs/cosium/pages/
 graphify-out/
 .semgrep-findings.txt
+DOC API
