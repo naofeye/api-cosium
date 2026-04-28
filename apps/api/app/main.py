@@ -111,6 +111,17 @@ def _startup_checks() -> None:
         storage.ensure_bucket(settings.s3_bucket)
     except Exception as e:
         logger.error("minio_bucket_init_failed", error=str(e), error_type=type(e).__name__)
+
+    # Garde-fou : derriere un reverse proxy (nginx) en prod/staging sans TRUSTED_PROXIES,
+    # le rate limiter bucketise toutes les requetes sur l'IP du proxy au lieu du vrai client.
+    # Resultat : un seul utilisateur sature la limite et bloque tout le monde.
+    if settings.app_env in ("production", "staging") and not settings.trusted_proxies.strip():
+        logger.warning(
+            "trusted_proxies_not_configured",
+            env=settings.app_env,
+            hint="Definir TRUSTED_PROXIES (ex: '127.0.0.1') si l'API est derriere un reverse proxy.",
+        )
+
     logger.info("application_started", env=settings.app_env)
 
 

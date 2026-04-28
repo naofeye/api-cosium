@@ -40,6 +40,12 @@
 |----------|--------|-------------|
 | `CORS_ORIGINS` | `http://localhost:3000` | Liste séparée par virgules. **JAMAIS `*`** en prod |
 
+## Rate limiter (proxy)
+
+| Variable | Défaut | Description |
+|----------|--------|-------------|
+| `TRUSTED_PROXIES` | `""` | Liste CSV d'IPs autorisées à fournir un `X-Forwarded-For` fiable. **Obligatoire en prod derrière nginx** (typiquement `127.0.0.1`). Sans elle, le rate limiter bucketise tout le trafic sur l'IP du proxy → un seul utilisateur peut bloquer tout le monde. L'API logue un warning au boot si `APP_ENV=production/staging` et la valeur est vide. |
+
 ## Stockage S3 / MinIO
 
 | Variable | Défaut | Description |
