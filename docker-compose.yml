@@ -144,7 +144,7 @@ services:
         max-file: '5'
     networks:
       - default
-      - interface-ia-net
+      - vps-net
   worker:
     build:
       context: ./apps/api
@@ -210,5 +210,5 @@ volumes:
   minio_data:
   celerybeat_schedule:
 networks:
-  interface-ia-net:
+  vps-net:
     external: true
