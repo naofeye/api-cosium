@@ -1,127 +1,181 @@
 # Audit Codex — api-cosium
 
-_Genere automatiquement le 2026-04-27. Commit audite : `9cad443`._
+_Genere automatiquement le 2026-04-28. Commit audite : `13000b1`._
 
 ## Resume
 
-Le repo presente une base solide sur les garde-fous de configuration et les tests unitaires, mais plusieurs ecarts concrets restent exploitables. Les deux priorites hautes sont un contournement RBAC sur des routes mutantes et un crash runtime du rate limiter sur les endpoints sensibles en environnement non-test. Cote frontend, le lockfile embarque encore une version vulnerable de `postcss` et la CI ne remonte pas les vulnerabilites moderates. Enfin, la doc de demarrage local est incoherente avec la stack Compose reelle, ce qui cree un angle mort ops au premier boot.
+Le depot est structure et largement teste, mais plusieurs defauts restent exploitables. Le point le plus severe est un risque de deni de service par upload, car les fichiers sont lus integralement en memoire avant tout controle de taille. J'ai aussi releve plusieurs ecarts de securite ou d'operabilite autour des liens de reset, du guard frontend, des URLs S3 presignees et de la gestion des erreurs de cleanup. Les priorites sont donc : 1) bloquer les uploads oversize avant buffering, 2) corriger la generation des URLs externes, 3) fiabiliser les garde-fous auth et les chemins d'erreur.
 
 ## 🔴 Critiques
 
-### 1. Le rate limiter plante sur les endpoints sensibles en environnement reel
+### 1. Limite de taille appliquee apres lecture complete du fichier
 
-**Fichier :** `apps/api/app/core/rate_limiter.py:55`
+**Fichier :** `apps/api/app/api/routers/documents.py:41`
 
-```py
-def _trusted_proxies_set() -> set[str]:
-    return {p.strip() for p in settings.trusted_proxies.split(",") if p.strip()}
+```python
+file_data = await file.read()
+return document_service.upload_document(
+    db,
 ```
 
-**Probleme :** `settings.trusted_proxies` est appele depuis `_client_ip()` mais n’existe ni dans `Settings` ni dans `.env.example`. Des qu’une regle de rate-limit s’applique (`/api/v1/auth/login`, `/auth/forgot-password`, `/auth/reset-password`, `/auth/refresh`, etc.), l’appel peut lever `AttributeError` avant tout traitement metier et transformer un endpoint critique en `500` en `local`, `development`, `staging` et `production`. Les tests ne le voient pas car le middleware est desactive en `APP_ENV=test`.
+**Probleme :** le backend charge tout le corps multipart en RAM avant le controle `MAX_UPLOAD_SIZE_MB` effectue plus bas dans `document_service`. Un attaquant peut envoyer un fichier tres volumineux et faire exploser la memoire du worker avant que la validation applicative ne s'execute. Le meme anti-pattern existe aussi sur l'upload d'avatar (`apps/api/app/api/routers/clients.py:243`).
 
-**Recommandation :** Ajouter `trusted_proxies` au schema `Settings` avec une valeur par defaut explicite, le documenter dans `.env.example`, puis ajouter un test d’integration qui execute le middleware hors `APP_ENV=test` sur un endpoint rate-limite.
+**Recommandation :** imposer la limite au plus tot dans la chaine : `Content-Length` strict, streaming par chunks, abort immediat si seuil depasse, et limite coherente au niveau reverse proxy et FastAPI.
 
-**Impact pour Claude :** Un assistant qui se fie aux tests actuels peut croire que le rate limiter fonctionne alors que le chemin runtime reel n’est jamais execute en CI.
-
-### 2. Contournement RBAC sur la creation d’operateurs OCAM
-
-**Fichier :** `apps/api/app/api/routers/ocam_operators.py:35`
-
-```py
-@router.post("/ocam-operators", ...)
-def create_operator(..., tenant_ctx: TenantContext = Depends(get_tenant_context)) -> OcamOperatorResponse:
-```
-
-**Probleme :** Cette route mutante n’attache ni `require_permission("create", ...)` ni `require_tenant_role(...)`. Or la matrice RBAC du projet n’autorise `viewer` qu’a `view`. En l’etat, n’importe quel utilisateur authentifie du tenant peut injecter ou modifier le referentiel OCAM utilise par les traitements PEC/mutuelles, ce qui ouvre une elevation de privilege applicative et un risque de corruption metier durable.
-
-**Recommandation :** Ajouter au minimum `Depends(require_permission("create", "ocam_operator"))` ou `Depends(require_tenant_role("admin", "manager"))`, puis couvrir explicitement le cas `viewer/operator -> 403`.
-
-**Impact pour Claude :** Les tests RBAC valident la matrice en isolation, pas son branchement reel sur toutes les routes; un assistant risque donc de conclure a tort que la protection est homogene.
+**Impact pour Claude :** un assistant qui ne lit que le service verra la validation de taille et pourra conclure a tort que le risque est deja traite.
 
 ## 🟡 Moyens
 
-### 1. Contournement RBAC sur l’ajout et la suppression de mutuelles client
+### 1. Les liens de reset utilisent le premier CORS origin comme URL frontend
 
-**Fichier :** `apps/api/app/api/routers/client_mutuelles.py:35`
+**Fichier :** `apps/api/app/services/auth_service.py:258`
 
-```py
-def add_client_mutuelle(..., tenant_ctx: TenantContext = Depends(get_tenant_context)) -> ClientMutuelleResponse:
-    return client_mutuelle_service.add_client_mutuelle(...)
+```python
+frontend_origin = settings.cors_origins.split(",")[0].strip()
+reset_url = f"{frontend_origin}/reset-password?token={raw_token}"
 ```
 
-**Probleme :** Les endpoints `POST /clients/{client_id}/mutuelles` et `DELETE /clients/{client_id}/mutuelles/{mutuelle_id}` sont ouverts a tout utilisateur authentifie du tenant. Cela contredit directement la matrice RBAC (`viewer` n’a pas `create` ni `delete`) et permet a un role lecture seule de modifier les donnees mutuelle d’un client, avec impact sur la preparation PEC et les rapprochements.
+**Probleme :** le lien de reinitialisation depend de l'ordre de `CORS_ORIGINS`, pas d'une URL frontend dediee. En multi-domaines ou avec un premier origin interne/local, les emails peuvent pointer vers le mauvais host. Le token brut de reset est alors envoye vers un domaine non prevu.
 
-**Recommandation :** Poser des dependances explicites `require_permission("create", "client_mutuelle")` et `require_permission("delete", "client_mutuelle")`, puis ajouter des tests API de non-regression pour `viewer`.
+**Recommandation :** introduire une variable explicite du type `FRONTEND_PUBLIC_URL` et construire tous les liens email a partir de cette valeur unique.
 
-**Impact pour Claude :** La presence d’un endpoint admin voisin (`/admin/detect-mutuelles`) peut faire croire qu’une protection equivalente existe sur tout le module alors que ce n’est pas le cas.
+**Impact pour Claude :** la variable parait optionnelle tant que `CORS_ORIGINS` fonctionne en local, alors qu'en prod elle devient de fait une dependance de securite.
 
-### 2. Le frontend embarque encore un `postcss` vulnerable et la CI ne le voit pas
+### 2. Le guard frontend fait confiance a la simple presence du cookie JWT
 
-**Fichier :** `apps/web/package-lock.json:8880`
+**Fichier :** `apps/web/src/middleware.ts:33`
 
-```json
-"node_modules/next": {
-  "version": "15.5.15",
-  "dependencies": { "postcss": "8.4.31" }
+```ts
+const token = request.cookies.get("optiflow_token")?.value;
+if (!token && !isPublicPage) {
+  return NextResponse.redirect(new URL("/login", request.url));
 }
 ```
 
-**Probleme :** `npm audit --omit=dev --json` remonte `GHSA-qx2v-qp2m-jg93` sur `postcss` (`<8.5.10`), ici present en transitif via `next@15.5.15`. La CI frontend utilise `npm audit --audit-level=high`, donc cette faille moderate de type XSS reste silencieuse meme avec un lockfile vulnerable.
+**Probleme :** n'importe quelle valeur de cookie `optiflow_token` suffit a passer le middleware Next.js. Un utilisateur peut donc contourner le redirect vers `/login` et charger les pages privees cote web, meme si les appels API echoueront ensuite en 401. Cela degrade l'isolation UI et rend le comportement trompeur.
 
-**Recommandation :** Mettre a jour `next` vers une version qui ne traine plus `postcss@8.4.31` ou forcer une resolution saine, puis baisser le seuil CI a `--audit-level=moderate` tant que vous consommez du HTML/CSS non trivial.
+**Recommandation :** soit verifier la session via un endpoint serveur leger, soit baser le guard sur un cookie secondaire signe/opaque dedie au frontend, soit deplacer la protection sur des layouts server-side qui verifient effectivement la session.
 
-**Impact pour Claude :** Un assistant qui lit seulement le workflow CI peut supposer qu’un `npm audit` vert signifie “pas de CVE”, ce qui est faux ici.
+**Impact pour Claude :** le cookie est `httpOnly`, ce qui peut donner une fausse impression de robustesse alors que la valeur n'est jamais validee ici.
 
-### 3. La doc de demarrage local ne correspond pas a la stack Compose effective
+### 3. Les URLs presignees renvoyees au navigateur heritent de l'endpoint S3 interne
 
-**Fichier :** `docker-compose.yml:145`
+**Fichier :** `apps/api/app/integrations/storage.py:66`
 
-```yml
-networks:
-  - default
-  - interface-ia-net
+```python
+url = self._client.generate_presigned_url(
+    "get_object",
+    Params=params,
 ```
 
-**Probleme :** Le service `web` depend d’un reseau Docker externe `interface-ia-net`, alors que le `README` annonce un simple `docker compose up -d --build` sans precreation de reseau. Sur une machine fraiche, le premier boot echoue avant meme les tests manuels, ce qui rend le runbook de base faux et ralentit l’onboarding/debug local.
+**Probleme :** les routes de download/avatar renvoient une redirection vers l'URL presignee brute. Or l'exemple versionne configure `S3_ENDPOINT=http://minio:9000`, un hostname Docker interne. Sans endpoint public distinct, les documents et avatars seront rediriges vers une adresse inaccessible depuis le navigateur.
 
-**Recommandation :** Soit supprimer ce reseau externe du compose par defaut et le reserver a un override, soit documenter explicitement `docker network create interface-ia-net` dans `README.md` et `scripts/setup.sh`.
+**Recommandation :** separer endpoint interne S3 et URL publique, ou servir les fichiers via un proxy applicatif/nginx plutot que via une redirection directe sur l'endpoint interne.
 
-**Impact pour Claude :** Ce prerequis n’apparait ni dans le `README` ni dans les scripts de setup, donc un assistant qui reproduit le demarrage “standard” peut diagnostiquer a tort un probleme applicatif.
+**Impact pour Claude :** le bug ne saute pas aux yeux tant qu'on lit seulement l'API ; il apparait en recollant `storage.py`, `documents.py` et la config `.env.example`.
+
+### 4. Le cleanup d'un upload orphelin peut masquer l'erreur SQL d'origine
+
+**Fichier :** `apps/api/app/services/document_service.py:98`
+
+```python
+except SQLAlchemyError:
+    try:
+        storage.delete_file(bucket=settings.s3_bucket, key=storage_key)
+```
+
+**Probleme :** `storage.delete_file()` releve un `BusinessError` sur erreur S3, mais le `except` ne capture que `ConnectionError`, `TimeoutError` et `OSError`. Si la suppression du fichier echoue, l'exception de cleanup remplace l'exception SQL initiale et complique fortement le diagnostic.
+
+**Recommandation :** attraper explicitement `BusinessError` ici, journaliser l'echec de cleanup, puis relancer l'exception SQL initiale sans la masquer.
+
+**Impact pour Claude :** le commentaire promet une suppression d'orphelin "best effort", mais le type d'exception reel vient d'un autre module et casse cette hypothese.
+
+### 5. Le pipeline de securite ignore explicitement un CVE applicatif encore present
+
+**Fichier :** `.github/workflows/ci.yml:98`
+
+```yaml
+#   - CVE-2025-62727 (starlette) : embed FastAPI 0.116, upgrade necessite FastAPI compatible
+cd apps/api && pip-audit -r requirements.txt --strict \
+  --ignore-vuln CVE-2025-62727
+```
+
+**Probleme :** le workflow de securite neutralise volontairement un CVE touchant Starlette, transitif via `fastapi==0.116.1`. Le build repasse donc au vert meme si la dependance prod reste vulnerable.
+
+**Recommandation :** documenter le risque residual, pinner une combinaison FastAPI/Starlette saine des qu'elle existe, ou isoler formellement les surfaces exposees tant que le correctif n'est pas deploye.
+
+**Impact pour Claude :** un assistant qui se fie seulement au badge CI conclura que le scan dependances est strict, alors qu'il est partiellement contourne.
 
 ## 🟢 Nice-to-have
 
-### 1. Le chemin critique du rate limiter n’est pas vraiment teste
+### 1. Le stream S3 n'est pas ferme apres lecture
 
-**Fichier :** `apps/api/tests/test_security.py:63`
+**Fichier :** `apps/api/app/integrations/storage.py:76`
 
-```py
-if settings.app_env in ("test", "local"):
-    return  # Rate limiter disabled
+```python
+response = self._client.get_object(Bucket=bucket, Key=key)
+return response["Body"].read()
 ```
 
-**Probleme :** Le test de rate limiting sort immediatement dans les environnements utilises par la CI, ce qui laisse sans couverture le middleware reel sur les endpoints sensibles. C’est la raison pour laquelle la regression `trusted_proxies` a pu passer sans detection.
+**Probleme :** le body de reponse boto3 n'est pas ferme explicitement. Sous charge, cela peut garder des connexions HTTP ouvertes inutilement et epuiser le pool.
 
-**Recommandation :** Ajouter un test cible qui instancie le middleware avec `APP_ENV=development` et un `Settings` complet, sans desactiver la logique de limitation.
+**Recommandation :** lire le body dans un `try/finally` puis appeler `response["Body"].close()`.
 
-**Impact pour Claude :** Sans cette note, un assistant verra “test_login_rate_limiting” et pourra surestimer la couverture securite.
+**Impact pour Claude :** faible a froid, mais cumulatif sur des workers OCR/export qui telechargent beaucoup de fichiers.
+
+### 2. Le endpoint `/api/v1/metrics` est bloque par sa propre config nginx
+
+**Fichier :** `config/nginx/nginx.conf:74`
+
+```nginx
+location /api/v1/metrics {
+    allow 127.0.0.1;
+    deny all;
+    return 403;
+}
+```
+
+**Probleme :** `return 403;` s'execute de toute facon, meme pour `127.0.0.1`. Le scraping Prometheus via nginx ne peut donc jamais fonctionner tel quel.
+
+**Recommandation :** remplacer `return 403;` par un `proxy_pass http://api;` conditionne par `allow/deny`, ou faire scraper Prometheus directement sur l'API.
+
+**Impact pour Claude :** l'intention du commentaire est bonne, mais l'ordre d'evaluation nginx annule la protection attendue.
+
+### 3. Le middleware Next.js applique une CSP image trop stricte pour les medias rediriges
+
+**Fichier :** `apps/web/src/middleware.ts:23`
+
+```ts
+"img-src 'self' data: blob:",
+`connect-src 'self' ${apiOrigin} https://c1.cosium.biz`,
+```
+
+**Probleme :** si les avatars/documents continuent d'etre servis par redirection vers une origine S3/MinIO distincte, cette CSP bloquera aussi leur affichage dans le navigateur.
+
+**Recommandation :** soit servir les medias via meme origine, soit declarer explicitement l'origine publique des assets dans `img-src`.
+
+**Impact pour Claude :** ce point reste invisible tant qu'on ne relie pas la CSP frontend au mecanisme de presigned URL backend.
 
 ## 🧠 Angles morts Claude
 
 Elements qu'un assistant IA risque de rater sans cette note :
 
-- **`TRUSTED_PROXIES` implicite** : le rate limiter depend d’une variable/config absente du schema `Settings`; tant que personne ne fait tourner le middleware hors `test`, la regression reste invisible.
-- **RBAC teste mais pas branche partout** : `tests/test_rbac_permissions.py` valide la matrice `_ROLE_PERMISSIONS`, mais pas la presence des dependances `require_permission` sur chaque route mutante.
-- **Ordre critique de demarrage DB/migrations** : `app.main._startup_checks()` refuse de booter en `staging/production` si Alembic n’est pas a `head`; `scripts/deploy.sh` lance donc `alembic upgrade head` avant l’API.
-- **Reset password et billing derives de `CORS_ORIGINS`** : les URLs d’email de reset et les URLs Stripe sont construites a partir du premier element de `CORS_ORIGINS`; un ordre d’origines mal choisi peut envoyer les utilisateurs vers le mauvais host.
-- **Compose par defaut non autonome** : le reseau externe `interface-ia-net` est requis par `docker-compose.yml`, mais la doc de lancement local ne le mentionne pas.
+- **Reseau Docker externe obligatoire** : le premier `docker compose up` echoue sans creation prealable de `interface-ia-net` (`README.md`).
+- **Migrations bloquantes au boot** : en `production/staging`, l'API refuse de demarrer si Alembic n'est pas a `head` (`apps/api/app/main.py`).
+- **URL de reset dependante du CORS** : l'ordre des valeurs dans `CORS_ORIGINS` change effectivement le domaine des emails de reset (`apps/api/app/services/auth_service.py`).
+- **Endpoint S3 doit etre publiquement resolvable** : `S3_ENDPOINT` ne sert pas qu'au trafic backend, il fuit aussi dans les URLs presignees consommees par le navigateur.
+- **Volume Beat critique** : la persistance `celerybeat_schedule` evite de redeclencher des taches planifiees apres restart (`docker-compose.yml`).
 
 ## ✨ Ameliorations proposees
 
-- **Verifier les CVE Python dans le meme rapport** : la CI fait deja `pip-audit`; ajouter sa sortie resumee au runbook ou au rapport de release eviterait de dependre d’un environnement local outille.
-- **Ajouter un test “route mutation sans permission”** : un test meta qui scanne les routers pour detecter les `POST/PATCH/DELETE` sans `require_permission` ou `require_tenant_role` fermerait toute une classe de regressions.
-- **Centraliser les URLs frontend publiques** : utiliser une variable dediee type `PUBLIC_APP_URL` plutot que `CORS_ORIGINS.split(",")[0]` reduirait les erreurs de configuration sur reset password et Stripe.
-- **Sortir `interface-ia-net` du compose de base** : le laisser dans un override d’integration rendrait `docker compose up` conforme au `README` et reduirait le temps d’onboarding.
+Non bloquant mais gain qualite / DX :
+
+- **Streaming upload unifie** : factoriser documents + avatars sur un helper commun qui valide MIME, taille et magic bytes en flux ; cela supprime le doublon et ferme la faille DoS.
+- **URL publiques explicites** : ajouter `FRONTEND_PUBLIC_URL` et `S3_PUBLIC_BASE_URL` pour sortir la logique d'URL des variables internes de transport.
+- **Session guard cote serveur** : centraliser la verification de session dans un endpoint court ou un layout server-side pour eviter les divergences entre middleware Next et API FastAPI.
+- **Durcissement CI dependances** : remonter les CVE ignorees dans un job separé "accepted risk" avec date d'expiration pour eviter qu'elles deviennent invisibles.
+- **Tests d'erreur storage** : ajouter des tests couvrant echec de cleanup S3, presigned URL publique, et uploads > limite avant buffering.
 
 ## Conclusion
 
-Les priorites recommandees sont : 1) corriger immediatement le branchement RBAC sur les routes mutantes identifiees, 2) ajouter `trusted_proxies` au schema de config et couvrir le middleware de rate-limit en environnement non-test, 3) mettre a jour le lockfile frontend ou la politique d’audit CI. Score global subjectif : **6/10**. La base est serieuse, mais ces ecarts montrent encore une difference nette entre la matrice de securite voulue et le comportement runtime effectif.
+Priorite immediate : corriger le buffering des uploads et sortir les URLs publiques des configs internes. Ensuite, fiabiliser les flux auth annexes (reset password, guard frontend) et les chemins d'erreur storage. Score global subjectif : **6/10** — base solide et relativement disciplinee, mais encore quelques defauts transverses qui toucheront directement la securite ou l'exploitabilite en production.
