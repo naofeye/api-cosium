@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,7 +11,6 @@ import { loginSchema, type LoginFormData } from "@/lib/schemas/auth";
 import { Eye, ShieldCheck } from "lucide-react";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [serverError, setServerError] = useState("");
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaSetupRequired, setMfaSetupRequired] = useState(false);
@@ -37,7 +35,11 @@ export default function LoginPage() {
     setServerError("");
     try {
       await login(email, password, code);
-      router.push("/actions");
+      // Hard navigation ensures the browser processes Set-Cookie from the login
+      // response before the next request hits the Next.js middleware. router.push()
+      // (soft RSC navigation) can fire before the cookie is persisted, causing the
+      // middleware auth guard to see no token and redirect back to /login.
+      window.location.href = "/actions";
     } catch (err) {
       if (err instanceof MfaRequiredError) {
         if (err.reason === "MFA_SETUP_REQUIRED") {
