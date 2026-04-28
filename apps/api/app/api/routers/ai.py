@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
-from app.integrations.ai.claude_provider import claude_provider
 from app.repositories import ai_context_repo
 from app.services import ai_service
 
@@ -121,29 +120,13 @@ def pre_rdv_brief(
     if not customer:
         raise HTTPException(status_code=404, detail="Client introuvable")
 
-    cosium_ctx = ai_service.get_client_cosium_context(db, customer_id, tenant_ctx.tenant_id)
-    if not cosium_ctx:
-        return PreRdvBriefResponse(
-            customer_id=customer_id,
-            brief=(
-                f"Aucune donnee Cosium synchronisee pour {customer.first_name} {customer.last_name}. "
-                "Preparez le RDV manuellement."
-            ),
-            context_used=False,
+    brief_text, context_used = ai_service.pre_rdv_brief(db, customer_id, tenant_ctx.tenant_id)
+    if not context_used:
+        brief_text = (
+            f"Aucune donnee Cosium synchronisee pour {customer.first_name} {customer.last_name}. "
+            "Preparez le RDV manuellement."
         )
-
-    system = (
-        "Tu es l'assistant de l'opticien. Resume en 5-8 points le dossier client pour preparer un RDV : "
-        "dernier equipement et date, evolution des dioptries si notable, PEC en attente, solde impaye, "
-        "points de vigilance. Francais clair, pas de jargon technique, max 150 mots."
-    )
-    question = f"Prepare un brief pour le RDV de {customer.first_name} {customer.last_name}."
-    result = claude_provider.query_with_usage(question, context=cosium_ctx, system=system)
-    return PreRdvBriefResponse(
-        customer_id=customer_id,
-        brief=result.get("text", ""),
-        context_used=True,
-    )
+    return PreRdvBriefResponse(customer_id=customer_id, brief=brief_text, context_used=context_used)
 
 
 class UpsellSuggestionResponse(BaseModel):
@@ -170,28 +153,11 @@ def upsell_suggestion(
     if not customer:
         raise HTTPException(status_code=404, detail="Client introuvable")
 
-    cosium_ctx = ai_service.get_client_cosium_context(db, customer_id, tenant_ctx.tenant_id)
-    if not cosium_ctx:
-        return UpsellSuggestionResponse(
-            customer_id=customer_id,
-            suggestion="Pas d'historique suffisant pour une suggestion d'upsell.",
-            context_used=False,
-        )
-
-    system = (
-        "Tu es le conseiller commercial de l'opticien. "
-        "A partir de l'historique client (dernier equipement, prescriptions, dioptries), "
-        "propose UN seul upsell pertinent et realiste : verres progressifs si addition >= +1.00, "
-        "anti-lumiere bleue si profession ecran probable, seconde paire solaire si pas solaire, "
-        "lentilles si myopie moderee. "
-        "Format : 1 ligne d'accroche + 3 bullets max justifiant. Francais chaleureux, pas de jargon."
-    )
-    question = f"Suggere un upsell pertinent pour {customer.first_name} {customer.last_name}."
-    result = claude_provider.query_with_usage(question, context=cosium_ctx, system=system)
+    suggestion_text, context_used = ai_service.upsell_suggestion(db, customer_id, tenant_ctx.tenant_id)
+    if not context_used:
+        suggestion_text = "Pas d'historique suffisant pour une suggestion d'upsell."
     return UpsellSuggestionResponse(
-        customer_id=customer_id,
-        suggestion=result.get("text", ""),
-        context_used=True,
+        customer_id=customer_id, suggestion=suggestion_text, context_used=context_used
     )
 
 
@@ -251,28 +217,11 @@ def product_recommendation(
     if not customer:
         raise HTTPException(status_code=404, detail="Client introuvable")
 
-    cosium_ctx = ai_service.get_client_cosium_context(db, customer_id, tenant_ctx.tenant_id)
-    if not cosium_ctx:
-        return ProductRecommendationResponse(
-            customer_id=customer_id,
-            recommendation="Aucune prescription synchronisee, impossible de proposer une recommandation adaptee.",
-            context_used=False,
-        )
-
-    system = (
-        "Tu es l'expert optique du magasin. A partir des dernieres dioptries du client, "
-        "recommande : (1) type de verre ideal (unifocaux / progressifs / occupationnels), "
-        "(2) traitements indispensables (anti-reflet, anti-lumiere bleue, durci, photochromique), "
-        "(3) materiau adapte (indice >=1.6 si sphere >=+3 ou <=-3, sinon 1.5). "
-        "Justifie chaque point par UN parametre precis de la prescription. "
-        "Format : liste markdown, max 5 bullets, francais clair."
-    )
-    question = f"Quel equipement conseiller a {customer.first_name} {customer.last_name} ?"
-    result = claude_provider.query_with_usage(question, context=cosium_ctx, system=system)
+    rec_text, context_used = ai_service.product_recommendation(db, customer_id, tenant_ctx.tenant_id)
+    if not context_used:
+        rec_text = "Aucune prescription synchronisee, impossible de proposer une recommandation adaptee."
     return ProductRecommendationResponse(
-        customer_id=customer_id,
-        recommendation=result.get("text", ""),
-        context_used=True,
+        customer_id=customer_id, recommendation=rec_text, context_used=context_used
     )
 
 
@@ -296,49 +245,8 @@ def devis_analysis(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> DevisAnalysisResponse:
-    devis, lignes, customer_id = ai_context_repo.get_devis_with_lines(
-        db, devis_id, tenant_ctx.tenant_id
-    )
-    if not devis:
+    result = ai_service.devis_analysis(db, devis_id, tenant_ctx.tenant_id)
+    if result is None:
         raise HTTPException(status_code=404, detail="Devis introuvable")
-
-    lignes_text = "\n".join(
-        f"- {l.designation} x{l.quantite} @ {l.prix_unitaire_ht}EUR HT" for l in lignes
-    ) or "(aucune ligne)"
-
-    customer_ctx = ""
-    if customer_id:
-        customer_ctx = ai_service.get_client_cosium_context(
-            db, customer_id, tenant_ctx.tenant_id
-        ) or ""
-
-    context = (
-        f"DEVIS #{devis.numero} - Total TTC {devis.montant_ttc}EUR\n"
-        f"Part Secu {devis.part_secu}EUR, Part mutuelle {devis.part_mutuelle}EUR, "
-        f"Reste a charge {devis.reste_a_charge}EUR\n"
-        f"Lignes:\n{lignes_text}\n"
-        f"\n--- HISTORIQUE CLIENT ---\n{customer_ctx}" if customer_ctx else ""
-    )
-
-    system = (
-        "Tu es l'assistant qualite de l'opticien. Analyse le devis en 4-5 bullets : "
-        "1) Coherence prescription vs verres, 2) Options manquantes (traitement, anti-reflet), "
-        "3) Prix par rapport au marche, 4) Points de vigilance pour le client. "
-        "Termine par une liste courte de WARNINGS si incoherence grave. Francais professionnel."
-    )
-    question = f"Analyse le devis #{devis.numero}."
-    result = claude_provider.query_with_usage(question, context=context, system=system)
-    response_text = result.get("text", "")
-
-    # Extraction des warnings
-    warnings: list[str] = []
-    for line in response_text.split("\n"):
-        stripped = line.strip()
-        if stripped.lower().startswith(("warning:", "attention:", "alerte:")):
-            warnings.append(stripped)
-
-    return DevisAnalysisResponse(
-        devis_id=devis_id,
-        analysis=response_text,
-        warnings=warnings,
-    )
+    analysis_text, warnings = result
+    return DevisAnalysisResponse(devis_id=devis_id, analysis=analysis_text, warnings=warnings)
