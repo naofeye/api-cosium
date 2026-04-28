@@ -11,11 +11,9 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   compress: true,
-  // ESLint run durant `next build` - bloque sur erreurs uniquement (warnings ok).
+  // Note Next.js 16 : `eslint.ignoreDuringBuilds` supprime du type NextConfig.
+  // ESLint est toujours execute par `next build` par defaut (bloque sur erreurs).
   // CI a un job "Frontend Lint" separe qui fait un audit plus strict.
-  eslint: {
-    ignoreDuringBuilds: false,
-  },
   images: {
     remotePatterns: [
       { protocol: "http", hostname: "minio", port: "9000", pathname: "/**" },
