@@ -115,6 +115,33 @@ class TestUploadDocument:
 
         assert resp.status_code == 422
 
+    def test_upload_oversized_file_rejected_with_streaming(
+        self, client: TestClient, auth_headers: dict, monkeypatch: pytest.MonkeyPatch
+    ):
+        """Un fichier qui depasse MAX_UPLOAD_SIZE_MB doit etre rejete sans
+        charger le payload complet en memoire (audit Codex 2026-04-28 #2)."""
+        from app.core.config import settings as _settings
+
+        # Limite minuscule pour le test
+        monkeypatch.setattr(_settings, "max_upload_size_mb", 1)
+
+        resp = client.post(
+            "/api/v1/cases",
+            json={"first_name": "Big", "last_name": "Upload"},
+            headers=auth_headers,
+        )
+        case_id = resp.json()["id"]
+
+        oversized = b"%PDF" + b"\x00" * (2 * 1024 * 1024)  # 2 MB > 1 MB limit
+        resp = client.post(
+            f"/api/v1/cases/{case_id}/documents",
+            files={"file": ("big.pdf", io.BytesIO(oversized), "application/pdf")},
+            headers=auth_headers,
+        )
+
+        assert resp.status_code == 422
+        assert "trop volumineux" in resp.text.lower()
+
     def test_upload_multiple_documents(self, client: TestClient, auth_headers: dict):
         """Verifier qu'on peut telecharger plusieurs documents sur un meme dossier."""
         resp = client.post(
