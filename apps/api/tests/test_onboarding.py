@@ -18,6 +18,11 @@ def test_signup_creates_org_tenant_user(client, db):
     assert data["tenant_name"] == "Optique Test"
     assert data["role"] == "admin"
     assert len(data["available_tenants"]) == 1
+    # Tokens en cookies HttpOnly, pas en JSON
+    assert "optiflow_token" in resp.cookies
+    assert "optiflow_refresh" in resp.cookies
+    assert "access_token" not in data
+    assert "refresh_token" not in data
 
     org = db.query(Organization).filter(Organization.slug == "optique-test").first()
     assert org is not None
@@ -73,12 +78,10 @@ def test_onboarding_status_after_signup(client, db):
         "owner_first_name": "A",
         "owner_last_name": "B",
     })
-    token = resp.json()["access_token"]
+    assert resp.status_code == 201
 
-    status = client.get(
-        "/api/v1/onboarding/status",
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    # TestClient propage automatiquement les cookies de session
+    status = client.get("/api/v1/onboarding/status")
     assert status.status_code == 200
     data = status.json()
     assert data["current_step"] == "cosium"
@@ -101,12 +104,11 @@ def test_connect_cosium_success(mock_get_connector, client, db):
         "owner_first_name": "A",
         "owner_last_name": "B",
     })
-    token = resp.json()["access_token"]
+    assert resp.status_code == 201
 
     connect = client.post(
         "/api/v1/onboarding/connect-cosium",
         json={"cosium_tenant": "mysite", "cosium_login": "user", "cosium_password": "pass"},
-        headers={"Authorization": f"Bearer {token}"},
     )
     assert connect.status_code == 200
     assert connect.json()["status"] == "connected"
@@ -129,11 +131,10 @@ def test_connect_cosium_failure(mock_get_connector, client, db):
         "owner_first_name": "A",
         "owner_last_name": "B",
     })
-    token = resp.json()["access_token"]
+    assert resp.status_code == 201
 
     connect = client.post(
         "/api/v1/onboarding/connect-cosium",
         json={"cosium_tenant": "badsite", "cosium_login": "user", "cosium_password": "pass"},
-        headers={"Authorization": f"Bearer {token}"},
     )
     assert connect.status_code == 400

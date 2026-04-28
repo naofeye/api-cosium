@@ -1,10 +1,15 @@
+export interface TenantInfo {
+  id: number;
+  name: string;
+  slug: string;
+  role: string;
+}
+
 export interface SignupResponse {
-  access_token: string;
-  refresh_token: string;
+  role: string;
   tenant_id: number;
   tenant_name: string;
-  user_id: number;
-  role: string;
+  available_tenants: TenantInfo[];
 }
 
 export interface ConnectCosiumResponse {

@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
+from app.core.auth_cookies import set_auth_cookies
 from app.core.deps import require_tenant_role
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
-from app.domain.schemas.auth import TokenResponse
+from app.domain.schemas.auth import LoginResponse
 from app.domain.schemas.onboarding import (
     ConnectCosiumRequest,
     ConnectCosiumResult,
@@ -19,16 +20,24 @@ router = APIRouter(prefix="/api/v1/onboarding", tags=["onboarding"])
 
 @router.post(
     "/signup",
-    response_model=TokenResponse,
+    response_model=LoginResponse,
     status_code=201,
     summary="Inscription",
-    description="Cree un nouveau compte utilisateur et tenant.",
+    description="Cree un nouveau compte utilisateur et tenant. Pose les cookies de session HttpOnly.",
 )
 def signup(
     payload: SignupRequest,
+    response: Response,
     db: Session = Depends(get_db),
-) -> TokenResponse:
-    return onboarding_service.signup(db, payload=payload)
+) -> LoginResponse:
+    result = onboarding_service.signup(db, payload=payload)
+    set_auth_cookies(response, result)
+    return LoginResponse(
+        role=result.role,
+        tenant_id=result.tenant_id,
+        tenant_name=result.tenant_name,
+        available_tenants=result.available_tenants,
+    )
 
 
 @router.post(

@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
+from app.core.auth_cookies import clear_auth_cookies as _clear_auth_cookies
+from app.core.auth_cookies import set_auth_cookies as _set_auth_cookies
 from app.core.deps import get_current_user
 from app.core.exceptions import AuthenticationError
 from app.core.tenant_context import TenantContext, get_tenant_context
@@ -14,7 +15,6 @@ from app.domain.schemas.auth import (
     ResetPasswordRequest,
     SessionInfo,
     SwitchTenantRequest,
-    TokenResponse,
     UserMeResponse,
 )
 from app.models import User
@@ -22,43 +22,6 @@ from app.repositories import refresh_token_repo
 from app.services import auth_service
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
-
-_COOKIE_OPTS: dict = {
-    "httponly": True,
-    "samesite": "strict",
-    "secure": settings.app_env not in ("local", "development", "test"),
-    "path": "/",
-}
-
-
-def _set_auth_cookies(response: Response, result: TokenResponse) -> None:
-    response.set_cookie(
-        "optiflow_token", result.access_token, max_age=settings.access_token_expire_minutes * 60, **_COOKIE_OPTS
-    )
-    response.set_cookie(
-        "optiflow_refresh", result.refresh_token, max_age=settings.refresh_token_expire_days * 86400, **_COOKIE_OPTS
-    )
-    # Non-httpOnly flag so frontend can detect auth status (no secret).
-    # Reste non-httpOnly (lisible JS) mais secure=True en prod pour eviter fuite sur HTTP.
-    response.set_cookie(
-        "optiflow_authenticated",
-        "true",
-        max_age=settings.refresh_token_expire_days * 86400,
-        path="/",
-        samesite="strict",
-        secure=settings.app_env not in ("local", "development", "test"),
-    )
-
-
-def _clear_auth_cookies(response: Response) -> None:
-    response.delete_cookie("optiflow_token", **_COOKIE_OPTS)
-    response.delete_cookie("optiflow_refresh", **_COOKIE_OPTS)
-    response.delete_cookie(
-        "optiflow_authenticated",
-        path="/",
-        samesite="strict",
-        secure=settings.app_env not in ("local", "development", "test"),
-    )
 
 
 @router.post(
