@@ -64,6 +64,7 @@
 - [x] ~~MFA frontend UI~~ : composant `MfaSection` (setup TOTP avec QR code via `qrcode.react`, input vérification 6 digits, backup codes générés + affichés une fois, désactivation avec mot de passe). Intégré dans `/settings`. Login étendu avec flow TOTP : `MfaRequiredError` typé, champ code affiché conditionnellement (`MFA_CODE_REQUIRED` / `MFA_CODE_INVALID`), message admin pour `MFA_SETUP_REQUIRED`. Page `/admin/security` pour toggle `require_admin_mfa` par tenant (confirm dialog + warning lockout). Lien ajouté dans panel admin. 0 warning lint, TS vert.
 
 ### E2E Playwright — débloquer les tests UI login (jamais passés, 20+ runs fail)
+- [x] **Fix appliqué (2026-04-28, session vps-master)** : `window.location.href = "/actions"` au lieu de `router.push("/actions")` dans `login/page.tsx`. Commit `770c03c`.
 - [ ] **Root cause identifiée (2026-04-25, session vps-master)** :
 
   **Le problème** : les 10 tests UI qui passent par `uiLogin()` échouent tous avec `toHaveURL(/\/actions$/)` timeout. Le formulaire soumet (l'API reçoit le POST login et retourne 200), mais `router.push("/actions")` ne redirige pas. Les tests API-only (sans navigateur) passent.
@@ -86,7 +87,7 @@
   - Le RSC prefetch de Next.js 15 ne forward pas les cookies httpOnly sur les requêtes internes
   - Le standalone server ne traite pas le middleware de la même façon
 
-  **Pour déboguer** : ajouter un `console.log` dans le middleware pour voir si le cookie arrive, et/ou intercepter les requêtes réseau Playwright (`page.on('response')`) pour vérifier les headers `Set-Cookie` de la réponse login et les headers `Cookie` des requêtes suivantes.
+  **Fix confirmé** : `window.location.href = "/actions"` force un rechargement complet de la page (hard navigation). Le navigateur traite les `Set-Cookie` de la réponse login AVANT d'envoyer la prochaine requête. `router.push()` (soft navigation RSC) peut déclencher la requête RSC avant que le browser ait persisté les cookies httpOnly SameSite=Strict — le middleware ne voit pas le token et redirige vers /login.
 
   **Fichiers clés** :
   - `apps/web/src/middleware.ts` — le guard auth
