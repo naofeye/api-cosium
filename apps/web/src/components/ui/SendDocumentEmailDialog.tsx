@@ -5,68 +5,84 @@ import { Loader2, Send, X } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { fetchJson } from "@/lib/api";
 
-interface DevisSendEmailDialogProps {
+export interface SendDocumentEmailDialogProps {
   open: boolean;
   onClose: () => void;
-  devisId: number;
-  devisNumero: string;
+  /** Endpoint relatif a /api/v1, ex: "/devis/42/send-email". */
+  endpoint: string;
+  /** Numero du document affiche dans le header et l'objet par defaut. */
+  documentNumero: string;
+  /** Type de document en francais (singulier minuscule), ex: "devis", "facture". */
+  documentLabel: string;
+  /** Email du client si connu. */
   defaultRecipient?: string | null;
-  onSent?: () => void;
+  /** Sujet par defaut. Si absent, "Votre {documentLabel} {documentNumero}". */
+  defaultSubject?: string;
+  /** Message par defaut. Si absent, un message generique est utilise. */
+  defaultMessage?: string;
+  onSent?: (response: { to: string }) => void;
 }
 
 interface SendEmailResponse {
   sent: boolean;
   to: string;
-  devis_id: number;
 }
 
-const DEFAULT_MESSAGE =
-  "Bonjour,\n\nVeuillez trouver ci-joint votre devis. Nous restons a votre disposition pour toute question.\n\nCordialement,\nL'equipe OptiFlow";
+function buildDefaultMessage(label: string): string {
+  return `Bonjour,\n\nVeuillez trouver ci-joint votre ${label}. Nous restons a votre disposition pour toute question.\n\nCordialement,\nL'equipe OptiFlow`;
+}
 
-export function DevisSendEmailDialog({
+export function SendDocumentEmailDialog({
   open,
   onClose,
-  devisId,
-  devisNumero,
+  endpoint,
+  documentNumero,
+  documentLabel,
   defaultRecipient,
+  defaultSubject,
+  defaultMessage,
   onSent,
-}: DevisSendEmailDialogProps) {
+}: SendDocumentEmailDialogProps) {
   const { toast } = useToast();
+  const initialSubject = defaultSubject ?? `Votre ${documentLabel} ${documentNumero}`;
+  const initialMessage = defaultMessage ?? buildDefaultMessage(documentLabel);
+
   const [to, setTo] = useState(defaultRecipient ?? "");
-  const [subject, setSubject] = useState(`Votre devis ${devisNumero}`);
-  const [message, setMessage] = useState(DEFAULT_MESSAGE);
+  const [subject, setSubject] = useState(initialSubject);
+  const [message, setMessage] = useState(initialMessage);
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (open) {
       setTo(defaultRecipient ?? "");
-      setSubject(`Votre devis ${devisNumero}`);
-      setMessage(DEFAULT_MESSAGE);
+      setSubject(initialSubject);
+      setMessage(initialMessage);
     }
-  }, [open, defaultRecipient, devisNumero]);
+    // initialSubject/initialMessage are derived from props above; including
+    // them would just retrigger the same reset.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, defaultRecipient, documentNumero, documentLabel]);
 
   if (!open) return null;
 
   const isValid = to.trim().length > 0 && /\S+@\S+\.\S+/.test(to);
+  const headerLabel = documentLabel.charAt(0).toUpperCase() + documentLabel.slice(1);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!isValid || sending) return;
     setSending(true);
     try {
-      const result = await fetchJson<SendEmailResponse>(
-        `/devis/${devisId}/send-email`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            to: to.trim(),
-            subject: subject.trim() || undefined,
-            message: message.trim() || undefined,
-          }),
-        },
-      );
-      toast(`Devis envoye a ${result.to}`, "success");
-      onSent?.();
+      const result = await fetchJson<SendEmailResponse>(endpoint, {
+        method: "POST",
+        body: JSON.stringify({
+          to: to.trim(),
+          subject: subject.trim() || undefined,
+          message: message.trim() || undefined,
+        }),
+      });
+      toast(`${headerLabel} envoye a ${result.to}`, "success");
+      onSent?.(result);
       onClose();
     } catch {
       // fetchJson dispatches a global api-error event handled by the toast layer
@@ -80,7 +96,7 @@ export function DevisSendEmailDialog({
       className="fixed inset-0 z-50 flex items-center justify-center"
       role="dialog"
       aria-modal="true"
-      aria-label="Envoyer le devis par email"
+      aria-label={`Envoyer ${documentLabel} par email`}
     >
       <div
         className="absolute inset-0 bg-black/50"
@@ -94,7 +110,7 @@ export function DevisSendEmailDialog({
       >
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h2 className="text-lg font-semibold text-text-primary">
-            Envoyer le devis {devisNumero}
+            Envoyer {documentLabel === "facture" ? "la" : "le"} {documentLabel} {documentNumero}
           </h2>
           <button
             type="button"
@@ -108,18 +124,18 @@ export function DevisSendEmailDialog({
 
         <div className="px-6 py-4 space-y-4">
           <p className="text-xs text-text-secondary">
-            Le PDF du devis sera attache automatiquement.
+            Le PDF {documentLabel === "facture" ? "de la" : "du"} {documentLabel} sera attache automatiquement.
           </p>
 
           <div>
             <label
-              htmlFor="devis-email-to"
+              htmlFor="senddoc-email-to"
               className="block text-sm font-medium text-text-primary mb-1"
             >
               Destinataire *
             </label>
             <input
-              id="devis-email-to"
+              id="senddoc-email-to"
               type="email"
               required
               value={to}
@@ -136,13 +152,13 @@ export function DevisSendEmailDialog({
 
           <div>
             <label
-              htmlFor="devis-email-subject"
+              htmlFor="senddoc-email-subject"
               className="block text-sm font-medium text-text-primary mb-1"
             >
               Objet
             </label>
             <input
-              id="devis-email-subject"
+              id="senddoc-email-subject"
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
@@ -153,13 +169,13 @@ export function DevisSendEmailDialog({
 
           <div>
             <label
-              htmlFor="devis-email-message"
+              htmlFor="senddoc-email-message"
               className="block text-sm font-medium text-text-primary mb-1"
             >
               Message personnalise
             </label>
             <textarea
-              id="devis-email-message"
+              id="senddoc-email-message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={6}

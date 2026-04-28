@@ -11,6 +11,8 @@ from app.domain.schemas.factures import (
     FactureCreate,
     FactureDetail,
     FactureResponse,
+    FactureSendEmailRequest,
+    FactureSendEmailResponse,
 )
 from app.services import facture_service, pdf_service
 
@@ -84,4 +86,30 @@ def download_facture_pdf(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={"Content-Disposition": content_disposition(f"facture_{facture_id}.pdf")},
+    )
+
+
+@router.post(
+    "/factures/{facture_id}/send-email",
+    response_model=FactureSendEmailResponse,
+    summary="Envoyer la facture par email",
+    description=(
+        "Envoie la facture au client par email avec le PDF en piece jointe. "
+        "Si aucun destinataire n'est fourni, l'email du client est utilise."
+    ),
+)
+def send_facture_email(
+    facture_id: int,
+    payload: FactureSendEmailRequest,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_permission("edit", "facture")),
+) -> FactureSendEmailResponse:
+    return facture_service.send_facture_email(
+        db,
+        tenant_id=tenant_ctx.tenant_id,
+        facture_id=facture_id,
+        user_id=tenant_ctx.user_id,
+        to=payload.to,
+        subject=payload.subject,
+        message=payload.message,
     )

@@ -1,6 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import useSWR from "swr";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { KPICard } from "@/components/ui/KPICard";
@@ -9,6 +10,7 @@ import { DateDisplay } from "@/components/ui/DateDisplay";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Button } from "@/components/ui/Button";
+import { SendDocumentEmailDialog } from "@/components/ui/SendDocumentEmailDialog";
 import { downloadPdf } from "@/lib/download";
 import { formatMoney } from "@/lib/format";
 import { Euro, FileText, Receipt, Download, Printer, Mail, ShieldCheck, AlertCircle } from "lucide-react";
@@ -21,6 +23,7 @@ import { FactureLignesTable } from "./components/FactureLignesTable";
 export default function FactureDetailPage() {
   const params = useParams();
   const id = params.id as string;
+  const [emailOpen, setEmailOpen] = useState(false);
 
   const { data: facture, error, isLoading, mutate } = useSWR<FactureDetail>(`/factures/${id}`);
 
@@ -81,6 +84,14 @@ export default function FactureDetailPage() {
             aria-label="Telecharger en PDF"
           >
             <Download className="h-4 w-4" /> PDF
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setEmailOpen(true)}
+            aria-label="Envoyer la facture par email"
+          >
+            <Mail className="h-4 w-4" /> Envoyer par email
           </Button>
         </div>
       }
@@ -202,6 +213,15 @@ export default function FactureDetailPage() {
         lignes={facture.lignes ?? []}
         montant_ht={facture.montant_ht}
         montant_ttc={facture.montant_ttc}
+      />
+
+      <SendDocumentEmailDialog
+        open={emailOpen}
+        onClose={() => setEmailOpen(false)}
+        endpoint={`/factures/${facture.id}/send-email`}
+        documentNumero={facture.numero}
+        documentLabel="facture"
+        defaultRecipient={facture.customer_email ?? null}
       />
     </PageLayout>
   );

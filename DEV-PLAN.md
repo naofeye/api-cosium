@@ -107,9 +107,9 @@ Chaque feature implémentée doit être de **qualité professionnelle** :
   Critères: email envoyé avec PDF attaché, audit log, toast confirmation frontend, test backend avec mock SMTP
   Niveau: 2
 
-- [ ] Envoi facture par email au client
-  Files: apps/api/app/api/routers/factures.py, apps/api/app/services/facture_service.py, apps/api/app/integrations/email_sender.py, apps/web/src/app/factures/[id]/page.tsx
-  Specs: même pattern que devis — POST /api/v1/factures/{id}/send-email. Bouton "Envoyer" sur la page détail facture.
+- [x] Envoi facture par email au client _(fait 2026-04-28)_
+  Files: apps/api/app/api/routers/factures.py, apps/api/app/services/facture_service.py, apps/api/app/repositories/facture_repo.py, apps/api/app/domain/schemas/factures.py, apps/api/app/templates/facture.html (nouveau), apps/api/tests/test_factures.py, apps/web/src/components/ui/SendDocumentEmailDialog.tsx (nouveau, generic), apps/web/src/app/factures/[id]/page.tsx, apps/web/src/app/devis/[id]/components/DevisActionButtons.tsx, apps/web/tests/pages/devis-send-email.test.tsx, apps/web/tests/pages/facture-send-email.test.tsx (nouveau)
+  Specs: même pattern que devis — POST /api/v1/factures/{id}/send-email. Bouton "Envoyer" sur la page détail facture. Dialog generalise (SendDocumentEmailDialog) reutilise par devis + facture.
   Critères: email envoyé avec PDF, audit log, toast, test
   Niveau: 2
 

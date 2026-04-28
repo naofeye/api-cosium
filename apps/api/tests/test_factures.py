@@ -104,3 +104,148 @@ def test_devis_status_changes_to_facture(client: TestClient, auth_headers: dict)
     client.post("/api/v1/factures", json={"devis_id": devis_id}, headers=auth_headers)
     resp = client.get(f"/api/v1/devis/{devis_id}", headers=auth_headers)
     assert resp.json()["status"] == "facture"
+
+
+def _create_facture_with_email(
+    client: TestClient, headers: dict, email: str | None
+) -> int:
+    """Create a case (with email), devis, sign, generate facture, return facture_id."""
+    payload = {"first_name": "Email", "last_name": "Recipient", "source": "manual"}
+    if email is not None:
+        payload["email"] = email
+    case_resp = client.post("/api/v1/cases", json=payload, headers=headers)
+    case_id = case_resp.json()["id"]
+    devis_resp = client.post(
+        "/api/v1/devis",
+        json={
+            "case_id": case_id,
+            "part_secu": 0,
+            "part_mutuelle": 0,
+            "lignes": [
+                {"designation": "X", "quantite": 1, "prix_unitaire_ht": 100, "taux_tva": 20}
+            ],
+        },
+        headers=headers,
+    )
+    devis_id = devis_resp.json()["id"]
+    client.patch(f"/api/v1/devis/{devis_id}/status", json={"status": "envoye"}, headers=headers)
+    client.patch(f"/api/v1/devis/{devis_id}/status", json={"status": "signe"}, headers=headers)
+    facture_resp = client.post(
+        "/api/v1/factures", json={"devis_id": devis_id}, headers=headers
+    )
+    return facture_resp.json()["id"]
+
+
+def test_send_facture_email_uses_provided_recipient(
+    client: TestClient, auth_headers: dict, monkeypatch
+) -> None:
+    facture_id = _create_facture_with_email(client, auth_headers, email="client@example.com")
+
+    captured: dict = {}
+
+    def fake_send(self, to, subject, body_html, attachments=None):
+        captured["to"] = to
+        captured["subject"] = subject
+        captured["body_html"] = body_html
+        captured["attachments"] = attachments or []
+        return True
+
+    from app.integrations import email_sender as email_sender_module
+
+    monkeypatch.setattr(
+        email_sender_module.EmailSender, "send_email", fake_send, raising=False
+    )
+
+    resp = client.post(
+        f"/api/v1/factures/{facture_id}/send-email",
+        json={"to": "override@example.com", "subject": "Facture custom", "message": "Bonjour, voici votre facture."},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["sent"] is True
+    assert body["to"] == "override@example.com"
+    assert body["facture_id"] == facture_id
+
+    assert captured["to"] == "override@example.com"
+    assert "Bonjour, voici votre facture." in captured["body_html"]
+    assert len(captured["attachments"]) == 1
+    att = captured["attachments"][0]
+    assert att.filename.startswith("facture_F-")
+    assert att.filename.endswith(".pdf")
+    assert att.mime_type == "application/pdf"
+    assert isinstance(att.content, bytes | bytearray)
+    assert len(att.content) > 0
+
+
+def test_send_facture_email_falls_back_to_client_email(
+    client: TestClient, auth_headers: dict, monkeypatch
+) -> None:
+    facture_id = _create_facture_with_email(client, auth_headers, email="default@example.com")
+
+    captured: dict = {}
+
+    def fake_send(self, to, subject, body_html, attachments=None):
+        captured["to"] = to
+        captured["subject"] = subject
+        return True
+
+    from app.integrations import email_sender as email_sender_module
+
+    monkeypatch.setattr(
+        email_sender_module.EmailSender, "send_email", fake_send, raising=False
+    )
+
+    resp = client.post(
+        f"/api/v1/factures/{facture_id}/send-email",
+        json={"to": "default@example.com"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    assert captured["to"] == "default@example.com"
+    assert "F-" in captured["subject"]
+
+
+def test_send_facture_email_returns_400_when_smtp_fails(
+    client: TestClient, auth_headers: dict, monkeypatch
+) -> None:
+    facture_id = _create_facture_with_email(client, auth_headers, email="client@example.com")
+
+    from app.integrations import email_sender as email_sender_module
+
+    monkeypatch.setattr(
+        email_sender_module.EmailSender,
+        "send_email",
+        lambda self, **kwargs: False,
+        raising=False,
+    )
+
+    resp = client.post(
+        f"/api/v1/factures/{facture_id}/send-email",
+        json={"to": "client@example.com"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 400
+
+
+def test_send_facture_email_404_for_unknown_facture(
+    client: TestClient, auth_headers: dict
+) -> None:
+    resp = client.post(
+        "/api/v1/factures/999999/send-email",
+        json={"to": "client@example.com"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 404
+
+
+def test_send_facture_email_validates_email_format(
+    client: TestClient, auth_headers: dict
+) -> None:
+    facture_id = _create_facture_with_email(client, auth_headers, email="client@example.com")
+    resp = client.post(
+        f"/api/v1/factures/{facture_id}/send-email",
+        json={"to": "not-an-email"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 422

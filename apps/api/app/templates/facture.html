@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 style="color: #111827; margin: 0 0 16px; font-size: 22px; font-weight: 700;">Votre facture</h2>
+
+<p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin: 0 0 16px;">
+  Bonjour {{ client_name }},
+</p>
+
+<p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
+  Vous trouverez ci-joint votre facture. Voici le recapitulatif :
+</p>
+
+{% if custom_message %}
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background: #eff6ff; border-left: 3px solid #2563eb; border-radius: 6px; margin: 0 0 24px;">
+  <tr>
+    <td style="padding: 14px 18px; color: #1e3a8a; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">{{ custom_message }}</td>
+  </tr>
+</table>
+{% endif %}
+
+<!-- Invoice summary card -->
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background: #fef3c7; border: 1px solid #fde68a; border-radius: 10px; overflow: hidden; margin-bottom: 16px;">
+  <tr>
+    <td style="padding: 20px 24px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td style="padding-bottom: 12px; border-bottom: 1px solid #fde68a;">
+            <p style="margin: 0; font-size: 13px; color: #92400e; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Facture</p>
+            <p style="margin: 4px 0 0; font-size: 18px; color: #78350f; font-weight: 700;">{{ facture_numero }}</p>
+            {% if facture_date %}
+            <p style="margin: 4px 0 0; font-size: 13px; color: #92400e;">Emise le {{ facture_date }}</p>
+            {% endif %}
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<!-- Totals -->
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-bottom: 24px;">
+  <tr>
+    <td style="padding: 12px 16px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+        {% if montant_ht %}
+        <tr>
+          <td style="padding: 4px 0; font-size: 14px; color: #6b7280;">Total HT</td>
+          <td style="padding: 4px 0; font-size: 14px; color: #374151; text-align: right;">{{ montant_ht }} EUR</td>
+        </tr>
+        {% endif %}
+        {% if tva %}
+        <tr>
+          <td style="padding: 4px 0; font-size: 14px; color: #6b7280;">TVA</td>
+          <td style="padding: 4px 0; font-size: 14px; color: #374151; text-align: right;">{{ tva }} EUR</td>
+        </tr>
+        {% endif %}
+        <tr>
+          <td style="padding: 8px 0 4px; font-size: 16px; color: #111827; font-weight: 700; border-top: 1px solid #e5e7eb;">Total TTC</td>
+          <td style="padding: 8px 0 4px; font-size: 18px; color: #2563eb; font-weight: 700; text-align: right; border-top: 1px solid #e5e7eb;">{{ montant_ttc }} EUR</td>
+        </tr>
+        {% if reste_a_payer %}
+        <tr>
+          <td style="padding: 4px 0; font-size: 14px; color: #6b7280;">Reste a payer</td>
+          <td style="padding: 4px 0; font-size: 14px; color: #dc2626; font-weight: 600; text-align: right;">{{ reste_a_payer }} EUR</td>
+        </tr>
+        {% endif %}
+      </table>
+    </td>
+  </tr>
+</table>
+
+<p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 16px 0 0;">
+  Cordialement,<br>
+  <strong>L'equipe OptiFlow</strong>
+</p>
+{% endblock %}

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class FactureCreate(BaseModel):
@@ -31,6 +31,7 @@ class FactureResponse(BaseModel):
     status: str
     created_at: datetime
     customer_name: str | None = None
+    customer_email: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -38,3 +39,15 @@ class FactureResponse(BaseModel):
 class FactureDetail(FactureResponse):
     lignes: list[FactureLigneResponse] = []
     devis_numero: str | None = None
+
+
+class FactureSendEmailRequest(BaseModel):
+    to: EmailStr
+    subject: str | None = Field(None, max_length=200)
+    message: str | None = Field(None, max_length=2000)
+
+
+class FactureSendEmailResponse(BaseModel):
+    sent: bool
+    to: EmailStr
+    facture_id: int

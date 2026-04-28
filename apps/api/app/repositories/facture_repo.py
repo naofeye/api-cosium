@@ -142,6 +142,7 @@ def get_detail(db: Session, facture_id: int, tenant_id: int) -> dict | None:
             Facture.created_at,
             Customer.first_name,
             Customer.last_name,
+            Customer.email,
             Devis.numero.label("devis_numero"),
         )
         .join(Case, Case.id == Facture.case_id)
@@ -163,7 +164,40 @@ def get_detail(db: Session, facture_id: int, tenant_id: int) -> dict | None:
         "status": row.status,
         "created_at": row.created_at,
         "customer_name": f"{row.first_name} {row.last_name}",
+        "customer_email": row.email,
         "devis_numero": row.devis_numero,
+    }
+
+
+def get_customer_contact(
+    db: Session, facture_id: int, tenant_id: int
+) -> dict | None:
+    """Retourne {customer_name, customer_email, facture_numero, facture_date}."""
+    row = db.execute(
+        select(
+            Customer.first_name,
+            Customer.last_name,
+            Customer.email,
+            Facture.numero,
+            Facture.date_emission,
+            Facture.montant_ht,
+            Facture.tva,
+            Facture.montant_ttc,
+        )
+        .join(Case, Case.id == Facture.case_id)
+        .join(Customer, Customer.id == Case.customer_id)
+        .where(Facture.id == facture_id, Facture.tenant_id == tenant_id)
+    ).first()
+    if not row:
+        return None
+    return {
+        "customer_name": f"{row.first_name} {row.last_name}".strip(),
+        "customer_email": row.email,
+        "facture_numero": row.numero,
+        "facture_date": row.date_emission,
+        "montant_ht": float(row.montant_ht),
+        "tva": float(row.tva),
+        "montant_ttc": float(row.montant_ttc),
     }
 
 

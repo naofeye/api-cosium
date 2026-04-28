@@ -17,7 +17,7 @@ import {
   Printer,
 } from "lucide-react";
 import type { DevisDetail } from "./DevisTimeline";
-import { DevisSendEmailDialog } from "./DevisSendEmailDialog";
+import { SendDocumentEmailDialog } from "@/components/ui/SendDocumentEmailDialog";
 
 interface DevisActionButtonsProps {
   devis: DevisDetail;
@@ -155,11 +155,12 @@ export function DevisActionButtons({
   return (
     <>
       <div className="flex items-center gap-2 flex-wrap">{buttons}</div>
-      <DevisSendEmailDialog
+      <SendDocumentEmailDialog
         open={emailOpen}
         onClose={() => setEmailOpen(false)}
-        devisId={devis.id}
-        devisNumero={devis.numero}
+        endpoint={`/devis/${devis.id}/send-email`}
+        documentNumero={devis.numero}
+        documentLabel="devis"
         defaultRecipient={devis.customer_email ?? null}
       />
     </>
