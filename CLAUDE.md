@@ -849,3 +849,9 @@ docker compose exec api alembic upgrade head
 
 - **Revert `outputFileTracingRoot`** dans `next.config.ts` — ce setting deplacait `server.js` dans un sous-dossier, cassant le Dockerfile qui fait `COPY --from=builder /app/.next/standalone ./`. Le container web redemarrait en boucle avec `Cannot find module '/app/server.js'`. Commit `da55b30`.
 - Container web relance, healthy en 119ms.
+
+### 2026-04-28 — Fix E2E Playwright cookie race condition
+
+- **Root cause identifiee et corrigee** : `router.push("/actions")` (soft RSC navigation Next.js 15) déclenchait la requête RSC vers le middleware AVANT que le browser ait persisté les cookies httpOnly `SameSite=Strict` de la réponse login. Le middleware (`src/middleware.ts`) cherche `optiflow_token` — ne le voyant pas, il redirige vers `/login`. Résultat : tous les tests UI (`uiLogin()`) timaient sur `toHaveURL(/\/actions$/)`.
+- **Fix** : remplacé `router.push("/actions")` par `window.location.href = "/actions"` dans `apps/web/src/app/login/page.tsx`. Hard navigation = rechargement complet = browser traite le `Set-Cookie` AVANT d'envoyer la prochaine requête. Import `useRouter` supprimé.
+- Commits : `770c03c` (fix), `f467b70` (docs TODO). Pushés sur main. Auto-deploy déclenché.
