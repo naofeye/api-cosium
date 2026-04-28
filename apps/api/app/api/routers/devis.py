@@ -11,6 +11,8 @@ from app.domain.schemas.devis import (
     DevisCreate,
     DevisDetail,
     DevisResponse,
+    DevisSendEmailRequest,
+    DevisSendEmailResponse,
     DevisStatusUpdate,
     DevisUpdate,
 )
@@ -120,4 +122,30 @@ def download_devis_pdf(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={"Content-Disposition": content_disposition(f"devis_{devis_id}.pdf")},
+    )
+
+
+@router.post(
+    "/devis/{devis_id}/send-email",
+    response_model=DevisSendEmailResponse,
+    summary="Envoyer le devis par email",
+    description=(
+        "Envoie le devis au client par email avec le PDF en piece jointe. "
+        "Si aucun destinataire n'est fourni, l'email du client est utilise."
+    ),
+)
+def send_devis_email(
+    devis_id: int,
+    payload: DevisSendEmailRequest,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_permission("edit", "devis")),
+) -> DevisSendEmailResponse:
+    return devis_service.send_devis_email(
+        db,
+        tenant_id=tenant_ctx.tenant_id,
+        devis_id=devis_id,
+        user_id=tenant_ctx.user_id,
+        to=payload.to,
+        subject=payload.subject,
+        message=payload.message,
     )

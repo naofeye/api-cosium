@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 
 class DevisLineCreate(BaseModel):
@@ -76,3 +76,16 @@ class DevisResponse(BaseModel):
 class DevisDetail(DevisResponse):
     lignes: list[DevisLineResponse] = []
     customer_name: str | None = None
+    customer_email: str | None = None
+
+
+class DevisSendEmailRequest(BaseModel):
+    to: EmailStr
+    subject: str | None = Field(None, max_length=200)
+    message: str | None = Field(None, max_length=2000)
+
+
+class DevisSendEmailResponse(BaseModel):
+    sent: bool
+    to: EmailStr
+    devis_id: int

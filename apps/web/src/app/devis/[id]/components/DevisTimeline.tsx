@@ -30,6 +30,7 @@ export interface DevisDetail {
   facture_id?: number | null;
   lignes: DevisLigne[];
   customer_name: string | null;
+  customer_email?: string | null;
 }
 
 interface TimelineStep {

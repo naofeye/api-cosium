@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
@@ -6,6 +6,7 @@ import { downloadPdf } from "@/lib/download";
 import {
   Download,
   Send,
+  Mail,
   CheckCircle,
   XCircle,
   Receipt,
@@ -16,6 +17,7 @@ import {
   Printer,
 } from "lucide-react";
 import type { DevisDetail } from "./DevisTimeline";
+import { DevisSendEmailDialog } from "./DevisSendEmailDialog";
 
 interface DevisActionButtonsProps {
   devis: DevisDetail;
@@ -40,6 +42,7 @@ export function DevisActionButtons({
   onConfirmCancel,
   onConfirmRefuse,
 }: DevisActionButtonsProps) {
+  const [emailOpen, setEmailOpen] = useState(false);
   const buttons: React.ReactNode[] = [];
 
   buttons.push(<StatusBadge key="badge" status={devis.status} />);
@@ -66,6 +69,18 @@ export function DevisActionButtons({
       aria-label="Telecharger en PDF"
     >
       <Download className="h-4 w-4" /> PDF
+    </Button>,
+  );
+
+  buttons.push(
+    <Button
+      key="email"
+      variant="outline"
+      size="sm"
+      onClick={() => setEmailOpen(true)}
+      aria-label="Envoyer le devis par email"
+    >
+      <Mail className="h-4 w-4" /> Envoyer par email
     </Button>,
   );
 
@@ -137,5 +152,16 @@ export function DevisActionButtons({
       break;
   }
 
-  return <div className="flex items-center gap-2 flex-wrap">{buttons}</div>;
+  return (
+    <>
+      <div className="flex items-center gap-2 flex-wrap">{buttons}</div>
+      <DevisSendEmailDialog
+        open={emailOpen}
+        onClose={() => setEmailOpen(false)}
+        devisId={devis.id}
+        devisNumero={devis.numero}
+        defaultRecipient={devis.customer_email ?? null}
+      />
+    </>
+  );
 }

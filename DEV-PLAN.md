@@ -101,8 +101,8 @@ Chaque feature implémentée doit être de **qualité professionnelle** :
   Critères: le chat fonctionne en streaming, les 4 modes sont sélectionnables, loading state pendant la réponse, historique en mémoire locale (pas persisté pour V1)
   Niveau: 2
 
-- [ ] Envoi devis par email au client
-  Files: apps/api/app/api/routers/devis.py, apps/api/app/services/devis_service.py, apps/api/app/integrations/email_sender.py, apps/api/app/integrations/email_templates.py, apps/web/src/app/devis/[id]/components/DevisActionButtons.tsx
+- [x] Envoi devis par email au client _(fait 2026-04-28)_
+  Files: apps/api/app/api/routers/devis.py, apps/api/app/services/devis_service.py, apps/api/app/integrations/email_sender.py, apps/api/app/repositories/devis_repo.py, apps/api/app/domain/schemas/devis.py, apps/api/app/templates/devis.html, apps/api/tests/test_devis.py, apps/web/src/app/devis/[id]/components/DevisActionButtons.tsx, apps/web/src/app/devis/[id]/components/DevisSendEmailDialog.tsx (nouveau), apps/web/src/app/devis/[id]/components/DevisTimeline.tsx, apps/web/tests/pages/devis-send-email.test.tsx (nouveau)
   Specs: ajouter POST /api/v1/devis/{id}/send-email (body: {to, subject?, message?}). Génère le PDF, attache au mail, envoie via EmailSender. Frontend : bouton "Envoyer par email" dans les actions du devis, dialog avec champ destinataire pré-rempli (email client).
   Critères: email envoyé avec PDF attaché, audit log, toast confirmation frontend, test backend avec mock SMTP
   Niveau: 2

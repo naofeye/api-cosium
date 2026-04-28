@@ -104,6 +104,35 @@ def list_all(db: Session, tenant_id: int, limit: int = 25, offset: int = 0) -> l
     ]
 
 
+def get_customer_contact(
+    db: Session, devis_id: int, tenant_id: int
+) -> dict | None:
+    """Retourne {customer_name, customer_email, devis_numero, devis_created_at}.
+
+    Utilise pour pre-remplir les emails et templates lies a un devis.
+    """
+    row = db.execute(
+        select(
+            Customer.first_name,
+            Customer.last_name,
+            Customer.email,
+            Devis.numero,
+            Devis.created_at,
+        )
+        .join(Case, Case.id == Devis.case_id)
+        .join(Customer, Customer.id == Case.customer_id)
+        .where(Devis.id == devis_id, Devis.tenant_id == tenant_id)
+    ).first()
+    if not row:
+        return None
+    return {
+        "customer_name": f"{row.first_name} {row.last_name}".strip(),
+        "customer_email": row.email,
+        "devis_numero": row.numero,
+        "devis_created_at": row.created_at,
+    }
+
+
 def get_detail(db: Session, devis_id: int, tenant_id: int) -> dict | None:
     row = db.execute(
         select(
@@ -121,6 +150,7 @@ def get_detail(db: Session, devis_id: int, tenant_id: int) -> dict | None:
             Devis.updated_at,
             Customer.first_name,
             Customer.last_name,
+            Customer.email,
         )
         .join(Case, Case.id == Devis.case_id)
         .join(Customer, Customer.id == Case.customer_id)
@@ -142,6 +172,7 @@ def get_detail(db: Session, devis_id: int, tenant_id: int) -> dict | None:
         "created_at": row.created_at,
         "updated_at": row.updated_at,
         "customer_name": f"{row.first_name} {row.last_name}",
+        "customer_email": row.email,
     }
 
 

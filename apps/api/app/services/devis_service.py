@@ -9,10 +9,13 @@ from app.domain.schemas.devis import (
     DevisLineCreate,
     DevisLineResponse,
     DevisResponse,
+    DevisSendEmailResponse,
     DevisUpdate,
 )
+from app.integrations.email_sender import EmailAttachment, email_sender
+from app.integrations.email_templates import render_email
 from app.repositories import devis_repo
-from app.services import audit_service, event_service
+from app.services import audit_service, event_service, pdf_service
 
 logger = get_logger("devis_service")
 
@@ -204,3 +207,91 @@ def change_status(db: Session, tenant_id: int, devis_id: int, new_status: str, u
 
     logger.info("devis_status_changed", tenant_id=tenant_id, devis_id=devis.id, old=old_status, new=new_status)
     return DevisResponse.model_validate(devis)
+
+
+def send_devis_email(
+    db: Session,
+    tenant_id: int,
+    devis_id: int,
+    user_id: int,
+    to: str | None = None,
+    subject: str | None = None,
+    message: str | None = None,
+) -> DevisSendEmailResponse:
+    """Envoie le devis par email avec PDF en piece jointe.
+
+    Si `to` est None, utilise l'email du client par defaut. Si le client n'a
+    pas d'email et qu'aucun destinataire n'est fourni, leve une BusinessError.
+    """
+    devis = devis_repo.get_by_id(db, devis_id=devis_id, tenant_id=tenant_id)
+    if not devis:
+        raise NotFoundError("devis", devis_id)
+
+    contact = devis_repo.get_customer_contact(db, devis_id=devis_id, tenant_id=tenant_id)
+    if not contact:
+        raise NotFoundError("devis", devis_id)
+
+    recipient = (to or contact["customer_email"] or "").strip()
+    if not recipient:
+        raise BusinessError(
+            "Aucun destinataire : le client n'a pas d'email enregistre, fournissez un destinataire explicite.",
+            code="EMAIL_RECIPIENT_MISSING",
+        )
+
+    pdf_bytes = pdf_service.generate_devis_pdf(db, devis_id=devis_id, tenant_id=tenant_id)
+
+    devis_date = (
+        contact["devis_created_at"].strftime("%d/%m/%Y")
+        if contact["devis_created_at"]
+        else None
+    )
+    body_html = render_email(
+        "devis.html",
+        client_name=contact["customer_name"] or "Madame, Monsieur",
+        devis_numero=contact["devis_numero"],
+        devis_date=devis_date,
+        custom_message=(message or "").strip() or None,
+    )
+
+    email_subject = (subject or f"Votre devis {contact['devis_numero']}").strip()
+    attachment = EmailAttachment(
+        filename=f"devis_{contact['devis_numero']}.pdf",
+        content=pdf_bytes,
+        mime_type="application/pdf",
+    )
+
+    sent = email_sender.send_email(
+        to=recipient,
+        subject=email_subject,
+        body_html=body_html,
+        attachments=[attachment],
+    )
+
+    if not sent:
+        raise BusinessError(
+            "L'envoi de l'email a echoue. Reessayez plus tard.",
+            code="EMAIL_SEND_FAILED",
+        )
+
+    if user_id:
+        audit_service.log_action(
+            db,
+            tenant_id,
+            user_id,
+            "send_email",
+            "devis",
+            devis_id,
+            new_value={"to": recipient, "subject": email_subject},
+        )
+        event_service.emit_event(
+            db, tenant_id, "DevisEnvoye", "devis", devis_id, user_id
+        )
+        db.commit()
+
+    logger.info(
+        "devis_email_sent",
+        tenant_id=tenant_id,
+        devis_id=devis_id,
+        to=recipient,
+    )
+    return DevisSendEmailResponse(sent=True, to=recipient, devis_id=devis_id)
