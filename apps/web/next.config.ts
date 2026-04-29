@@ -6,11 +6,29 @@ const withBundleAnalyzer = process.env.ANALYZE === "true"
   ? require("@next/bundle-analyzer")({ enabled: true })
   : (cfg: NextConfig) => cfg;
 
+// Backend FastAPI URL pour les rewrites server-side. Lu depuis env BACKEND_INTERNAL_URL
+// (defaut hostname Docker compose). Ce rewrite permet aux requetes browser
+// `/api/*` d'etre proxifees vers le backend sans toucher au reverse proxy externe :
+//   browser → https://cosium.ia.coging.com/api/v1/auth/login
+//          → Caddy (reverse_proxy web:3000)
+//          → Next.js server (rewrite)
+//          → http://api-cosium-api-1:8000/api/v1/auth/login
+// Cookies httpOnly conserves naturellement (meme domaine cote browser).
+const BACKEND_INTERNAL_URL =
+  process.env.BACKEND_INTERNAL_URL || "http://api-cosium-api-1:8000";
+
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   reactStrictMode: true,
   compress: true,
+  async rewrites() {
+    return [
+      { source: "/api/:path*", destination: `${BACKEND_INTERNAL_URL}/api/:path*` },
+      { source: "/health", destination: `${BACKEND_INTERNAL_URL}/health` },
+      { source: "/metrics", destination: `${BACKEND_INTERNAL_URL}/metrics` },
+    ];
+  },
   // Note Next.js 16 : `eslint.ignoreDuringBuilds` supprime du type NextConfig.
   // ESLint est toujours execute par `next build` par defaut (bloque sur erreurs).
   // CI a un job "Frontend Lint" separe qui fait un audit plus strict.
