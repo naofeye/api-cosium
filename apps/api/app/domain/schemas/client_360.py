@@ -33,6 +33,7 @@ class DevisSummary(BaseModel):
     statut: str
     montant_ttc: float = 0
     reste_a_charge: float = 0
+    created_at: str | None = None
 
 
 class FactureSummary(BaseModel):

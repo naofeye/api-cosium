@@ -48,6 +48,7 @@ interface Devis {
   statut: string;
   montant_ttc: number;
   reste_a_charge: number;
+  created_at: string | null;
 }
 
 interface Facture {
@@ -132,9 +133,12 @@ export function TabActivite({
 
     // Devis
     for (const d of devis ?? []) {
+      // Sans created_at on ne peut pas trier chronologiquement -> on saute
+      // l'evenement plutot que de le faker a "maintenant" (timeline cassee).
+      if (!d.created_at) continue;
       events.push({
         id: `devis-${d.id}`,
-        date: new Date().toISOString(), // devis don't always have a date field
+        date: d.created_at,
         icon: FileText,
         iconColor: "text-amber-500",
         title: `Devis ${d.numero} cree (${formatMoney(d.montant_ttc)})`,

@@ -31,7 +31,7 @@ export interface ClientTabsProps {
   cosiumId: string | number | null;
   cosiumData: CosiumDataBundle | null;
   dossiers: { id: number; statut: string; source: string; created_at: string }[];
-  devis: { id: number; numero: string; statut: string; montant_ttc: number; reste_a_charge: number }[];
+  devis: { id: number; numero: string; statut: string; montant_ttc: number; reste_a_charge: number; created_at: string | null }[];
   factures: { id: number; numero: string; statut: string; montant_ttc: number; date_emission: string }[];
   paiements: { id: number; payeur: string; mode: string | null; montant_du: number; montant_paye: number; statut: string }[];
   documents: { id: number; type: string; filename: string; uploaded_at: string }[];

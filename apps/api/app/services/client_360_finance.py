@@ -79,6 +79,10 @@ def aggregate_case_financials(cases: list[Case]) -> dict:
                     "statut": d.status,
                     "montant_ttc": float(d.montant_ttc),
                     "reste_a_charge": float(d.reste_a_charge),
+                    # ISO string : la timeline frontend trie chronologiquement.
+                    # Avant : `new Date().toISOString()` cote front -> tous les
+                    # devis apparaissaient "a l'instant" et le tri etait casse.
+                    "created_at": d.created_at.isoformat() if d.created_at else None,
                 }
             )
 
