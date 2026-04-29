@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -36,6 +36,9 @@ vi.mock("next/link", () => ({
 import LoginPage from "@/app/login/page";
 
 describe("Login Flow - E2E style", () => {
+  let locationMock: { href: string };
+  const originalLocation = window.location;
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockLogin.mockResolvedValue({
@@ -43,6 +46,22 @@ describe("Login Flow - E2E style", () => {
       tenant_id: 1,
       tenant_name: "Test",
       available_tenants: [],
+    });
+    // Mock window.location.href because login uses hard navigation
+    // (window.location.href = "/actions") instead of router.push
+    locationMock = { href: "" };
+    Object.defineProperty(window, "location", {
+      writable: true,
+      configurable: true,
+      value: locationMock,
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(window, "location", {
+      writable: true,
+      configurable: true,
+      value: originalLocation,
     });
   });
 
@@ -53,11 +72,13 @@ describe("Login Flow - E2E style", () => {
     expect(screen.getByRole("button", { name: /se connecter/i })).toBeInTheDocument();
   });
 
-  it("shows validation error when submitting with empty fields", () => {
+  it("ne soumet pas le formulaire quand les champs sont vides (validation zod)", async () => {
+    const user = userEvent.setup();
     render(<LoginPage />);
-    const submitBtn = screen.getByRole("button", { name: /se connecter/i });
-    // Button should be disabled when fields are empty (form validation via zod)
-    expect(submitBtn).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: /se connecter/i }));
+    await waitFor(() => {
+      expect(mockLogin).not.toHaveBeenCalled();
+    });
   });
 
   it("redirects on successful login", async () => {
@@ -80,8 +101,9 @@ describe("Login Flow - E2E style", () => {
         undefined,
       );
     });
+    // Hard navigation: window.location.href = "/actions" (not router.push)
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/actions");
+      expect(locationMock.href).toBe("/actions");
     });
   });
 

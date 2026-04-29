@@ -34,7 +34,7 @@ export function ClientScoreCard({ clientId }: { clientId: string | number }) {
   const { data } = useSWR<ClientScore>(`/clients/${clientId}/score`, {
     shouldRetryOnError: false,
   });
-  if (!data) return null;
+  if (!data || typeof data.score !== "number" || !data.breakdown) return null;
 
   const c = COLOR_MAP[data.color] ?? COLOR_MAP.gray;
 

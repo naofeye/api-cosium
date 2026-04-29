@@ -51,9 +51,13 @@ describe("LoginPage", () => {
     expect(screen.getByRole("button", { name: /se connecter/i })).toBeInTheDocument();
   });
 
-  it("bouton desactive quand les champs sont vides", () => {
+  it("ne soumet pas le formulaire quand les champs sont vides (validation zod)", async () => {
+    const user = userEvent.setup();
     render(<LoginPage />);
-    expect(screen.getByRole("button", { name: /se connecter/i })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: /se connecter/i }));
+    await waitFor(() => {
+      expect(mockLogin).not.toHaveBeenCalled();
+    });
   });
 
   it("affiche une erreur sur email invalide", async () => {
