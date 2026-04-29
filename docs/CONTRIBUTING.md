@@ -33,6 +33,31 @@ Voir CLAUDE.md (regles fondamentales) :
 
 Tests architecturaux (`tests/test_architecture.py`) verrouillent ces regles.
 
+## Types frontend depuis OpenAPI
+
+Le frontend peut consommer des types auto-generes depuis le schema OpenAPI
+de l'API. Source de verite unique : pas de drift entre back/front.
+
+```bash
+# Apres modification de routes/schemas backend, exporter le schema :
+docker compose exec api python -c "from app.main import app; import json, sys; json.dump(app.openapi(), sys.stdout)" > apps/api/docs/openapi.json
+
+# Puis regenerer les types frontend :
+cd apps/web && npm run generate:api-types
+```
+
+Usage en TypeScript :
+
+```ts
+import type { paths, components } from "@/types/api";
+
+// Endpoint typed :
+type GetClient = paths["/api/v1/clients/{client_id}"]["get"];
+type ClientResponse = components["schemas"]["ClientResponse"];
+```
+
+Adopter progressivement : pas de big-bang refactor des `useApi()` existants.
+
 ## Migrations BDD
 
 Voir `docs/ALEMBIC.md`. Resume :

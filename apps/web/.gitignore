@@ -1,6 +1,10 @@
 node_modules
 .next
 
+# Auto-generated par `npm run generate:api-types` depuis apps/api/docs/openapi.json.
+# Pas commit pour eviter le diff massif a chaque modif backend.
+src/types/api.ts
+
 # Playwright
 /test-results/
 /playwright-report/

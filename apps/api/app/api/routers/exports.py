@@ -8,9 +8,31 @@ from app.core.deps import require_tenant_role
 from app.core.http import content_disposition
 from app.core.tenant_context import TenantContext
 from app.db.session import get_db
-from app.services import export_service
+from app.services import audit_service, export_service
 
 router = APIRouter(prefix="/api/v1/exports", tags=["exports"])
+
+
+def _audit_export(db: Session, tenant_id: int, user_id: int, export_type: str, **context) -> None:
+    """RGPD : tracer chaque export bulk de PII.
+
+    Best-effort : un echec n'interrompt pas le download. action `export_pii`
+    + entity_type=`export` permet de filtrer dans l'audit log les acces
+    massifs pour conformite (Art. 30 RGPD : registre des traitements).
+    """
+    try:
+        audit_service.log_action(
+            db,
+            tenant_id,
+            user_id,
+            "export_pii",
+            "export",
+            0,
+            new_value={"type": export_type, **context},
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
 
 
 @router.get(
@@ -26,6 +48,11 @@ def export_balance_clients(
 ) -> StreamingResponse:
     data = export_service.export_balance_clients_xlsx(
         db, tenant_id=tenant_ctx.tenant_id, date_from=date_from, date_to=date_to,
+    )
+    _audit_export(
+        db, tenant_ctx.tenant_id, tenant_ctx.user_id, "balance_clients_xlsx",
+        date_from=str(date_from) if date_from else None,
+        date_to=str(date_to) if date_to else None,
     )
     filename = f"balance_clients_{datetime.now(UTC).strftime('%Y%m%d')}.xlsx"
     return StreamingResponse(
@@ -48,6 +75,11 @@ def export_balance_clients_pdf(
 ) -> StreamingResponse:
     data = export_service.export_balance_clients_pdf(
         db, tenant_id=tenant_ctx.tenant_id, date_from=date_from, date_to=date_to,
+    )
+    _audit_export(
+        db, tenant_ctx.tenant_id, tenant_ctx.user_id, "balance_clients_pdf",
+        date_from=str(date_from) if date_from else None,
+        date_to=str(date_to) if date_to else None,
     )
     filename = f"balance_clients_{datetime.now(UTC).strftime('%Y%m%d')}.pdf"
     return StreamingResponse(
@@ -158,6 +190,11 @@ def export_clients_complet(
         date_to=date_to,
         has_email=has_email,
         has_cosium_id=has_cosium_id,
+    )
+    _audit_export(
+        db, tenant_ctx.tenant_id, tenant_ctx.user_id, "clients_complet_xlsx",
+        date_from=str(date_from) if date_from else None,
+        date_to=str(date_to) if date_to else None,
     )
     filename = f"clients_complet_{datetime.now(UTC).strftime('%Y%m%d')}.xlsx"
     return StreamingResponse(
