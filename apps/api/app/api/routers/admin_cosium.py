@@ -83,10 +83,22 @@ def test_cosium_connection(
             client.tenant = tenant.cosium_tenant or settings.cosium_tenant or ""
             tenant_at = getattr(tenant, "cosium_cookie_access_token_enc", None)
             tenant_dc = getattr(tenant, "cosium_cookie_device_credential_enc", None)
+            tenant_login = getattr(tenant, "cosium_login", None)
+            tenant_pwd_enc = getattr(tenant, "cosium_password_enc", None)
             if tenant_at and tenant_dc:
                 at_plain = decrypt(tenant_at)
                 dc_plain = decrypt(tenant_dc)
                 client._authenticate_cookie(access_token=at_plain, device_credential=dc_plain)
+            elif tenant_login and tenant_pwd_enc:
+                # Priorite credentials tenant > settings globaux : eviter de
+                # declarer un tenant en echec quand sa config Basic dediee
+                # est correcte mais sans cookies.
+                pwd_plain = decrypt(tenant_pwd_enc)
+                client.authenticate(
+                    tenant=client.tenant,
+                    login=tenant_login,
+                    password=pwd_plain,
+                )
             else:
                 client.authenticate()
         else:
