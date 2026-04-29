@@ -1,8 +1,30 @@
 # TODO V1 — OptiFlow AI (Cosium Copilot)
 
 > **Source de vérité unique.** Remplace `TODO_MASTER.md`, `TODO_MASTER_AUDIT.md` et `DEV-PLAN.md`.
-> **Dernière refonte** : 2026-04-28 (consolidation documentation)
-> **Scope** : monorepo `apps/api` (FastAPI) + `apps/web` (Next.js 15) + infra Docker + CI.
+> **Dernière refonte** : 2026-04-29 (all inclusive audit)
+> **Scope** : monorepo `apps/api` (FastAPI) + `apps/web` (Next.js 16) + infra Docker + CI.
+
+---
+
+## 🔴 P0 — Audit 29/04 (à corriger en priorité)
+
+- [ ] Fix 3 tests frontend login cassés (bouton disabled + router.push → window.location)
+  Files: apps/web/tests/pages/login.test.tsx, apps/web/tests/flows/login-flow.test.tsx
+- [ ] Fix `test_seed.py` fixture `db` manquante
+  Files: apps/api/tests/factories/test_seed.py
+- [ ] Investiguer CI failure sur main (run `25056556905`)
+- [ ] Monter `tests/` en volume Docker ou retirer du `.dockerignore` pour dev
+  Files: apps/api/.dockerignore
+
+## 🟡 P1 — Audit 29/04
+
+- [ ] Guard prod `jwt_secret` (refuser valeur par défaut `_DEV_JWT_SECRET` en production)
+  Files: apps/api/app/core/config.py
+- [ ] Split `ai_service.py` 445L sous 300L (extraire prompts + context builder)
+  Files: apps/api/app/services/ai_service.py
+- [ ] Split `client_import_service.py` 307L et `auth_service.py` 304L
+- [ ] Split `ChatInterface.tsx` 326L et `Header.tsx` 305L
+  Files: apps/web/src/app/copilote-ia/components/ChatInterface.tsx, apps/web/src/components/layout/Header.tsx
 
 ---
 
