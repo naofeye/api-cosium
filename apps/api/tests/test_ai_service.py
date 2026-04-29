@@ -90,7 +90,7 @@ def _seed_customer_and_case(db: Session, tenant_id: int) -> tuple[Customer, Case
 
 class TestCopilotQueryDossierMode:
     @patch("app.services.ai_service.ai_usage_repo")
-    @patch("app.services.ai_service.ai_context_repo")
+    @patch("app.services._ai.context.ai_context_repo")
     @patch("app.services.ai_service.claude_provider")
     def test_dossier_mode_returns_ai_text(
         self,
@@ -126,7 +126,7 @@ class TestCopilotQueryDossierMode:
         assert "dossier" in call_kwargs.kwargs.get("system", "") or "Copilote Dossier" in call_kwargs.kwargs.get("system", "")
 
     @patch("app.services.ai_service.ai_usage_repo")
-    @patch("app.services.ai_service.ai_context_repo")
+    @patch("app.services._ai.context.ai_context_repo")
     @patch("app.services.ai_service.claude_provider")
     def test_usage_is_logged_after_query(
         self,
@@ -170,7 +170,7 @@ class TestCopilotQueryDossierMode:
 
 class TestCopilotQueryFinancierMode:
     @patch("app.services.ai_service.ai_usage_repo")
-    @patch("app.services.ai_service.ai_context_repo")
+    @patch("app.services._ai.context.ai_context_repo")
     @patch("app.services.ai_service.claude_provider")
     def test_financier_mode_uses_financier_system_prompt(
         self,
@@ -202,7 +202,7 @@ class TestCopilotQueryFinancierMode:
 class TestCopilotQueryDocumentaireMode:
     @patch("app.services.ai_service.ai_usage_repo")
     @patch("app.services.ai_service.claude_provider")
-    @patch("app.services.ai_service.search_docs")
+    @patch("app.services._ai.context.search_docs")
     def test_documentaire_mode_calls_rag(
         self,
         mock_search: MagicMock,
@@ -230,7 +230,7 @@ class TestCopilotQueryDocumentaireMode:
 
     @patch("app.services.ai_service.ai_usage_repo")
     @patch("app.services.ai_service.claude_provider")
-    @patch("app.services.ai_service.search_docs")
+    @patch("app.services._ai.context.search_docs")
     def test_documentaire_mode_fallback_when_rag_empty(
         self,
         mock_search: MagicMock,
@@ -261,7 +261,7 @@ class TestCopilotQueryDocumentaireMode:
 
 class TestCopilotQueryMarketingMode:
     @patch("app.services.ai_service.ai_usage_repo")
-    @patch("app.services.ai_service.ai_context_repo")
+    @patch("app.services._ai.context.ai_context_repo")
     @patch("app.services.ai_service.claude_provider")
     def test_marketing_mode_provides_stats_context(
         self,
@@ -298,7 +298,7 @@ class TestCopilotQueryMarketingMode:
 
 class TestCopilotQueryProviderErrors:
     @patch("app.services.ai_service.ai_usage_repo")
-    @patch("app.services.ai_service.ai_context_repo")
+    @patch("app.services._ai.context.ai_context_repo")
     @patch("app.services.ai_service.claude_provider")
     def test_provider_error_text_is_returned(
         self,
@@ -336,7 +336,7 @@ class TestCopilotQueryProviderErrors:
         assert "Erreur IA" in result
 
     @patch("app.services.ai_service.ai_usage_repo")
-    @patch("app.services.ai_service.ai_context_repo")
+    @patch("app.services._ai.context.ai_context_repo")
     @patch("app.services.ai_service.claude_provider")
     def test_usage_logged_with_zero_tokens_on_error(
         self,
@@ -405,7 +405,7 @@ class TestCopilotQueryUnknownMode:
 # ---------------------------------------------------------------------------
 
 class TestGetClientCosiumContext:
-    @patch("app.services.ai_service.ai_context_repo")
+    @patch("app.services._ai.context.ai_context_repo")
     def test_returns_empty_string_when_no_data(
         self,
         mock_ctx_repo: MagicMock,
@@ -421,7 +421,7 @@ class TestGetClientCosiumContext:
 
         assert result == ""
 
-    @patch("app.services.ai_service.ai_context_repo")
+    @patch("app.services._ai.context.ai_context_repo")
     def test_includes_invoice_summary(
         self,
         mock_ctx_repo: MagicMock,
@@ -451,7 +451,7 @@ class TestGetClientCosiumContext:
         assert "450.00 EUR" in result
         assert "reste 150.00 EUR" in result
 
-    @patch("app.services.ai_service.ai_context_repo")
+    @patch("app.services._ai.context.ai_context_repo")
     def test_includes_prescription_summary(
         self,
         mock_ctx_repo: MagicMock,
@@ -481,7 +481,7 @@ class TestGetClientCosiumContext:
         assert "Martin" in result
         assert "sph -1.50" in result
 
-    @patch("app.services.ai_service.ai_context_repo")
+    @patch("app.services._ai.context.ai_context_repo")
     def test_includes_payment_summary(
         self,
         mock_ctx_repo: MagicMock,
@@ -521,7 +521,7 @@ class TestGetClientCosiumContext:
 # ---------------------------------------------------------------------------
 
 class TestBuildCaseContext:
-    @patch("app.services.ai_service.ai_context_repo")
+    @patch("app.services._ai.context.ai_context_repo")
     def test_returns_not_found_message_for_unknown_case(
         self,
         mock_ctx_repo: MagicMock,
@@ -534,7 +534,7 @@ class TestBuildCaseContext:
 
         assert "introuvable" in result.lower()
 
-    @patch("app.services.ai_service.ai_context_repo")
+    @patch("app.services._ai.context.ai_context_repo")
     def test_builds_context_with_case_info(
         self,
         mock_ctx_repo: MagicMock,
@@ -570,7 +570,7 @@ class TestBuildCaseContext:
         assert "Dupont" in result
         assert "en_cours" in result
 
-    @patch("app.services.ai_service.ai_context_repo")
+    @patch("app.services._ai.context.ai_context_repo")
     def test_includes_documents_when_present(
         self,
         mock_ctx_repo: MagicMock,
@@ -608,7 +608,7 @@ class TestBuildCaseContext:
         assert "ordonnance" in result
         assert "ordo_2025.pdf" in result
 
-    @patch("app.services.ai_service.ai_context_repo")
+    @patch("app.services._ai.context.ai_context_repo")
     def test_includes_cosium_data_when_customer_linked(
         self,
         mock_ctx_repo: MagicMock,

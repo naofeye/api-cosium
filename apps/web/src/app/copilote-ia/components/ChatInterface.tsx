@@ -1,6 +1,6 @@
 "use client";
 
-import { Send, Trash2, Sparkles } from "lucide-react";
+import { Send, Trash2 } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -15,54 +15,9 @@ import { useToast } from "@/components/ui/Toast";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { MessageBubble, type ChatMessage } from "./MessageBubble";
-
-type CopilotMode = "dossier" | "financier" | "documentaire" | "marketing";
-
-const MODE_OPTIONS = [
-  { value: "dossier", label: "Dossier — analyser un dossier client" },
-  { value: "financier", label: "Financier — paiements & relances" },
-  { value: "documentaire", label: "Documentaire — aide Cosium" },
-  { value: "marketing", label: "Marketing — segments & campagnes" },
-] as const;
-
-const MODE_PLACEHOLDERS: Record<CopilotMode, string> = {
-  dossier: "Ex: Quels sont les points d'attention de mon dossier en cours ?",
-  financier: "Ex: Quels clients ont des paiements en retard de plus de 30 jours ?",
-  documentaire: "Ex: Comment paramétrer une remise automatique dans Cosium ?",
-  marketing: "Ex: Suggère un segment client pour une campagne renouvellement.",
-};
-
-interface SseEvent {
-  type: string;
-  data: Record<string, unknown>;
-}
-
-function parseSseFrames(buffer: string): { events: SseEvent[]; rest: string } {
-  const events: SseEvent[] = [];
-  const parts = buffer.split("\n\n");
-  const rest = parts.pop() ?? "";
-
-  for (const frame of parts) {
-    if (!frame.trim()) continue;
-    let type = "message";
-    let dataLine = "";
-    for (const line of frame.split("\n")) {
-      if (line.startsWith("event:")) {
-        type = line.slice(6).trim();
-      } else if (line.startsWith("data:")) {
-        dataLine += line.slice(5).trim();
-      }
-    }
-    if (!dataLine) continue;
-    try {
-      const data = JSON.parse(dataLine) as Record<string, unknown>;
-      events.push({ type, data });
-    } catch {
-      // Ignore malformed frames silently — server should always emit valid JSON.
-    }
-  }
-  return { events, rest };
-}
+import { EmptyChat } from "./_chat/EmptyChat";
+import { MODE_OPTIONS, MODE_PLACEHOLDERS, type CopilotMode } from "./_chat/modes";
+import { parseSseFrames } from "./_chat/sseParser";
 
 export function ChatInterface() {
   const { toast } = useToast();
@@ -307,20 +262,6 @@ export function ChatInterface() {
           Entrée pour envoyer · Maj+Entrée pour un saut de ligne. Historique non sauvegardé.
         </p>
       </form>
-    </div>
-  );
-}
-
-function EmptyChat({ mode }: { mode: CopilotMode }) {
-  return (
-    <div className="flex flex-col items-center justify-center h-full text-center text-text-secondary">
-      <div className="w-12 h-12 rounded-full bg-blue-50 text-primary flex items-center justify-center mb-4">
-        <Sparkles className="w-6 h-6" aria-hidden="true" />
-      </div>
-      <h2 className="text-base font-semibold text-text-primary mb-1">
-        Posez une question à votre copilote
-      </h2>
-      <p className="text-sm max-w-md">{MODE_PLACEHOLDERS[mode]}</p>
     </div>
   );
 }

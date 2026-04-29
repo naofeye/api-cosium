@@ -1,23 +1,36 @@
+"""Auth service : authentification (login, refresh, switch tenant, logout) + mots de passe.
+
+Helpers internes :
+- `_auth.queries`  : queries tenants/role admin/MFA enforcement
+- `_auth.password` : change/request-reset/reset password
+"""
+
 import hashlib
-import secrets
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
-from app.core.exceptions import AuthenticationError, NotFoundError
+from app.core.exceptions import AuthenticationError
 from app.core.logging import get_logger
 from app.domain.schemas.auth import LoginRequest, TokenResponse
-from app.models import PasswordResetToken, Tenant, User
+from app.models import Tenant, User
 from app.repositories import refresh_token_repo, tenant_user_repo, user_repo
 from app.security import (
     create_access_token,
     generate_refresh_token,
     get_refresh_token_expiry,
-    hash_password,
     verify_password,
 )
-from app.services import audit_service
+from app.services._auth.password import (
+    change_password,
+    request_password_reset,
+    reset_password,
+)
+from app.services._auth.queries import (
+    get_user_tenants,
+    is_group_admin,
+    user_must_have_mfa,
+)
 from app.services.auth_lockout import (
     check_account_lockout as _check_account_lockout,
 )
@@ -30,54 +43,20 @@ from app.services.auth_lockout import (
 
 logger = get_logger("auth_service")
 
+__all__ = [
+    "authenticate",
+    "change_password",
+    "logout",
+    "refresh",
+    "request_password_reset",
+    "reset_password",
+    "switch_tenant",
+]
 
-def _get_user_tenants(db: Session, user_id: int) -> list[dict]:
-    """Retourne tous les tenants actifs auxquels l'user a acces.
-
-    Optimisation N+1 : un seul JOIN TenantUser x Tenant au lieu de N queries.
-    """
-    from sqlalchemy import select
-
-    from app.models import TenantUser
-
-    rows = db.execute(
-        select(Tenant.id, Tenant.name, Tenant.slug, TenantUser.role)
-        .join(TenantUser, TenantUser.tenant_id == Tenant.id)
-        .where(
-            TenantUser.user_id == user_id,
-            TenantUser.is_active.is_(True),
-            Tenant.is_active.is_(True),
-        )
-    ).all()
-    return [{"id": r.id, "name": r.name, "slug": r.slug, "role": r.role} for r in rows]
-
-
-def _is_group_admin(db: Session, user_id: int) -> bool:
-    rows = tenant_user_repo.list_admin_active_by_user(db, user_id)
-    return len(rows) > 1
-
-
-def _user_must_have_mfa(db: Session, user_id: int) -> bool:
-    """True si l'user est admin dans au moins un tenant avec require_admin_mfa=True.
-
-    Implique que l'user doit avoir MFA active pour se connecter.
-    """
-    from sqlalchemy import select as sa_select
-
-    from app.models import Tenant, TenantUser
-
-    rows = db.execute(
-        sa_select(Tenant.require_admin_mfa)
-        .join(TenantUser, TenantUser.tenant_id == Tenant.id)
-        .where(
-            TenantUser.user_id == user_id,
-            TenantUser.is_active.is_(True),
-            TenantUser.role == "admin",
-            Tenant.require_admin_mfa.is_(True),
-        )
-        .limit(1)
-    ).first()
-    return rows is not None
+# Compat tests : noms prives historiques re-exportes
+_get_user_tenants = get_user_tenants
+_is_group_admin = is_group_admin
+_user_must_have_mfa = user_must_have_mfa
 
 
 def authenticate(db: Session, payload: LoginRequest) -> TokenResponse:
@@ -92,7 +71,7 @@ def authenticate(db: Session, payload: LoginRequest) -> TokenResponse:
 
     # MFA enforcement : user admin dans un tenant avec require_admin_mfa=True
     # DOIT avoir MFA active. Refus login si non setup.
-    if not user.totp_enabled and _user_must_have_mfa(db, user.id):
+    if not user.totp_enabled and user_must_have_mfa(db, user.id):
         email_hash = hashlib.sha256(payload.email.lower().encode()).hexdigest()[:12]
         logger.warning("authentication_mfa_enforcement_missing", email_hash=email_hash, user_id=user.id)
         raise AuthenticationError("MFA_SETUP_REQUIRED")
@@ -110,14 +89,13 @@ def authenticate(db: Session, payload: LoginRequest) -> TokenResponse:
             raise AuthenticationError("Code MFA invalide")
         user.totp_last_used_at = datetime.now(UTC).replace(tzinfo=None)
 
-    tenants = _get_user_tenants(db, user.id)
+    tenants = get_user_tenants(db, user.id)
     if not tenants:
         raise AuthenticationError("Aucun magasin accessible pour cet utilisateur")
 
     default_tenant = tenants[0]
-    is_admin = _is_group_admin(db, user.id)
+    is_admin = is_group_admin(db, user.id)
 
-    # Revoquer les anciens refresh tokens avant d'en creer un nouveau
     refresh_token_repo.revoke_all_for_user(db, user.id)
 
     tenant_role = default_tenant["role"]
@@ -151,9 +129,9 @@ def refresh(db: Session, token: str) -> TokenResponse:
     if not user or not user.is_active:
         raise AuthenticationError("Utilisateur introuvable ou désactivé")
 
-    tenants = _get_user_tenants(db, user.id)
+    tenants = get_user_tenants(db, user.id)
     default_tenant = tenants[0] if tenants else None
-    is_admin = _is_group_admin(db, user.id)
+    is_admin = is_group_admin(db, user.id)
 
     refresh_token_repo.revoke(db, token)
     tenant_role = default_tenant["role"] if default_tenant else user.role
@@ -190,10 +168,9 @@ def switch_tenant(db: Session, user_id: int, new_tenant_id: int) -> TokenRespons
     if not tenant:
         raise AuthenticationError("Magasin introuvable ou désactivé")
 
-    tenants = _get_user_tenants(db, user.id)
-    is_admin = _is_group_admin(db, user.id)
+    tenants = get_user_tenants(db, user.id)
+    is_admin = is_group_admin(db, user.id)
 
-    # Revoquer les anciens refresh tokens lors du switch tenant
     refresh_token_repo.revoke_all_for_user(db, user.id)
 
     access_token = create_access_token(
@@ -216,89 +193,7 @@ def switch_tenant(db: Session, user_id: int, new_tenant_id: int) -> TokenRespons
     )
 
 
-def change_password(db: Session, user_id: int, old_password: str, new_password: str) -> None:
-    user = user_repo.get_user_by_id(db, user_id)
-    if not user:
-        raise NotFoundError("user", user_id)
-    if not verify_password(old_password, user.password_hash):
-        raise AuthenticationError("Ancien mot de passe incorrect")
-    user.password_hash = hash_password(new_password)
-    # Revoke all refresh tokens
-    refresh_token_repo.revoke_all_for_user(db, user_id)
-    db.commit()
-    tu = tenant_user_repo.get_first_active_by_user(db, user_id)
-    if tu:
-        audit_service.log_action(db, tu.tenant_id, user_id, "update", "user", user_id)
-    logger.info("password_changed", user_id=user_id)
-
-
 def logout(db: Session, token: str) -> None:
     refresh_token_repo.revoke(db, token)
     db.commit()
     logger.info("user_logged_out")
-
-
-def request_password_reset(db: Session, email: str) -> None:
-    """Always returns None (don't reveal if email exists)."""
-    user = user_repo.get_user_by_email(db, email)
-    if not user:
-        return
-
-    raw_token = secrets.token_urlsafe(32)
-    token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
-    expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=1)
-
-    reset = PasswordResetToken(user_id=user.id, token_hash=token_hash, expires_at=expires_at)
-    db.add(reset)
-    db.commit()
-
-    from app.integrations.email_templates import render_email
-    from app.tasks.email_tasks import send_email_async
-
-    frontend_origin = settings.cors_origins.split(",")[0].strip()
-    reset_url = f"{frontend_origin}/reset-password?token={raw_token}"
-    body_html = render_email("password_reset.html", reset_url=reset_url)
-    send_email_async.delay(
-        to=user.email,
-        subject="OptiFlow — Reinitialisation de votre mot de passe",
-        body_html=body_html,
-    )
-    logger.info("password_reset_requested", user_id=user.id)
-
-
-def reset_password(db: Session, token: str, new_password: str) -> None:
-    from sqlalchemy import update
-
-    token_hash = hashlib.sha256(token.encode()).hexdigest()
-    now = datetime.now(UTC).replace(tzinfo=None)
-
-    # UPDATE atomique : marque used=True uniquement si encore unused ET non expire.
-    # Sur PostgreSQL/SQLite, l'execute renvoie le rowcount. Si 0 → deja utilise ou expire.
-    result = db.execute(
-        update(PasswordResetToken)
-        .where(
-            PasswordResetToken.token_hash == token_hash,
-            PasswordResetToken.used.is_(False),
-            PasswordResetToken.expires_at >= now,
-        )
-        .values(used=True)
-    )
-    if result.rowcount == 0:
-        raise AuthenticationError("Lien de reinitialisation invalide ou expire")
-
-    reset = db.query(PasswordResetToken).filter(PasswordResetToken.token_hash == token_hash).first()
-    if not reset:
-        raise AuthenticationError("Lien de reinitialisation invalide")
-
-    user = user_repo.get_user_by_id(db, reset.user_id)
-    if not user:
-        raise AuthenticationError("Utilisateur introuvable")
-
-    user.password_hash = hash_password(new_password)
-    refresh_token_repo.revoke_all_for_user(db, user.id)
-    db.commit()
-
-    tu = tenant_user_repo.get_first_active_by_user(db, user.id)
-    if tu:
-        audit_service.log_action(db, tu.tenant_id, user.id, "update", "password_reset", user.id)
-    logger.info("password_reset_completed", user_id=user.id)

@@ -12,7 +12,10 @@ def _signup_and_get_token(client):
         "owner_first_name": "A",
         "owner_last_name": "B",
     })
-    return resp.json()["access_token"], resp.json()["tenant_id"]
+    # Auth via cookies HttpOnly (set par set_auth_cookies). On extrait le token
+    # depuis le cookie pour les tests qui veulent un header Authorization explicite.
+    token = resp.cookies.get("optiflow_token")
+    return token, resp.json()["tenant_id"]
 
 
 def test_billing_status_trial(client, db):

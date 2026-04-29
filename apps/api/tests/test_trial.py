@@ -14,7 +14,7 @@ def test_trial_days_remaining(client, db):
         "owner_last_name": "B",
     })
     assert resp.status_code == 201
-    token = resp.json()["access_token"]
+    token = resp.cookies.get("optiflow_token")
 
     status = client.get(
         "/api/v1/onboarding/status",
@@ -33,7 +33,7 @@ def test_trial_expired_shows_zero_days(client, db):
         "owner_first_name": "A",
         "owner_last_name": "B",
     })
-    token = resp.json()["access_token"]
+    token = resp.cookies.get("optiflow_token")
     tenant_id = resp.json()["tenant_id"]
 
     # Force trial to be expired
