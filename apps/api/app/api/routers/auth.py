@@ -134,10 +134,19 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)) 
     description="Revoque tous les refresh tokens de l'utilisateur connecte.",
 )
 def logout_all(
+    request: Request,
     response: Response,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
+    # Blacklister l'access token courant : sans ca, le bearer token deja emis
+    # restait valide jusqu'a son expiration meme apres "logout-all". Cohesion
+    # avec /logout. Note : pour invalider les access tokens des autres devices
+    # de l'utilisateur, il faudrait un token_version par user — feature TODO.
+    access_tok = request.cookies.get("optiflow_token")
+    if access_tok:
+        from app.security import blacklist_access_token
+        blacklist_access_token(access_tok)
     refresh_token_repo.revoke_all_for_user(db, current_user.id)
     db.commit()
     _clear_auth_cookies(response)
