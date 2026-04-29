@@ -233,7 +233,9 @@ def create_avoir(
                 "numero": numero,
                 "original_facture_id": original.id,
                 "original_numero": original.numero,
-                "montant_ttc": ttc,
+                # `ttc` est un Decimal -> non JSON-serializable. On caste en
+                # float juste pour la frontiere serialisation audit_logs.
+                "montant_ttc": float(ttc),
                 "motif": motif,
                 "partial": partial,
             },
