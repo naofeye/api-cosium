@@ -1,12 +1,18 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+# Whitelist des payeurs : aligne avec les filtres de reporting et la matrice
+# d'aging dans analytics_kpi_service. Toute autre valeur sera traitee comme
+# "client" cote service mais on prefere rejeter au niveau API.
+PayerType = Literal["client", "mutuelle", "secu"]
 
 
 class PaymentCreate(BaseModel):
     case_id: int
     facture_id: int | None = None
-    payer_type: str = Field(..., min_length=1, max_length=50)
+    payer_type: PayerType
     mode_paiement: str | None = None
     reference_externe: str | None = None
     date_paiement: datetime | None = None

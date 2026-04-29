@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Path
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_permission
@@ -8,6 +8,10 @@ from app.domain.schemas.marketing import ConsentResponse, ConsentUpdate
 from app.services import consent_service
 
 router = APIRouter(prefix="/api/v1", tags=["consents"])
+
+# Whitelist des canaux de communication marketing supportes.
+# Aligne avec les colonnes/filtres du modele MarketingConsent.
+_CHANNEL_PATTERN = "^(email|sms|paper|phone)$"
 
 
 @router.get(
@@ -36,8 +40,8 @@ def get_consents(
 )
 def update_consent(
     client_id: int,
-    channel: str,
-    payload: ConsentUpdate,
+    channel: str = Path(..., pattern=_CHANNEL_PATTERN),
+    payload: ConsentUpdate = ...,
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_permission("edit", "client")),
 ) -> ConsentResponse:

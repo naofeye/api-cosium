@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.tenant_context import TenantContext, get_tenant_context
+from app.core.deps import require_tenant_role
+from app.core.tenant_context import TenantContext
 from app.db.session import get_db
 from app.domain.schemas.ocr import DocumentExtractionResponse, ExtractionRequest
 from app.services import extraction_service
@@ -20,7 +21,10 @@ def extract_document(
     document_id: int,
     payload: ExtractionRequest | None = None,
     db: Session = Depends(get_db),
-    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    # OCR + classification IA : cout Claude/Anthropic non negligeable, on
+    # restreint aux roles qui peuvent legitimement enrichir des dossiers.
+    # Le viewer reste capable de consulter les extractions deja effectuees.
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager", "operator")),
 ) -> DocumentExtractionResponse:
     force = payload.force if payload else False
     use_ai = payload.use_ai if payload else False

@@ -162,6 +162,15 @@ def create_avoir(
     )
 
     if partial:
+        # Taux TVA derive de la facture originale (montants stockes en Numeric).
+        # Verres medicaux a 5,5%, services a 20%, etc. : ne JAMAIS hardcoder a
+        # 20% sinon export FEC comptable incoherent. Fallback 20% uniquement
+        # si la facture originale a un HT nul (cas degeneres seed/tests).
+        original_ht = float(original.montant_ht)
+        if original_ht > 0:
+            taux_tva_avoir = round(float(original.tva) / original_ht * 100, 2)
+        else:
+            taux_tva_avoir = 20.0
         facture_repo.add_ligne(
             db,
             tenant_id,
@@ -169,7 +178,7 @@ def create_avoir(
             designation=f"Avoir partiel sur facture {original.numero} : {motif[:200]}",
             quantite=1,
             prix_unitaire_ht=ht,
-            taux_tva=20.0,
+            taux_tva=taux_tva_avoir,
             montant_ht=ht,
             montant_ttc=ttc,
         )

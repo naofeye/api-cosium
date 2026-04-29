@@ -42,9 +42,14 @@ export function middleware(request: NextRequest) {
   // valide (7j), on doit laisser passer la requete : fetchJson detectera le 401
   // cote API et fera un refresh silencieux. Sinon l'utilisateur est expulse
   // vers /login toutes les 30min meme s'il a une session active.
+  //
+  // Securite : on ne fait PAS confiance au cookie `optiflow_authenticated`
+  // (non-httpOnly, modifiable cote client). On accepte uniquement la presence
+  // d'un `optiflow_refresh` (httpOnly, signe par le backend). Un attaquant
+  // qui fake `optiflow_refresh` n'aura pas la bonne signature -> l'API
+  // rejettera le refresh -> fetchJson redirige vers /login.
   const refresh = request.cookies.get("optiflow_refresh")?.value;
-  const authenticated = request.cookies.get("optiflow_authenticated")?.value === "true";
-  const hasSession = Boolean(token) || (Boolean(refresh) && authenticated);
+  const hasSession = Boolean(token) || Boolean(refresh);
   const pathname = request.nextUrl.pathname;
   const isLoginPage = pathname === "/login";
   const isPublicPage =
