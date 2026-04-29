@@ -4,12 +4,19 @@ import { NextResponse, type NextRequest } from "next/server";
  * Construit la directive CSP avec un nonce cryptographique par requete.
  * `unsafe-eval` est conserve uniquement en dev pour React Fast Refresh.
  */
-function buildCsp(nonce: string, isDev: boolean): string {
+function buildCsp(_nonce: string, isDev: boolean): string {
   const apiOrigin = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+  // Next.js 16 inject des inline scripts pour le RSC payload sans nonce et
+  // ne propage pas le nonce du middleware sur ses chunks <script src>.
+  // Avec un nonce dans la CSP, 'unsafe-inline' est IGNORE par le browser
+  // (CSP3 spec). Donc on retire le nonce et on accepte 'self' + 'unsafe-inline'.
+  // La protection contre XSS reste correcte via 'self' (pas de scripts
+  // cross-origin) ; les attaques inline restent possibles si l'attaquant
+  // injecte du HTML mais c'est le defaut accepte par la majorite des apps
+  // Next.js en prod.
   const scriptSrc = [
     "'self'",
-    `'nonce-${nonce}'`,
-    "'strict-dynamic'",
+    "'unsafe-inline'",
     isDev ? "'unsafe-eval'" : "",
   ]
     .filter(Boolean)
