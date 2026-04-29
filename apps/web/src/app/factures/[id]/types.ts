@@ -35,6 +35,8 @@ export interface FactureDetail {
   tva: number;
   montant_ttc: number;
   status: string;
+  original_facture_id: number | null;
+  motif_avoir: string | null;
   created_at: string;
   montant_paye: number;
   reste_a_payer: number;

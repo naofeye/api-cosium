@@ -8,6 +8,7 @@ from app.core.idempotency import IdempotencyContext, idempotency
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.factures import (
+    AvoirCreate,
     FactureCreate,
     FactureDetail,
     FactureResponse,
@@ -113,3 +114,36 @@ def send_facture_email(
         subject=payload.subject,
         message=payload.message,
     )
+
+
+@router.post(
+    "/factures/{facture_id}/avoir",
+    response_model=FactureResponse,
+    status_code=201,
+    summary="Emettre un avoir (note de credit)",
+    description=(
+        "Cree une note de credit (avoir) sur une facture existante. "
+        "L'avoir est une nouvelle facture avec montants negatifs liee a "
+        "la facture originale. Si montant_ttc_partiel est fourni, l'avoir "
+        "est partiel ; sinon il annule integralement la facture originale."
+    ),
+)
+def create_avoir(
+    facture_id: int,
+    payload: AvoirCreate,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_permission("edit", "facture")),
+    idem: IdempotencyContext = Depends(idempotency("avoir:create")),
+) -> FactureResponse:
+    if idem.cached:
+        return FactureResponse(**idem.cached)
+    result = facture_service.create_avoir(
+        db,
+        tenant_id=tenant_ctx.tenant_id,
+        facture_id=facture_id,
+        motif=payload.motif,
+        montant_ttc_partiel=payload.montant_ttc_partiel,
+        user_id=tenant_ctx.user_id,
+    )
+    idem.store(result.model_dump(mode="json"))
+    return result

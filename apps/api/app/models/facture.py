@@ -24,6 +24,14 @@ class Facture(Base):
     tva: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     montant_ttc: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="emise", index=True)
+    # Avoirs / notes de credit : si cette facture est un avoir (montants negatifs),
+    # original_facture_id pointe vers la facture corrigee. NULL pour les factures normales.
+    # Workflow : facture FAC-001 erronee/remboursee -> avoir AVO-001 (montants negatifs)
+    # qui annule comptablement FAC-001. La facture originale reste intacte (audit trail).
+    original_facture_id: Mapped[int | None] = mapped_column(
+        ForeignKey("factures.id"), nullable=True, index=True
+    )
+    motif_avoir: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
 

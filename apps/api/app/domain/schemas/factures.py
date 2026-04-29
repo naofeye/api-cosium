@@ -7,6 +7,18 @@ class FactureCreate(BaseModel):
     devis_id: int
 
 
+class AvoirCreate(BaseModel):
+    """Creation d'un avoir (note de credit) sur une facture existante.
+
+    L'avoir est une nouvelle facture avec des montants negatifs liee
+    a la facture originale via original_facture_id.
+    """
+    motif: str = Field(..., min_length=1, max_length=500)
+    # Si None : avoir total (annule TOUS les montants de la facture).
+    # Sinon : avoir partiel, montant TTC absolu (positif, signe -).
+    montant_ttc_partiel: float | None = Field(None, ge=0)
+
+
 class FactureLigneResponse(BaseModel):
     id: int
     designation: str
@@ -29,6 +41,8 @@ class FactureResponse(BaseModel):
     tva: float
     montant_ttc: float
     status: str
+    original_facture_id: int | None = None
+    motif_avoir: str | None = None
     created_at: datetime
     customer_name: str | None = None
     customer_email: str | None = None

@@ -87,6 +87,143 @@ def list_factures(db: Session, tenant_id: int, limit: int = 25, offset: int = 0)
     return [FactureResponse(**r) for r in rows]
 
 
+def create_avoir(
+    db: Session,
+    tenant_id: int,
+    facture_id: int,
+    motif: str,
+    montant_ttc_partiel: float | None,
+    user_id: int,
+) -> FactureResponse:
+    """Cree un avoir (note de credit) sur une facture existante.
+
+    Norme comptable : on ne modifie/supprime pas une facture emise. L'avoir
+    est une nouvelle facture aux montants negatifs liee a l'originale.
+
+    - `montant_ttc_partiel=None` -> avoir total (annule toute la facture).
+    - `montant_ttc_partiel=X` (positif, X <= facture.montant_ttc) -> avoir partiel.
+
+    Lignes de l'avoir : copie inversee des lignes originales (avoir total) ou
+    ligne unique forfaitaire (avoir partiel).
+    """
+    original = facture_repo.get_by_id(db, facture_id=facture_id, tenant_id=tenant_id)
+    if not original:
+        raise NotFoundError("facture", facture_id)
+
+    if original.original_facture_id is not None:
+        raise BusinessError(
+            "AVOIR_ON_AVOIR_FORBIDDEN",
+            "Impossible d'emettre un avoir sur un avoir. Avoir cible la facture originale.",
+        )
+
+    original_ttc = float(original.montant_ttc)
+    if original_ttc <= 0:
+        raise BusinessError(
+            "FACTURE_NEGATIVE",
+            "La facture originale a un montant negatif ou nul ; impossible d'emettre un avoir.",
+        )
+
+    if montant_ttc_partiel is not None:
+        if montant_ttc_partiel <= 0:
+            raise BusinessError(
+                "AVOIR_AMOUNT_INVALID",
+                "Le montant de l'avoir partiel doit etre strictement positif.",
+            )
+        if montant_ttc_partiel > original_ttc:
+            raise BusinessError(
+                "AVOIR_AMOUNT_EXCEEDS_FACTURE",
+                f"Le montant de l'avoir ({montant_ttc_partiel}EUR) ne peut pas exceder "
+                f"la facture originale ({original_ttc}EUR).",
+            )
+
+        # Avoir partiel : ligne forfaitaire unique avec TVA proportionnelle
+        ratio = montant_ttc_partiel / original_ttc
+        ht = -round(float(original.montant_ht) * ratio, 2)
+        tva = -round(float(original.tva) * ratio, 2)
+        ttc = -round(montant_ttc_partiel, 2)
+        partial = True
+    else:
+        # Avoir total : montants opposes a la facture originale
+        ht = -float(original.montant_ht)
+        tva = -float(original.tva)
+        ttc = -float(original.montant_ttc)
+        partial = False
+
+    numero = facture_repo.generate_avoir_numero(db, tenant_id)
+    avoir = facture_repo.create_avoir(
+        db,
+        tenant_id=tenant_id,
+        original=original,
+        numero=numero,
+        montant_ht=ht,
+        tva=tva,
+        montant_ttc=ttc,
+        motif=motif,
+    )
+
+    if partial:
+        facture_repo.add_ligne(
+            db,
+            tenant_id,
+            avoir.id,
+            designation=f"Avoir partiel sur facture {original.numero} : {motif[:200]}",
+            quantite=1,
+            prix_unitaire_ht=ht,
+            taux_tva=20.0,
+            montant_ht=ht,
+            montant_ttc=ttc,
+        )
+    else:
+        # Avoir total : reflete les lignes originales avec montants negatifs
+        original_lignes = facture_repo.get_lignes(db, facture_id=original.id, tenant_id=tenant_id)
+        for line in original_lignes:
+            facture_repo.add_ligne(
+                db,
+                tenant_id,
+                avoir.id,
+                designation=f"AVOIR : {line.designation}",
+                quantite=line.quantite,
+                prix_unitaire_ht=-float(line.prix_unitaire_ht),
+                taux_tva=float(line.taux_tva),
+                montant_ht=-float(line.montant_ht),
+                montant_ttc=-float(line.montant_ttc),
+            )
+
+    db.commit()
+    db.refresh(avoir)
+
+    if user_id:
+        audit_service.log_action(
+            db,
+            tenant_id,
+            user_id,
+            "create",
+            "avoir",
+            avoir.id,
+            new_value={
+                "numero": numero,
+                "original_facture_id": original.id,
+                "original_numero": original.numero,
+                "montant_ttc": ttc,
+                "motif": motif,
+                "partial": partial,
+            },
+        )
+        event_service.emit_event(db, tenant_id, "AvoirEmis", "facture", avoir.id, user_id)
+        db.commit()
+
+    logger.info(
+        "avoir_created",
+        tenant_id=tenant_id,
+        avoir_id=avoir.id,
+        numero=numero,
+        original_facture_id=original.id,
+        montant_ttc=ttc,
+        partial=partial,
+    )
+    return FactureResponse.model_validate(avoir)
+
+
 def get_facture_detail(db: Session, tenant_id: int, facture_id: int) -> FactureDetail:
     data = facture_repo.get_detail(db, facture_id=facture_id, tenant_id=tenant_id)
     if not data:

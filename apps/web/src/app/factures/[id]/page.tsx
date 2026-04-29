@@ -13,17 +13,19 @@ import { Button } from "@/components/ui/Button";
 import { SendDocumentEmailDialog } from "@/components/ui/SendDocumentEmailDialog";
 import { downloadPdf } from "@/lib/download";
 import { formatMoney } from "@/lib/format";
-import { Euro, FileText, Receipt, Download, Printer, Mail, ShieldCheck, AlertCircle } from "lucide-react";
+import { Euro, FileText, Receipt, Download, Printer, Mail, ShieldCheck, AlertCircle, Undo2 } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
 import type { FactureDetail } from "./types";
 import { FacturePaymentsTable } from "./components/FacturePaymentsTable";
 import { FactureLignesTable } from "./components/FactureLignesTable";
+import { CreateAvoirDialog } from "./components/CreateAvoirDialog";
 
 export default function FactureDetailPage() {
   const params = useParams();
   const id = params.id as string;
   const [emailOpen, setEmailOpen] = useState(false);
+  const [avoirOpen, setAvoirOpen] = useState(false);
 
   const { data: facture, error, isLoading, mutate } = useSWR<FactureDetail>(`/factures/${id}`);
 
@@ -93,6 +95,16 @@ export default function FactureDetailPage() {
           >
             <Mail className="h-4 w-4" /> Envoyer par email
           </Button>
+          {!facture.original_facture_id && facture.montant_ttc > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAvoirOpen(true)}
+              aria-label="Emettre un avoir sur cette facture"
+            >
+              <Undo2 className="h-4 w-4" /> Emettre un avoir
+            </Button>
+          )}
         </div>
       }
     >
@@ -108,8 +120,24 @@ export default function FactureDetailPage() {
         />
       </div>
 
-      {/* Remaining balance banner */}
-      {resteAPayer > 0 && (
+      {/* Avoir banner — visible uniquement sur les avoirs */}
+      {facture.original_facture_id && (
+        <div className="rounded-xl border border-purple-200 bg-purple-50 p-4 mb-6 flex items-start gap-3">
+          <Undo2 className="h-5 w-5 text-purple-600 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-purple-900">
+              Avoir (note de credit) — montants negatifs
+            </p>
+            <p className="text-xs text-purple-700 mt-0.5">
+              Lie a la facture <Link href={`/factures/${facture.original_facture_id}`} className="underline font-medium">#{facture.original_facture_id}</Link>
+              {facture.motif_avoir ? ` — Motif : ${facture.motif_avoir}` : ""}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Remaining balance banner — pas affiche pour les avoirs */}
+      {resteAPayer > 0 && !facture.original_facture_id && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
@@ -222,6 +250,14 @@ export default function FactureDetailPage() {
         documentNumero={facture.numero}
         documentLabel="facture"
         defaultRecipient={facture.customer_email ?? null}
+      />
+
+      <CreateAvoirDialog
+        open={avoirOpen}
+        onClose={() => setAvoirOpen(false)}
+        factureId={facture.id}
+        factureNumero={facture.numero}
+        factureMontantTtc={facture.montant_ttc}
       />
     </PageLayout>
   );

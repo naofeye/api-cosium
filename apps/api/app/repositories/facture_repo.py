@@ -12,11 +12,61 @@ def generate_numero(db: Session, tenant_id: int) -> str:
         db.scalar(
             select(func.count())
             .select_from(Facture)
-            .where(extract("year", Facture.created_at) == year, Facture.tenant_id == tenant_id)
+            .where(
+                extract("year", Facture.created_at) == year,
+                Facture.tenant_id == tenant_id,
+                Facture.original_facture_id.is_(None),  # exclure les avoirs
+            )
         )
         or 0
     )
     return f"F-{year}-{count + 1:04d}"
+
+
+def generate_avoir_numero(db: Session, tenant_id: int) -> str:
+    """Numerotation distincte pour les avoirs : AV-YYYY-NNNN."""
+    year = datetime.now(UTC).replace(tzinfo=None).year
+    count = (
+        db.scalar(
+            select(func.count())
+            .select_from(Facture)
+            .where(
+                extract("year", Facture.created_at) == year,
+                Facture.tenant_id == tenant_id,
+                Facture.original_facture_id.is_not(None),
+            )
+        )
+        or 0
+    )
+    return f"AV-{year}-{count + 1:04d}"
+
+
+def create_avoir(
+    db: Session,
+    tenant_id: int,
+    original: Facture,
+    numero: str,
+    montant_ht: float,
+    tva: float,
+    montant_ttc: float,
+    motif: str,
+) -> Facture:
+    """Cree un avoir lie a une facture existante. Montants signes negativement."""
+    avoir = Facture(
+        tenant_id=tenant_id,
+        case_id=original.case_id,
+        devis_id=original.devis_id,
+        numero=numero,
+        montant_ht=montant_ht,
+        tva=tva,
+        montant_ttc=montant_ttc,
+        status="emise",
+        original_facture_id=original.id,
+        motif_avoir=motif,
+    )
+    db.add(avoir)
+    db.flush()
+    return avoir
 
 
 def create(
@@ -98,6 +148,8 @@ def list_all(db: Session, tenant_id: int, limit: int = 25, offset: int = 0) -> l
             Facture.tva,
             Facture.montant_ttc,
             Facture.status,
+            Facture.original_facture_id,
+            Facture.motif_avoir,
             Facture.created_at,
             Customer.first_name,
             Customer.last_name,
@@ -120,6 +172,8 @@ def list_all(db: Session, tenant_id: int, limit: int = 25, offset: int = 0) -> l
             "tva": float(r.tva),
             "montant_ttc": float(r.montant_ttc),
             "status": r.status,
+            "original_facture_id": r.original_facture_id,
+            "motif_avoir": r.motif_avoir,
             "created_at": r.created_at,
             "customer_name": f"{r.first_name} {r.last_name}",
         }
@@ -139,6 +193,8 @@ def get_detail(db: Session, facture_id: int, tenant_id: int) -> dict | None:
             Facture.tva,
             Facture.montant_ttc,
             Facture.status,
+            Facture.original_facture_id,
+            Facture.motif_avoir,
             Facture.created_at,
             Customer.first_name,
             Customer.last_name,
@@ -162,6 +218,8 @@ def get_detail(db: Session, facture_id: int, tenant_id: int) -> dict | None:
         "tva": float(row.tva),
         "montant_ttc": float(row.montant_ttc),
         "status": row.status,
+        "original_facture_id": row.original_facture_id,
+        "motif_avoir": row.motif_avoir,
         "created_at": row.created_at,
         "customer_name": f"{row.first_name} {row.last_name}",
         "customer_email": row.email,
