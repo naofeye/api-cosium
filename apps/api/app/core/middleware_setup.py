@@ -60,8 +60,8 @@ def setup_middlewares(app: FastAPI, app_version: str) -> None:
         response = await call_next(request)
         duration_ms = (_time.time() - start) * 1000
         response.headers["X-Response-Time"] = f"{int(duration_ms)}ms"
-        response.headers["X-API-Version"] = app_version
-        response.headers["X-Powered-By"] = "OptiFlow AI"
+        # Fingerprint headers retires : reconnaissance attaquant evitee.
+        # La version reste accessible via /api/v1/version (admin-only).
         if duration_ms > 1000:
             logger.warning(
                 "slow_request",

@@ -21,6 +21,7 @@ logger = get_logger("rate_limiter")
 # (path, method) -> (max_attempts, window_seconds)
 RATE_LIMIT_RULES: dict[tuple[str, str], tuple[int, int]] = {
     ("/api/v1/auth/login", "POST"): (10, 60),
+    ("/api/v1/auth/login-form", "POST"): (10, 60),  # no-JS fallback : memes limites
     ("/api/v1/auth/forgot-password", "POST"): (3, 3600),
     ("/api/v1/auth/reset-password", "POST"): (5, 3600),
     ("/api/v1/auth/refresh", "POST"): (20, 60),
@@ -40,6 +41,8 @@ RATE_LIMIT_PREFIX_RULES: dict[tuple[str, str], tuple[int, int]] = {
     ("/api/v1/clients", "DELETE"): (10, 60),
     ("/api/v1/exports", "GET"): (5, 60),
     ("/api/v1/sync", "POST"): (3, 300),
+    ("/api/v1/ai/copilot", "POST"): (30, 60),  # couvre /query ET /stream + /conversations/append
+    ("/api/v1/web-vitals", "POST"): (60, 60),  # endpoint public anonyme : anti-spam
     ("/api/v1/pec-preparations", "POST"): (5, 60),
     ("/api/v1/documents", "POST"): (10, 60),
     ("/api/v1/pec", "PATCH"): (10, 60),

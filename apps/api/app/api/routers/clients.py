@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Query, Request, UploadFile
 from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session
 
@@ -8,6 +8,7 @@ from app.core.exceptions import BusinessError, ValidationError
 from app.core.http import content_disposition
 from app.core.redis_cache import acquire_lock, release_lock
 from app.core.tenant_context import TenantContext, get_tenant_context
+from app.core.upload_safe import read_upload_safely
 from app.db.session import get_db
 from app.domain.schemas.clients import (
     ClientCreate,
@@ -109,6 +110,7 @@ def merge_clients(
     description="Importe des clients en lot depuis un fichier CSV ou Excel (.xlsx).",
 )
 async def import_file(
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_permission("create", "client")),
@@ -116,7 +118,7 @@ async def import_file(
     allowed_extensions = (".csv", ".xlsx", ".xls")
     if not file.filename or not file.filename.lower().endswith(allowed_extensions):
         raise ValidationError("file", "Le fichier doit etre au format CSV ou Excel (.xlsx).")
-    content = await file.read()
+    content = await read_upload_safely(file, request)
     return client_service.import_from_file(
         db,
         tenant_id=tenant_ctx.tenant_id,
@@ -233,6 +235,7 @@ def restore_client(
 )
 async def upload_avatar(
     client_id: int,
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_permission("edit", "client")),
@@ -240,10 +243,8 @@ async def upload_avatar(
     allowed = {"image/jpeg", "image/png", "image/jpg"}
     if file.content_type not in allowed:
         raise ValidationError("file", "Le fichier doit etre une image (JPG ou PNG).")
-    file_data = await file.read()
-    max_size = 5 * 1024 * 1024
-    if len(file_data) > max_size:
-        raise ValidationError("file", "L'image ne doit pas depasser 5 Mo.")
+    # Avatar : limite stricte 5 MB (vs default settings.max_upload_size_mb=20).
+    file_data = await read_upload_safely(file, request, max_mb=5)
     url = client_service.upload_avatar(
         db,
         tenant_id=tenant_ctx.tenant_id,

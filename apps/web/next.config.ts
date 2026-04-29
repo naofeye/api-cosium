@@ -23,10 +23,12 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   compress: true,
   async rewrites() {
+    // /metrics retire des rewrites publics : exposition Prometheus = exfiltration
+    // de donnees business (nombre tenants, encours, sync stats). A scrapper en
+    // interne via Docker network uniquement, pas via Caddy public.
     return [
       { source: "/api/:path*", destination: `${BACKEND_INTERNAL_URL}/api/:path*` },
       { source: "/health", destination: `${BACKEND_INTERNAL_URL}/health` },
-      { source: "/metrics", destination: `${BACKEND_INTERNAL_URL}/metrics` },
     ];
   },
   // Note Next.js 16 : `eslint.ignoreDuringBuilds` supprime du type NextConfig.

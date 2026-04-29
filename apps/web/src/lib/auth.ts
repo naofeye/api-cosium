@@ -48,9 +48,13 @@ export function getAvailableTenants(): AvailableTenant[] {
 }
 
 function setTenantInfo(tenantId: number, tenantName: string, availableTenants: AvailableTenant[]) {
-  Cookies.set(TENANT_ID_KEY, String(tenantId), { sameSite: "lax" });
-  Cookies.set(TENANT_NAME_KEY, tenantName, { sameSite: "lax" });
-  Cookies.set(TENANTS_KEY, JSON.stringify(availableTenants), { sameSite: "lax" });
+  // Cookies non-httpOnly mais Secure en prod (HTTPS) pour eviter fuite sur
+  // downgrade HTTP. SameSite=lax suffit ici (pas de credential, juste UI state).
+  const isHttps = typeof window !== "undefined" && window.location?.protocol === "https:";
+  const opts = { sameSite: "lax" as const, secure: isHttps };
+  Cookies.set(TENANT_ID_KEY, String(tenantId), opts);
+  Cookies.set(TENANT_NAME_KEY, tenantName, opts);
+  Cookies.set(TENANTS_KEY, JSON.stringify(availableTenants), opts);
 }
 
 // --- Login / Switch / Refresh / Logout ---
@@ -125,6 +129,11 @@ export async function switchTenant(tenantId: number): Promise<LoginResult> {
   const data = await res.json();
   const tenants: AvailableTenant[] = data.available_tenants ?? getAvailableTenants();
   const tenantName = data.tenant_name ?? tenants.find((t) => t.id === tenantId)?.name ?? "";
+  // Purge le cache API + queue offline du SW : on change d'utilisateur effectif
+  // (donnees du tenant precedent ne doivent pas etre rejouees ni servies).
+  if (typeof navigator !== "undefined" && navigator.serviceWorker?.controller) {
+    navigator.serviceWorker.controller.postMessage({ type: "CLEAR_AUTH_DATA" });
+  }
   setTenantInfo(tenantId, tenantName, tenants);
   return {
     role: data.role,
@@ -158,6 +167,16 @@ export async function refreshAccessToken(): Promise<boolean> {
   return refreshPromise;
 }
 
+/**
+ * Demande au service worker de purger le cache API + la queue offline.
+ * Best-effort : pas de SW = no-op silencieux.
+ */
+function clearServiceWorkerAuthData() {
+  if (typeof navigator !== "undefined" && navigator.serviceWorker?.controller) {
+    navigator.serviceWorker.controller.postMessage({ type: "CLEAR_AUTH_DATA" });
+  }
+}
+
 export function logout() {
   fetch(`${API_BASE}/auth/logout`, {
     method: "POST",
@@ -165,5 +184,6 @@ export function logout() {
   }).catch((err) => {
     logger.error("[Auth] Erreur lors de la deconnexion:", err);
   });
+  clearServiceWorkerAuthData();
   clearAuthState();
 }

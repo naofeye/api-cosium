@@ -58,6 +58,17 @@ def get_tenant_context(
     if tenant_user is None:
         raise AuthenticationError("Accès refusé : pas d'accès à ce magasin")
 
+    # Verifier aussi que le tenant lui-meme est actif (suspension Stripe, RGPD,
+    # breach...). Sans ce check, un JWT existant garde l'acces 30min apres la
+    # desactivation du tenant.
+    from app.models import Tenant
+    tenant = db.query(Tenant).filter(
+        Tenant.id == tenant_id,
+        Tenant.is_active.is_(True),
+    ).first()
+    if tenant is None:
+        raise AuthenticationError("Magasin désactivé ou introuvable")
+
     is_group_admin = payload.get("is_group_admin", False)
 
     return TenantContext(

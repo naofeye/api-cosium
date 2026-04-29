@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, File, Header, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Header, Query, Request, UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_tenant_role
 from app.core.exceptions import ValidationError
 from app.core.tenant_context import TenantContext, get_tenant_context
+from app.core.upload_safe import read_upload_safely
 from app.db.session import get_db
 from app.domain.schemas.banking import (
     BankTransactionListResponse,
@@ -48,13 +49,14 @@ def create_payment(
     description="Importe un fichier de releve bancaire et cree les transactions.",
 )
 async def import_statement(
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
 ) -> ImportStatementResult:
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise ValidationError("file", "Le fichier doit etre au format CSV.")
-    file_data = await file.read()
+    file_data = await read_upload_safely(file, request)
     imported, skipped = banking_service.import_statement(
         db,
         tenant_id=tenant_ctx.tenant_id,

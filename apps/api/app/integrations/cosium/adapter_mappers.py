@@ -201,13 +201,31 @@ def cosium_invoiced_item_to_optiflow(raw: dict) -> dict:
         invoice_cosium_id = int(invoice_raw) if invoice_raw else 0
     except (TypeError, ValueError):
         invoice_cosium_id = 0
+    # Champs Cosium officiels (cf docs/cosium/Invoiced Items API.pdf) :
+    # - unitPriceIncludingTaxes (TTC)
+    # - totalPriceIncludingTaxes (TTC)
+    # - unitPriceExcludingTaxes (HT)
+    # - vatPercentage, discount, discountType, rank, productCode
+    # Fallbacks legacy gardes pour compat avec d'eventuels seeds tests.
     return {
         "cosium_id": cid,
         "invoice_cosium_id": invoice_cosium_id,
-        "product_cosium_id": str(raw.get("productId") or "") or None,
+        "product_cosium_id": (
+            str(raw.get("productCode") or raw.get("productId") or "") or None
+        ),
         "product_label": raw.get("label") or raw.get("productLabel") or "",
         "product_family": raw.get("productFamily") or raw.get("familyType") or "",
         "quantity": int(raw.get("quantity") or 1),
-        "unit_price_ti": float(raw.get("unitPriceTI") or raw.get("unitPrice") or 0),
-        "total_ti": float(raw.get("totalTI") or raw.get("totalPrice") or 0),
+        "unit_price_ti": float(
+            raw.get("unitPriceIncludingTaxes")
+            or raw.get("unitPriceTI")
+            or raw.get("unitPrice")
+            or 0
+        ),
+        "total_ti": float(
+            raw.get("totalPriceIncludingTaxes")
+            or raw.get("totalTI")
+            or raw.get("totalPrice")
+            or 0
+        ),
     }

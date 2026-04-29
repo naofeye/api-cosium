@@ -1,5 +1,7 @@
 """Client 360 — Financial data aggregation (invoices, payments, balance, aging)."""
 
+from decimal import Decimal
+
 from sqlalchemy import func as sa_func
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -62,8 +64,11 @@ def aggregate_case_financials(cases: list[Case]) -> dict:
     factures: list[dict] = []
     paiements: list[dict] = []
     pec_list: list[dict] = []
-    total_facture = 0.0
-    total_paye = 0.0
+    # Decimal pour preserver la precision sur les montants en euros (la BD utilise
+    # Numeric(10,2)). Conversion finale en float au moment de la serialisation
+    # JSON via les schemas Pydantic, pas avant.
+    total_facture: Decimal = Decimal("0")
+    total_paye: Decimal = Decimal("0")
 
     for case in cases:
         for d in case.devis:
@@ -87,7 +92,7 @@ def aggregate_case_financials(cases: list[Case]) -> dict:
                     "date_emission": str(f.date_emission),
                 }
             )
-            total_facture += float(f.montant_ttc)
+            total_facture += f.montant_ttc
 
         for p in case.payments:
             paiements.append(
@@ -100,7 +105,7 @@ def aggregate_case_financials(cases: list[Case]) -> dict:
                     "statut": p.status,
                 }
             )
-            total_paye += float(p.amount_paid)
+            total_paye += p.amount_paid
 
         for p in case.pec_requests:
             pec_list.append(
@@ -117,8 +122,9 @@ def aggregate_case_financials(cases: list[Case]) -> dict:
         "factures": factures,
         "paiements": paiements,
         "pec": pec_list,
-        "total_facture": total_facture,
-        "total_paye": total_paye,
+        # Conversion en float seulement au passage de la frontiere serialisation
+        "total_facture": float(total_facture),
+        "total_paye": float(total_paye),
     }
 
 

@@ -53,17 +53,34 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
     ),
 )
 def login_form(
+    request: Request,
     response: Response,
     db: Session = Depends(get_db),
     email: str = Form(...),
     password: str = Form(...),
     totp_code: str | None = Form(None),
 ):
+    # Defense CSRF / login-CSRF : refuser les soumissions cross-origin.
+    # SameSite=strict protege deja les cookies, mais on ajoute une verification
+    # explicite Origin/Referer pour empecher un site externe de creer un compte
+    # de session fixation via <form action=...>.
+    from app.core.config import settings as _settings
+    allowed_origins = {o.strip() for o in _settings.cors_origins.split(",") if o.strip()}
+    origin = request.headers.get("origin") or request.headers.get("referer", "")
+    if origin:
+        # Match prefix (l'origin est l'URL complete, on autorise si elle commence par
+        # un des origines autorisees)
+        if not any(origin.startswith(allowed) for allowed in allowed_origins):
+            from urllib.parse import quote
+            return RedirectResponse(
+                url=f"/login?error={quote('Origine non autorisee')}",
+                status_code=303,
+            )
+
     try:
         payload = LoginRequest(email=email, password=password, totp_code=totp_code or None)
         result = auth_service.authenticate(db, payload)
     except AuthenticationError as exc:
-        # Redirige vers /login avec un message d'erreur (pas de password en URL)
         msg = str(exc) or "Email ou mot de passe incorrect"
         from urllib.parse import quote
         return RedirectResponse(url=f"/login?error={quote(msg)}", status_code=303)

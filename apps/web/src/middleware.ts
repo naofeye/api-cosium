@@ -38,6 +38,13 @@ function buildCsp(_nonce: string, isDev: boolean): string {
 
 export function middleware(request: NextRequest) {
   const token = request.cookies.get("optiflow_token")?.value;
+  // Quand l'access token expire (TTL 30min) mais que le refresh est encore
+  // valide (7j), on doit laisser passer la requete : fetchJson detectera le 401
+  // cote API et fera un refresh silencieux. Sinon l'utilisateur est expulse
+  // vers /login toutes les 30min meme s'il a une session active.
+  const refresh = request.cookies.get("optiflow_refresh")?.value;
+  const authenticated = request.cookies.get("optiflow_authenticated")?.value === "true";
+  const hasSession = Boolean(token) || (Boolean(refresh) && authenticated);
   const pathname = request.nextUrl.pathname;
   const isLoginPage = pathname === "/login";
   const isPublicPage =
@@ -48,11 +55,11 @@ export function middleware(request: NextRequest) {
     pathname === "/reset-password" ||
     pathname === "/offline";
 
-  if (!token && !isPublicPage) {
+  if (!hasSession && !isPublicPage) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (token && isLoginPage) {
+  if (hasSession && isLoginPage) {
     return NextResponse.redirect(new URL("/actions", request.url));
   }
 
