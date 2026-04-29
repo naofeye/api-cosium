@@ -45,6 +45,12 @@ def get_db():
     db = SessionLocal()
     try:
         yield db
+        # Frontiere transactionnelle unique : commit a la fin de la requete si pas
+        # d'exception. Beaucoup de services flush() puis retournent sans commit
+        # explicite ; sans ce commit, les ecritures sont perdues a la fermeture
+        # de session. Les services qui commitent eux-memes restent corrects
+        # (commit sur session propre = no-op cote SQLAlchemy/PG).
+        db.commit()
     except Exception as exc:
         logger.error(
             "db_session_error",
