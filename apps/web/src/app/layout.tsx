@@ -5,6 +5,8 @@ import { AuthLayout } from "@/components/layout/AuthLayout";
 import { ProgressBarProvider } from "@/components/layout/ProgressBar";
 import { ServiceWorkerRegister } from "@/components/layout/ServiceWorkerRegister";
 import { WebVitals } from "@/components/layout/WebVitals";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { IosSplashLinks } from "@/components/pwa/IosSplashLinks";
 
 export const metadata: Metadata = {
   title: "OptiFlow AI — Gestion Opticien",
@@ -38,6 +40,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="fr">
+      <head>
+        <IosSplashLinks />
+      </head>
       <body>
         <a
           href="#main-content"
@@ -49,6 +54,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <ServiceWorkerRegister />
         <WebVitals />
         <AuthLayout>{children}</AuthLayout>
+        <InstallPrompt />
       </body>
     </html>
   );

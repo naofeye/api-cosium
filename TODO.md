@@ -24,66 +24,6 @@
 
 ---
 
-## Plan de dev (ex DEV-PLAN.md)
-
-### Direction (validée par Nabil 27/04/2026)
-
-- **PAS de prod** pour l'instant (attente credentials API Cosium)
-- **Priorité B** : polir ce qui existe (copilot IA, tests E2E, UX)
-- **Priorité C** : combler les manques fonctionnels (avoirs, envoi devis, signature, SMS)
-
-### Exigence qualité
-
-Chaque feature implémentée doit être de **qualité professionnelle** :
-- Backend : pattern router→service→repo, validation Pydantic, RBAC, tests unitaires, ruff vert
-- Frontend : TypeScript strict (0 `any`), loading/error/empty states, responsive, accessibilité (aria-labels), vitest vert
-- Pas de raccourci, pas de TODO laissé, pas de code mort
-
-### Règles
-
-- Un seul item en cours à la fois
-- Checkpoint Nabil obligatoire pour les items niveau 2+
-- Max 15 min par item (timeout)
-- Commit séparé par item (revert facile)
-- NE PAS modifier les fichiers de config infra (docker-compose, .env, CI) sans validation
-- Chaque item DOIT avoir un champ `Files:` qui liste les fichiers autorisés
-- Claude ne peut modifier QUE les fichiers listés dans `Files:` — tout le reste est revert automatiquement
-- Si un item est trop vague pour lister les fichiers → session interactive, pas dev-cycle
-
-### Niveaux
-
-- **Niveau 1** (safe) : fix bugs, ajouter tests, docs, refactor interne — pas de checkpoint
-- **Niveau 2** (encadré) : nouvelle feature avec specs claires — checkpoint à la fin
-- **Niveau 3** (créatif) : architecture, nouveau module — validation AVANT de coder
-
-### File d'attente
-
-#### Priorité B — Polir ce qui existe
-
-- [x] Copilot IA conversationnel — Backend : endpoint streaming SSE _(fait 2026-04-27)_
-- [x] Copilot IA conversationnel — Frontend : page interactive _(fait 2026-04-27)_
-- [x] Envoi devis par email au client _(fait 2026-04-28)_
-- [x] Envoi facture par email au client _(fait 2026-04-28)_
-
-#### Priorité C — Manques fonctionnels
-
-- [x] ~~Avoirs / notes de crédit sur factures~~ _(fait 2026-04-29 : modele original_facture_id + motif_avoir, migration c6f7g8h9i0j1, service create_avoir avec garde-fous (no avoir-on-avoir, partial proportionnel), endpoint POST /factures/{id}/avoir, frontend CreateAvoirDialog + bandeau visuel sur les avoirs. 8 tests verts.)_
-
-- [x] ~~Expiration automatique des devis~~ _(fait 2026-04-29 : model valid_until + DEVIS_DEFAULT_VALIDITY_DAYS=90, migration b5e6f7g8h9i0 + backfill, task Celery beat 3h15 quotidien, frontend colonne couleur ambre J-7 / rouge expire. 6 tests verts.)_
-
-- [x] ~~Historique conversationnel copilot IA (persisté)~~ _(fait 2026-04-29 : tables AiConversation + AiMessage avec FK CASCADE, migration d7g8h9i0j1k2, service append_message replay history, claude_provider accepte argument history, 4 endpoints CRUD, frontend HistoryPanel slide-in + boutons Sauver/Historique/Effacer. 5 tests verts.)_
-
-#### P2 — Qualité (DEV-PLAN items)
-
-- [x] ~~Déplacer seed_demo.py dans tests/factories/~~ _(fait 2026-04-26)_
-- [x] ~~Remplacer 15 `except Exception:` bare~~ _(fait 2026-04-26)_
-- [x] ~~Ajouter `order_by` manquant sur `cosium_invoice_repo.first()`~~ _(fait 2026-04-26)_
-- [x] ~~Split `ocr_service.py`~~ _(déjà fait)_
-- [x] ~~Coverage backend 45% → 55%~~ _(fait 2026-04-26)_
-- [ ] ESLint `no-explicit-any` warn → error ⚠️ ITEM LARGE — session interactive
-
----
-
 ## État actuel — synthèse
 
 **Niveau atteint** : production-ready pour environnement de test contrôlé.
@@ -177,7 +117,7 @@ Chaque feature implémentée doit être de **qualité professionnelle** :
   - `apps/api/app/api/routers/auth.py` — `_COOKIE_OPTS` (httpOnly, SameSite=Strict, secure=False en test)
 
 ### PWA / UX
-- [ ] **Splash screens iOS** : assets PNG iPad 2732×2048, iPhone X 1125×2436 etc. (icônes PNG 192/512 déjà présentes)
+- [x] ~~**Splash screens iOS**~~ _(fait 2026-04-29 : 18 PNG generes par `scripts/generate_ios_splash.py` couvrant iPhone 8 a 14 Pro Max + iPad Mini a Pro 12.9", portrait + landscape. Composant `IosSplashLinks` insere les `<link rel="apple-touch-startup-image">` avec media queries device-pixel-ratio. + banniere `InstallPrompt` (bouton Android natif via beforeinstallprompt, instructions Partager > Sur l'ecran d'accueil pour iOS). Memo dismiss 7j dans localStorage.)_
 
 ### Admin / observabilité
 - [x] ~~Alerting sync Cosium échoue~~ : helper central `core/sentry_helpers.py::report_incident_to_sentry(exc, tag, category=..., **context)`. Capture + tags indexés (incident_category, incident, tenant_id, domain). Câblé dans `tasks/sync_tasks.py` aux 4 callsites (`cosium_sync_failed`, `cosium_sync_partial_failure`, `cosium_sync_domain_failed`, `cosium_bulk_download_failed`). Best-effort (no-op si `sentry_dsn` vide, try/except interne). Refacto `security.py` pour réutiliser le helper. 4 tests. Latence/taux erreur relèvent de Prometheus alertmanager (hors scope backend).
