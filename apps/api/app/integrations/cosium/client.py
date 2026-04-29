@@ -32,7 +32,7 @@ def _should_retry(exc: Exception) -> bool:
     """True si l'exception est transient (rate limit, 5xx, network) — pas une erreur 4xx logique."""
     if isinstance(exc, httpx.HTTPStatusError):
         return exc.response.status_code in RETRYABLE_STATUS_CODES or exc.response.status_code >= 500
-    if isinstance(exc, (httpx.TimeoutException, httpx.NetworkError, httpx.RemoteProtocolError)):
+    if isinstance(exc, httpx.TimeoutException | httpx.NetworkError | httpx.RemoteProtocolError):
         return True
     return False
 

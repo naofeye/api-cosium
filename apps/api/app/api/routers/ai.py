@@ -341,7 +341,7 @@ def append_conversation_message(
             case_id=payload.case_id,
         )
     except NotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return AiAppendResponse(conversation_id=conv_id, answer=answer)
 
 

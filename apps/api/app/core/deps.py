@@ -160,6 +160,7 @@ def assert_resource_owned(
     interaction, segment, campaign.
     """
     from sqlalchemy import select
+
     from app.models import (
         Campaign,
         Case,
@@ -238,10 +239,10 @@ def require_resource_ownership(resource_type: str, action: str) -> Callable:
             return tenant_ctx
         try:
             resource_id = int(resource_id_raw)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as exc:
             raise ForbiddenError(
                 f"Identifiant {resource_type} invalide : {resource_id_raw}"
-            )
+            ) from exc
         assert_resource_owned(db, resource_type, resource_id, tenant_ctx.tenant_id)
         return tenant_ctx
 
