@@ -25,7 +25,16 @@ class ClaudeProvider(AIProvider):
         result = self.query_with_usage(prompt, context, system)
         return result["text"]
 
-    def query_with_usage(self, prompt: str, context: str = "", system: str = "") -> dict:
+    def query_with_usage(
+        self,
+        prompt: str,
+        context: str = "",
+        system: str = "",
+        history: list[dict] | None = None,
+    ) -> dict:
+        """Query Claude. `history` (optionnel) = liste de messages [{role, content}, ...]
+        precedents (sans le prompt courant). Le prompt est ajoute en dernier message user.
+        """
         if not self.api_key:
             return {
                 "text": "[IA non configuree] Ajoutez ANTHROPIC_API_KEY dans votre fichier .env pour activer l'assistant IA.",
@@ -48,6 +57,10 @@ class ClaudeProvider(AIProvider):
                         "content": "J'ai bien pris en compte le contexte. Quelle est votre question ?",
                     }
                 )
+
+            # Replay de l'historique conversationnel
+            if history:
+                messages.extend(history)
 
             messages.append({"role": "user", "content": prompt})
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Send, Trash2 } from "lucide-react";
+import { Send, Trash2, History, Save } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -11,11 +11,13 @@ import {
   type KeyboardEvent,
 } from "react";
 import { API_BASE } from "@/lib/config";
+import { fetchJson } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { MessageBubble, type ChatMessage } from "./MessageBubble";
 import { EmptyChat } from "./_chat/EmptyChat";
+import { HistoryPanel } from "./_chat/HistoryPanel";
 import { MODE_OPTIONS, MODE_PLACEHOLDERS, type CopilotMode } from "./_chat/modes";
 import { parseSseFrames } from "./_chat/sseParser";
 
@@ -25,6 +27,9 @@ export function ChatInterface() {
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<CopilotMode>("dossier");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [savedConversationId, setSavedConversationId] = useState<number | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -184,10 +189,53 @@ export function ChatInterface() {
       abortRef.current?.abort();
     }
     setMessages([]);
+    setSavedConversationId(null);
   }, [isStreaming]);
 
+  const handleLoadConversation = useCallback(
+    (loadedMessages: ChatMessage[], conversationId: number) => {
+      setMessages(loadedMessages);
+      setSavedConversationId(conversationId);
+    },
+    [],
+  );
+
+  const handleSaveConversation = useCallback(async () => {
+    // Cherche la derniere paire user/assistant pour la sauver via l'API
+    // (qui re-execute Claude — c'est volontaire pour avoir l'historique en BDD).
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    if (!lastUser) {
+      toast("Pas de question utilisateur a sauvegarder.", "warning");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const result = await fetchJson<{ conversation_id: number; answer: string }>(
+        `/ai/conversations/append`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            question: lastUser.text,
+            conversation_id: savedConversationId,
+            mode,
+            case_id: null,
+          }),
+        },
+      );
+      setSavedConversationId(result.conversation_id);
+      toast("Conversation sauvegardee dans l'historique.", "success");
+    } catch (err) {
+      toast(
+        err instanceof Error ? err.message : "Erreur lors de la sauvegarde.",
+        "error",
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }, [messages, savedConversationId, mode, toast]);
+
   return (
-    <div className="flex flex-col h-[calc(100vh-220px)] min-h-[480px] bg-white rounded-xl border border-border shadow-sm overflow-hidden">
+    <div className="relative flex flex-col h-[calc(100vh-220px)] min-h-[480px] bg-white rounded-xl border border-border shadow-sm overflow-hidden">
       <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border bg-gray-50">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <label htmlFor="copilot-mode" className="text-sm font-medium text-text-primary whitespace-nowrap">
@@ -203,6 +251,27 @@ export function ChatInterface() {
             aria-label="Sélectionner le mode du copilote"
           />
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setHistoryOpen(true)}
+          aria-label="Voir l'historique des conversations"
+          title="Historique"
+        >
+          <History className="w-4 h-4" />
+          <span className="hidden sm:inline">Historique</span>
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleSaveConversation}
+          disabled={isSaving || isStreaming || messageCount === 0}
+          aria-label="Sauvegarder la conversation"
+          title={savedConversationId ? "Mettre a jour la conversation sauvee" : "Sauvegarder la conversation"}
+        >
+          <Save className="w-4 h-4" />
+          <span className="hidden sm:inline">{isSaving ? "..." : "Sauver"}</span>
+        </Button>
         <Button
           variant="ghost"
           size="sm"
@@ -259,9 +328,15 @@ export function ChatInterface() {
           )}
         </div>
         <p className="mt-2 text-xs text-text-secondary">
-          Entrée pour envoyer · Maj+Entrée pour un saut de ligne. Historique non sauvegardé.
+          Entrée pour envoyer · Maj+Entrée pour un saut de ligne · Cliquez Sauver pour persister.
         </p>
       </form>
+
+      <HistoryPanel
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        onLoadConversation={handleLoadConversation}
+      />
     </div>
   );
 }

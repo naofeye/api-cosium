@@ -6,10 +6,19 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import NotFoundError
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
-from app.repositories import ai_context_repo
+from app.domain.schemas.ai_conversation import (
+    AiAppendRequest,
+    AiAppendResponse,
+    AiConversationDetail,
+    AiConversationListItem,
+    AiMessageResponse,
+)
+from app.repositories import ai_context_repo, ai_conversation_repo
 from app.services import ai_service
+from app.services._ai.conversation import append_message
 
 router = APIRouter(prefix="/api/v1/ai", tags=["ai"])
 
@@ -250,3 +259,104 @@ def devis_analysis(
         raise HTTPException(status_code=404, detail="Devis introuvable")
     analysis_text, warnings = result
     return DevisAnalysisResponse(devis_id=devis_id, analysis=analysis_text, warnings=warnings)
+
+
+# ---------------------------------------------------------------------------
+# Conversational chat history (persisted)
+# ---------------------------------------------------------------------------
+
+@router.get(
+    "/conversations",
+    response_model=list[AiConversationListItem],
+    summary="Lister mes conversations IA",
+    description="Retourne les conversations de l'utilisateur courant, triees par date de mise a jour.",
+)
+def list_conversations(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+    limit: int = 30,
+    offset: int = 0,
+) -> list[AiConversationListItem]:
+    rows = ai_conversation_repo.list_by_user(
+        db, tenant_id=tenant_ctx.tenant_id, user_id=tenant_ctx.user_id, limit=limit, offset=offset
+    )
+    return [AiConversationListItem.model_validate(c) for c in rows]
+
+
+@router.get(
+    "/conversations/{conversation_id}",
+    response_model=AiConversationDetail,
+    summary="Detail d'une conversation IA",
+    description="Retourne la conversation et tous ses messages (user/assistant/error).",
+)
+def get_conversation(
+    conversation_id: int,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> AiConversationDetail:
+    conv = ai_conversation_repo.get_by_id(db, conversation_id, tenant_ctx.tenant_id)
+    if not conv or conv.user_id != tenant_ctx.user_id:
+        # Pas de leak : meme reponse pour "n'existe pas" et "appartient a un autre user"
+        raise HTTPException(status_code=404, detail="Conversation introuvable")
+    messages = ai_conversation_repo.list_messages(db, conv.id, tenant_ctx.tenant_id)
+    return AiConversationDetail(
+        id=conv.id,
+        title=conv.title,
+        mode=conv.mode,
+        case_id=conv.case_id,
+        created_at=conv.created_at,
+        updated_at=conv.updated_at,
+        messages=[AiMessageResponse.model_validate(m) for m in messages],
+    )
+
+
+@router.post(
+    "/conversations/append",
+    response_model=AiAppendResponse,
+    summary="Ajouter un message a une conversation IA (cree si conversation_id absent)",
+    description=(
+        "Sauvegarde la question utilisateur, appelle Claude avec l'historique, "
+        "sauvegarde la reponse, retourne (conversation_id, answer)."
+    ),
+)
+def append_conversation_message(
+    payload: AiAppendRequest,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> AiAppendResponse:
+    if payload.conversation_id is not None:
+        # Verifier la propriete avant d'appeler le service
+        conv = ai_conversation_repo.get_by_id(db, payload.conversation_id, tenant_ctx.tenant_id)
+        if not conv or conv.user_id != tenant_ctx.user_id:
+            raise HTTPException(status_code=404, detail="Conversation introuvable")
+
+    try:
+        conv_id, answer = append_message(
+            db,
+            tenant_id=tenant_ctx.tenant_id,
+            user_id=tenant_ctx.user_id,
+            question=payload.question,
+            conversation_id=payload.conversation_id,
+            mode=payload.mode,
+            case_id=payload.case_id,
+        )
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return AiAppendResponse(conversation_id=conv_id, answer=answer)
+
+
+@router.delete(
+    "/conversations/{conversation_id}",
+    status_code=204,
+    summary="Supprimer une conversation IA (soft-delete)",
+)
+def delete_conversation(
+    conversation_id: int,
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
+) -> None:
+    conv = ai_conversation_repo.get_by_id(db, conversation_id, tenant_ctx.tenant_id)
+    if not conv or conv.user_id != tenant_ctx.user_id:
+        raise HTTPException(status_code=404, detail="Conversation introuvable")
+    ai_conversation_repo.soft_delete(db, conversation_id, tenant_ctx.tenant_id)
+    db.commit()
