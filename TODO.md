@@ -1,8 +1,74 @@
 # TODO V1 — OptiFlow AI (Cosium Copilot)
 
-> **Source de vérité unique.** Remplace `TODO_MASTER.md` et `TODO_MASTER_AUDIT.md`.
-> **Dernière refonte** : 2026-04-17 (audit complet 4 zones intégré)
+> **Source de vérité unique.** Remplace `TODO_MASTER.md`, `TODO_MASTER_AUDIT.md` et `DEV-PLAN.md`.
+> **Dernière refonte** : 2026-04-28 (consolidation documentation)
 > **Scope** : monorepo `apps/api` (FastAPI) + `apps/web` (Next.js 15) + infra Docker + CI.
+
+---
+
+## Plan de dev (ex DEV-PLAN.md)
+
+### Direction (validée par Nabil 27/04/2026)
+
+- **PAS de prod** pour l'instant (attente credentials API Cosium)
+- **Priorité B** : polir ce qui existe (copilot IA, tests E2E, UX)
+- **Priorité C** : combler les manques fonctionnels (avoirs, envoi devis, signature, SMS)
+
+### Exigence qualité
+
+Chaque feature implémentée doit être de **qualité professionnelle** :
+- Backend : pattern router→service→repo, validation Pydantic, RBAC, tests unitaires, ruff vert
+- Frontend : TypeScript strict (0 `any`), loading/error/empty states, responsive, accessibilité (aria-labels), vitest vert
+- Pas de raccourci, pas de TODO laissé, pas de code mort
+
+### Règles
+
+- Un seul item en cours à la fois
+- Checkpoint Nabil obligatoire pour les items niveau 2+
+- Max 15 min par item (timeout)
+- Commit séparé par item (revert facile)
+- NE PAS modifier les fichiers de config infra (docker-compose, .env, CI) sans validation
+- Chaque item DOIT avoir un champ `Files:` qui liste les fichiers autorisés
+- Claude ne peut modifier QUE les fichiers listés dans `Files:` — tout le reste est revert automatiquement
+- Si un item est trop vague pour lister les fichiers → session interactive, pas dev-cycle
+
+### Niveaux
+
+- **Niveau 1** (safe) : fix bugs, ajouter tests, docs, refactor interne — pas de checkpoint
+- **Niveau 2** (encadré) : nouvelle feature avec specs claires — checkpoint à la fin
+- **Niveau 3** (créatif) : architecture, nouveau module — validation AVANT de coder
+
+### File d'attente
+
+#### Priorité B — Polir ce qui existe
+
+- [x] Copilot IA conversationnel — Backend : endpoint streaming SSE _(fait 2026-04-27)_
+- [x] Copilot IA conversationnel — Frontend : page interactive _(fait 2026-04-27)_
+- [x] Envoi devis par email au client _(fait 2026-04-28)_
+- [x] Envoi facture par email au client _(fait 2026-04-28)_
+
+#### Priorité C — Manques fonctionnels
+
+- [ ] Avoirs / notes de crédit sur factures
+  Files: apps/api/app/api/routers/factures.py, apps/api/app/services/facture_service.py, apps/api/app/models/facture.py, apps/api/app/domain/schemas/factures.py, apps/api/app/repositories/facture_repo.py, apps/web/src/app/factures/[id]/page.tsx
+  Niveau: 2
+
+- [ ] Expiration automatique des devis
+  Files: apps/api/app/models/devis.py, apps/api/app/services/devis_service.py, apps/api/app/tasks/*, apps/web/src/app/devis/page.tsx
+  Niveau: 2
+
+- [ ] Historique conversationnel copilot IA (persisté)
+  Files: apps/api/app/models/ai.py, apps/api/app/services/ai_service.py, apps/api/app/api/routers/ai.py, apps/api/app/repositories/ai_repo.py (nouveau)
+  Niveau: 2
+
+#### P2 — Qualité (DEV-PLAN items)
+
+- [x] ~~Déplacer seed_demo.py dans tests/factories/~~ _(fait 2026-04-26)_
+- [x] ~~Remplacer 15 `except Exception:` bare~~ _(fait 2026-04-26)_
+- [x] ~~Ajouter `order_by` manquant sur `cosium_invoice_repo.first()`~~ _(fait 2026-04-26)_
+- [x] ~~Split `ocr_service.py`~~ _(déjà fait)_
+- [x] ~~Coverage backend 45% → 55%~~ _(fait 2026-04-26)_
+- [ ] ESLint `no-explicit-any` warn → error ⚠️ ITEM LARGE — session interactive
 
 ---
 
@@ -113,17 +179,17 @@
 - [x] ~~`analytics_cosium_extras.py` 481 L → package 4 modules~~ : `analytics_cosium_extras/` avec `_score.py` (181 L), `_segments.py` (172 L), `_forecast.py` (97 L), `_comparison.py` (128 L), `__init__.py` (28 L) re-exporte les 8 fonctions publiques. Import public inchangé. 285 routes identiques, 67 smoke tests verts.
 - [x] ~~`sync.py` router 420 L → package + orchestration dans service~~ : `routers/sync/` avec 5 fichiers (`__init__.py` 23 L, `_meta.py` 54 L, `_domains.py` 278 L, `_all.py` 58 L, `_helpers.py` 19 L). Orchestration déplacée : `erp_sync_service.sync_all(db, tenant_id, user_id, full)` contient la logique (customers + invoices/payments/prescriptions + reference, isolation d'erreurs par domaine). Le routeur `_all.py` délègue + gère lock Redis + HTTP 207 Multi-Status si has_errors. 285 routes identiques, 67 smoke tests verts.
 - [x] ~~`main.py` 432 L → 228 L~~ : 3 modules extraits. `app/api/registry.py` (`register_routers`, 48 include_router) / `app/core/middleware_setup.py` (`setup_middlewares` + `SelectiveGZipMiddleware` + `log_response_time`) / `app/core/exception_handlers.py` (`register_exception_handlers` + 7 handlers). main.py garde FastAPI init, `_lifespan`, `_startup_checks`, endpoints health/version. 285 routes identiques, 67 smoke tests verts.
-- [ ] `seed_demo.py` (435 L) → déplacer dans `tests/factories/`
+- [x] ~~`seed_demo.py` (435 L) → déplacer dans `tests/factories/`~~ _(fait 2026-04-26)_
 - [x] ~~`tasks/sync_tasks.py` 440 L → package par type~~ : `_sync_all.py` (172 L) / `_connectivity.py` (115 L) / `_bulk_download.py` (59 L) / `_prescriptions.py` (130 L) / `__init__.py` (31 L). Celery names hardcodés préservés → routing + beat schedules inchangés. 45 tests verts.
 - [x] ~~`cosium_reference.py` router 401 L → package~~ : transformé en `routers/cosium_reference/` avec 4 sous-modules (`_sync.py` 37 L, `_calendar.py` 150 L, `_entities.py` 231 L, `_data.py` 120 L) + `__init__.py` (22 L) router composite. Import public inchangé (`from app.api.routers.cosium_reference import router`). 285 routes identiques, 57 smoke tests verts, ruff vert.
 - [x] ~~`TabResume.tsx` 560 L → 98 L orchestrateur + `_resume/` package 7 fichiers~~ : `types.ts` (65 L interfaces) / `shared.tsx` (54 L : InfoRow + TYPE_ICONS + formatDiopter + formatAxis) / `ClientScoreCard.tsx` (89 L) / `SummaryCards.tsx` (242 L : 5 cards du grid — PersonalInfo, CosiumSummary, Mutuelles, Correction, RecentInteractions) / `QuickNotesSection.tsx` (113 L) / `RecentInvoicesTable.tsx` (52 L) / `RenewalBanner.tsx` (23 L). Props inchangées, 160/160 vitest verts, TS strict vert.
 - [x] ~~`TabCosiumDocuments.tsx` 432 L → 173 L + `_cosium_documents/` package 4 fichiers~~ : `types.ts` (65 L) / `StructuredDataDisplay.tsx` (112 L) / `ExtractionPanel.tsx` (63 L) / `DocumentRow.tsx` (78 L). 160/160 vitest verts. **Série fichiers >400 L : 7/7 fermés**.
 - [x] ~~`apps/web/src/lib/hooks/use-api.ts` split par domaine~~ : 331 L → 5 fichiers domaine + barrel 15 L. `clients.ts` (103 L, 13 hooks) / `cosium.ts` (197 L, 11 hooks) / `ai.ts` (18 L, 4 hooks) / `marketing.ts` (10 L, 2 hooks) / `dashboard.ts` (28 L, 5 hooks). `use-api.ts` ne fait plus que `export *` pour compat. 160/160 vitest verts, TS strict vert. Facilite tree-shaking et prépare le `dynamic()` lazy-loading par domaine.
-- [ ] `apps/api/app/services/ocr_service.py` (383 L) → split `_ocr_handlers.py` (extracteurs) + `classification.py`
+- [x] ~~`apps/api/app/services/ocr_service.py` (383 L) → split~~ _(fait, facade 55L + handlers 132L + classification 158L)_
 
 ### Architecture backend
 - [ ] **Batch export service** : retirer `StreamingResponse` (P3 si gros chantier)
-- [ ] **`except Exception:` bare** : 15 occurrences → `except Exception as e: logger.warning(...)` avec contexte (`admin_health.py`, `redis_cache.py`, `cosium_connector.py`)
+- [x] ~~**`except Exception:` bare** : 15 occurrences~~ _(fait 2026-04-26)_
 - [ ] **CosiumClient injectable** : factory + DI au lieu d'instance globale
 - [ ] **RBAC par ressource** : décorateur `@require_resource_ownership("client", client_id)` sur endpoints sensibles
 - [ ] **Repos return types** : standardiser (ORM objects, services convertissent)
@@ -151,7 +217,7 @@
 - [x] ~~`web.depends_on api.service_healthy`~~ : override `depends_on.api.condition: service_healthy` ajouté dans `docker-compose.prod.yml:85-87`. Web attend que l'API soit `healthy` (pas juste started) avant démarrage.
 - [ ] **Grafana dashboards JSON** : `config/grafana/provisioning/dashboards/` vide — créer `ops.json` (CPU/RAM/disk/erreurs) + `business.json` (sync Cosium, taux sync, CA par tenant)
 - [ ] **`.env.prod.example` vs `.env.production.example`** : duplication à fusionner en source unique `.env.example` + doc `docs/ENV.md`
-- [ ] **`DEPLOY.md` stub 3 lignes** : rédiger résumé (préreqs, 5 commandes, lien vers `docs/VPS_DEPLOYMENT.md`)
+- [x] ~~**`DEPLOY.md` stub 3 lignes**~~ : supprimé (pointait déjà vers `docs/VPS_DEPLOYMENT.md`)
 - [ ] **`docs/RUNBOOK.md` minimal** : ajouter SLO (uptime 99.5%, p95 < 500ms), escalade (P1 <15min, P2 <1h), rollback DB complet ; retirer URLs Sentry fictives
 - [ ] **nginx `server_name _;` dev/prod** : documenter explicitement dev=`_`, prod=domaine réel (sinon Host-header attack) — `config/nginx/nginx.conf:49`
 
@@ -224,7 +290,7 @@
 - [ ] **`scripts/health.sh`** dédié : check postgres/redis/minio/api/web, exit 0/1 (Makefile + RUNBOOK)
 
 ### Qualité ponctuelle
-- [ ] **`cosium_invoice_repo.first()` sans `order_by`** : row aléatoire possible — ajouter `.order_by()` même pour agrégats — `cosium_invoice_repo.py:109`
+- [x] ~~**`cosium_invoice_repo.first()` sans `order_by`**~~ _(fait 2026-04-26)_
 - [ ] **`SearchInput` debounce 300ms** : hardcoded vs `GlobalSearch` inconsistent — extraire en const partagée — `components/ui/SearchInput.tsx:29`
 - [ ] **`Link prefetch="intent"`** : aucun prefetch explicite sur navigation liste → détail (clients/factures/devis)
 
