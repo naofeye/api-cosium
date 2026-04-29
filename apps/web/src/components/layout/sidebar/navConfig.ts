@@ -32,6 +32,7 @@ import {
   UserCog,
   Trash2,
   Activity,
+  Tag,
   type LucideIcon,
 } from "lucide-react";
 
@@ -93,6 +94,7 @@ export const navGroups: NavGroup[] = [
       { href: "/documents-cosium", label: "Documents", icon: FolderDown },
       { href: "/sav", label: "SAV", icon: Briefcase },
       { href: "/catalogue", label: "Catalogue", icon: Package },
+      { href: "/bons-achat", label: "Bons d'achat", icon: Tag },
       { href: "/analytics-cosium", label: "Analyse financiere", icon: BarChart3 },
     ],
   },

@@ -1,0 +1,124 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "title": "Sync Cosium - taux de succes (%)",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 6, "w": 6, "x": 0, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 80},
+              {"color": "green", "value": 95}
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "100 * sum(rate(cosium_sync_completed_total[24h])) / (sum(rate(cosium_sync_completed_total[24h])) + sum(rate(cosium_sync_failed_total[24h])))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Sync Cosium - duree moyenne (s)",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 6, "w": 6, "x": 6, "y": 0},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "targets": [
+        {
+          "expr": "avg(cosium_sync_duration_seconds)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Devis crees / signes (24h)",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 0},
+      "targets": [
+        {"expr": "sum(rate(devis_created_total[1h]))", "legendFormat": "crees/h", "refId": "A"},
+        {"expr": "sum(rate(devis_signed_total[1h]))", "legendFormat": "signes/h", "refId": "B"}
+      ]
+    },
+    {
+      "title": "CA encaisse (EUR / jour)",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 6},
+      "fieldConfig": {"defaults": {"unit": "currencyEUR"}, "overrides": []},
+      "targets": [
+        {
+          "expr": "sum by (tenant_id) (increase(payments_received_amount_eur_total[1d]))",
+          "legendFormat": "tenant {{tenant_id}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Clients par tenant",
+      "type": "bargauge",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 14},
+      "options": {"orientation": "horizontal", "displayMode": "gradient"},
+      "targets": [
+        {
+          "expr": "sum by (tenant_name) (clients_total)",
+          "legendFormat": "{{tenant_name}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "PEC en attente (>14j)",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 14},
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 5},
+              {"color": "red", "value": 20}
+            ]
+          }
+        }
+      },
+      "targets": [
+        {"expr": "sum(pec_pending_over_14d)", "refId": "A"}
+      ]
+    },
+    {
+      "title": "Cout IA (USD / jour)",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 14},
+      "fieldConfig": {"defaults": {"unit": "currencyUSD", "decimals": 4}, "overrides": []},
+      "targets": [
+        {"expr": "sum(increase(ai_usage_cost_usd_total[1d]))", "refId": "A"}
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": ["optiflow", "business"],
+  "templating": {"list": []},
+  "time": {"from": "now-7d", "to": "now"},
+  "timepicker": {},
+  "title": "OptiFlow — Business",
+  "uid": "optiflow-business",
+  "version": 1,
+  "weekStart": ""
+}

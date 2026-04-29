@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { Search, X, User, FolderOpen, FileText, Receipt, CreditCard, Stethoscope } from "lucide-react";
+import { SEARCH_DEBOUNCE_MS, SEARCH_MIN_CHARS } from "@/lib/constants";
 
 interface SearchResultItem {
   id: number;
@@ -97,13 +98,13 @@ export function GlobalSearch() {
   // Debounce
   useEffect(() => {
     clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => setDebouncedQuery(query), 300);
+    timeoutRef.current = setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timeoutRef.current);
   }, [query]);
 
   // SWR avec cle conditionnelle
   const { data } = useSWR<SearchResults>(
-    debouncedQuery.length >= 2 ? `/search?q=${encodeURIComponent(debouncedQuery)}` : null,
+    debouncedQuery.length >= SEARCH_MIN_CHARS ? `/search?q=${encodeURIComponent(debouncedQuery)}` : null,
   );
 
   // Fermer au clic exterieur
@@ -141,7 +142,7 @@ export function GlobalSearch() {
     router.push(TYPE_CONFIG[item.type].href(item.id));
   };
 
-  const showDropdown = open && debouncedQuery.length >= 2;
+  const showDropdown = open && debouncedQuery.length >= SEARCH_MIN_CHARS;
 
   return (
     <div ref={containerRef} className="relative w-full max-w-md">

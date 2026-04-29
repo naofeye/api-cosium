@@ -133,3 +133,116 @@ def require_permission(action: str, resource_type: str | None = None) -> Callabl
         return tenant_ctx
 
     return permission_checker
+
+
+# ---------------------------------------------------------------------------
+# Resource ownership : defense en profondeur
+# ---------------------------------------------------------------------------
+# Map "resource_type" -> (model class, query pattern). Permet de verifier
+# explicitement au niveau du router que la ressource demandee appartient
+# bien au tenant courant. C'est redondant avec les filtres tenant_id dans
+# les repos (qui restent la source de verite), mais ca offre une 2eme ligne
+# de defense contre les bugs de developpement futurs (ex: un repo qui
+# oublierait le filtre tenant_id).
+
+def assert_resource_owned(
+    db: Session,
+    resource_type: str,
+    resource_id: int,
+    tenant_id: int,
+) -> None:
+    """Leve ForbiddenError si la ressource n'appartient pas au tenant courant.
+
+    A appeler au DEBUT de tout router qui modifie une ressource sensible.
+    Pas de SELECT * : seul l'id et tenant_id sont charges via une requete legere.
+
+    Resources supportees : client, case, devis, facture, pec, payment, document,
+    interaction, segment, campaign.
+    """
+    from sqlalchemy import select
+    from app.models import (
+        Campaign,
+        Case,
+        Customer,
+        Devis,
+        Document,
+        Facture,
+        Interaction,
+        Payment,
+        PecRequest,
+        Segment,
+    )
+
+    model_map = {
+        "client": Customer,
+        "customer": Customer,
+        "case": Case,
+        "devis": Devis,
+        "facture": Facture,
+        "pec": PecRequest,
+        "payment": Payment,
+        "document": Document,
+        "interaction": Interaction,
+        "segment": Segment,
+        "campaign": Campaign,
+    }
+    model = model_map.get(resource_type)
+    if model is None:
+        # Pas de garde-fou pour ce type — laisser passer (les repos filtreront).
+        # On ne crash pas pour ne pas casser les routes legitimes non listees.
+        return
+
+    found = db.scalar(
+        select(model.id).where(model.id == resource_id, model.tenant_id == tenant_id)
+    )
+    if found is None:
+        raise ForbiddenError(
+            f"Acces refuse : {resource_type} #{resource_id} introuvable ou n'appartient pas a ce magasin."
+        )
+
+
+def require_resource_ownership(resource_type: str, action: str) -> Callable:
+    """FastAPI dependency : check role permission AND resource ownership.
+
+    L'id de la ressource est lu depuis les path params en suivant la convention
+    `{resource_type}_id` ou `id`.
+
+    Usage :
+        @router.delete(
+            "/clients/{client_id}",
+            dependencies=[Depends(require_resource_ownership("client", "delete"))],
+        )
+    """
+    from app.core.tenant_context import TenantContext, get_tenant_context
+
+    def checker(
+        request: Request,
+        db: Session = Depends(get_db),
+        tenant_ctx: TenantContext = Depends(get_tenant_context),
+    ) -> TenantContext:
+        # Etape 1 : permission RBAC
+        role = tenant_ctx.role
+        if resource_type in _RESOURCE_OVERRIDES and role in _RESOURCE_OVERRIDES[resource_type]:
+            allowed = _RESOURCE_OVERRIDES[resource_type][role]
+        else:
+            allowed = _ROLE_PERMISSIONS.get(role, set())
+        if action not in allowed:
+            raise ForbiddenError(
+                f"Acces refuse : le role '{role}' ne peut pas effectuer '{action}' sur '{resource_type}'"
+            )
+
+        # Etape 2 : resource ownership
+        path = request.path_params
+        resource_id_raw = path.get(f"{resource_type}_id") or path.get("id")
+        if resource_id_raw is None:
+            return tenant_ctx
+        try:
+            resource_id = int(resource_id_raw)
+        except (TypeError, ValueError):
+            raise ForbiddenError(
+                f"Identifiant {resource_type} invalide : {resource_id_raw}"
+            )
+        assert_resource_owned(db, resource_type, resource_id, tenant_ctx.tenant_id)
+        return tenant_ctx
+
+    return checker

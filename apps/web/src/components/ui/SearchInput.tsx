@@ -3,6 +3,7 @@
 import { Search, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { SEARCH_DEBOUNCE_MS } from "@/lib/constants";
 
 interface SearchInputProps {
   placeholder?: string;
@@ -26,7 +27,7 @@ export function SearchInput({ placeholder = "Rechercher...", value: controlledVa
 
   const debouncedSearch = useCallback((val: string) => {
     clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => onSearchRef.current(val), 300);
+    timeoutRef.current = setTimeout(() => onSearchRef.current(val), SEARCH_DEBOUNCE_MS);
   }, []);
 
   useEffect(() => {
