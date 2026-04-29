@@ -1,3 +1,18 @@
+## Post-audit update — 2026-04-29
+
+Les items suivants ont été corrigés depuis le dernier audit Codex :
+
+- ✅ Nginx H2C smuggling fix + correction héritage security headers — commit `348fe5a`
+- ✅ ai.py 344→252L split en service dédié — commit `bb6f6a3`
+- ✅ Next.js 15→16 + TypeScript 5→6 upgrade — commit `93eaff6`
+- ✅ E2E Playwright cookie race condition fixé (router.push → window.location.href) — commit `770c03c`
+- ✅ 26 tests frontend ajoutés (176→202 total) — commit `7b28945`
+- ✅ Backfill script déplacé vers scripts/ + DOC API gitignorée — commit `eb1ba6a`
+
+**Score estimé après corrections : 7.5/10**
+
+---
+
 # Audit Codex — api-cosium
 
 _Genere automatiquement le 2026-04-28. Commit audite : `bc574b2`._
