@@ -873,6 +873,33 @@ docker compose exec api alembic upgrade head
 - **TODO.md enrichi** : 4 P0 (tests login cassés, test_seed fixture, CI fail, .dockerignore), 4 P1 (jwt_secret guard, splits fichiers >300L).
 - **Findings principaux** : architecture backend solide, sécurité correcte (RBAC, JWT+MFA, rate limiting, mass-assignment whitelists), 0 vuln npm prod, Semgrep 12 findings tous dans migrations/templates. Points faibles : 3 tests frontend cassés post-fix E2E, CI main en échec, 3 fichiers >300L.
 
+### 2026-04-29 — Sweep Priorite C + P2/P3 (tout en une session)
+
+**Priorite C livrees (3/3)** :
+- **Avoirs / notes de credit** : modele `Facture.original_facture_id + motif_avoir`, migration `c6f7g8h9i0j1`, service avec garde-fous (no avoir-on-avoir, partial proportionnel HT/TVA), endpoint POST `/factures/{id}/avoir`, frontend `CreateAvoirDialog` + bandeau visuel sur les avoirs. Numerotation distincte AV-yyyy-NNNN. 8 tests.
+- **Expiration auto devis** : `valid_until` (DEVIS_DEFAULT_VALIDITY_DAYS=90), migration `b5e6f7g8h9i0` + backfill, task Celery beat 3h15 cross-tenant (UPDATE atomique). Frontend colonne couleur ambre J-7 / rouge expire. 6 tests.
+- **Historique conversationnel IA** : tables `ai_conversations` + `ai_messages` (FK CASCADE), migration `d7g8h9i0j1k2`, service `append_message` replay history vers Claude provider. claude_provider gagne argument `history`. 4 endpoints (list/get/append/delete). Frontend `HistoryPanel` slide-in. 5 tests.
+
+**P2 / P3 livres** :
+- **RBAC par ressource** : `assert_resource_owned()` + `require_resource_ownership()` FastAPI dep dans `core/deps.py`. Map type → model (10 types), defense en profondeur. 5 tests.
+- **CompletionBar** : `transform: scaleX()` au lieu de `width: ${pct}%`.
+- **nginx server_name** : doc dev=`_` vs prod=domaine explicite.
+- **DB pool** : 10/10 → 20/30 pour 50 tenants concurrents.
+- **Migration audit_logs** : index composite `(tenant_id, created_at DESC, action)`.
+- **RUNBOOK SLO** : table SLO (uptime 99.5%, p95 < 500ms, taux 5xx < 0.5%, sync Cosium > 95%), severity levels (P1 <15min, P2 <1h), section rollback DB complet.
+- **env files** : `.env.production.example` doublon supprime.
+- **CosiumClient backoff** : 4 retries [0.5, 1.5, 4, 10s] sur 429/502/503/504/5xx + erreurs reseau, isole des 4xx logiques.
+- **Grafana dashboards** : `dashboards.yml` provider + `ops.json` + `business.json` (req/s, p95/p99, sync Cosium, CA par tenant, PEC pending, cout IA).
+- **Bons d'achat Cosium** : page `/bons-achat` avec saisie operation_id Cosium + liste `VoucherCard` + lien sidebar.
+- **CI security-scan workflow** : Trivy (SARIF GitHub Security tab) + Syft SBOM CycloneDX/SPDX + docker build dry-run, cron lundi 06h.
+- **SearchInput debounce** : `src/lib/constants.ts` SEARCH_DEBOUNCE_MS=300, SEARCH_MIN_CHARS=2.
+- **scripts/health.sh** : 7 containers + 5 endpoints check, ANSI couleur, exit 0/1.
+- **Makefile** : `migration-create` (alias retro-compat `migration`), `db-reset` destructif avec confirm, `health` cible.
+- **packages/** : dossier vide supprime.
+- **RGPD audit consultation PII** : GET `/clients/{id}/360` logge `audit view_pii client {id}` best-effort.
+
+Commits : `aab3fdd` (P2 quick wins x8), `e9617bc` (C-2 expiration devis), `f4fa105` (C-1 avoirs), `7fdc466` (C-3 historique IA), `a360000` (P2-I/J/K/L), `8769907` (P3-A/B/C + P2-M RGPD), `c3be026` (ruff fixes B904/UP038/I001).
+
 ### 2026-04-29 — Fix complet P0 + P1 audit
 
 - **P0 frontend tests** : `login.test.tsx` "bouton desactive" réécrit en "ne soumet pas si vides" (zod onChange empêche `mockLogin`). `login-flow.test.tsx` mock de `window.location` via `Object.defineProperty` + assertion `locationMock.href === "/actions"` au lieu de `mockPush`. `ClientScoreCard.tsx` guard `typeof data.score !== "number" || !data.breakdown` pour éviter `Object.entries(undefined)` quand SWR mock retourne un client360 partiel.

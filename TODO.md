@@ -67,17 +67,11 @@ Chaque feature implémentée doit être de **qualité professionnelle** :
 
 #### Priorité C — Manques fonctionnels
 
-- [ ] Avoirs / notes de crédit sur factures
-  Files: apps/api/app/api/routers/factures.py, apps/api/app/services/facture_service.py, apps/api/app/models/facture.py, apps/api/app/domain/schemas/factures.py, apps/api/app/repositories/facture_repo.py, apps/web/src/app/factures/[id]/page.tsx
-  Niveau: 2
+- [x] ~~Avoirs / notes de crédit sur factures~~ _(fait 2026-04-29 : modele original_facture_id + motif_avoir, migration c6f7g8h9i0j1, service create_avoir avec garde-fous (no avoir-on-avoir, partial proportionnel), endpoint POST /factures/{id}/avoir, frontend CreateAvoirDialog + bandeau visuel sur les avoirs. 8 tests verts.)_
 
-- [ ] Expiration automatique des devis
-  Files: apps/api/app/models/devis.py, apps/api/app/services/devis_service.py, apps/api/app/tasks/*, apps/web/src/app/devis/page.tsx
-  Niveau: 2
+- [x] ~~Expiration automatique des devis~~ _(fait 2026-04-29 : model valid_until + DEVIS_DEFAULT_VALIDITY_DAYS=90, migration b5e6f7g8h9i0 + backfill, task Celery beat 3h15 quotidien, frontend colonne couleur ambre J-7 / rouge expire. 6 tests verts.)_
 
-- [ ] Historique conversationnel copilot IA (persisté)
-  Files: apps/api/app/models/ai.py, apps/api/app/services/ai_service.py, apps/api/app/api/routers/ai.py, apps/api/app/repositories/ai_repo.py (nouveau)
-  Niveau: 2
+- [x] ~~Historique conversationnel copilot IA (persisté)~~ _(fait 2026-04-29 : tables AiConversation + AiMessage avec FK CASCADE, migration d7g8h9i0j1k2, service append_message replay history, claude_provider accepte argument history, 4 endpoints CRUD, frontend HistoryPanel slide-in + boutons Sauver/Historique/Effacer. 5 tests verts.)_
 
 #### P2 — Qualité (DEV-PLAN items)
 
@@ -209,7 +203,7 @@ Chaque feature implémentée doit être de **qualité professionnelle** :
 - [ ] **Batch export service** : retirer `StreamingResponse` (P3 si gros chantier)
 - [x] ~~**`except Exception:` bare** : 15 occurrences~~ _(fait 2026-04-26)_
 - [ ] **CosiumClient injectable** : factory + DI au lieu d'instance globale
-- [ ] **RBAC par ressource** : décorateur `@require_resource_ownership("client", client_id)` sur endpoints sensibles
+- [x] ~~**RBAC par ressource**~~ _(fait 2026-04-29 : `assert_resource_owned(db, type, id, tenant_id)` + `require_resource_ownership(type, action)` FastAPI dependency dans `core/deps.py`. Map type → model (10 types). Defense en profondeur : redondant avec filtres tenant_id repos. 5 tests `test_resource_ownership.py`.)_
 - [ ] **Repos return types** : standardiser (ORM objects, services convertissent)
 - [ ] **Event bus** : séparer audit vs events métier dans les services
 - [x] ~~Logging analytics~~ : `logger.info("cosium_kpis_computed", tenant_id, invoice_count, quote_count, credit_note_count, elapsed_ms)` ajouté dans `get_cosium_kpis`. `logger.info("cosium_cockpit_kpis_computed", tenant_id, ca_month, nb_invoices_month, quote_to_invoice_rate, aging_total, elapsed_ms)` dans `get_cosium_cockpit_kpis`. Mesure via `time.perf_counter()`. Observabilité : détecter N+1 latents, fréquence des calculs par tenant.
@@ -219,24 +213,24 @@ Chaque feature implémentée doit être de **qualité professionnelle** :
 - [x] ~~Lazy étendu `dynamic()` sur tabs secondaires~~ : ClientTabs (Rapprochement, Marketing + 7 autres) déjà en dynamic(). **Étendu** à : `relances/page.tsx` (3 tabs lazy : Clients30, Timeline, Historique ; seul Overdue reste sync) et `cases/[id]/page.tsx` (4 tabs lazy : Documents, Finances, IA, Historique ; seul Resume reste sync). Gain estimé : ~255 L relances + ~282 L cases hors du bundle initial. Charts (`DashboardCharts`, `StatistiquesCharts`, `ActivityChart`) déjà lazy. TS vert, 160/160 vitest.
 - [x] ~~Zod schemas manquants~~ : `schemas/facture.ts` (`factureCreateSchema`), `schemas/rapprochement.ts` (`manualMatchSchema`), `schemas/reminder.ts` enrichi avec `reminderCreateSchema`. Intégrés aux 2 call-sites actifs (`devis/[id]/page.tsx::generateFacture` + `rapprochement/hooks/useRapprochementActions.ts::manualMatch`) : validation runtime avant POST. Le schema relance est prêt pour future UI d'envoi manuel. 12 tests ajoutés dans `tests/lib/schemas.test.ts` (30/30 passent).
 - [ ] **ESLint strict** : `no-explicit-any` + `exhaustive-deps` passer de `"warn"` → `"error"`
-- [ ] **Bons d'achat Cosium frontend** : affichage + alertes expiration (backend `/commercial-operations/{id}/advantages` déjà live)
+- [x] ~~**Bons d'achat Cosium frontend**~~ _(fait 2026-04-29 : page `/bons-achat` + lien sidebar Cosium. Saisie operation_id Cosium, liste `VoucherCard` triee par expiration, couleur ambre <30j / rouge <7j. Limite : Cosium n'expose pas la liste des operations, l'utilisateur doit saisir l'id manuellement.)_
 - [x] ~~Accessibilité divs cliquables~~ : `ImportDialog.tsx` a maintenant Escape key + `role="dialog" aria-modal="true" aria-label`. `DuplicatesPanel.tsx:135` utilise déjà `<button>` natif (faux positif audit). `DynamicSegments.tsx` : `cursor-pointer` sans onClick = WIP feature "création campagne" laissée en l'état (texte "Cliquez pour créer" annonce la feature à venir).
 - [x] ~~Boutons relances sans `disabled`~~ : `relances/plans/page.tsx` — state `inFlightId` + guard early-return + `disabled={inFlightId !== null}` sur Play/Toggle buttons + classes `disabled:opacity-50 disabled:cursor-not-allowed`. Empêche double-clic executePlan/togglePlan.
 - [x] ~~Filtres numériques Cosium factures~~ : `cosium-factures/page.tsx` — IIFE + `Number.isNaN(n)` guard sur `min_amount` et `max_amount`. Empêche l'envoi de `NaN` à l'API si l'utilisateur tape "abc".
-- [ ] **CompletionBar inline style** : `style={{ width: '${pct}%' }}` → Tailwind classe dynamique — `operations-batch/[id]/page.tsx:41`
+- [x] ~~**CompletionBar inline style**~~ _(fait 2026-04-29 : `transform: scaleX(${pct/100})` + `origin-left` Tailwind, fini le `width: ${pct}%`. Aussi corrige dans BatchResultsStep.tsx.)_
 
 ### Infra / CI
 - [x] ~~Pre-commit hooks activés (scope défensif)~~ : config `.pre-commit-config.yaml` nettoyée : `check-yaml --unsafe` (tags docker-compose), `check-json`, `check-toml`, `check-merge-conflict`, `check-added-large-files 500kB`, `detect-private-key`, `gitleaks`. Les hooks réécrivant du contenu (ruff-format, prettier, mixed-line-ending, end-of-file-fixer, trailing-whitespace) sont désactivés pour éviter un diff massif sur le legacy (288 fichiers ruff-format + 193 prettier au premier run). À ré-activer après un commit de nettoyage global dédié. `CONTRIBUTING.md` enrichi (install + commands manuelles reformatage).
-- [ ] **Indexes composites audit_logs** : `(tenant_id, created_at, action)` via pg_stat_statements staging
-- [ ] **Connection pooling** : optimiser pour 50 tenants concurrents
-- [ ] **Rate limiting Cosium** : backoff exponentiel côté client
+- [x] ~~**Indexes composites audit_logs**~~ _(fait 2026-04-29 : migration `a4d5e6f7g8h9` `ix_audit_logs_tenant_created_action(tenant_id, created_at DESC, action)` pour les queries audit recent par type d'action.)_
+- [x] ~~**Connection pooling**~~ _(fait 2026-04-29 : pool_size 10→20, max_overflow 10→30, total 50 connexions max par worker uvicorn. Postgres max_connections=150 supporte ce trafic.)_
+- [x] ~~**Rate limiting Cosium**~~ _(fait 2026-04-29 : backoff exponentiel 4 tentatives [0.5, 1.5, 4, 10s] sur 429/502/503/504 + 5xx + erreurs reseau, isole des erreurs 4xx logiques (pas de retry).)_
 - [x] ~~Celery beat schedule volatile~~ : volume nommé `celerybeat_schedule:/app/celery-schedule` ajouté sur le service beat (`docker-compose.yml`). Schedule persisté au path `/app/celery-schedule/schedule.db`. Healthcheck mis à jour sur ce path. Évite la re-exécution de toutes les tasks planifiées au restart container.
-- [ ] **CI jobs manquants** : `docker build` prod dry-run API/Web, scan image Trivy/Snyk, SBOM cyclonedx
+- [x] ~~**CI jobs manquants**~~ _(fait 2026-04-29 : workflow `.github/workflows/security-scan.yml` cron lundi 06h + manual + push images-related changes. Trivy scan API + Web (CRITICAL+HIGH SARIF dans GitHub Security tab), Syft SBOM CycloneDX + SPDX (artifact 90j retention), docker build dry-run prod.)_
 - [x] ~~`web.depends_on api.service_healthy`~~ : override `depends_on.api.condition: service_healthy` ajouté dans `docker-compose.prod.yml:85-87`. Web attend que l'API soit `healthy` (pas juste started) avant démarrage.
-- [ ] **Grafana dashboards JSON** : `config/grafana/provisioning/dashboards/` vide — créer `ops.json` (CPU/RAM/disk/erreurs) + `business.json` (sync Cosium, taux sync, CA par tenant)
+- [x] ~~**Grafana dashboards JSON**~~ _(fait 2026-04-29 : `dashboards.yml` provider config + `ops.json` (req/s, p95/p99, taux 5xx, connexions PG, RSS, Celery, Redis) + `business.json` (taux succes sync Cosium, devis crees/signes, CA encaisse par tenant, PEC > 14j, cout IA).)_
 - [x] ~~**`.env.prod.example` vs `.env.production.example`** : duplication~~ _(supprime `.env.production.example` doublon partiel ; `.env.prod.example` reste source unique pour prod, `.env.example` pour dev local. Doc `docs/ENV.md` deja exhaustive)_
 - [x] ~~**`DEPLOY.md` stub 3 lignes**~~ : supprimé (pointait déjà vers `docs/VPS_DEPLOYMENT.md`)
-- [ ] **`docs/RUNBOOK.md` minimal** : ajouter SLO (uptime 99.5%, p95 < 500ms), escalade (P1 <15min, P2 <1h), rollback DB complet ; retirer URLs Sentry fictives
+- [x] ~~**`docs/RUNBOOK.md` SLO**~~ _(fait 2026-04-29 : table SLO (uptime 99.5%, p95 < 500ms, p99 < 2s, taux 5xx < 0.5%, sync Cosium > 95%), severity P1 (<15min) / P2 (<1h) / P3, section rollback DB complet (stop services + restore + rollback code), URLs Sentry fictives retirees.)_
 - [ ] **nginx `server_name _;` dev/prod** : documenter explicitement dev=`_`, prod=domaine réel (sinon Host-header attack) — `config/nginx/nginx.conf:49`
 
 ### Observabilité / RGPD
@@ -305,7 +299,7 @@ Chaque feature implémentée doit être de **qualité professionnelle** :
 - [ ] **Seed data generator** + VS Code debug profiles
 - [ ] **`packages/` vide** : soit utiliser pour code partagé api/web, soit supprimer (`.gitkeep` seul)
 - [ ] **Makefile** : renommer `make migration` → `make migration-create MSG=...`, ajouter `make db-reset`
-- [ ] **`scripts/health.sh`** dédié : check postgres/redis/minio/api/web, exit 0/1 (Makefile + RUNBOOK)
+- [x] ~~**`scripts/health.sh`** dédié~~ _(fait 2026-04-29 : check 7 conteneurs + 5 endpoints (Postgres SQL, Redis ping, MinIO live, API, Web), couleurs ANSI, exit 0/1. Cible `make health`.)_
 
 ### Qualité ponctuelle
 - [x] ~~**`cosium_invoice_repo.first()` sans `order_by`**~~ _(fait 2026-04-26)_
