@@ -76,6 +76,32 @@ self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") {
     self.skipWaiting();
   }
+  // Sur logout/changement de tenant : purger cache API et mutations en file
+  // pour eviter qu'un autre utilisateur du meme navigateur recupere des donnees
+  // ou rejoue des actions du precedent.
+  if (event.data && event.data.type === "CLEAR_AUTH_DATA") {
+    event.waitUntil(
+      Promise.all([
+        caches.delete(API_CACHE),
+        idbOpen()
+          .then((db) => {
+            return new Promise((resolve) => {
+              const tx = db.transaction(IDB_STORE, "readwrite");
+              const req = tx.objectStore(IDB_STORE).clear();
+              req.onsuccess = () => {
+                db.close();
+                resolve();
+              };
+              req.onerror = () => {
+                db.close();
+                resolve();
+              };
+            });
+          })
+          .catch(() => undefined),
+      ])
+    );
+  }
 });
 
 // ─── FETCH : strategies de cache ────────────────────────────────────
@@ -85,12 +111,19 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
 
   // Intercepter les mutations API hors ligne (POST/PUT/PATCH/DELETE vers /api/)
+  // Allowlist stricte : on ne met en file QUE les endpoints idempotents et sans
+  // donnees sensibles (PII, secrets, tokens, paiements). Les routes sensibles
+  // (auth, onboarding, billing, webhooks, paiements, imports) doivent echouer
+  // proprement plutot que de stocker des bodies en clair dans IndexedDB.
   if (
     request.method !== "GET" &&
     url.origin === self.location.origin &&
     url.pathname.startsWith("/api/")
   ) {
-    event.respondWith(handleMutationRequest(request));
+    if (isOfflineQueueable(url.pathname, request.method)) {
+      event.respondWith(handleMutationRequest(request));
+    }
+    // Sinon : laisser passer la requete normalement (echec reseau si offline)
     return;
   }
 
@@ -100,9 +133,12 @@ self.addEventListener("fetch", (event) => {
   // Ignorer les requetes vers d'autres origines (sauf CDN assets)
   if (url.origin !== self.location.origin) return;
 
-  // ── API : network-first avec timeout 5s ──
+  // ── API : network-only ──
+  // Ne JAMAIS cacher les GET /api/ : les reponses sont specifiques a un user/tenant
+  // et ne contiennent pas la cle d'auth, donc le cache du navigateur peut servir
+  // les donnees du user A au user B suivant. On laisse passer la requete reseau
+  // normalement (le navigateur fait son propre Cache-Control respect).
   if (url.pathname.startsWith("/api/")) {
-    event.respondWith(networkFirstWithTimeout(request, API_CACHE, 5000));
     return;
   }
 
@@ -234,6 +270,43 @@ function staleWhileRevalidate(request, cacheName) {
 }
 
 // ─── HELPERS ────────────────────────────────────────────────────────
+
+// Endpoints autorises a etre mis en file pour rejeu hors ligne.
+// On exclut TOUT ce qui peut contenir des PII/secrets/tokens/paiements :
+// auth, onboarding, billing/stripe, webhooks, imports, mfa, push, gdpr, etc.
+// On autorise uniquement des actions metier idempotentes type "creer/mettre
+// a jour une note/relance/action" qui ne portent ni credentials ni argent.
+const OFFLINE_QUEUE_DENY = [
+  "/api/v1/auth",
+  "/api/v1/admin",
+  "/api/v1/billing",
+  "/api/v1/webhooks",
+  "/api/v1/onboarding",
+  "/api/v1/mfa",
+  "/api/v1/push",
+  "/api/v1/gdpr",
+  "/api/v1/imports",
+  "/api/v1/import",
+  "/api/v1/upload",
+  "/api/v1/documents",
+  "/api/v1/payments",
+  "/api/v1/banking",
+  "/api/v1/pec",
+  "/api/v1/factures",
+  "/api/v1/devis",
+  "/api/v1/marketing/campaigns",
+  "/api/v1/clients/import",
+  "/api/v1/clients/merge",
+];
+
+function isOfflineQueueable(pathname, method) {
+  // Seuls POST/PUT/PATCH idempotents simples — on exclut DELETE par prudence.
+  if (method !== "POST" && method !== "PUT" && method !== "PATCH") return false;
+  for (const prefix of OFFLINE_QUEUE_DENY) {
+    if (pathname.startsWith(prefix)) return false;
+  }
+  return true;
+}
 
 function isStaticAsset(request) {
   const dest = request.destination;
