@@ -79,13 +79,10 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Exclut _next/static, _next/image, favicon, api ET les routes internes Next (pas de CSP sur assets).
-    {
-      source: "/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|icons|api).*)",
-      missing: [
-        { type: "header", key: "next-router-prefetch" },
-        { type: "header", key: "purpose", value: "prefetch" },
-      ],
-    },
+    // Exclut _next/static, _next/image, favicon, api et assets PWA. On
+    // n'exclut PAS les requetes prefetch : sinon un user non authentifie
+    // pourrait prefetcher le HTML skeleton de pages protegees (le contenu
+    // reste protege via les API mais c'est defense en profondeur).
+    "/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|icons|api).*)",
   ],
 };

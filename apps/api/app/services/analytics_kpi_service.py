@@ -168,34 +168,62 @@ def get_aging_balance(db: Session, tenant_id: int) -> AgingBalance:
 
 
 def get_payer_performance(db: Session, tenant_id: int) -> PayerPerformance:
-    orgs = db.scalars(select(PayerOrganization).where(PayerOrganization.tenant_id == tenant_id)).all()
+    """KPIs de performance par organisme payeur (mutuelle, CPAM, etc.).
+
+    Optimisation N+1 : 1 seule query qui agregge les PEC par organization_id
+    via GROUP BY. Avant : 1 query par PayerOrganization, soit 50+ round-trips.
+    """
+    orgs = db.scalars(
+        select(PayerOrganization).where(PayerOrganization.tenant_id == tenant_id)
+    ).all()
+    if not orgs:
+        return PayerPerformance(payers=[])
+
+    org_by_id = {org.id: org for org in orgs}
+
+    # Une seule query : on charge toutes les PEC de tous les organismes du tenant
+    rows = db.execute(
+        select(
+            PecRequest.organization_id,
+            PecRequest.status,
+            PecRequest.montant_demande,
+            PecRequest.montant_accorde,
+        ).where(PecRequest.tenant_id == tenant_id)
+    ).all()
+
+    # Agreggation en Python (groupBy organization_id)
+    by_org: dict[int, dict] = {}
+    for org_id, status, demande, accorde in rows:
+        if org_id not in org_by_id:
+            continue  # PEC sur organisme d'un autre tenant (defense en profondeur)
+        bucket = by_org.setdefault(
+            org_id,
+            {"total": 0, "accepted": 0, "refused": 0, "requested": Decimal("0"), "got": Decimal("0")},
+        )
+        bucket["total"] += 1
+        if status in (PEC_ACCEPTEE, PEC_CLOTUREE) and accorde:
+            bucket["accepted"] += 1
+        if status == PEC_REFUSEE:
+            bucket["refused"] += 1
+        bucket["requested"] += Decimal(str(demande))
+        if accorde:
+            bucket["got"] += Decimal(str(accorde))
+
     payers = []
-
-    for org in orgs:
-        pecs = db.execute(
-            select(PecRequest.status, PecRequest.montant_demande, PecRequest.montant_accorde).where(
-                PecRequest.organization_id == org.id, PecRequest.tenant_id == tenant_id
-            )
-        ).all()
-
-        total = len(pecs)
+    for org_id, b in by_org.items():
+        org = org_by_id[org_id]
+        total = b["total"]
         if total == 0:
             continue
-
-        accepted = sum(1 for p in pecs if p.status in (PEC_ACCEPTEE, PEC_CLOTUREE) and p.montant_accorde)
-        refused = sum(1 for p in pecs if p.status == PEC_REFUSEE)
-        total_requested = sum(Decimal(str(p.montant_demande)) for p in pecs)
-        total_accepted = sum(Decimal(str(p.montant_accorde or 0)) for p in pecs if p.montant_accorde)
-
         payers.append(
             PayerPerf(
                 name=org.name,
                 type=org.type,
                 avg_payment_days=0,
-                acceptance_rate=round(accepted / total * 100, 1) if total > 0 else 0,
-                rejection_rate=round(refused / total * 100, 1) if total > 0 else 0,
-                total_requested=round(total_requested, 2),
-                total_accepted=round(total_accepted, 2),
+                acceptance_rate=round(b["accepted"] / total * 100, 1),
+                rejection_rate=round(b["refused"] / total * 100, 1),
+                total_requested=round(b["requested"], 2),
+                total_accepted=round(b["got"], 2),
             )
         )
 
