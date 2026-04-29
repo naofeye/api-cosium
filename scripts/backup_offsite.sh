@@ -34,9 +34,24 @@ if [ ! -d "$BACKUP_DIR" ]; then
 fi
 
 # Utilise `mc` via Docker si non installé localement — évite une dépendance durable.
+# Important : on ne passe JAMAIS les credentials dans la URL (qui apparaitrait dans
+# `ps`/`history`/logs). On les injecte via env-file a permissions strictes.
+MC_ENV_FILE=""
+cleanup_mc_env() {
+    if [ -n "$MC_ENV_FILE" ] && [ -f "$MC_ENV_FILE" ]; then
+        rm -f "$MC_ENV_FILE"
+    fi
+}
+trap cleanup_mc_env EXIT
+
 MC="mc"
 if ! command -v mc >/dev/null 2>&1; then
-    MC="docker run --rm -e MC_HOST_offsite=${OFFSITE_ENDPOINT/https:\/\//https://${OFFSITE_ACCESS_KEY}:${OFFSITE_SECRET_KEY}@} -v ${PWD}/${BACKUP_DIR}:/data minio/mc"
+    MC_ENV_FILE="$(mktemp)"
+    chmod 600 "$MC_ENV_FILE"
+    {
+        printf 'MC_HOST_offsite=%s\n' "${OFFSITE_ENDPOINT/https:\/\//https://${OFFSITE_ACCESS_KEY}:${OFFSITE_SECRET_KEY}@}"
+    } > "$MC_ENV_FILE"
+    MC="docker run --rm --env-file ${MC_ENV_FILE} -v ${PWD}/${BACKUP_DIR}:/data minio/mc"
 fi
 
 # Enregistre l'alias offsite (idempotent).
