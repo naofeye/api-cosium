@@ -9,7 +9,7 @@
      et rejeu automatique des lors que la connectivite est retablie
 */
 
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const STATIC_CACHE = `optiflow-static-${CACHE_VERSION}`;
 const PAGES_CACHE = `optiflow-pages-${CACHE_VERSION}`;
 const API_CACHE = `optiflow-api-${CACHE_VERSION}`;
