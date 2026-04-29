@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 
 from app.integrations.ai.rag import search_docs
 from app.repositories import ai_context_repo
-
 from app.services._ai.prompts import SYSTEM_PROMPTS
 
 

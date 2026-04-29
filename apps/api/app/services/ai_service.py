@@ -14,10 +14,11 @@ from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
 from app.integrations.ai.claude_provider import claude_provider
-from app.repositories import ai_usage_repo
-
-from app.repositories import ai_context_repo
-from app.integrations.ai.rag import search_docs
+from app.integrations.ai.rag import search_docs  # noqa: F401 — re-export tests
+from app.repositories import (
+    ai_context_repo,  # noqa: F401 — re-export tests
+    ai_usage_repo,
+)
 from app.services._ai.client_features import (
     devis_analysis,
     pre_rdv_brief,
@@ -25,7 +26,7 @@ from app.services._ai.client_features import (
     upsell_suggestion,
 )
 from app.services._ai.context import (
-    _build_case_context,
+    _build_case_context,  # noqa: F401 — re-export pour compat tests
     get_client_cosium_context,
     resolve_copilot_context,
 )

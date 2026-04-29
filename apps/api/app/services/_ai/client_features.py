@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 from app.core.logging import get_logger
 from app.integrations.ai.claude_provider import claude_provider
 from app.repositories import ai_context_repo
-
 from app.services._ai.context import get_client_cosium_context
 
 logger = get_logger("ai_service")
