@@ -8,23 +8,19 @@
 
 ## 🔴 P0 — Audit 29/04 (à corriger en priorité)
 
-- [ ] Fix 3 tests frontend login cassés (bouton disabled + router.push → window.location)
-  Files: apps/web/tests/pages/login.test.tsx, apps/web/tests/flows/login-flow.test.tsx
-- [ ] Fix `test_seed.py` fixture `db` manquante
-  Files: apps/api/tests/factories/test_seed.py
-- [ ] Investiguer CI failure sur main (run `25056556905`)
-- [ ] Monter `tests/` en volume Docker ou retirer du `.dockerignore` pour dev
-  Files: apps/api/.dockerignore
+- [x] ~~Fix 3 tests frontend login cassés~~ _(login.test.tsx + login-flow.test.tsx réécrits pour matcher window.location.href = "/actions")_
+- [x] ~~Fix `test_seed.py` fixture `db` manquante~~ _(.dockerignore retirait conftest.py — fix via .dockerignore)_
+- [x] ~~Investiguer CI failure sur main~~ _(Frontend Lint: migration eslint flat config Next 16. Frontend Tests: ClientScoreCard guard breakdown. Backend Tests: signup ne renvoie plus access_token, switch sur cookies dans test_billing/test_trial)_
+- [x] ~~Monter `tests/` en volume Docker ou retirer du `.dockerignore` pour dev~~ _(retiré, image inclut tests désormais)_
 
 ## 🟡 P1 — Audit 29/04
 
-- [ ] Guard prod `jwt_secret` (refuser valeur par défaut `_DEV_JWT_SECRET` en production)
-  Files: apps/api/app/core/config.py
-- [ ] Split `ai_service.py` 445L sous 300L (extraire prompts + context builder)
-  Files: apps/api/app/services/ai_service.py
-- [ ] Split `client_import_service.py` 307L et `auth_service.py` 304L
-- [ ] Split `ChatInterface.tsx` 326L et `Header.tsx` 305L
-  Files: apps/web/src/app/copilote-ia/components/ChatInterface.tsx, apps/web/src/components/layout/Header.tsx
+- [x] ~~Guard prod `jwt_secret`~~ _(déjà implémenté `config.py:105` + test `test_security_regression.py:38`)_
+- [x] ~~Split `ai_service.py` 445L → 122L + package `_ai/` (prompts/context/client_features)~~
+- [x] ~~Split `client_import_service.py` 307L → 196L + `_client_import_helpers.py` 129L~~
+- [x] ~~Split `auth_service.py` 304L → 199L + package `_auth/` (queries/password)~~
+- [x] ~~Split `ChatInterface.tsx` 326L → 267L + `_chat/` (sseParser/modes/EmptyChat)~~
+- [x] ~~Split `Header.tsx` 305L → 138L + `_header/NotificationsDropdown.tsx` 181L~~
 
 ---
 
