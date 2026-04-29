@@ -1,4 +1,4 @@
-import type { APIRequestContext, Page } from "@playwright/test";
+import type { APIRequestContext, BrowserContext, Page } from "@playwright/test";
 import { authenticator } from "otplib";
 
 // En CI, nginx unifie API+Web sur le meme origin (port 80) pour que les
@@ -28,22 +28,57 @@ export async function apiLogin(
 }
 
 /**
- * Login via la page UI (utile pour récupérer un state authentifié dans le navigateur).
+ * Login direct via API + injection des cookies dans le browser context.
+ * Approche fiable pour authentifier le browser SANS dependre du clavier
+ * virtuel ni de l'hydration React. Utiliser pour les tests qui ont besoin
+ * d'etre authentifies pour leur setup mais ne testent pas le formulaire.
+ *
+ * Apres l'appel, le browser est connecte : les pages goto sont autorisees.
+ * Retourne false si MFA requis ou login echoue.
+ */
+export async function apiLoginAndInject(
+  context: BrowserContext,
+  request: APIRequestContext,
+  email: string,
+  password: string,
+  totpCode?: string,
+): Promise<boolean> {
+  const body: Record<string, unknown> = { email, password };
+  if (totpCode) body.totp_code = totpCode;
+  const res = await request.post(`${API_BASE}/api/v1/auth/login`, {
+    data: body,
+    failOnStatusCode: false,
+  });
+  if (res.status() !== 200) return false;
+  // Recupere les cookies poses par l'API et les injecte dans le browser context.
+  // Le browser sera authentifie pour toutes les navigations suivantes.
+  const reqStorage = await request.storageState();
+  await context.addCookies(reqStorage.cookies);
+  return true;
+}
+
+/**
+ * Login via la page UI (utile pour TESTER le formulaire lui-meme).
  * Reste sur /login si MFA requise — à l'appelant de vérifier la suite.
  *
  * react-hook-form's register() uses an internal store updated only via
  * its onChange handler. Playwright's fill() doesn't reliably trigger it.
- * pressSequentially with a delay fires individual key events that React's
+ * pressSequentially with un delay fires individual key events that React's
  * event delegation picks up, updating the internal form state correctly.
+ *
+ * Pour les tests qui ne testent PAS le formulaire mais ont juste besoin
+ * d'etre authentifies, preferer `apiLoginAndInject` (plus fiable).
  */
 export async function uiLogin(page: Page, email: string, password: string): Promise<void> {
   await page.goto("/login");
+  // Attendre que React hydrate (Next.js 16 Suspense) avant de taper.
+  await page.waitForLoadState("networkidle");
   const emailField = page.getByLabel("Adresse email");
   await emailField.click();
-  await emailField.pressSequentially(email, { delay: 20 });
+  await emailField.pressSequentially(email, { delay: 30 });
   const pwField = page.getByLabel("Mot de passe");
   await pwField.click();
-  await pwField.pressSequentially(password, { delay: 20 });
+  await pwField.pressSequentially(password, { delay: 30 });
   await page.getByRole("button", { name: /se connecter/i }).click();
 }
 

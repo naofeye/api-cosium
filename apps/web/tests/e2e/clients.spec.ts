@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { API_BASE, SEED_EMAIL, SEED_PASSWORD, apiLogin, uiLogin } from "./helpers";
+import { API_BASE, SEED_EMAIL, SEED_PASSWORD, apiLoginAndInject } from "./helpers";
 
 /**
  * Parcours CRUD clients via l'UI + API :
@@ -15,10 +15,12 @@ import { API_BASE, SEED_EMAIL, SEED_PASSWORD, apiLogin, uiLogin } from "./helper
 const uniqueSuffix = () => Date.now().toString(36);
 
 test.describe("Clients flow", () => {
-  test("login → API create → UI voit le client → API delete", async ({ page, request }) => {
-    // 1. Login API pour préparer les cookies dans le request context
-    const login = await apiLogin(request, SEED_EMAIL, SEED_PASSWORD);
-    expect(login.status).toBe(200);
+  test("login → API create → UI voit le client → API delete", async ({ page, context, request }) => {
+    // 1. Login API + injection cookies dans le browser context : plus fiable
+    // que uiLogin (qui depend de pressSequentially + react-hook-form +
+    // hydration React, parfois flakky en CI).
+    const ok = await apiLoginAndInject(context, request, SEED_EMAIL, SEED_PASSWORD);
+    expect(ok).toBe(true);
 
     // 2. Créer un client via API (nom avec suffix unique pour éviter collision)
     const suffix = uniqueSuffix();
@@ -33,9 +35,8 @@ test.describe("Clients flow", () => {
     expect(created.id).toBeGreaterThan(0);
 
     try {
-      // 3. Login UI pour poser les cookies sur le navigateur
-      await uiLogin(page, SEED_EMAIL, SEED_PASSWORD);
-      await expect(page).toHaveURL(/\/actions$/, { timeout: 10_000 });
+      // 3. Le browser est deja authentifie via les cookies injectes —
+      // navigation directe vers /clients (pas besoin de retaper login).
 
       // Naviguer vers la liste clients et rechercher
       await page.goto("/clients");
@@ -62,17 +63,17 @@ test.describe("Clients flow", () => {
     }
   });
 
-  test("logout redirige vers login", async ({ page, request }) => {
-    const login = await apiLogin(request, SEED_EMAIL, SEED_PASSWORD);
-    expect(login.status).toBe(200);
+  test("logout redirige vers login", async ({ page, context, request }) => {
+    const ok = await apiLoginAndInject(context, request, SEED_EMAIL, SEED_PASSWORD);
+    expect(ok).toBe(true);
 
-    await uiLogin(page, SEED_EMAIL, SEED_PASSWORD);
+    // Verifier que les cookies sont en place (navigation OK)
+    await page.goto("/actions");
     await expect(page).toHaveURL(/\/actions$/, { timeout: 10_000 });
 
-    // Logout via API (le bouton UI peut être dans un menu déroulant)
+    // Logout via API + clear cookies cote browser
     await request.post(`${API_BASE}/api/v1/auth/logout`, { failOnStatusCode: false });
-    // Clear cookies browser-side aussi
-    await page.context().clearCookies();
+    await context.clearCookies();
 
     // Naviguer vers une page protégée → devrait rediriger vers /login
     await page.goto("/clients");
