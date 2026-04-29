@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Form, Request, Response
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.core.auth_cookies import clear_auth_cookies as _clear_auth_cookies
@@ -39,6 +40,39 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
         tenant_name=result.tenant_name,
         available_tenants=result.available_tenants,
     )
+
+
+@router.post(
+    "/login-form",
+    summary="Connexion via formulaire HTML (no-JS fallback)",
+    description=(
+        "Endpoint compatible avec un POST application/x-www-form-urlencoded "
+        "depuis un <form> HTML natif. Sur succes : 303 redirect vers /actions "
+        "avec les cookies JWT poses. Sur echec : 303 redirect vers /login?error=..."
+        " Permet de se connecter meme si JavaScript est desactive ou casse."
+    ),
+)
+def login_form(
+    response: Response,
+    db: Session = Depends(get_db),
+    email: str = Form(...),
+    password: str = Form(...),
+    totp_code: str | None = Form(None),
+):
+    try:
+        payload = LoginRequest(email=email, password=password, totp_code=totp_code or None)
+        result = auth_service.authenticate(db, payload)
+    except AuthenticationError as exc:
+        # Redirige vers /login avec un message d'erreur (pas de password en URL)
+        msg = str(exc) or "Email ou mot de passe incorrect"
+        from urllib.parse import quote
+        return RedirectResponse(url=f"/login?error={quote(msg)}", status_code=303)
+    except Exception:
+        return RedirectResponse(url="/login?error=Erreur+inattendue", status_code=303)
+
+    redirect = RedirectResponse(url="/actions", status_code=303)
+    _set_auth_cookies(redirect, result)
+    return redirect
 
 
 @router.post(

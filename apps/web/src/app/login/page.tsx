@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,6 +12,18 @@ import { Eye, ShieldCheck } from "lucide-react";
 
 export default function LoginPage() {
   const [serverError, setServerError] = useState("");
+
+  // Recupere ?error=... pose par /api/v1/auth/login-form en cas d'echec no-JS.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get("error");
+    if (err) {
+      setServerError(err);
+      // Nettoyer l'URL pour ne pas garder le message en historique
+      window.history.replaceState({}, "", "/login");
+    }
+  }, []);
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaSetupRequired, setMfaSetupRequired] = useState(false);
   const [totpCode, setTotpCode] = useState("");
@@ -114,7 +126,7 @@ export default function LoginPage() {
           {!mfaRequired && (
             <form
               method="post"
-              action="/api/v1/auth/login"
+              action="/api/v1/auth/login-form"
               onSubmit={handleSubmit(onSubmit)}
               className="space-y-5"
             >
