@@ -20,23 +20,26 @@ def test_version_endpoint_returns_correct_format(client: TestClient) -> None:
     assert re.match(r"^\d{4}-\d{2}-\d{2}$", data["build"]), f"Build {data['build']} is not a date"
 
 
-def test_version_header_present_on_all_responses(client: TestClient) -> None:
-    """Every API response should include X-API-Version header."""
+def test_no_version_fingerprint_header(client: TestClient) -> None:
+    """X-API-Version etait expose en clair, vecteur de reconnaissance pour
+    correler la stack a des CVE. Retire post-audit (cf middleware_setup.py).
+    La version reste dispo via /api/v1/version (endpoint dedie)."""
     resp = client.get("/api/v1/version")
-    assert "X-API-Version" in resp.headers
-    assert re.match(r"^\d+\.\d+\.\d+$", resp.headers["X-API-Version"])
+    assert "X-API-Version" not in resp.headers
+    # La version reste accessible via le body de l'endpoint dedie
+    assert re.match(r"^\d+\.\d+\.\d+$", resp.json()["version"])
 
 
-def test_version_header_on_404(client: TestClient) -> None:
-    """X-API-Version header is present even on 404 responses."""
+def test_no_version_header_on_404(client: TestClient) -> None:
+    """Pas de fingerprint sur les 404 non plus."""
     resp = client.get("/api/v1/nonexistent-endpoint-xyz")
-    assert "X-API-Version" in resp.headers
+    assert "X-API-Version" not in resp.headers
 
 
-def test_powered_by_header(client: TestClient) -> None:
-    """X-Powered-By header should be set to OptiFlow AI."""
+def test_no_powered_by_header(client: TestClient) -> None:
+    """X-Powered-By retire post-audit (fingerprint)."""
     resp = client.get("/api/v1/version")
-    assert resp.headers.get("X-Powered-By") == "OptiFlow AI"
+    assert "X-Powered-By" not in resp.headers
 
 
 def test_version_endpoint_no_auth_required(client: TestClient) -> None:

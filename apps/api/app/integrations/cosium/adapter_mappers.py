@@ -207,6 +207,28 @@ def cosium_invoiced_item_to_optiflow(raw: dict) -> dict:
     # - unitPriceExcludingTaxes (HT)
     # - vatPercentage, discount, discountType, rank, productCode
     # Fallbacks legacy gardes pour compat avec d'eventuels seeds tests.
+    quantity = int(raw.get("quantity") or 1)
+    unit_ti = float(
+        raw.get("unitPriceIncludingTaxes")
+        or raw.get("unitPriceTI")
+        or raw.get("unitPrice")
+        or 0
+    )
+    total_ti = float(
+        raw.get("totalPriceIncludingTaxes")
+        or raw.get("totalTI")
+        or raw.get("totalPrice")
+        or 0
+    )
+    unit_te = float(raw.get("unitPriceExcludingTaxes") or 0)
+    # totalPriceExcludingTaxes pas toujours present : fallback unit_te * qty
+    total_te_raw = raw.get("totalPriceExcludingTaxes")
+    total_te = float(total_te_raw) if total_te_raw is not None else round(unit_te * quantity, 2)
+    vat_pct = float(raw.get("vatPercentage") or 0)
+    discount = float(raw.get("discount") or 0)
+    discount_type = raw.get("discountType")
+    rank_raw = raw.get("rank")
+    rank = int(rank_raw) if isinstance(rank_raw, int | float) else None
     return {
         "cosium_id": cid,
         "invoice_cosium_id": invoice_cosium_id,
@@ -215,17 +237,13 @@ def cosium_invoiced_item_to_optiflow(raw: dict) -> dict:
         ),
         "product_label": raw.get("label") or raw.get("productLabel") or "",
         "product_family": raw.get("productFamily") or raw.get("familyType") or "",
-        "quantity": int(raw.get("quantity") or 1),
-        "unit_price_ti": float(
-            raw.get("unitPriceIncludingTaxes")
-            or raw.get("unitPriceTI")
-            or raw.get("unitPrice")
-            or 0
-        ),
-        "total_ti": float(
-            raw.get("totalPriceIncludingTaxes")
-            or raw.get("totalTI")
-            or raw.get("totalPrice")
-            or 0
-        ),
+        "quantity": quantity,
+        "unit_price_ti": unit_ti,
+        "total_ti": total_ti,
+        "unit_price_te": unit_te,
+        "total_te": total_te,
+        "vat_percentage": vat_pct,
+        "discount": discount,
+        "discount_type": discount_type if isinstance(discount_type, str) else None,
+        "rank": rank,
     }

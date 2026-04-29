@@ -186,4 +186,13 @@ class CosiumInvoicedItem(Base):
     quantity: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     unit_price_ti: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     total_ti: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    # Champs HT/TVA/discount documentes par Cosium (Invoiced Items API.pdf).
+    # Indispensables pour la compta detaillee : avant on ne stockait que le
+    # TTC, perdant l'info HT pour les exports FEC/Sage.
+    unit_price_te: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    total_te: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    vat_percentage: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    discount: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    discount_type: Mapped[str | None] = mapped_column(String(20), nullable=True)  # PERCENTAGE | CURRENCY
+    rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
     synced_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)

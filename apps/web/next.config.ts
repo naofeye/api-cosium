@@ -17,6 +17,17 @@ const withBundleAnalyzer = process.env.ANALYZE === "true"
 const BACKEND_INTERNAL_URL =
   process.env.BACKEND_INTERNAL_URL || "http://api-cosium-api-1:8000";
 
+// Validation : si un attaquant compromet le container web (RCE supply chain
+// npm) et modifie BACKEND_INTERNAL_URL, on refuse au boot. Sans ca, tous les
+// cookies/JWT user partiraient vers un host externe.
+const _BACKEND_URL_PATTERN = /^https?:\/\/(api-cosium-api(-\d+)?|localhost|127\.0\.0\.1)(:\d+)?$/;
+if (!_BACKEND_URL_PATTERN.test(BACKEND_INTERNAL_URL)) {
+  throw new Error(
+    `BACKEND_INTERNAL_URL invalide: "${BACKEND_INTERNAL_URL}". ` +
+      "Attendu format: http(s)://api-cosium-api[-N]:port ou http(s)://localhost:port",
+  );
+}
+
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,

@@ -120,6 +120,32 @@ class TestCreateUser:
         with pytest.raises(BusinessError):
             admin_user_service.create_user(db, default_tenant.id, payload, admin_user_id=1)
 
+    def test_refuses_to_steal_user_from_another_tenant(self, mock_audit, db, default_tenant):
+        """Securite : un admin du tenant A ne peut pas ajouter silencieusement
+        un user qui appartient deja au tenant B (via son email). Avant ce fix,
+        le service ajoutait le user au tenant A sans son consentement, exposant
+        les donnees metier de A.
+        """
+        from app.models import Organization, Tenant
+
+        other_org = Organization(name="Other", slug="other-org", plan="solo")
+        db.add(other_org)
+        db.flush()
+        other_tenant = Tenant(
+            organization_id=other_org.id, name="Other", slug="other",
+            erp_type="cosium", is_active=True,
+        )
+        db.add(other_tenant)
+        db.flush()
+        user = _make_user(db, "external@example.com")
+        _make_tenant_user(db, user.id, other_tenant.id, role="admin")
+        db.commit()
+
+        payload = AdminUserCreate(email="external@example.com", password="Password1", role="viewer")
+        with pytest.raises(BusinessError) as exc_info:
+            admin_user_service.create_user(db, default_tenant.id, payload, admin_user_id=1)
+        assert "autre magasin" in str(exc_info.value).lower()
+
     def test_new_user_is_stored_in_db(self, mock_audit, db, default_tenant):
         payload = AdminUserCreate(email="stored@example.com", password="Password1", role="manager")
         admin_user_service.create_user(db, default_tenant.id, payload, admin_user_id=1)

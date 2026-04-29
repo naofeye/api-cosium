@@ -63,7 +63,7 @@ jobs:
           cd apps/api
           python -m pytest tests/ -v --tb=short \
             --cov=app --cov-report=xml --cov-report=term \
-            --cov-fail-under=45
+            --cov-fail-under=75
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         if: matrix.python-version == '3.12'

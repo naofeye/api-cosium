@@ -48,11 +48,14 @@ def test_version_endpoint(client: TestClient) -> None:
     assert "build" in data
 
 
-def test_version_header_present(client: TestClient) -> None:
-    """All responses should include X-API-Version and X-Powered-By headers."""
+def test_no_fingerprint_headers(client: TestClient) -> None:
+    """Headers X-API-Version + X-Powered-By retires post-audit (fingerprint
+    reconnaissance attaquant). Version reste dispo via body de /version."""
     resp = client.get("/api/v1/version")
-    assert resp.headers.get("X-API-Version") == "1.0.0"
-    assert resp.headers.get("X-Powered-By") == "OptiFlow AI"
+    assert "X-API-Version" not in resp.headers
+    assert "X-Powered-By" not in resp.headers
+    # Body contient toujours la version
+    assert resp.json()["version"]
 
 
 def test_metrics_requires_auth(client: TestClient) -> None:

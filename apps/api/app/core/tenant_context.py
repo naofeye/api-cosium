@@ -69,7 +69,13 @@ def get_tenant_context(
     if tenant is None:
         raise AuthenticationError("Magasin désactivé ou introuvable")
 
-    is_group_admin = payload.get("is_group_admin", False)
+    # is_group_admin re-verifie depuis la BD a chaque requete au lieu de faire
+    # confiance aveuglement au JWT. Sans ce check, un admin groupe retrograde
+    # (revocation manuelle) garde ses privileges pendant toute la duree de vie
+    # de l'access token (30min). Cout : 1 query indexee sur TenantUser.
+    from app.repositories import tenant_user_repo
+
+    is_group_admin = len(tenant_user_repo.list_admin_active_by_user(db, user.id)) > 1
 
     return TenantContext(
         tenant_id=tenant_id,

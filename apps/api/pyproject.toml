@@ -52,6 +52,7 @@ omit = ["app/seed*.py", "app/tasks/*"]
 
 [tool.coverage.report]
 show_missing = true
-# Baseline coverage actuelle. Objectif cible : 80%. Incrementer par lots de +5%.
-# Aligne avec ci.yml --cov-fail-under.
-fail_under = 45
+# Couverture reelle ~81% (mesuree 2026-04-29). Gate a 75% pour permettre une
+# regression marginale temporaire (ex: ajout d'un module avant tests). Aligne
+# avec ci.yml --cov-fail-under. Objectif a moyen terme : 85%.
+fail_under = 75
