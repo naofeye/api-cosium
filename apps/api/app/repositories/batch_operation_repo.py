@@ -79,24 +79,28 @@ def count_batches(db: Session, tenant_id: int) -> int:
 
 
 def get_items_by_batch(
-    db: Session, batch_id: int
+    db: Session, batch_id: int, tenant_id: int
 ) -> list[BatchOperationItem]:
     return list(
         db.scalars(
             select(BatchOperationItem)
-            .where(BatchOperationItem.batch_id == batch_id)
+            .where(
+                BatchOperationItem.batch_id == batch_id,
+                BatchOperationItem.tenant_id == tenant_id,
+            )
             .order_by(BatchOperationItem.id)
         ).all()
     )
 
 
 def get_items_by_status(
-    db: Session, batch_id: int, status: str
+    db: Session, batch_id: int, tenant_id: int, status: str
 ) -> list[BatchOperationItem]:
     return list(
         db.scalars(
             select(BatchOperationItem).where(
                 BatchOperationItem.batch_id == batch_id,
+                BatchOperationItem.tenant_id == tenant_id,
                 BatchOperationItem.status == status,
             )
         ).all()
@@ -106,11 +110,20 @@ def get_items_by_status(
 def update_item(
     db: Session,
     item_id: int,
+    tenant_id: int,
     **kwargs: object,
 ) -> None:
+    """Update tenant-scoped pour defense en profondeur.
+
+    Le caller a deja verifie l'ownership en amont, mais on filtre quand meme
+    par tenant_id pour eviter qu'un bug regression cross-tenant se produise.
+    """
     db.execute(
         update(BatchOperationItem)
-        .where(BatchOperationItem.id == item_id)
+        .where(
+            BatchOperationItem.id == item_id,
+            BatchOperationItem.tenant_id == tenant_id,
+        )
         .values(**kwargs)
     )
     db.flush()
@@ -119,11 +132,16 @@ def update_item(
 def update_batch(
     db: Session,
     batch_id: int,
+    tenant_id: int,
     **kwargs: object,
 ) -> None:
+    """Update tenant-scoped pour defense en profondeur."""
     db.execute(
         update(BatchOperation)
-        .where(BatchOperation.id == batch_id)
+        .where(
+            BatchOperation.id == batch_id,
+            BatchOperation.tenant_id == tenant_id,
+        )
         .values(**kwargs)
     )
     db.flush()

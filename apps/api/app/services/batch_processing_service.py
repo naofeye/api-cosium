@@ -32,14 +32,14 @@ def process_batch(
     if not batch:
         raise NotFoundError("batch_operation", batch_id)
 
-    items = batch_operation_repo.get_items_by_status(db, batch.id, "en_attente")
+    items = batch_operation_repo.get_items_by_status(db, batch.id, tenant_id, "en_attente")
 
     stats = {"prets": 0, "incomplets": 0, "en_conflit": 0, "erreur": 0}
 
     total_items = len(items)
     for idx, item in enumerate(items, start=1):
         try:
-            batch_operation_repo.update_item(db, item.id, status="en_cours")
+            batch_operation_repo.update_item(db, item.id, tenant_id, status="en_cours")
 
             profile = consolidation_service.consolidate_client_for_pec(
                 db, tenant_id, item.customer_id
@@ -63,6 +63,7 @@ def process_batch(
             batch_operation_repo.update_item(
                 db,
                 item.id,
+                tenant_id,
                 status=item_status,
                 completude_score=score,
                 errors_count=errors_count,
@@ -82,6 +83,7 @@ def process_batch(
                 batch_operation_repo.update_batch(
                     db,
                     batch.id,
+                    tenant_id,
                     status="en_cours",
                     clients_prets=stats["prets"],
                     clients_incomplets=stats["incomplets"],
@@ -106,6 +108,7 @@ def process_batch(
             batch_operation_repo.update_item(
                 db,
                 item.id,
+                tenant_id,
                 status="erreur",
                 error_message=str(exc)[:500],
                 processed_at=datetime.now(UTC),
@@ -117,6 +120,7 @@ def process_batch(
                 batch_operation_repo.update_batch(
                     db,
                     batch.id,
+                    tenant_id,
                     status="en_cours",
                     clients_prets=stats["prets"],
                     clients_incomplets=stats["incomplets"],
@@ -128,6 +132,7 @@ def process_batch(
     batch_operation_repo.update_batch(
         db,
         batch.id,
+        tenant_id,
         status="termine",
         clients_prets=stats["prets"],
         clients_incomplets=stats["incomplets"],
@@ -157,7 +162,7 @@ def prepare_batch_pec(
     if not batch:
         raise NotFoundError("batch_operation", batch_id)
 
-    pret_items = batch_operation_repo.get_items_by_status(db, batch.id, "pret")
+    pret_items = batch_operation_repo.get_items_by_status(db, batch.id, tenant_id, "pret")
     result = BatchPecResult()
 
     for item in pret_items:
@@ -169,7 +174,7 @@ def prepare_batch_pec(
                 user_id=user_id,
             )
             batch_operation_repo.update_item(
-                db, item.id, pec_preparation_id=prep_resp.id
+                db, item.id, tenant_id, pec_preparation_id=prep_resp.id
             )
             result.prepared += 1
         except (SQLAlchemyError, ValueError, KeyError) as exc:
@@ -182,6 +187,7 @@ def prepare_batch_pec(
             batch_operation_repo.update_item(
                 db,
                 item.id,
+                tenant_id,
                 error_message=f"PEC: {str(exc)[:480]}",
             )
             result.errors += 1
@@ -212,7 +218,7 @@ def get_batch_summary_enriched(
     if not batch:
         raise NotFoundError("batch_operation", batch_id)
 
-    items = batch_operation_repo.get_items_by_batch(db, batch.id)
+    items = batch_operation_repo.get_items_by_batch(db, batch.id, tenant_id)
 
     customer_ids = [i.customer_id for i in items]
     customers_map: dict[int, dict] = {}

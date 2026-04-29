@@ -222,7 +222,7 @@ def get_batch_summary(
     if not batch:
         raise NotFoundError("batch_operation", batch_id)
 
-    items = batch_operation_repo.get_items_by_batch(db, batch.id)
+    items = batch_operation_repo.get_items_by_batch(db, batch.id, tenant_id)
 
     customer_ids = [i.customer_id for i in items]
     names_map: dict[int, str] = {}

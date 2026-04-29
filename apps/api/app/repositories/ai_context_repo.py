@@ -71,40 +71,40 @@ def get_case_customer_id(db: Session, case_id: int, tenant_id: int) -> int | Non
     return row.customer_id if row else None
 
 
-def get_case_documents(db: Session, case_id: int):
-    """Return documents for a case."""
+def get_case_documents(db: Session, case_id: int, tenant_id: int):
+    """Return documents for a case (tenant scoped, defense in depth)."""
     return db.execute(
         select(Document.type, Document.filename, Document.uploaded_at)
-        .where(Document.case_id == case_id)
+        .where(Document.case_id == case_id, Document.tenant_id == tenant_id)
     ).all()
 
 
-def get_case_devis(db: Session, case_id: int):
-    """Return devis for a case."""
+def get_case_devis(db: Session, case_id: int, tenant_id: int):
+    """Return devis for a case (tenant scoped, defense in depth)."""
     return db.execute(
         select(Devis.numero, Devis.status, Devis.montant_ttc, Devis.reste_a_charge)
-        .where(Devis.case_id == case_id)
+        .where(Devis.case_id == case_id, Devis.tenant_id == tenant_id)
     ).all()
 
 
-def get_case_factures(db: Session, case_id: int):
-    """Return factures for a case."""
+def get_case_factures(db: Session, case_id: int, tenant_id: int):
+    """Return factures for a case (tenant scoped, defense in depth)."""
     return db.execute(
         select(Facture.numero, Facture.status, Facture.montant_ttc)
-        .where(Facture.case_id == case_id)
+        .where(Facture.case_id == case_id, Facture.tenant_id == tenant_id)
     ).all()
 
 
-def get_case_payments(db: Session, case_id: int):
-    """Return payments for a case."""
+def get_case_payments(db: Session, case_id: int, tenant_id: int):
+    """Return payments for a case (tenant scoped, defense in depth)."""
     return db.execute(
         select(Payment.payer_type, Payment.amount_due, Payment.amount_paid, Payment.status)
-        .where(Payment.case_id == case_id)
+        .where(Payment.case_id == case_id, Payment.tenant_id == tenant_id)
     ).all()
 
 
-def get_case_pecs(db: Session, case_id: int):
-    """Return PEC requests with organization name for a case."""
+def get_case_pecs(db: Session, case_id: int, tenant_id: int):
+    """Return PEC requests with organization name for a case (tenant scoped)."""
     return db.execute(
         select(
             PecRequest.id,
@@ -114,7 +114,7 @@ def get_case_pecs(db: Session, case_id: int):
             PayerOrganization.name,
         )
         .join(PayerOrganization, PayerOrganization.id == PecRequest.organization_id)
-        .where(PecRequest.case_id == case_id)
+        .where(PecRequest.case_id == case_id, PecRequest.tenant_id == tenant_id)
     ).all()
 
 

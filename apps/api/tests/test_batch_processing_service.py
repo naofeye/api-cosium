@@ -115,7 +115,7 @@ def test_process_batch_one_item_fails_others_continue(mock_consolidate, db, defa
     assert result.clients_erreur == 1
 
     # Verify that the failed item carries the error message in db
-    items = batch_operation_repo.get_items_by_batch(db, batch.id)
+    items = batch_operation_repo.get_items_by_batch(db, batch.id, default_tenant.id)
     errored = [i for i in items if i.status == "erreur"]
     assert len(errored) == 1
     assert "Consolidation impossible" in errored[0].error_message

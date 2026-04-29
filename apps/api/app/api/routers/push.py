@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel
-from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.models import User
-from app.models.push_subscription import PushSubscription
+from app.services import push_service
 
 router = APIRouter(prefix="/api/v1/push", tags=["push"])
 
@@ -38,25 +37,14 @@ def subscribe(
     current_user: User = Depends(get_current_user),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> None:
-    existing = db.scalars(
-        select(PushSubscription).where(
-            PushSubscription.user_id == current_user.id,
-            PushSubscription.endpoint == payload.endpoint,
-        )
-    ).first()
-    if existing:
-        existing.p256dh_key = payload.keys.p256dh
-        existing.auth_key = payload.keys.auth
-    else:
-        subscription = PushSubscription(
-            tenant_id=tenant_ctx.tenant_id,
-            user_id=current_user.id,
-            endpoint=payload.endpoint,
-            p256dh_key=payload.keys.p256dh,
-            auth_key=payload.keys.auth,
-        )
-        db.add(subscription)
-    db.commit()
+    push_service.subscribe(
+        db,
+        tenant_id=tenant_ctx.tenant_id,
+        user_id=current_user.id,
+        endpoint=payload.endpoint,
+        p256dh=payload.keys.p256dh,
+        auth=payload.keys.auth,
+    )
 
 
 @router.delete(
@@ -69,11 +57,11 @@ def unsubscribe(
     payload: PushUnsubscribeRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> None:
-    db.execute(
-        delete(PushSubscription).where(
-            PushSubscription.user_id == current_user.id,
-            PushSubscription.endpoint == payload.endpoint,
-        )
+    push_service.unsubscribe(
+        db,
+        tenant_id=tenant_ctx.tenant_id,
+        user_id=current_user.id,
+        endpoint=payload.endpoint,
     )
-    db.commit()

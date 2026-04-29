@@ -106,25 +106,25 @@ def _build_case_context(db: Session, tenant_id: int, case_id: int) -> str:
         f"Cree le: {case.created_at}",
     ]
 
-    docs = ai_context_repo.get_case_documents(db, case_id)
+    docs = ai_context_repo.get_case_documents(db, case_id, tenant_id)
     if docs:
         parts.append(f"\nDOCUMENTS ({len(docs)}):")
         for d in docs:
             parts.append(f"  - {d.type}: {d.filename} ({d.uploaded_at})")
 
-    devis_list = ai_context_repo.get_case_devis(db, case_id)
+    devis_list = ai_context_repo.get_case_devis(db, case_id, tenant_id)
     if devis_list:
         parts.append(f"\nDEVIS ({len(devis_list)}):")
         for d in devis_list:
             parts.append(f"  - {d.numero}: {d.status} | TTC: {d.montant_ttc} EUR | RAC: {d.reste_a_charge} EUR")
 
-    factures = ai_context_repo.get_case_factures(db, case_id)
+    factures = ai_context_repo.get_case_factures(db, case_id, tenant_id)
     if factures:
         parts.append(f"\nFACTURES ({len(factures)}):")
         for f in factures:
             parts.append(f"  - {f.numero}: {f.status} | {f.montant_ttc} EUR")
 
-    payments = ai_context_repo.get_case_payments(db, case_id)
+    payments = ai_context_repo.get_case_payments(db, case_id, tenant_id)
     if payments:
         parts.append(f"\nPAIEMENTS ({len(payments)}):")
         total_due = sum(float(p.amount_due) for p in payments)
@@ -133,7 +133,7 @@ def _build_case_context(db: Session, tenant_id: int, case_id: int) -> str:
             parts.append(f"  - {p.payer_type}: du={p.amount_due} EUR, paye={p.amount_paid} EUR ({p.status})")
         parts.append(f"  TOTAL: du={total_due} EUR, paye={total_paid} EUR, reste={total_due - total_paid} EUR")
 
-    pecs = ai_context_repo.get_case_pecs(db, case_id)
+    pecs = ai_context_repo.get_case_pecs(db, case_id, tenant_id)
     if pecs:
         parts.append(f"\nPEC ({len(pecs)}):")
         for p in pecs:
