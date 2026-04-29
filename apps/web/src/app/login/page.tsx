@@ -112,7 +112,12 @@ export default function LoginPage() {
           </div>
 
           {!mfaRequired && (
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            <form
+              method="post"
+              action="/api/v1/auth/login"
+              onSubmit={handleSubmit(onSubmit)}
+              className="space-y-5"
+            >
               <FormField label="Adresse email" error={errors.email?.message}>
                 <FormInput
                   type="email"
