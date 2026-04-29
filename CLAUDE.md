@@ -866,3 +866,9 @@ docker compose exec api alembic upgrade head
 - **Next.js 15→16 + TypeScript 5→6 upgrade** : montée de version majeure frontend. Commit `93eaff6`.
 - **26 tests frontend ajoutés** : suite passe de 176→202 tests.
 - **E2E Playwright cookie race condition fixé** : `router.push` → `window.location.href` pour forcer hard navigation après login. Commit `770c03c`.
+
+### 2026-04-29 — All Inclusive api-cosium
+
+- **Audit profond** : 285 routes, 2148 tests backend, 202 tests frontend (199 pass, 3 fail login). Score 7/10.
+- **TODO.md enrichi** : 4 P0 (tests login cassés, test_seed fixture, CI fail, .dockerignore), 4 P1 (jwt_secret guard, splits fichiers >300L).
+- **Findings principaux** : architecture backend solide, sécurité correcte (RBAC, JWT+MFA, rate limiting, mass-assignment whitelists), 0 vuln npm prod, Semgrep 12 findings tous dans migrations/templates. Points faibles : 3 tests frontend cassés post-fix E2E, CI main en échec, 3 fichiers >300L.
