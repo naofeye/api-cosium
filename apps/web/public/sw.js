@@ -9,7 +9,7 @@
      et rejeu automatique des lors que la connectivite est retablie
 */
 
-const CACHE_VERSION = "v5";
+const CACHE_VERSION = "v6";
 const STATIC_CACHE = `optiflow-static-${CACHE_VERSION}`;
 const PAGES_CACHE = `optiflow-pages-${CACHE_VERSION}`;
 const API_CACHE = `optiflow-api-${CACHE_VERSION}`;
@@ -273,41 +273,30 @@ function staleWhileRevalidate(request, cacheName) {
 
 // ─── HELPERS ────────────────────────────────────────────────────────
 
-// Endpoints autorises a etre mis en file pour rejeu hors ligne.
-// On exclut TOUT ce qui peut contenir des PII/secrets/tokens/paiements :
-// auth, onboarding, billing/stripe, webhooks, imports, mfa, push, gdpr, etc.
-// On autorise uniquement des actions metier idempotentes type "creer/mettre
-// a jour une note/relance/action" qui ne portent ni credentials ni argent.
-const OFFLINE_QUEUE_DENY = [
-  "/api/v1/auth",
-  "/api/v1/admin",
-  "/api/v1/billing",
-  "/api/v1/webhooks",
-  "/api/v1/onboarding",
-  "/api/v1/mfa",
-  "/api/v1/push",
-  "/api/v1/gdpr",
-  "/api/v1/imports",
-  "/api/v1/import",
-  "/api/v1/upload",
-  "/api/v1/documents",
-  "/api/v1/payments",
-  "/api/v1/banking",
-  "/api/v1/pec",
-  "/api/v1/factures",
-  "/api/v1/devis",
-  "/api/v1/marketing/campaigns",
-  "/api/v1/clients/import",
-  "/api/v1/clients/merge",
+// ALLOWLIST stricte des endpoints autorises au queueing offline. Avant on
+// utilisait une denylist : risque que tout endpoint non liste passe en queue
+// (ex: PUT /clients/{id} stockait des PII en clair dans IndexedDB du browser).
+// Maintenant : seuls les endpoints metier safes (notes, action items, queries
+// IA non sensibles) sont queueables. Le reste echoue proprement quand offline.
+const OFFLINE_QUEUE_ALLOW = [
+  // Notes / action items / interactions : pas de PII sensible, idempotent
+  "/api/v1/action-items",
+  "/api/v1/interactions",
+  // Touches "marquer comme lu" sur notifications
+  "/api/v1/notifications",
 ];
 
+// TTL : on ne rejoue pas une mutation qui dort dans la queue depuis trop
+// longtemps. Evite les rejeux stale apres logout/switch-tenant ou simplement
+// apres 24h offline (donnees periorimees, conflits de version).
+const REPLAY_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
 function isOfflineQueueable(pathname, method) {
-  // Seuls POST/PUT/PATCH idempotents simples — on exclut DELETE par prudence.
   if (method !== "POST" && method !== "PUT" && method !== "PATCH") return false;
-  for (const prefix of OFFLINE_QUEUE_DENY) {
-    if (pathname.startsWith(prefix)) return false;
+  for (const prefix of OFFLINE_QUEUE_ALLOW) {
+    if (pathname.startsWith(prefix)) return true;
   }
-  return true;
+  return false;
 }
 
 function isStaticAsset(request) {
@@ -544,8 +533,17 @@ async function replayPendingMutations() {
 
     let successCount = 0;
     let failureCount = 0;
+    let staleCount = 0;
+    const now = Date.now();
 
     for (const mutation of mutations) {
+      // TTL : drop les mutations trop vieilles (> 24h). Donnees periorimees,
+      // risque de conflits de version, ou rejeu post-logout d'un autre user.
+      if (mutation.timestamp && now - mutation.timestamp > REPLAY_MAX_AGE_MS) {
+        await idbDelete(db, mutation.id);
+        staleCount++;
+        continue;
+      }
       try {
         const response = await fetch(mutation.url, {
           method: mutation.method,
@@ -577,6 +575,7 @@ async function replayPendingMutations() {
       type: "SYNC_COMPLETED",
       successCount,
       failureCount,
+      staleCount,
     });
   } catch (err) {
     console.error("[SW] Erreur lors du rejeu des mutations :", err);

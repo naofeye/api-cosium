@@ -21,7 +21,7 @@ def check_account_lockout(email: str) -> None:
         r = get_redis_client()
         if r is None:
             return
-        key = f"login_attempts:{email}"
+        key = f"login_attempts:{email.lower()}"
         attempts = r.get(key)
         if attempts and int(attempts) >= MAX_LOGIN_ATTEMPTS:
             ttl = r.ttl(key)
@@ -44,7 +44,7 @@ def record_failed_login(email: str) -> None:
         r = get_redis_client()
         if r is None:
             return
-        key = f"login_attempts:{email}"
+        key = f"login_attempts:{email.lower()}"
         current = r.incr(key)
         if current == 1:
             r.expire(key, LOCKOUT_SECONDS)
@@ -59,6 +59,6 @@ def clear_login_attempts(email: str) -> None:
 
         r = get_redis_client()
         if r is not None:
-            r.delete(f"login_attempts:{email}")
+            r.delete(f"login_attempts:{email.lower()}")
     except Exception as exc:
         logger.warning("clear_login_attempts_redis_error", error=str(exc))

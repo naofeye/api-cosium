@@ -33,6 +33,11 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: str = "http://localhost:3000"
 
+    # URL publique du frontend (pour les liens dans les emails : reset password,
+    # validation email, devis envoyes au client). Si vide, on prend le premier
+    # cors_origins par fallback (peu fiable car peut etre ordonne arbitrairement).
+    frontend_base_url: str = ""
+
     # Trusted proxies (CSV) — IPs autorisees a faire confiance au header X-Forwarded-For
     # Vide par defaut : on n'accepte JAMAIS X-Forwarded-For sans config explicite
     # En prod derriere nginx : "127.0.0.1" suffit ; en docker compose, ajouter l'IP du proxy

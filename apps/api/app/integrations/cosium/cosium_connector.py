@@ -143,6 +143,27 @@ class CosiumConnector(CosiumConnectorExtrasMixin, ERPConnector):
                 )
         return stocks
 
+    def get_product_latent_sales(
+        self, product_erp_id: str, max_age_days: int = 10
+    ) -> int:
+        """GET /products/{id}/latent-sales : quantite dans des devis non
+        encore factures (ventes potentielles).
+
+        Documente officiellement par Cosium (Products API.pdf). Retourne 0 si
+        l'endpoint n'est pas disponible ou si la reponse est malformee.
+        """
+        data = self._client.get(
+            f"/products/{product_erp_id}/latent-sales",
+            params={"quotations_max_age_in_days": max_age_days},
+        )
+        if isinstance(data, dict):
+            qty = data.get("quantity", 0)
+            try:
+                return int(qty)
+            except (TypeError, ValueError):
+                return 0
+        return 0
+
     def get_invoice_payments(self, page: int = 0, page_size: int = 50, max_pages: int = 600) -> list[dict]:
         """GET /invoice-payments — paiements de factures (lecture seule)."""
         items = self._client.get_paginated("/invoice-payments", page_size=page_size, max_pages=max_pages)

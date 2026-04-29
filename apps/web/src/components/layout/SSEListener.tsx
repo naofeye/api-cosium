@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useSWRConfig } from "swr";
 import { connectSSE, disconnectSSE } from "@/lib/sse";
 import { useToast } from "@/components/ui/Toast";
@@ -18,24 +18,31 @@ export function SSEListener() {
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
 
+  // Refs stables : les hooks `toast`/`mutate` peuvent changer d'identite a
+  // chaque render des Providers parents, ce qui re-declenchait connectSSE
+  // et creait des connexions en double avant le cleanup. Avec des refs +
+  // empty deps, on garde une seule connexion SSE pour la duree de vie du
+  // composant.
+  const toastRef = useRef(toast);
+  const mutateRef = useRef(mutate);
+  toastRef.current = toast;
+  mutateRef.current = mutate;
+
   useEffect(() => {
     if (!isAuthenticated()) return;
 
     connectSSE((data) => {
-      // Show toast notification
-      toast(data.title, mapTypeToVariant(data.type));
-
-      // Revalidate unread notification count so the badge updates in real-time
-      mutate("/notifications/unread-count");
-
-      // Revalidate notifications dropdown if open
-      mutate((key: unknown) => typeof key === "string" && key.startsWith("/notifications"), undefined, {
-        revalidate: true,
-      });
+      toastRef.current(data.title, mapTypeToVariant(data.type));
+      mutateRef.current("/notifications/unread-count");
+      mutateRef.current(
+        (key: unknown) => typeof key === "string" && key.startsWith("/notifications"),
+        undefined,
+        { revalidate: true },
+      );
     });
 
     return () => disconnectSSE();
-  }, [toast, mutate]);
+  }, []);
 
   return null;
 }

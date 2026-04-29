@@ -1,6 +1,6 @@
 """Client merge/deduplication service -- find duplicates and merge clients."""
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, tuple_
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessError, NotFoundError
@@ -29,16 +29,30 @@ def find_duplicates(db: Session, tenant_id: int) -> list[DuplicateGroup]:
         .group_by(func.lower(Customer.last_name), func.lower(Customer.first_name))
         .having(func.count() > 1)
     ).all()
+    if not dupes:
+        return []
+    # Optimisation N+1 : 1 seule query qui charge tous les clients dans tous
+    # les groupes de doublons, puis on group_by en Python. Avant : 1 query par
+    # groupe, soit 200+ round-trips si beaucoup de doublons.
+    keys = {(last, first) for last, first, _ in dupes}
+    all_clients = db.scalars(
+        select(Customer).where(
+            Customer.tenant_id == tenant_id,
+            Customer.deleted_at.is_(None),
+            tuple_(func.lower(Customer.last_name), func.lower(Customer.first_name)).in_(
+                list(keys)
+            ),
+        )
+    ).all()
+
+    grouped: dict[tuple[str, str], list] = {}
+    for c in all_clients:
+        k = ((c.last_name or "").lower(), (c.first_name or "").lower())
+        grouped.setdefault(k, []).append(c)
+
     results: list[DuplicateGroup] = []
     for last, first, cnt in dupes:
-        clients = db.scalars(
-            select(Customer).where(
-                Customer.tenant_id == tenant_id,
-                func.lower(Customer.last_name) == last,
-                func.lower(Customer.first_name) == first,
-                Customer.deleted_at.is_(None),
-            )
-        ).all()
+        clients = grouped.get((last, first), [])
         results.append(
             DuplicateGroup(
                 name=f"{first} {last}",

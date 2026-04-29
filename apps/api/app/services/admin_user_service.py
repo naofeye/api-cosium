@@ -42,7 +42,23 @@ def create_user(
         tu = tenant_user_repo.get_by_user_and_tenant(db, existing.id, tenant_id)
         if tu:
             raise BusinessError("Un utilisateur avec cet email existe deja dans ce magasin.")
-        # Add existing user to tenant
+        # Securite : refuser de greffer silencieusement un user d'un autre tenant.
+        # Avant ce fix, un admin tenant A pouvait ajouter via email un user du
+        # tenant B sans son consentement, exposant les donnees metier de A. Le
+        # bon flow est une invitation par email que l'utilisateur accepte.
+        from app.models import TenantUser
+        other_membership = (
+            db.query(TenantUser)
+            .filter(TenantUser.user_id == existing.id, TenantUser.is_active.is_(True))
+            .first()
+        )
+        if other_membership:
+            raise BusinessError(
+                "Un utilisateur avec cet email existe deja dans un autre magasin. "
+                "Demandez-lui de creer un compte dedie ou contactez-le pour utiliser "
+                "le flow d'invitation."
+            )
+        # Add existing user (orphan, no other tenant) to tenant
         new_tu = tenant_user_repo.create(db, existing.id, tenant_id, payload.role)
         db.commit()
         audit_service.log_action(

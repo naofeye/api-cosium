@@ -54,14 +54,15 @@ get_by_id_active = get_by_id
 
 
 # Whitelist des champs modifiables sur Customer (protection mass-assignment).
-# Exclut deliberement: id, tenant_id (set explicitement), created_at, deleted_at, avatar_url
-# (gere par service dedie), cosium_id (gere par sync).
+# Exclut deliberement : id, tenant_id (set explicitement), created_at, updated_at,
+# deleted_at, avatar_url (gere par service dedie), cosium_id, customer_number,
+# site_id, ophthalmologist_id (geres par sync Cosium).
+# Champs derives de la doc Cosium gardes (mobile_phone_country, etc.) ou metier
+# OptiFlow (notes, optician_name).
 _CUSTOMER_WRITABLE_FIELDS = frozenset({
-    "first_name", "last_name", "email", "phone", "mobile_phone",
+    "first_name", "last_name", "email", "phone", "mobile_phone_country",
     "birth_date", "address", "street_name", "street_number", "postal_code", "city",
-    "social_security_number", "optician_name",
-    "subscribed_email", "subscribed_sms", "subscribed_paper",
-    "cosium_metadata", "notes",
+    "social_security_number", "optician_name", "notes",
 })
 
 
@@ -79,10 +80,14 @@ def create(db: Session, tenant_id: int, **kwargs: object) -> Customer:
 
 
 def update(db: Session, customer: Customer, **kwargs: object) -> Customer:
+    """PATCH d'un Customer. Le filtre `_filter_writable` empeche le mass-assignment.
+    On accepte les valeurs None (qui vident les colonnes nullable) : si l'appelant
+    veut conserver l'existant, il doit utiliser `exclude_unset=True` cote schema
+    Pydantic et ne pas passer le champ.
+    """
     safe = _filter_writable(kwargs)
     for key, value in safe.items():
-        if value is not None:
-            setattr(customer, key, value)
+        setattr(customer, key, value)
     db.flush()
     db.refresh(customer)
     return customer

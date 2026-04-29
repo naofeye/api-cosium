@@ -50,7 +50,12 @@ def request_password_reset(db: Session, email: str) -> None:
     from app.integrations.email_templates import render_email
     from app.tasks.email_tasks import send_email_async
 
-    frontend_origin = settings.cors_origins.split(",")[0].strip()
+    # Utilise frontend_base_url si configure, sinon fallback sur le premier
+    # cors_origins (utile en dev local).
+    frontend_origin = (
+        settings.frontend_base_url.strip()
+        or settings.cors_origins.split(",")[0].strip()
+    )
     reset_url = f"{frontend_origin}/reset-password?token={raw_token}"
     body_html = render_email("password_reset.html", reset_url=reset_url)
     send_email_async.delay(
