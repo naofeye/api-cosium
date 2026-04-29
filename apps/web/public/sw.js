@@ -9,7 +9,7 @@
      et rejeu automatique des lors que la connectivite est retablie
 */
 
-const CACHE_VERSION = "v4";
+const CACHE_VERSION = "v5";
 const STATIC_CACHE = `optiflow-static-${CACHE_VERSION}`;
 const PAGES_CACHE = `optiflow-pages-${CACHE_VERSION}`;
 const API_CACHE = `optiflow-api-${CACHE_VERSION}`;
@@ -35,6 +35,9 @@ const PRECACHE_ASSETS = [
 // ─── INSTALL : precache app shell ───────────────────────────────────
 
 self.addEventListener("install", (event) => {
+  // CACHE_VERSION v4 : force activation immediate pour purger les zombies v2/v3
+  // qui referencaient les chunks Turbopack avec ~ casses sur mobile.
+  self.skipWaiting();
   event.waitUntil(
     Promise.all([
       caches.open(PAGES_CACHE).then((cache) => {
@@ -50,7 +53,6 @@ self.addEventListener("install", (event) => {
       caches.open(STATIC_CACHE).then((cache) => cache.addAll(PRECACHE_ASSETS)),
     ])
   );
-  // Forcer l'activation immediate (le composant ServiceWorkerRegister gere la notification)
 });
 
 // ─── ACTIVATE : nettoyage des anciens caches ────────────────────────
