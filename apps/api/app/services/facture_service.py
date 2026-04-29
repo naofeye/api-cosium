@@ -1,3 +1,5 @@
+from decimal import ROUND_HALF_UP, Decimal
+
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessError, NotFoundError
@@ -14,6 +16,15 @@ from app.repositories import devis_repo, facture_repo
 from app.services import audit_service, event_service, pdf_service
 
 logger = get_logger("facture_service")
+
+# Quantum 2 decimales pour les montants en euros (BDD = Numeric(10,2)).
+# ROUND_HALF_UP est la regle comptable francaise standard, contraire au
+# ROUND_HALF_EVEN qui est le default Python pour les bankers' rounding.
+_EURO_QUANT = Decimal("0.01")
+
+
+def _q2(value: Decimal) -> Decimal:
+    return value.quantize(_EURO_QUANT, rounding=ROUND_HALF_UP)
 
 
 def create_from_devis(db: Session, tenant_id: int, devis_id: int, user_id: int) -> FactureResponse:
@@ -116,37 +127,47 @@ def create_avoir(
             "Impossible d'emettre un avoir sur un avoir. Avoir cible la facture originale.",
         )
 
-    original_ttc = float(original.montant_ttc)
-    if original_ttc <= 0:
+    # Calculs en Decimal pour preserver la precision exigee par la comptabilite
+    # (la BDD stocke en Numeric(10,2)). Les SQLAlchemy Numeric arrivent deja en
+    # Decimal — on caste juste pour la lisibilite + les paths qui recoivent des
+    # int/float (tests).
+    original_ttc_d = Decimal(str(original.montant_ttc))
+    original_ht_d = Decimal(str(original.montant_ht))
+    original_tva_d = Decimal(str(original.tva))
+
+    if original_ttc_d <= 0:
         raise BusinessError(
             "FACTURE_NEGATIVE",
             "La facture originale a un montant negatif ou nul ; impossible d'emettre un avoir.",
         )
 
     if montant_ttc_partiel is not None:
-        if montant_ttc_partiel <= 0:
+        partiel_d = Decimal(str(montant_ttc_partiel))
+        if partiel_d <= 0:
             raise BusinessError(
                 "AVOIR_AMOUNT_INVALID",
                 "Le montant de l'avoir partiel doit etre strictement positif.",
             )
-        if montant_ttc_partiel > original_ttc:
+        if partiel_d > original_ttc_d:
             raise BusinessError(
                 "AVOIR_AMOUNT_EXCEEDS_FACTURE",
-                f"Le montant de l'avoir ({montant_ttc_partiel}EUR) ne peut pas exceder "
-                f"la facture originale ({original_ttc}EUR).",
+                f"Le montant de l'avoir ({partiel_d}EUR) ne peut pas exceder "
+                f"la facture originale ({original_ttc_d}EUR).",
             )
 
-        # Avoir partiel : ligne forfaitaire unique avec TVA proportionnelle
-        ratio = montant_ttc_partiel / original_ttc
-        ht = -round(float(original.montant_ht) * ratio, 2)
-        tva = -round(float(original.tva) * ratio, 2)
-        ttc = -round(montant_ttc_partiel, 2)
+        # Avoir partiel : ligne forfaitaire unique avec TVA proportionnelle.
+        # On calcule en Decimal pour eviter les erreurs d'arrondi sur fractions
+        # repetees (ex: 100/3) qui faussent l'export FEC.
+        ratio = partiel_d / original_ttc_d
+        ht = -_q2(original_ht_d * ratio)
+        tva = -_q2(original_tva_d * ratio)
+        ttc = -_q2(partiel_d)
         partial = True
     else:
         # Avoir total : montants opposes a la facture originale
-        ht = -float(original.montant_ht)
-        tva = -float(original.tva)
-        ttc = -float(original.montant_ttc)
+        ht = -_q2(original_ht_d)
+        tva = -_q2(original_tva_d)
+        ttc = -_q2(original_ttc_d)
         partial = False
 
     numero = facture_repo.generate_avoir_numero(db, tenant_id)
@@ -166,9 +187,8 @@ def create_avoir(
         # Verres medicaux a 5,5%, services a 20%, etc. : ne JAMAIS hardcoder a
         # 20% sinon export FEC comptable incoherent. Fallback 20% uniquement
         # si la facture originale a un HT nul (cas degeneres seed/tests).
-        original_ht = float(original.montant_ht)
-        if original_ht > 0:
-            taux_tva_avoir = round(float(original.tva) / original_ht * 100, 2)
+        if original_ht_d > 0:
+            taux_tva_avoir = float(_q2(original_tva_d / original_ht_d * Decimal("100")))
         else:
             taux_tva_avoir = 20.0
         facture_repo.add_ligne(

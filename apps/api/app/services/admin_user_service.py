@@ -1,10 +1,12 @@
 """Service for admin user management (CRUD)."""
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessError, NotFoundError
 from app.core.logging import get_logger
 from app.domain.schemas.admin_users import AdminUserCreate, AdminUserResponse, AdminUserUpdate
+from app.models import TenantUser, User
 from app.repositories import tenant_user_repo, user_repo
 from app.security import hash_password
 from app.services import audit_service
@@ -13,23 +15,34 @@ logger = get_logger("admin_user_service")
 
 
 def list_users(db: Session, tenant_id: int) -> list[AdminUserResponse]:
-    """List all users for a given tenant."""
-    tenant_users = tenant_user_repo.list_by_tenant(db, tenant_id)
-    result: list[AdminUserResponse] = []
-    for tu in tenant_users:
-        user = user_repo.get_user_by_id(db, tu.user_id)
-        if user:
-            result.append(
-                AdminUserResponse(
-                    id=user.id,
-                    email=user.email,
-                    role=tu.role,
-                    is_active=tu.is_active and user.is_active,
-                    created_at=user.created_at,
-                    last_login_at=None,
-                )
-            )
-    return result
+    """List all users for a given tenant.
+
+    JOIN unique tenant_users + users plutot que la boucle N+1 historique
+    (1 query par user). Pour 50 users, on passe de 51 -> 1 query.
+    """
+    rows = db.execute(
+        select(
+            User.id,
+            User.email,
+            User.is_active,
+            User.created_at,
+            TenantUser.role,
+            TenantUser.is_active.label("tu_is_active"),
+        )
+        .join(TenantUser, TenantUser.user_id == User.id)
+        .where(TenantUser.tenant_id == tenant_id)
+    ).all()
+    return [
+        AdminUserResponse(
+            id=r.id,
+            email=r.email,
+            role=r.role,
+            is_active=bool(r.tu_is_active and r.is_active),
+            created_at=r.created_at,
+            last_login_at=None,
+        )
+        for r in rows
+    ]
 
 
 def create_user(
