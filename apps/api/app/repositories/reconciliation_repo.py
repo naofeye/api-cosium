@@ -179,6 +179,33 @@ def get_reconciliations_by_status(
     return items, total
 
 
+def get_reconciliations_by_statuses(
+    db: Session,
+    tenant_id: int,
+    statuses: list[str],
+    page: int = 1,
+    page_size: int = 25,
+) -> tuple[list[DossierReconciliation], int]:
+    """Get paginated reconciliations filtered by a list of statuses (UNION).
+
+    Pagination correcte : 1 seule query LIMIT/OFFSET sur l'ensemble matchant
+    `IN (...)`. Eviter le pattern boucle-puis-tronque qui faisait sauter des
+    pages entieres (cf bug audit P2 reconciliation_service).
+    """
+    q = db.query(DossierReconciliation).filter(
+        DossierReconciliation.tenant_id == tenant_id,
+        DossierReconciliation.status.in_(statuses),
+    )
+    total = q.count()
+    items = (
+        q.order_by(DossierReconciliation.id)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    return items, total
+
+
 def get_all_reconciliations(
     db: Session,
     tenant_id: int,

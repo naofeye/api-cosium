@@ -2,6 +2,7 @@
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
 from app.integrations.ai.claude_provider import claude_provider
 from app.models import Customer
@@ -33,7 +34,10 @@ def generate_renewal_message(
 
     customer = db.get(Customer, customer_id)
     if not customer or customer.tenant_id != tenant_id:
-        return ""
+        # Avant : `return ""` masquait silencieusement les appels cross-tenant
+        # ou les ids invalides comme "succes vide". Maintenant on leve l'erreur
+        # standard pour que le caller (router) renvoie un 404.
+        raise NotFoundError("client", customer_id)
 
     context_parts = [
         f"CLIENT : {customer.first_name} {customer.last_name}",

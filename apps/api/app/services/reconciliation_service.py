@@ -243,22 +243,21 @@ def get_reconciliation_summary(db: Session, tenant_id: int) -> ReconciliationSum
 def get_unsettled_reconciliations(
     db: Session, tenant_id: int, page: int = 1, page_size: int = 25,
 ) -> dict:
-    """Return paginated list of non-settled reconciliations."""
+    """Return paginated list of non-settled reconciliations.
+
+    Une seule query SQL avec `status IN (...)` pour avoir une pagination
+    coherente cross-statuts (sinon page=2 saute 3*page_size items).
+    """
     unsettled_statuses = [RECON_PARTIELLEMENT_PAYE, RECON_EN_ATTENTE, RECON_INCOHERENT]
-    all_items = []
-    total = 0
-    for status in unsettled_statuses:
-        items, count = reconciliation_repo.get_reconciliations_by_status(
-            db, tenant_id, status, page, page_size,
-        )
-        all_items.extend(items)
-        total += count
+    items, total = reconciliation_repo.get_reconciliations_by_statuses(
+        db, tenant_id, unsettled_statuses, page, page_size,
+    )
 
     results = [{
         "customer_id": r.customer_id, "status": r.status,
         "total_facture": r.total_facture, "total_outstanding": r.total_outstanding,
         "total_paid": r.total_paid, "explanation": r.explanation,
-    } for r in all_items[:page_size]]
+    } for r in items]
     return {"items": results, "total": total, "page": page, "page_size": page_size}
 
 
