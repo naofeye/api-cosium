@@ -86,6 +86,8 @@ def upload_document(
         content_type=content_type or "application/octet-stream",
     )
 
+    # Cleanup S3 si la transaction DB echoue (creation, audit, event ou commit final).
+    # Sans ce nettoyage, un objet S3 orphelin reste meme si la ligne Document est rollbackee.
     try:
         doc = document_repo.create_document(
             db,
@@ -95,25 +97,34 @@ def upload_document(
             filename=filename,
             storage_key=storage_key,
         )
-    except SQLAlchemyError:
-        # DB record creation failed — remove orphaned file from storage
+
+        if user_id:
+            audit_service.log_action(
+                db,
+                tenant_id,
+                user_id,
+                "create",
+                "document",
+                doc.id,
+                new_value={"case_id": case_id, "filename": filename},
+            )
+        event_service.emit_event(db, tenant_id, "DocumentAjoute", "document", doc.id, user_id, {"case_id": case_id})
+
+        # Commit explicite : on veut etre sur que la ligne Document est durablement
+        # persistee AVANT de declarer l'upload reussi. Si le commit echoue, on
+        # supprime l'objet S3 pour eviter un orphelin.
+        db.commit()
+    except Exception:
+        try:
+            db.rollback()
+        except SQLAlchemyError:
+            pass
         try:
             storage.delete_file(bucket=settings.s3_bucket, key=storage_key)
         except (ConnectionError, TimeoutError, OSError) as cleanup_err:
             logger.warning("orphan_file_cleanup_failed", key=storage_key, error=str(cleanup_err))
         raise
 
-    if user_id:
-        audit_service.log_action(
-            db,
-            tenant_id,
-            user_id,
-            "create",
-            "document",
-            doc.id,
-            new_value={"case_id": case_id, "filename": filename},
-        )
-    event_service.emit_event(db, tenant_id, "DocumentAjoute", "document", doc.id, user_id, {"case_id": case_id})
     logger.info("document_uploaded", tenant_id=tenant_id, case_id=case_id, document_id=doc.id, filename=filename)
     return DocumentResponse.model_validate(doc)
 
