@@ -31,9 +31,38 @@ const COLOR_MAP: Record<string, { bg: string; text: string; border: string; ring
 };
 
 export function ClientScoreCard({ clientId }: { clientId: string | number }) {
-  const { data } = useSWR<ClientScore>(`/clients/${clientId}/score`, {
-    shouldRetryOnError: false,
-  });
+  const { data, error, isLoading } = useSWR<ClientScore>(
+    `/clients/${clientId}/score`,
+    { shouldRetryOnError: false },
+  );
+
+  if (isLoading) {
+    return (
+      <div
+        className="rounded-xl border border-gray-200 bg-gray-50 p-4 animate-pulse"
+        role="status"
+        aria-label="Chargement du score client"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-20 h-20 rounded-full bg-gray-200" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 w-24 bg-gray-200 rounded" />
+            <div className="h-3 w-48 bg-gray-200 rounded" />
+            <div className="h-3 w-32 bg-gray-200 rounded" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
+        Score client indisponible (donnee non synchronisee).
+      </div>
+    );
+  }
+
   if (!data || typeof data.score !== "number" || !data.breakdown) return null;
 
   const c = COLOR_MAP[data.color] ?? COLOR_MAP.gray;

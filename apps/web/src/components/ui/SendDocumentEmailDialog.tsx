@@ -58,10 +58,7 @@ export function SendDocumentEmailDialog({
       setSubject(initialSubject);
       setMessage(initialMessage);
     }
-    // initialSubject/initialMessage are derived from props above; including
-    // them would just retrigger the same reset.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, defaultRecipient, documentNumero, documentLabel]);
+  }, [open, defaultRecipient, documentNumero, documentLabel, initialSubject, initialMessage]);
 
   if (!open) return null;
 

@@ -1,5 +1,3 @@
-"use client";
-
 import { formatMoney } from "@/lib/format";
 import type { FactureLigne } from "../types";
 

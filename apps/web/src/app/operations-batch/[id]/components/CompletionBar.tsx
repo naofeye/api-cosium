@@ -1,5 +1,3 @@
-"use client";
-
 interface CompletionBarProps {
   score: number;
 }
