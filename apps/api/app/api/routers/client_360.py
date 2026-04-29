@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.domain.schemas.client_360 import Client360Response, CosiumDataBundle
 from app.domain.schemas.client_360_live import Client360CosiumLive
 from app.services import (
+    audit_service,
     client_360_live_service,
     client_360_service,
     export_pdf,
@@ -28,11 +29,28 @@ def get_client_360(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(get_tenant_context),
 ) -> Client360Response:
-    return client_360_service.get_client_360(
+    result = client_360_service.get_client_360(
         db,
         tenant_id=tenant_ctx.tenant_id,
         client_id=client_id,
     )
+    # RGPD : tracer la consultation de donnees personnelles (PII) pour audit.
+    # On loggue uniquement la vue "360" complete (pas les listes), pour eviter
+    # un volume excessif d'evenements. Le log est best-effort : un echec ne doit
+    # pas casser la requete utilisateur.
+    try:
+        audit_service.log_action(
+            db,
+            tenant_ctx.tenant_id,
+            tenant_ctx.user_id,
+            "view_pii",
+            "client",
+            client_id,
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+    return result
 
 
 @router.get(

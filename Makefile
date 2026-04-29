@@ -1,7 +1,7 @@
 .PHONY: help dev up down logs ps build rebuild restart \
         api-shell db-shell web-shell shell \
-        test test-api test-web lint lint-api lint-web lint-fix typecheck check \
-        migrate migration seed sync redis-flush \
+        test test-api test-web lint lint-api lint-web lint-fix typecheck check health \
+        migrate migration migration-create db-reset seed sync redis-flush \
         backup restore deploy \
         frontend-build clean prune
 
@@ -79,14 +79,26 @@ typecheck: ## TypeScript strict
 check: lint typecheck test-api ## Lint + typecheck + tests backend
 	@echo "All checks passed."
 
+health: ## Smoke test : containers + endpoints (exit 0/1)
+	./scripts/health.sh
+
 # === Migrations ===
 
 migrate: ## Applique les migrations Alembic
 	docker compose exec -T api alembic upgrade head
 
-migration: ## Cree une migration (MSG="description")
-	@test -n "$(MSG)" || (echo "Usage: make migration MSG=\"description\"" && exit 1)
+migration-create: ## Cree une migration (MSG="description")
+	@test -n "$(MSG)" || (echo "Usage: make migration-create MSG=\"description\"" && exit 1)
 	docker compose exec -T api alembic revision --autogenerate -m "$(MSG)"
+
+migration: migration-create ## Alias retro-compat pour `migration-create`
+
+db-reset: ## DROP + recreer la BDD + applique migrations + seed (DESTRUCTIF, DEV uniquement)
+	@printf "WARNING: cela DETRUIT toutes les donnees locales. Continuer ? [y/N] " && read ans && [ "$$ans" = "y" ]
+	docker compose exec -T postgres psql -U optiflow -c "DROP DATABASE IF EXISTS optiflow"
+	docker compose exec -T postgres psql -U optiflow -c "CREATE DATABASE optiflow"
+	docker compose exec -T api alembic upgrade head
+	docker compose exec -T api python -m app.seed
 
 seed: ## Re-seed des donnees demo
 	docker compose exec -T api python -m app.seed
