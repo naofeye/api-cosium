@@ -152,6 +152,11 @@ services:
     restart: unless-stopped
     command: celery -A app.tasks worker --loglevel=info --concurrency=2
     env_file: [.env]
+    environment:
+      # Force le statement_timeout long (120s) pour les jobs de sync/long-running.
+      # Sans cette variable, le worker herite du timeout API (30s) et les sync
+      # Cosium en N+1 ou batch tombent en timeout silencieux.
+      CELERY_WORKER: "true"
     depends_on:
       postgres:
         condition: service_healthy
