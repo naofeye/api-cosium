@@ -23,10 +23,10 @@ if [ ! -f ".env" ]; then
   cp .env.example .env
 fi
 
-# Reseau Docker externe requis par docker-compose.yml (service web).
+# Reseau Docker externe requis par docker-compose.yml (services api/web/worker).
 # Idempotent : ne casse rien si le reseau existe deja.
 if command -v docker >/dev/null 2>&1; then
-  docker network create interface-ia-net >/dev/null 2>&1 || true
+  docker network create vps-net >/dev/null 2>&1 || true
 fi
 
 echo "Environnement local initialise."

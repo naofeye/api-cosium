@@ -27,17 +27,17 @@ npm run dev
 Ou en mode detache:
 
 ```bash
-# Prerequis : reseau Docker externe (partage avec d'autres services du VPS)
-docker network create interface-ia-net 2>/dev/null || true
+# Prerequis : reseau Docker externe partage avec les autres services du VPS
+# (panel, reverse-proxy). En local pur, creer le reseau avant le premier `up`.
+docker network create vps-net 2>/dev/null || true
 docker compose up -d --build
 ```
 
-> Le service `web` rejoint `interface-ia-net` (defini en `external: true` dans
-> `docker-compose.yml`) pour pouvoir parler a l'orchestrateur interface-ia
-> deploye sur le meme hote. Sans ce reseau, le premier `docker compose up`
-> echoue avec `network interface-ia-net declared as external, but could not
-> be found`. La commande `docker network create` est idempotente — relancer
-> ne casse rien.
+> Les services `api`/`web`/`worker` rejoignent `vps-net` (defini en
+> `external: true` dans `docker-compose.yml`) pour parler au reverse-proxy
+> Caddy et au panel deployes sur le meme hote. Sans ce reseau, le premier
+> `docker compose up` echoue avec `network vps-net declared as external, but
+> could not be found`. La commande `docker network create` est idempotente.
 
 Services par defaut:
 

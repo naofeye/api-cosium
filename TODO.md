@@ -171,7 +171,7 @@
 - [x] ~~**`.env.prod.example` vs `.env.production.example`** : duplication~~ _(supprime `.env.production.example` doublon partiel ; `.env.prod.example` reste source unique pour prod, `.env.example` pour dev local. Doc `docs/ENV.md` deja exhaustive)_
 - [x] ~~**`DEPLOY.md` stub 3 lignes**~~ : supprimé (pointait déjà vers `docs/VPS_DEPLOYMENT.md`)
 - [x] ~~**`docs/RUNBOOK.md` SLO**~~ _(fait 2026-04-29 : table SLO (uptime 99.5%, p95 < 500ms, p99 < 2s, taux 5xx < 0.5%, sync Cosium > 95%), severity P1 (<15min) / P2 (<1h) / P3, section rollback DB complet (stop services + restore + rollback code), URLs Sentry fictives retirees.)_
-- [ ] **nginx `server_name _;` dev/prod** : documenter explicitement dev=`_`, prod=domaine réel (sinon Host-header attack) — `config/nginx/nginx.conf:49`
+- [x] ~~**nginx `server_name _;` dev/prod**~~ _(fait : doc inline `config/nginx/nginx.conf:57-58` "Dev/staging : "_" catch-all..., PROD : remplacer par le domaine reel". Le passage prod reste tracke dans DIFFERE-PROD.)_
 
 ### Observabilité / RGPD
 - [ ] **Grafana dashboards** : ops (infra) + métier (CA, sync, clients par tenant)
@@ -237,13 +237,13 @@
 - [ ] **Load test CI** : job `workflow_dispatch` Locust 50 users 2 min staging
 - [ ] **Semantic versioning** CI tags
 - [ ] **Seed data generator** + VS Code debug profiles
-- [ ] **`packages/` vide** : soit utiliser pour code partagé api/web, soit supprimer (`.gitkeep` seul)
-- [ ] **Makefile** : renommer `make migration` → `make migration-create MSG=...`, ajouter `make db-reset`
+- [x] ~~**`packages/` vide**~~ _(fait : dossier supprime du repo)_
+- [x] ~~**Makefile** renommage~~ _(fait : `make migration-create` cible canonique, `make migration` alias retro-compat, `make db-reset` ajoute, `make health` ajoute. Verifie via `grep -E "^migration|^db-reset|^health" Makefile`.)_
 - [x] ~~**`scripts/health.sh`** dédié~~ _(fait 2026-04-29 : check 7 conteneurs + 5 endpoints (Postgres SQL, Redis ping, MinIO live, API, Web), couleurs ANSI, exit 0/1. Cible `make health`.)_
 
 ### Qualité ponctuelle
 - [x] ~~**`cosium_invoice_repo.first()` sans `order_by`**~~ _(fait 2026-04-26)_
-- [ ] **`SearchInput` debounce 300ms** : hardcoded vs `GlobalSearch` inconsistent — extraire en const partagée — `components/ui/SearchInput.tsx:29`
+- [x] ~~**`SearchInput` debounce 300ms**~~ _(fait : `apps/web/src/lib/constants.ts` `SEARCH_DEBOUNCE_MS=300` + `SEARCH_MIN_CHARS=2`. SearchInput.tsx + GlobalSearch.tsx referencent la meme const. Coherent.)_
 - [ ] **`Link prefetch="intent"`** : aucun prefetch explicite sur navigation liste → détail (clients/factures/devis)
 
 ---

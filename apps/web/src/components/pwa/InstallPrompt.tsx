@@ -27,13 +27,12 @@ interface BeforeInstallPromptEvent extends Event {
 
 function isStandalone(): boolean {
   if (typeof window === "undefined") return false;
-  // iOS Safari : navigator.standalone non standard
-  // Android/Chrome : matchMedia display-mode
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const navAny = window.navigator as any;
+  // iOS Safari expose `navigator.standalone` (booleen, non standard, absent du DOM lib).
+  // Android/Chrome utilise matchMedia(display-mode: standalone).
+  const iosNav = window.navigator as Navigator & { standalone?: boolean };
   return (
     window.matchMedia?.("(display-mode: standalone)").matches ||
-    navAny.standalone === true
+    iosNav.standalone === true
   );
 }
 
