@@ -6,6 +6,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
+# Duree de validite par defaut d'un devis non signe (en jours).
+# Norme metier opticien : 90 jours apres creation/envoi.
+DEVIS_DEFAULT_VALIDITY_DAYS = 90
+
 
 class Devis(Base):
     __tablename__ = "devis"
@@ -23,6 +27,9 @@ class Devis(Base):
     part_secu: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     part_mutuelle: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
     reste_a_charge: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0)
+    # Date a laquelle le devis cesse d'etre valide. Null = duree indeterminee
+    # (ancien devis pre-feature). Nouveau : created_at + 90 jours par defaut.
+    valid_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
     updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, onupdate=lambda: datetime.now(UTC))
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)

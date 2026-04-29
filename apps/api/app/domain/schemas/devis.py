@@ -67,6 +67,7 @@ class DevisResponse(BaseModel):
     part_secu: float
     part_mutuelle: float
     reste_a_charge: float
+    valid_until: datetime | None = None
     created_at: datetime
     updated_at: datetime | None = None
 

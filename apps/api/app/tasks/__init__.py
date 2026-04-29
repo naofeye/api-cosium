@@ -66,6 +66,10 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.weekly_report_tasks.send_weekly_reports",
         "schedule": crontab(hour=8, minute=0, day_of_week=1),  # Lundi 8h
     },
+    "expire-devis": {
+        "task": "app.tasks.devis_tasks.expire_devis",
+        "schedule": crontab(hour=3, minute=15),  # Quotidien 3h15
+    },
 }
 celery_app.conf.timezone = "Europe/Paris"
 
@@ -127,6 +131,7 @@ def _on_task_failure(sender=None, task_id=None, exception=None, args=None, kwarg
 from app.tasks import (  # noqa: E402, F401
     batch_tasks,
     cleanup_tasks,
+    devis_tasks,
     email_tasks,
     extraction_tasks,
     heartbeat_tasks,

@@ -1,7 +1,10 @@
+from datetime import UTC, datetime, timedelta
+
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.models import Case, Customer, Devis, DevisLigne
+from app.models.devis import DEVIS_DEFAULT_VALIDITY_DAYS
 
 
 def generate_numero(db: Session, tenant_id: int) -> str:
@@ -10,7 +13,10 @@ def generate_numero(db: Session, tenant_id: int) -> str:
 
 
 def create(db: Session, tenant_id: int, case_id: int, numero: str) -> Devis:
-    devis = Devis(tenant_id=tenant_id, case_id=case_id, numero=numero)
+    valid_until = datetime.now(UTC).replace(tzinfo=None) + timedelta(days=DEVIS_DEFAULT_VALIDITY_DAYS)
+    devis = Devis(
+        tenant_id=tenant_id, case_id=case_id, numero=numero, valid_until=valid_until
+    )
     db.add(devis)
     db.flush()
     return devis
@@ -72,6 +78,7 @@ def list_all(db: Session, tenant_id: int, limit: int = 25, offset: int = 0) -> l
             Devis.part_secu,
             Devis.part_mutuelle,
             Devis.reste_a_charge,
+            Devis.valid_until,
             Devis.created_at,
             Devis.updated_at,
             Customer.first_name,
@@ -96,6 +103,7 @@ def list_all(db: Session, tenant_id: int, limit: int = 25, offset: int = 0) -> l
             "part_secu": float(r.part_secu),
             "part_mutuelle": float(r.part_mutuelle),
             "reste_a_charge": float(r.reste_a_charge),
+            "valid_until": r.valid_until,
             "created_at": r.created_at,
             "updated_at": r.updated_at,
             "customer_name": f"{r.first_name} {r.last_name}",
@@ -146,6 +154,7 @@ def get_detail(db: Session, devis_id: int, tenant_id: int) -> dict | None:
             Devis.part_secu,
             Devis.part_mutuelle,
             Devis.reste_a_charge,
+            Devis.valid_until,
             Devis.created_at,
             Devis.updated_at,
             Customer.first_name,
@@ -169,6 +178,7 @@ def get_detail(db: Session, devis_id: int, tenant_id: int) -> dict | None:
         "part_secu": float(row.part_secu),
         "part_mutuelle": float(row.part_mutuelle),
         "reste_a_charge": float(row.reste_a_charge),
+        "valid_until": row.valid_until,
         "created_at": row.created_at,
         "updated_at": row.updated_at,
         "customer_name": f"{row.first_name} {row.last_name}",

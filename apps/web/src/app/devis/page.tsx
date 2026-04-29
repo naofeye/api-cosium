@@ -90,6 +90,32 @@ export default function DevisListPage() {
       render: (row) => <MoneyDisplay amount={row.reste_a_charge} colored />,
     },
     { key: "date", header: "Date", render: (row) => <DateDisplay date={row.created_at} /> },
+    {
+      key: "valid_until",
+      header: "Valide jusqu'au",
+      render: (row) => {
+        if (!row.valid_until) return <span className="text-text-secondary">—</span>;
+        const exp = new Date(row.valid_until);
+        const now = new Date();
+        const days = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        const isExpired = row.status === "expire" || days < 0;
+        const isWarning = !isExpired && days <= 7;
+        return (
+          <span
+            className={
+              isExpired
+                ? "font-medium text-red-600"
+                : isWarning
+                ? "font-medium text-amber-600"
+                : "text-text-secondary"
+            }
+          >
+            <DateDisplay date={row.valid_until} />
+            {isWarning && <span className="ml-1 text-xs">(J-{days})</span>}
+          </span>
+        );
+      },
+    },
   ];
 
   return (

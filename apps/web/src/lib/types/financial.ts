@@ -45,6 +45,7 @@ export interface Devis {
   part_secu: number;
   part_mutuelle: number;
   reste_a_charge: number;
+  valid_until: string | null;
   created_at: string;
   updated_at: string | null;
 }
