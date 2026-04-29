@@ -855,3 +855,14 @@ docker compose exec api alembic upgrade head
 - **Root cause identifiee et corrigee** : `router.push("/actions")` (soft RSC navigation Next.js 15) déclenchait la requête RSC vers le middleware AVANT que le browser ait persisté les cookies httpOnly `SameSite=Strict` de la réponse login. Le middleware (`src/middleware.ts`) cherche `optiflow_token` — ne le voyant pas, il redirige vers `/login`. Résultat : tous les tests UI (`uiLogin()`) timaient sur `toHaveURL(/\/actions$/)`.
 - **Fix** : remplacé `router.push("/actions")` par `window.location.href = "/actions"` dans `apps/web/src/app/login/page.tsx`. Hard navigation = rechargement complet = browser traite le `Set-Cookie` AVANT d'envoyer la prochaine requête. Import `useRouter` supprimé.
 - Commits : `770c03c` (fix), `f467b70` (docs TODO). Pushés sur main. Auto-deploy déclenché.
+
+### 2026-04-28/29 — All Inclusive VPS + corrections
+
+- **4 commits audit non pushés → pushés** : rattrapage push des commits en attente.
+- **Nginx H2C smuggling fix + header redefinition** : correction sécurité nginx. Commit `348fe5a`.
+- **ai.py 344→252L split service** : extraction du service IA en module dédié. Commit `bb6f6a3`.
+- **Backfill script → scripts/ + DOC API gitignore** : réorganisation scripts + gitignore doc générée. Commit `eb1ba6a`.
+- **Docker network vps-net** : migration réseau Docker vers vps-net. Commit `77e13ac`.
+- **Next.js 15→16 + TypeScript 5→6 upgrade** : montée de version majeure frontend. Commit `93eaff6`.
+- **26 tests frontend ajoutés** : suite passe de 176→202 tests.
+- **E2E Playwright cookie race condition fixé** : `router.push` → `window.location.href` pour forcer hard navigation après login. Commit `770c03c`.
