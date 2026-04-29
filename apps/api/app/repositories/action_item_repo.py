@@ -106,6 +106,26 @@ def find_existing(
     ).first()
 
 
+def list_pending_entity_ids(
+    db: Session, user_id: int, tenant_id: int, type: str, entity_type: str
+) -> set[int]:
+    """Pre-charge tous les entity_id deja en pending pour un (type, entity_type) donne.
+
+    Permet aux generateurs en boucle d'eviter le N+1 `find_existing` par item :
+    une seule query, lookup O(1) en set Python ensuite.
+    """
+    rows = db.scalars(
+        select(ActionItem.entity_id).where(
+            ActionItem.user_id == user_id,
+            ActionItem.tenant_id == tenant_id,
+            ActionItem.type == type,
+            ActionItem.entity_type == entity_type,
+            ActionItem.status == "pending",
+        )
+    ).all()
+    return {int(r) for r in rows if r is not None}
+
+
 def delete_resolved(db: Session, user_id: int, tenant_id: int, type: str, entity_type: str, entity_id: int) -> None:
     db.execute(
         update(ActionItem)

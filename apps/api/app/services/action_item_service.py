@@ -68,27 +68,36 @@ def _generate_incomplete_cases(db: Session, tenant_id: int, user_id: int) -> Non
         .join(Customer, Customer.id == Case.customer_id)
         .where(Case.tenant_id == tenant_id)
     ).all()
+    if not cases:
+        return
+
+    case_ids = [c.id for c in cases]
+    # 1 seule query : combien de pieces obligatoires presentes par case
+    present_by_case: dict[int, int] = {
+        row.case_id: int(row.cnt)
+        for row in db.execute(
+            select(
+                Document.case_id,
+                func.count(func.distinct(Document.type)).label("cnt"),
+            )
+            .where(
+                Document.case_id.in_(case_ids),
+                Document.tenant_id == tenant_id,
+                Document.type.in_(required_codes),
+            )
+            .group_by(Document.case_id)
+        ).all()
+    }
+    # Pre-charge les action_items deja pending pour ce (user, tenant, type, entity)
+    existing_ids = action_item_repo.list_pending_entity_ids(
+        db, user_id=user_id, tenant_id=tenant_id, type="dossier_incomplet", entity_type="case"
+    )
 
     for case_row in cases:
-        present = (
-            db.scalar(
-                select(func.count(func.distinct(Document.type))).where(
-                    Document.case_id == case_row.id, Document.type.in_(required_codes)
-                )
-            )
-            or 0
-        )
+        present = present_by_case.get(case_row.id, 0)
         missing = required_count - present
         if missing > 0:
-            existing = action_item_repo.find_existing(
-                db,
-                user_id=user_id,
-                tenant_id=tenant_id,
-                type="dossier_incomplet",
-                entity_type="case",
-                entity_id=case_row.id,
-            )
-            if not existing:
+            if case_row.id not in existing_ids:
                 action_item_repo.create(
                     db,
                     tenant_id=tenant_id,
@@ -100,7 +109,7 @@ def _generate_incomplete_cases(db: Session, tenant_id: int, user_id: int) -> Non
                     entity_id=case_row.id,
                     priority="high" if missing >= 3 else "medium",
                 )
-        else:
+        elif case_row.id in existing_ids:
             action_item_repo.delete_resolved(
                 db,
                 user_id=user_id,
@@ -127,13 +136,14 @@ def _generate_upcoming_appointments(db: Session, tenant_id: int, user_id: int) -
             CosiumCalendarEvent.canceled.is_(False),
         )
     ).all()
+    if not events:
+        return
+    existing_ids = action_item_repo.list_pending_entity_ids(
+        db, user_id=user_id, tenant_id=tenant_id, type="rdv_demain", entity_type="calendar_event"
+    )
 
     for ev in events:
-        existing = action_item_repo.find_existing(
-            db, user_id=user_id, tenant_id=tenant_id, type="rdv_demain",
-            entity_type="calendar_event", entity_id=ev.id,
-        )
-        if not existing:
+        if ev.id not in existing_ids:
             heure = ev.start_date.strftime("%H:%M") if ev.start_date else ""
             action_item_repo.create(
                 db, tenant_id=tenant_id, user_id=user_id,
@@ -160,13 +170,14 @@ def _generate_overdue_cosium_invoices(db: Session, tenant_id: int, user_id: int)
         )
         .limit(200)
     ).all()
+    if not invoices:
+        return
+    existing_ids = action_item_repo.list_pending_entity_ids(
+        db, user_id=user_id, tenant_id=tenant_id, type="impaye_cosium", entity_type="cosium_invoice"
+    )
 
     for inv in invoices:
-        existing = action_item_repo.find_existing(
-            db, user_id=user_id, tenant_id=tenant_id, type="impaye_cosium",
-            entity_type="cosium_invoice", entity_id=inv.id,
-        )
-        if not existing:
+        if inv.id not in existing_ids:
             days_overdue = (datetime.now(UTC).replace(tzinfo=None) - inv.invoice_date).days if inv.invoice_date else 0
             priority = "high" if days_overdue > 90 else "medium"
             action_item_repo.create(
@@ -194,13 +205,14 @@ def _generate_stale_quotes(db: Session, tenant_id: int, user_id: int) -> None:
         )
         .limit(100)
     ).all()
+    if not quotes:
+        return
+    existing_ids = action_item_repo.list_pending_entity_ids(
+        db, user_id=user_id, tenant_id=tenant_id, type="devis_dormant", entity_type="cosium_invoice"
+    )
 
     for q in quotes:
-        existing = action_item_repo.find_existing(
-            db, user_id=user_id, tenant_id=tenant_id, type="devis_dormant",
-            entity_type="cosium_invoice", entity_id=q.id,
-        )
-        if not existing:
+        if q.id not in existing_ids:
             days_old = (datetime.now(UTC).replace(tzinfo=None) - q.invoice_date).days if q.invoice_date else 0
             action_item_repo.create(
                 db, tenant_id=tenant_id, user_id=user_id,
@@ -246,15 +258,16 @@ def _generate_renewal_opportunities(db: Session, tenant_id: int, user_id: int) -
         .order_by(last_purchase.c.ca.desc())
         .limit(100)
     ).all()
+    if not rows:
+        return
+    existing_ids = action_item_repo.list_pending_entity_ids(
+        db, user_id=user_id, tenant_id=tenant_id, type="renouvellement", entity_type="customer"
+    )
 
     for r in rows:
         if not r.customer_id:
             continue
-        existing = action_item_repo.find_existing(
-            db, user_id=user_id, tenant_id=tenant_id,
-            type="renouvellement", entity_type="customer", entity_id=r.customer_id,
-        )
-        if not existing:
+        if r.customer_id not in existing_ids:
             months_ago = (datetime.now(UTC).replace(tzinfo=None) - r.last_date).days // 30 if r.last_date else 0
             ca_total = float(r.ca or 0)
             priority = "high" if ca_total > 500 and months_ago > 30 else "medium"
@@ -275,13 +288,15 @@ def _generate_overdue_payments(db: Session, tenant_id: int, user_id: int) -> Non
         .where(Payment.status.in_(["pending", "partial"]))
         .where(Payment.amount_paid < Payment.amount_due)
     ).all()
+    if not overdue:
+        return
+    existing_ids = action_item_repo.list_pending_entity_ids(
+        db, user_id=user_id, tenant_id=tenant_id, type="paiement_retard", entity_type="payment"
+    )
 
     for p in overdue:
         remaining = float(p.amount_due) - float(p.amount_paid)
-        existing = action_item_repo.find_existing(
-            db, user_id=user_id, tenant_id=tenant_id, type="paiement_retard", entity_type="payment", entity_id=p.id
-        )
-        if not existing:
+        if p.id not in existing_ids:
             action_item_repo.create(
                 db,
                 tenant_id=tenant_id,
