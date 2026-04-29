@@ -10,10 +10,10 @@ export function CompletionBar({ score }: CompletionBarProps) {
     pct >= 80 ? "bg-emerald-500" : pct >= 50 ? "bg-amber-500" : "bg-red-500";
   return (
     <div className="flex items-center gap-2">
-      <div className="h-2 w-24 rounded-full bg-gray-200">
+      <div className="relative h-2 w-24 overflow-hidden rounded-full bg-gray-200">
         <div
-          className={`h-2 rounded-full ${color}`}
-          style={{ width: `${pct}%` }}
+          className={`absolute inset-y-0 left-0 w-full origin-left rounded-full transition-transform ${color}`}
+          style={{ transform: `scaleX(${pct / 100})` }}
         />
       </div>
       <span className="text-xs text-text-secondary tabular-nums">{pct}%</span>

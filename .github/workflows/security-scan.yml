@@ -1,0 +1,146 @@
+name: Security Scan (image + SBOM)
+
+# Scan d'image Docker (Trivy) + generation SBOM CycloneDX.
+# Trigger manuel + hebdomadaire pour ne pas bloquer chaque PR
+# (le scan d'image ajoute ~3-5min ; les CVEs sont logguees pour triage).
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"  # Lundi 06h00 UTC
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/Dockerfile"
+      - "apps/api/requirements.txt"
+      - "apps/web/Dockerfile"
+      - "apps/web/package*.json"
+      - ".github/workflows/security-scan.yml"
+
+jobs:
+  trivy-image-api:
+    name: Trivy scan API image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: |
+          docker build -t optiflow-api:scan -f apps/api/Dockerfile apps/api
+
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "optiflow-api:scan"
+          format: "table"
+          severity: "CRITICAL,HIGH"
+          ignore-unfixed: true
+          exit-code: "0"  # report only, ne casse pas le workflow
+
+      - name: Trivy SARIF for GitHub Security tab
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "optiflow-api:scan"
+          format: "sarif"
+          output: "trivy-api.sarif"
+          severity: "CRITICAL,HIGH"
+          ignore-unfixed: true
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: "trivy-api.sarif"
+          category: "trivy-api"
+
+  trivy-image-web:
+    name: Trivy scan Web image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Web image
+        run: |
+          docker build -t optiflow-web:scan \
+            --build-arg NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1 \
+            -f apps/web/Dockerfile apps/web
+
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "optiflow-web:scan"
+          format: "table"
+          severity: "CRITICAL,HIGH"
+          ignore-unfixed: true
+          exit-code: "0"
+
+      - name: Trivy SARIF for GitHub Security tab
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "optiflow-web:scan"
+          format: "sarif"
+          output: "trivy-web.sarif"
+          severity: "CRITICAL,HIGH"
+          ignore-unfixed: true
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: "trivy-web.sarif"
+          category: "trivy-web"
+
+  sbom-cyclonedx:
+    name: Generate SBOM (CycloneDX)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -t optiflow-api:sbom -f apps/api/Dockerfile apps/api
+
+      - name: Build Web image
+        run: |
+          docker build -t optiflow-web:sbom \
+            --build-arg NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1 \
+            -f apps/web/Dockerfile apps/web
+
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Generate SBOM API
+        run: |
+          syft optiflow-api:sbom -o cyclonedx-json > sbom-api.cdx.json
+          syft optiflow-api:sbom -o spdx-json > sbom-api.spdx.json
+
+      - name: Generate SBOM Web
+        run: |
+          syft optiflow-web:sbom -o cyclonedx-json > sbom-web.cdx.json
+          syft optiflow-web:sbom -o spdx-json > sbom-web.spdx.json
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx-${{ github.sha }}
+          path: |
+            sbom-api.cdx.json
+            sbom-api.spdx.json
+            sbom-web.cdx.json
+            sbom-web.spdx.json
+          retention-days: 90
+
+  docker-build-dry-run:
+    name: Docker build dry-run (prod)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API (prod target)
+        run: docker build -f apps/api/Dockerfile apps/api
+
+      - name: Build Web (prod target)
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1 \
+            -f apps/web/Dockerfile apps/web

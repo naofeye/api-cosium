@@ -15,8 +15,13 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = _DEV_DB_URL
-    database_pool_size: int = 10
-    database_max_overflow: int = 10
+    # Pool sizing pour 50 tenants concurrents :
+    # - API: pool_size=20 + max_overflow=30 → 50 connexions max par worker uvicorn
+    # - Worker Celery: meme pool (concurrency=2 → 100 connexions au pire cas)
+    # - Postgres max_connections=150 (docker-compose) supporte ce trafic
+    # Tuner a la hausse si SLO p95 > 500ms ET pool wait > 5s observe (Sentry).
+    database_pool_size: int = 20
+    database_max_overflow: int = 30
     database_pool_recycle_seconds: int = 1800
     database_pool_timeout_seconds: int = 30
 

@@ -234,7 +234,7 @@ Chaque feature implémentée doit être de **qualité professionnelle** :
 - [ ] **CI jobs manquants** : `docker build` prod dry-run API/Web, scan image Trivy/Snyk, SBOM cyclonedx
 - [x] ~~`web.depends_on api.service_healthy`~~ : override `depends_on.api.condition: service_healthy` ajouté dans `docker-compose.prod.yml:85-87`. Web attend que l'API soit `healthy` (pas juste started) avant démarrage.
 - [ ] **Grafana dashboards JSON** : `config/grafana/provisioning/dashboards/` vide — créer `ops.json` (CPU/RAM/disk/erreurs) + `business.json` (sync Cosium, taux sync, CA par tenant)
-- [ ] **`.env.prod.example` vs `.env.production.example`** : duplication à fusionner en source unique `.env.example` + doc `docs/ENV.md`
+- [x] ~~**`.env.prod.example` vs `.env.production.example`** : duplication~~ _(supprime `.env.production.example` doublon partiel ; `.env.prod.example` reste source unique pour prod, `.env.example` pour dev local. Doc `docs/ENV.md` deja exhaustive)_
 - [x] ~~**`DEPLOY.md` stub 3 lignes**~~ : supprimé (pointait déjà vers `docs/VPS_DEPLOYMENT.md`)
 - [ ] **`docs/RUNBOOK.md` minimal** : ajouter SLO (uptime 99.5%, p95 < 500ms), escalade (P1 <15min, P2 <1h), rollback DB complet ; retirer URLs Sentry fictives
 - [ ] **nginx `server_name _;` dev/prod** : documenter explicitement dev=`_`, prod=domaine réel (sinon Host-header attack) — `config/nginx/nginx.conf:49`

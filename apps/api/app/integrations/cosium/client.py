@@ -19,7 +19,22 @@ from app.core.logging import get_logger
 logger = get_logger("cosium_client")
 
 MAX_RETRIES = 3
-RETRY_DELAYS = [1, 2, 4]  # seconds
+RETRY_DELAYS = [1, 2, 4]  # seconds — backoff exponentiel pour auth
+
+# GET/get_raw retry sur 429 (rate limit) + 503 (service unavailable) + 5xx + erreurs reseau
+# Backoff exponentiel pour eviter d'aggraver le throttle Cosium.
+GET_MAX_RETRIES = 4
+GET_RETRY_DELAYS = [0.5, 1.5, 4, 10]  # seconds — total ~16s avant abandon
+RETRYABLE_STATUS_CODES = {429, 502, 503, 504}
+
+
+def _should_retry(exc: Exception) -> bool:
+    """True si l'exception est transient (rate limit, 5xx, network) — pas une erreur 4xx logique."""
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code in RETRYABLE_STATUS_CODES or exc.response.status_code >= 500
+    if isinstance(exc, (httpx.TimeoutException, httpx.NetworkError, httpx.RemoteProtocolError)):
+        return True
+    return False
 
 
 class CosiumClient:
@@ -179,18 +194,34 @@ class CosiumClient:
         else:
             headers["Authorization"] = f"{self._token_type} {self.token}"
 
-        for attempt in range(2):
+        for attempt in range(GET_MAX_RETRIES):
             try:
                 response = self._client.get(url, params=params, headers=headers, cookies=cookies, timeout=30)
                 response.raise_for_status()
                 return response.json()
             except Exception as e:
-                if attempt == 0:
-                    logger.warning("cosium_get_retry", endpoint=endpoint, error=str(e), error_type=type(e).__name__)
-                    time.sleep(1)
-                else:
-                    logger.error("cosium_get_failed", endpoint=endpoint, error=str(e), error_type=type(e).__name__)
+                is_last = attempt == GET_MAX_RETRIES - 1
+                retryable = _should_retry(e)
+                if is_last or not retryable:
+                    logger.error(
+                        "cosium_get_failed",
+                        endpoint=endpoint,
+                        attempts=attempt + 1,
+                        retryable=retryable,
+                        error=str(e),
+                        error_type=type(e).__name__,
+                    )
                     raise
+                delay = GET_RETRY_DELAYS[attempt]
+                logger.warning(
+                    "cosium_get_retry",
+                    endpoint=endpoint,
+                    attempt=attempt + 1,
+                    delay=delay,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
+                time.sleep(delay)
 
         raise RuntimeError("GET request failed after retries")
 
@@ -268,18 +299,34 @@ class CosiumClient:
         else:
             headers["Authorization"] = f"{self._token_type} {self.token}"
 
-        for attempt in range(2):
+        for attempt in range(GET_MAX_RETRIES):
             try:
                 response = self._client.get(url, params=params, headers=headers, cookies=cookies, timeout=60)
                 response.raise_for_status()
                 return response.content
             except Exception as e:
-                if attempt == 0:
-                    logger.warning("cosium_get_raw_retry", endpoint=endpoint, error=str(e), error_type=type(e).__name__)
-                    time.sleep(1)
-                else:
-                    logger.error("cosium_get_raw_failed", endpoint=endpoint, error=str(e), error_type=type(e).__name__)
+                is_last = attempt == GET_MAX_RETRIES - 1
+                retryable = _should_retry(e)
+                if is_last or not retryable:
+                    logger.error(
+                        "cosium_get_raw_failed",
+                        endpoint=endpoint,
+                        attempts=attempt + 1,
+                        retryable=retryable,
+                        error=str(e),
+                        error_type=type(e).__name__,
+                    )
                     raise
+                delay = GET_RETRY_DELAYS[attempt]
+                logger.warning(
+                    "cosium_get_raw_retry",
+                    endpoint=endpoint,
+                    attempt=attempt + 1,
+                    delay=delay,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
+                time.sleep(delay)
 
         raise RuntimeError("GET raw request failed after retries")
 
