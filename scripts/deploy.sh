@@ -10,7 +10,6 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 COMPOSE_FILES="-f docker-compose.yml -f docker-compose.prod.yml"
-COMPOSE_FILE="docker-compose.yml"  # retro-compat backup step
 BACKUP_DIR="runtime/backups"
 DEPLOY_BRANCH="${DEPLOY_BRANCH:-main}"
 
@@ -19,6 +18,13 @@ if [ ! -f .env ]; then
     echo "ERREUR: Fichier .env introuvable."
     exit 1
 fi
+
+# Charger explicitement .env pour que POSTGRES_USER/POSTGRES_DB soient connus
+# avant le backup (sinon docker compose exec n'expose pas ces variables au shell
+# bash, et pg_dump retomberait sur les fallbacks 'optiflow').
+set -a
+. ./.env
+set +a
 
 MISSING=""
 grep -q "^JWT_SECRET=" .env || MISSING="$MISSING JWT_SECRET"
@@ -45,8 +51,11 @@ esac
 echo "[0/6] Backup de la base de donnees..."
 mkdir -p "$BACKUP_DIR"
 if docker compose $COMPOSE_FILES ps postgres 2>/dev/null | grep -q "running"; then
-    echo "  Backup en cours..."
-    docker compose -f "$COMPOSE_FILE" exec -T postgres \
+    echo "  Backup en cours (user=${POSTGRES_USER:-optiflow}, db=${POSTGRES_DB:-optiflow})..."
+    # Utilise la meme stack COMPOSE_FILES que le reste du script + variables
+    # chargees depuis .env (cf. set -a au-dessus) pour ne pas retomber sur les
+    # defauts 'optiflow' quand la prod tourne avec des credentials differents.
+    docker compose $COMPOSE_FILES exec -T postgres \
         pg_dump -U "${POSTGRES_USER:-optiflow}" -Fc "${POSTGRES_DB:-optiflow}" > "${BACKUP_DIR}/optiflow_$(date +%Y%m%d_%H%M%S).dump" 2>/dev/null \
         && echo "  Backup termine." \
         || echo "  WARN: Backup echoue (non bloquant)."
