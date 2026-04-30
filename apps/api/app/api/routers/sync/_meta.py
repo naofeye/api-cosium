@@ -1,8 +1,9 @@
 """Endpoints méta (status, erp-types, seed-demo)."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.deps import require_tenant_role
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
@@ -10,6 +11,8 @@ from app.domain.schemas.sync import ERPTypeItem, SeedDemoResponse, SyncStatusRes
 from app.services import erp_sync_service
 
 router = APIRouter(prefix="/api/v1/sync", tags=["sync"])
+
+_SEED_DEMO_ALLOWED_ENVS = ("local", "development", "test")
 
 
 @router.post(
@@ -22,6 +25,14 @@ def seed_demo(
     db: Session = Depends(get_db),
     tenant_ctx: TenantContext = Depends(require_tenant_role("admin")),
 ) -> SeedDemoResponse:
+    # Garde-fou : seed-demo importe tests.factories.seed et n a aucune
+    # raison d etre exposable en staging/production. Refus dur si APP_ENV
+    # n est pas un environnement de developpement.
+    if settings.app_env not in _SEED_DEMO_ALLOWED_ENVS:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Endpoint indisponible en environnement non-dev.",
+        )
     from tests.factories.seed import seed_demo_data
 
     return seed_demo_data(db)
