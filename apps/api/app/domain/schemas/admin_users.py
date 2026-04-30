@@ -1,16 +1,17 @@
 """Schemas for admin user management endpoints."""
 
-import re
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.domain.schemas.auth import PasswordMixin
+
 VALID_ROLES = ("admin", "manager", "operator", "viewer")
 
 
-class AdminUserCreate(BaseModel):
+class AdminUserCreate(BaseModel, PasswordMixin):
     email: str = Field(..., min_length=1, max_length=255)
-    password: str = Field(..., min_length=8, max_length=128)
+    password: str = Field(..., min_length=10, max_length=128)
     role: str = Field(default="operator", max_length=30)
     first_name: str = Field(default="", max_length=100)
     last_name: str = Field(default="", max_length=100)
@@ -25,13 +26,11 @@ class AdminUserCreate(BaseModel):
     @field_validator("password")
     @classmethod
     def strong_password(cls, v: str) -> str:
-        if len(v) < 8:
-            raise ValueError("Le mot de passe doit contenir au moins 8 caracteres")
-        if not re.search(r"[A-Z]", v):
-            raise ValueError("Le mot de passe doit contenir au moins une majuscule")
-        if not re.search(r"\d", v):
-            raise ValueError("Le mot de passe doit contenir au moins un chiffre")
-        return v
+        # Reutilise le validateur central (10+ chars, majuscule, minuscule,
+        # chiffre, special) pour aligner la politique avec reset/signup
+        # (auth.PasswordMixin). Avant : 8 chars + maj + chiffre seulement,
+        # plus faible que les autres flux.
+        return cls.validate_password_strength(v)
 
 
 class AdminUserUpdate(BaseModel):

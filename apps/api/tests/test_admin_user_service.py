@@ -91,7 +91,7 @@ class TestListUsers:
 @patch("app.services.admin_user_service.audit_service.log_action")
 class TestCreateUser:
     def test_creates_new_user(self, mock_audit, db, default_tenant):
-        payload = AdminUserCreate(email="new@example.com", password="Password1", role="operator")
+        payload = AdminUserCreate(email="new@example.com", password="Password1!", role="operator")
         result = admin_user_service.create_user(db, default_tenant.id, payload, admin_user_id=1)
 
         assert result.email == "new@example.com"
@@ -104,7 +104,7 @@ class TestCreateUser:
         user = _make_user(db, "existing@example.com")
         db.commit()
 
-        payload = AdminUserCreate(email="existing@example.com", password="Password1", role="viewer")
+        payload = AdminUserCreate(email="existing@example.com", password="Password1!", role="viewer")
         result = admin_user_service.create_user(db, default_tenant.id, payload, admin_user_id=1)
 
         assert result.email == "existing@example.com"
@@ -116,7 +116,7 @@ class TestCreateUser:
         _make_tenant_user(db, user.id, default_tenant.id, role="operator")
         db.commit()
 
-        payload = AdminUserCreate(email="dup@example.com", password="Password1", role="operator")
+        payload = AdminUserCreate(email="dup@example.com", password="Password1!", role="operator")
         with pytest.raises(BusinessError):
             admin_user_service.create_user(db, default_tenant.id, payload, admin_user_id=1)
 
@@ -141,13 +141,13 @@ class TestCreateUser:
         _make_tenant_user(db, user.id, other_tenant.id, role="admin")
         db.commit()
 
-        payload = AdminUserCreate(email="external@example.com", password="Password1", role="viewer")
+        payload = AdminUserCreate(email="external@example.com", password="Password1!", role="viewer")
         with pytest.raises(BusinessError) as exc_info:
             admin_user_service.create_user(db, default_tenant.id, payload, admin_user_id=1)
         assert "autre magasin" in str(exc_info.value).lower()
 
     def test_new_user_is_stored_in_db(self, mock_audit, db, default_tenant):
-        payload = AdminUserCreate(email="stored@example.com", password="Password1", role="manager")
+        payload = AdminUserCreate(email="stored@example.com", password="Password1!", role="manager")
         admin_user_service.create_user(db, default_tenant.id, payload, admin_user_id=1)
 
         from app.repositories import user_repo
@@ -156,7 +156,7 @@ class TestCreateUser:
         assert stored.email == "stored@example.com"
 
     def test_tenant_user_record_created_for_new_user(self, mock_audit, db, default_tenant):
-        payload = AdminUserCreate(email="tu_check@example.com", password="Password1", role="admin")
+        payload = AdminUserCreate(email="tu_check@example.com", password="Password1!", role="admin")
         result = admin_user_service.create_user(db, default_tenant.id, payload, admin_user_id=1)
 
         from app.repositories import tenant_user_repo
@@ -165,7 +165,7 @@ class TestCreateUser:
         assert tu.role == "admin"
 
     def test_audit_called_with_correct_action(self, mock_audit, db, default_tenant):
-        payload = AdminUserCreate(email="audit@example.com", password="Password1", role="operator")
+        payload = AdminUserCreate(email="audit@example.com", password="Password1!", role="operator")
         admin_user_service.create_user(db, default_tenant.id, payload, admin_user_id=42)
 
         call_kwargs = mock_audit.call_args
