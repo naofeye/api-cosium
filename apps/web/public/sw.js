@@ -279,11 +279,15 @@ function staleWhileRevalidate(request, cacheName) {
 // Maintenant : seuls les endpoints metier safes (notes, action items, queries
 // IA non sensibles) sont queueables. Le reste echoue proprement quand offline.
 const OFFLINE_QUEUE_ALLOW = [
-  // Notes / action items / interactions : pas de PII sensible, idempotent
+  // Action items : courts, pas de PII libre stockee en clair en IndexedDB
   "/api/v1/action-items",
-  "/api/v1/interactions",
   // Touches "marquer comme lu" sur notifications
   "/api/v1/notifications",
+  // /api/v1/interactions VOLONTAIREMENT EXCLU : InteractionCreate accepte
+  // subject + content libres (notes client, contenus PII potentiels). Le
+  // body etait persiste tel quel dans IndexedDB pour rejeu offline. Si on
+  // doit le reactiver, chiffrer la queue avec une cle liee a la session
+  // et purger au logout/switch tenant.
 ];
 
 // TTL : on ne rejoue pas une mutation qui dort dans la queue depuis trop
