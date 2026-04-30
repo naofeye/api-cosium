@@ -153,7 +153,7 @@ services:
       context: ./apps/api
       dockerfile: Dockerfile
     restart: unless-stopped
-    command: celery -A app.tasks worker --loglevel=info --concurrency=2
+    command: celery -A app.tasks worker --loglevel=info --concurrency=2 -Q default,email,sync,extraction,batch,reminder
     env_file: [.env]
     environment:
       # Force le statement_timeout long (120s) pour les jobs de sync/long-running.
