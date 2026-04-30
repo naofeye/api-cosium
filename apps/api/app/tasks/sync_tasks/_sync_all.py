@@ -59,7 +59,22 @@ def sync_all_tenants(self) -> dict[str, int]:
                 logger.warning("tenant_sync_skipped_locked", tenant_id=tenant.id)
                 continue
             try:
-                _sync_single_tenant(db, tenant.id)
+                results = _sync_single_tenant(db, tenant.id)
+                # Un domaine en erreur => le tenant n est PAS marque done
+                # (sinon le compteur synced et l idempotence Redis masquent
+                # une sync partielle pendant 1h)
+                failed_domains = [
+                    name for name, r in results.items() if isinstance(r, dict) and "error" in r
+                ]
+                if failed_domains:
+                    logger.error(
+                        "tenant_sync_partial_failure",
+                        tenant_id=tenant.id,
+                        tenant_name=tenant.name,
+                        failed_domains=failed_domains,
+                    )
+                    failed += 1
+                    continue
                 logger.info(
                     "tenant_sync_done", tenant_id=tenant.id, tenant_name=tenant.name
                 )
