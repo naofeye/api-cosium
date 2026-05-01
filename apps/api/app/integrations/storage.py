@@ -68,6 +68,13 @@ class StorageAdapter:
             Params=params,
             ExpiresIn=expires,
         )
+        # L'URL signee referent l'endpoint interne (`http://minio:9000`)
+        # qui n'est pas resolvable cote navigateur. On substitue l'origine
+        # par `s3_public_endpoint` (HTTPS public) si configure.
+        public = settings.s3_public_endpoint.strip()
+        internal = settings.s3_endpoint.rstrip("/")
+        if public and internal and url.startswith(internal):
+            url = public.rstrip("/") + url[len(internal):]
         return url
 
     def download_file(self, bucket: str, key: str) -> bytes:

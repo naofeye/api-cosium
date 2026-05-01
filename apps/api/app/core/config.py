@@ -45,6 +45,11 @@ class Settings(BaseSettings):
 
     # Storage (MinIO/S3)
     s3_endpoint: str = "http://minio:9000"
+    # Endpoint utilise UNIQUEMENT pour les URLs presignees servies au navigateur.
+    # `s3_endpoint` (interne Docker) n'est pas resolvable depuis l'exterieur ;
+    # en prod, mettre ici l'URL HTTPS publique exposee par le reverse-proxy.
+    # Si vide, on retombe sur s3_endpoint (utile en dev local).
+    s3_public_endpoint: str = ""
     s3_access_key: str = _DEV_S3_KEY
     s3_secret_key: str = _DEV_S3_KEY
     s3_bucket: str = "optiflow-docs"

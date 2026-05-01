@@ -51,7 +51,8 @@
 
 | Variable | Défaut | Description |
 |----------|--------|-------------|
-| `S3_ENDPOINT` | `http://minio:9000` | URL S3-compatible |
+| `S3_ENDPOINT` | `http://minio:9000` | URL S3-compatible utilisee par l'API en interne |
+| `S3_PUBLIC_ENDPOINT` | (vide) | URL HTTPS publique pour les URLs presignees servies au navigateur. **OBLIGATOIRE en prod** : sans ca, le browser est redirige vers `http://minio:9000` (host Docker non resolvable depuis l'exterieur). |
 | `S3_ACCESS_KEY` | `minioadmin` | **OBLIGATOIRE** en prod, !=`minioadmin` |
 | `S3_SECRET_KEY` | `minioadmin` | **OBLIGATOIRE** en prod, !=`minioadmin` |
 | `S3_BUCKET` | `optiflow-docs` | Bucket pour les documents |
