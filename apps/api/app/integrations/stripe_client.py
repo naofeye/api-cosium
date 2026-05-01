@@ -35,9 +35,15 @@ def create_checkout_session(
     tenant_id: int,
     success_url: str,
     cancel_url: str,
+    plan: str | None = None,
 ) -> str:
     """Crée une session Checkout Stripe, retourne l'URL."""
     _configure()
+    metadata: dict[str, str] = {"tenant_id": str(tenant_id)}
+    if plan:
+        # Le webhook checkout.session.completed lit metadata.plan pour propager
+        # le plan choisi sur l'organization. Sans ca, l'org reste sur son ancien plan.
+        metadata["plan"] = plan
     try:
         session = stripe.checkout.Session.create(
             customer=customer_id,
@@ -46,7 +52,7 @@ def create_checkout_session(
             mode="subscription",
             success_url=success_url,
             cancel_url=cancel_url,
-            metadata={"tenant_id": str(tenant_id)},
+            metadata=metadata,
         )
         logger.info("stripe_checkout_session_created", tenant_id=tenant_id, session_id=session.id)
         return session.url

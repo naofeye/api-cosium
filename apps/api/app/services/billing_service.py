@@ -61,6 +61,7 @@ def initiate_checkout(db: Session, tenant_id: int, plan: str) -> str:
         tenant_id=tenant_id,
         success_url=f"{settings.cors_origins.split(',')[0].strip()}/billing/success",
         cancel_url=f"{settings.cors_origins.split(',')[0].strip()}/billing/cancel",
+        plan=plan,
     )
 
     logger.info("checkout_initiated", tenant_id=tenant_id, plan=plan)

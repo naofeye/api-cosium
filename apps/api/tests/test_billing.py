@@ -58,6 +58,13 @@ def test_checkout_creates_session(mock_stripe, client, db):
     assert "checkout_url" in data
     assert data["checkout_url"] == "https://checkout.stripe.com/test"
 
+    # Garde-fou Codex review 2026-05-01 #2 : le plan choisi DOIT etre
+    # propage en metadata Stripe pour que le webhook checkout.session.completed
+    # mette a jour Organization.plan apres paiement.
+    call_kwargs = mock_stripe.checkout.Session.create.call_args.kwargs
+    assert call_kwargs["metadata"]["plan"] == "solo"
+    assert call_kwargs["metadata"]["tenant_id"] == str(tenant_id)
+
 
 def test_checkout_invalid_plan_rejected(client, db):
     token, _ = _signup_and_get_token(client)
