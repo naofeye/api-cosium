@@ -19,7 +19,7 @@ def test_create_user_with_valid_data(client, auth_headers):
     """Creating a user with valid data should succeed."""
     payload = {
         "email": "new.user@optiflow.com",
-        "password": "StrongPass1",
+        "password": "StrongPass1!",
         "role": "operator",
         "first_name": "Jean",
         "last_name": "Dupont",
@@ -36,7 +36,7 @@ def test_create_user_duplicate_email_fails(client, auth_headers):
     """Creating a user with an email that already exists in the tenant should fail."""
     payload = {
         "email": "duplicate@optiflow.com",
-        "password": "StrongPass1",
+        "password": "StrongPass1!",
         "role": "operator",
     }
     resp1 = client.post("/api/v1/admin/users", json=payload, headers=auth_headers)
@@ -54,7 +54,7 @@ def test_update_user_role(client, auth_headers):
         "/api/v1/admin/users",
         json={
             "email": "role.change@optiflow.com",
-            "password": "StrongPass1",
+            "password": "StrongPass1!",
             "role": "operator",
         },
         headers=auth_headers,
@@ -79,7 +79,7 @@ def test_deactivate_user(client, auth_headers):
         "/api/v1/admin/users",
         json={
             "email": "to.deactivate@optiflow.com",
-            "password": "StrongPass1",
+            "password": "StrongPass1!",
             "role": "viewer",
         },
         headers=auth_headers,
