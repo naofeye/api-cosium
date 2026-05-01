@@ -179,9 +179,9 @@
 - [x] ~~**nginx `server_name _;` dev/prod**~~ _(fait : doc inline `config/nginx/nginx.conf:57-58` "Dev/staging : "_" catch-all..., PROD : remplacer par le domaine reel". Le passage prod reste tracke dans DIFFERE-PROD.)_
 
 ### Observabilité / RGPD
-- [ ] **Grafana dashboards** : ops (infra) + métier (CA, sync, clients par tenant)
-- [ ] **Audit trail RGPD** : chaque consultation donnée sensible logguée
-- [ ] **Droit à l'oubli / export / consentements** RGPD complet
+- [x] ~~**Grafana dashboards**~~ _(fait 2026-04-29 commit `aab3fdd` : `dashboards.yml` provider + `ops.json` (req/s, p95/p99, taux 5xx, PG, Celery, Redis) + `business.json` (sync Cosium, devis, CA encaisse par tenant, PEC > 14j, cout IA))_
+- [x] ~~**Audit trail RGPD**~~ _(fait : `audit view_pii` sur `GET /clients/{id}/360`, `audit export_pii` sur 3 exports bulk (clients-complet, balance-clients xlsx/pdf). Conformite Art. 30 RGPD.)_
+- [x] ~~**Droit à l'oubli / export / consentements** RGPD complet~~ _(fait : `apps/api/app/api/routers/gdpr.py` endpoints `GET /clients/{id}/data` (droit d'acces) + `POST /clients/{id}/export` (portabilite JSON) + `POST /clients/{id}/anonymize` (droit a l'oubli, role admin uniquement). Consentements via `MarketingConsent` + `/consents/{channel}` PATCH.)_
 
 ### PEC V12 Intelligence
 - [ ] Liaison 100 % factures : fuzzy matching via `_links.customer.href`
@@ -238,7 +238,7 @@
 
 ### DX
 - [ ] **Storybook** UI components
-- [ ] **openapi-typescript** client auto-généré
+- [x] ~~**openapi-typescript** client auto-généré~~ _(fait 2026-04-29 commit `51e049e` : `npm run generate:api-types` -> `apps/web/src/types/api.ts` (gitignore) depuis `apps/api/docs/openapi.json`. Doc dans `docs/CONTRIBUTING.md`. Adoption progressive (pas de big-bang refactor).)_
 - [ ] **Load test CI** : job `workflow_dispatch` Locust 50 users 2 min staging
 - [ ] **Semantic versioning** CI tags
 - [ ] **Seed data generator** + VS Code debug profiles

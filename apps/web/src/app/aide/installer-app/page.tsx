@@ -1,5 +1,3 @@
-"use client";
-
 import { Smartphone, Share, Plus, Apple, Download } from "lucide-react";
 import { PageLayout } from "@/components/layout/PageLayout";
 
