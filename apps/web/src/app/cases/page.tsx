@@ -82,6 +82,7 @@ export default function CasesPage() {
         error={error?.message ?? null}
         onRetry={() => mutate()}
         onRowClick={(row) => router.push(`/cases/${row.id}`)}
+        getRowHref={(row) => `/cases/${row.id}`}
         emptyTitle="Aucun dossier"
         emptyDescription="Commencez par creer votre premier dossier client."
         emptyAction={

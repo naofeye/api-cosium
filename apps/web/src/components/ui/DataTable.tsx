@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsUpDown, type LucideIcon } from "lucide-react";
 import { EmptyState } from "./EmptyState";
@@ -29,6 +30,10 @@ interface DataTableProps<T> {
   error?: string | null;
   onRetry?: () => void;
   onRowClick?: (row: T) => void;
+  /** Optional : si fourni, chaque ligne prefetch l'URL au survol (Next.js
+   *  router.prefetch). Permet d'amorcer le chargement de la page detail avant
+   *  le clic, sans changer le markup (toujours un `<tr>`). */
+  getRowHref?: (row: T) => string | null | undefined;
   emptyTitle?: string;
   emptyDescription?: string;
   emptyIcon?: LucideIcon;
@@ -48,6 +53,7 @@ export function DataTable<T extends { id: number | string }>({
   error,
   onRetry,
   onRowClick,
+  getRowHref,
   emptyTitle = "Aucune donnee",
   emptyDescription = "Aucun element a afficher pour le moment.",
   emptyIcon,
@@ -64,6 +70,8 @@ export function DataTable<T extends { id: number | string }>({
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [showColumnPicker, setShowColumnPicker] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
+
+  const router = useRouter();
 
   const allColumnKeys = useMemo(() => columns.map((c) => c.key), [columns]);
   const { hiddenColumns, toggle: toggleColumn } = useColumnVisibility(storageKey, allColumnKeys);
@@ -177,7 +185,9 @@ export function DataTable<T extends { id: number | string }>({
             </tr>
           </thead>
           <tbody>
-            {sortedData.map((row) => (
+            {sortedData.map((row) => {
+              const href = getRowHref?.(row);
+              return (
               <tr
                 key={row.id}
                 className={cn(
@@ -188,6 +198,7 @@ export function DataTable<T extends { id: number | string }>({
                 role={onRowClick ? "button" : undefined}
                 onClick={() => onRowClick?.(row)}
                 onKeyDown={onRowClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onRowClick(row); } } : undefined}
+                onMouseEnter={href ? () => router.prefetch(href) : undefined}
               >
                 {visibleColumns.map((col) => (
                   <td key={col.key} className={cn("px-3 sm:px-4 py-3", col.className)}>
@@ -196,7 +207,8 @@ export function DataTable<T extends { id: number | string }>({
                 ))}
                 {storageKey && <td className="px-2 py-3 w-8" />}
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

@@ -249,7 +249,7 @@
 ### Qualité ponctuelle
 - [x] ~~**`cosium_invoice_repo.first()` sans `order_by`**~~ _(fait 2026-04-26)_
 - [x] ~~**`SearchInput` debounce 300ms**~~ _(fait : `apps/web/src/lib/constants.ts` `SEARCH_DEBOUNCE_MS=300` + `SEARCH_MIN_CHARS=2`. SearchInput.tsx + GlobalSearch.tsx referencent la meme const. Coherent.)_
-- [ ] **`Link prefetch="intent"`** : aucun prefetch explicite sur navigation liste → détail (clients/factures/devis)
+- [x] ~~**`Link prefetch="intent"`**~~ _(fait : `DataTable` accepte `getRowHref?: (row) => string` ; au survol d'une ligne `router.prefetch(href)` charge le HTML/RSC du detail. Active sur listes principales : clients, factures, devis, pec, cases. Gain UX significatif sur navigation liste -> detail.)_
 
 ---
 

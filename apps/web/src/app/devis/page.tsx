@@ -187,6 +187,7 @@ export default function DevisListPage() {
         error={error?.message ?? null}
         onRetry={() => mutate()}
         onRowClick={(row) => router.push(`/devis/${row.id}`)}
+        getRowHref={(row) => `/devis/${row.id}`}
         emptyTitle="Aucun devis"
         emptyDescription={
           activeTab !== "tous"

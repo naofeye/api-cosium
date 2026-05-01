@@ -101,6 +101,7 @@ export default function PecPage() {
         error={error?.message ?? null}
         onRetry={() => mutate()}
         onRowClick={(row) => router.push(`/pec/${row.id}`)}
+        getRowHref={(row) => `/pec/${row.id}`}
         emptyTitle="Aucune demande de PEC"
         emptyDescription="Aucune demande de prise en charge. Creez une PEC depuis un dossier client."
         emptyIcon={Shield}

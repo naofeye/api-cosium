@@ -75,6 +75,7 @@ export default function FacturesPage() {
         error={error?.message ?? null}
         onRetry={() => mutate()}
         onRowClick={(row) => router.push(`/factures/${row.id}`)}
+        getRowHref={(row) => `/factures/${row.id}`}
         emptyTitle="Aucune facture"
         emptyDescription="Aucune facture. Les factures sont generees a partir des devis signes."
         emptyIcon={Receipt}

@@ -161,6 +161,7 @@ export default function ClientsPage() {
         error={error?.message ?? null}
         onRetry={() => mutate()}
         onRowClick={(row) => router.push(`/clients/${row.id}`)}
+        getRowHref={(row) => `/clients/${row.id}`}
         emptyTitle="Aucun client"
         emptyDescription="Importez vos clients depuis Cosium ou creez-en un manuellement."
         emptyIcon={Users}
