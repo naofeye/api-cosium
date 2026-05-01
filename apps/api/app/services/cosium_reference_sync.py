@@ -17,7 +17,7 @@ from app.core.logging import get_logger
 from app.integrations.cosium.client import CosiumClient
 from app.services import audit_service
 
-# Re-export all individual sync functions for backward compatibility
+# Re-export all individual sync functions for backward compatibility.
 from app.services.cosium_reference_sync_entities import (
     sync_banks,
     sync_brands,
@@ -37,6 +37,7 @@ from app.services.cosium_reference_sync_entities import (
     sync_tags,
     sync_users,
 )
+
 logger = get_logger("cosium_reference_sync")
 
 __all__ = [
