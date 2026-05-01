@@ -9,8 +9,7 @@
 ## 🔴 P0 — Audit 01/05
 
 - [x] ~~Fix test_admin_users.py password PasswordMixin~~ _(commit `32a869d`, "StrongPass1" → "StrongPass1!")_
-- [ ] Docker web build cassé : TypeScript 6 vs peer deps (openapi-typescript veut TS5, @typescript-eslint veut <6.1). Container web tourne avec ancienne image.
-  Action: soit downgrade TS à 5.9, soit attendre que les peer deps supportent TS6
+- [x] ~~Docker web build cassé~~ _(fix : `npm ci --legacy-peer-deps` dans `apps/web/Dockerfile` aligne avec les workflows CI deja modifies dans `473de33`. openapi-typescript@7.13 marche sur TS6 en pratique malgre le peer ^5.)_
 
 ## 🔴 P0 — Audit 29/04 (tous corrigés)
 
