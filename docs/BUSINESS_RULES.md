@@ -97,5 +97,5 @@ Voir `docs/COSIUM_AUTH.md`. Resume :
 - Plans : `solo` | `reseau` | (add-on `ia_pro`)
 - Webhooks : `checkout.completed` -> active | `payment_failed` -> past_due |
   `subscription.deleted` -> canceled | `subscription.updated` -> propage status
-- Trial : 30 jours pour nouveaux clients
+- Trial : 14 jours pour nouveaux clients (`TRIAL_DAYS` dans `onboarding_service.py`)
 - Past_due : grace period 7 jours avant suspension UI

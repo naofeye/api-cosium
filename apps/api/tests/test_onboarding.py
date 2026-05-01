@@ -1,7 +1,9 @@
 """Tests du workflow complet d'onboarding : signup → connect cosium (mock) → status."""
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 from app.models import Organization, Tenant, TenantUser, User
+from app.services.onboarding_service import TRIAL_DAYS
 
 
 def test_signup_creates_org_tenant_user(client, db):
@@ -28,6 +30,14 @@ def test_signup_creates_org_tenant_user(client, db):
     assert org is not None
     assert org.plan == "trial"
     assert org.trial_ends_at is not None
+    # Verrouille la duree de trial : 14 jours (cf. BUSINESS_RULES.md).
+    # Tolerance large pour absorber le delta entre creation et assertion.
+    assert TRIAL_DAYS == 14
+    expected = datetime.now(UTC) + timedelta(days=TRIAL_DAYS)
+    trial_ends = org.trial_ends_at
+    if trial_ends.tzinfo is None:
+        trial_ends = trial_ends.replace(tzinfo=UTC)
+    assert abs((trial_ends - expected).total_seconds()) < 60
 
     tenant = db.query(Tenant).filter(Tenant.slug == "optique-test").first()
     assert tenant is not None
