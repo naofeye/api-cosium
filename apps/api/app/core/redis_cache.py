@@ -76,6 +76,28 @@ def cache_set(key: str, value: dict | list, ttl: int = 300) -> None:
         logger.warning("cache_set_failed", key=key, error=str(exc))
 
 
+def cache_set_nx(key: str, value: dict | list, ttl: int = 300) -> bool:
+    """Atomic SET NX (Redis) : pose la cle uniquement si elle n'existe pas.
+
+    Retourne True si la cle a ete posee (premier arrivant), False sinon
+    (cle existait deja). Si Redis est indisponible, retourne True (degrade
+    gracieusement : pas d'idempotence concurrente, mais on n'empeche pas
+    la requete legitime).
+    """
+    r = _get_redis()
+    if not r:
+        return True
+    try:
+        return bool(r.set(key, json.dumps(value, default=str), nx=True, ex=ttl))
+    except (redis.ConnectionError, redis.TimeoutError):
+        _reset_on_connection_error()
+        logger.warning("cache_set_nx_connection_lost", key=key)
+        return True
+    except Exception as exc:
+        logger.warning("cache_set_nx_failed", key=key, error=str(exc))
+        return True
+
+
 def cache_delete_pattern(pattern: str) -> None:
     """Delete all keys matching a pattern."""
     r = _get_redis()

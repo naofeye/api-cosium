@@ -32,12 +32,16 @@ from typing import Any
 from fastapi import Depends, Header, HTTPException, Request, status
 
 from app.core.logging import get_logger
-from app.core.redis_cache import cache_get, cache_set
+from app.core.redis_cache import cache_get, cache_set, cache_set_nx
 from app.core.tenant_context import TenantContext, get_tenant_context
 
 logger = get_logger("idempotency")
 
 _TTL_SECONDS = 24 * 3600
+# TTL court pour le marqueur "pending" : si une requete crash pendant son
+# execution (worker SIGKILL, timeout, etc.), un retry est possible apres ce
+# delai. Aligne sur le task_time_limit Celery (6 min) + marge.
+_PENDING_TTL_SECONDS = 600
 
 
 def _hash_body(body: bytes) -> str:
@@ -103,14 +107,29 @@ def idempotency(scope: str):
         ctx.body_hash = _hash_body(body)
         ctx._redis_key = _key(scope, tenant_ctx.tenant_id, x_idempotency_key)
 
-        existing = cache_get(ctx._redis_key)
-        if existing:
+        # Codex review 2026-05-01 #3 : reservation atomique avec SET NX pour
+        # eviter deux executions concurrentes sur la meme cle. La premiere
+        # requete pose un marqueur "pending", les suivantes voient soit ce
+        # marqueur (-> 425 Too Early) soit la reponse finale (-> replay).
+        pending_marker = {"body_hash": ctx.body_hash, "pending": True}
+        acquired = cache_set_nx(ctx._redis_key, pending_marker, ttl=_PENDING_TTL_SECONDS)
+
+        if not acquired:
+            existing = cache_get(ctx._redis_key) or {}
             if existing.get("body_hash") and existing["body_hash"] != ctx.body_hash:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail={
                         "code": "IDEMPOTENCY_KEY_REUSED",
                         "message": "Cette cle d'idempotence a deja ete utilisee avec un corps different.",
+                    },
+                )
+            if existing.get("pending"):
+                raise HTTPException(
+                    status_code=status.HTTP_425_TOO_EARLY,
+                    detail={
+                        "code": "IDEMPOTENCY_IN_FLIGHT",
+                        "message": "Une requete avec la meme cle d'idempotence est en cours de traitement. Reessayez dans quelques secondes.",
                     },
                 )
             ctx.cached = existing.get("response")
