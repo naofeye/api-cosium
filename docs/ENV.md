@@ -39,6 +39,7 @@
 | Variable | Défaut | Description |
 |----------|--------|-------------|
 | `CORS_ORIGINS` | `http://localhost:3000` | Liste séparée par virgules. **JAMAIS `*`** en prod |
+| `FRONTEND_BASE_URL` | `""` | Origine utilisée pour les liens dans les emails (reset password, invitations). Si vide, l'API retombe sur le premier `CORS_ORIGINS`. **OBLIGATOIRE** en staging/production : sans elle, un changement d'ordre dans `CORS_ORIGINS` peut casser les liens email. |
 
 ## Rate limiter (proxy)
 
