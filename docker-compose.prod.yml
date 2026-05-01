@@ -124,7 +124,11 @@ services:
         condition: service_started
     ports:
       - "80:80"
-      - "443:443"
+      # 443 commente : sur ce deploiement, TLS est termine par un reverse-proxy
+      # amont (Caddy/Cloudflare). Decommenter UNIQUEMENT si nginx local devient
+      # le terminator TLS et que le bloc `listen 443 ssl http2` de nginx.conf
+      # est active avec des certs reels. Voir Codex review 2026-05-01 #2.
+      # - "443:443"
     volumes:
       - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./runtime/nginx/logs:/var/log/nginx
