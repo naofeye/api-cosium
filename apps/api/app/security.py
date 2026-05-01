@@ -107,7 +107,7 @@ def is_token_blacklisted(token: str) -> bool:
     from app.core.redis_cache import get_redis_client
 
     logger = get_logger("security")
-    fail_closed = settings.app_env not in ("local", "test", "dev")
+    fail_closed = settings.app_env not in ("local", "test", "development")
     try:
         r = get_redis_client()
         if r is None:

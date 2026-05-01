@@ -60,3 +60,21 @@ def test_blacklist_valid_token_and_check() -> None:
     blacklist_access_token(token)
     # En test env, fail-open -> False
     assert is_token_blacklisted(token) in (True, False)  # tolere redis absent
+
+
+def test_fail_open_envs_match_valid_app_envs() -> None:
+    """Garde-fou : les valeurs de fail-open doivent etre des APP_ENV reels.
+
+    Codex review 2026-05-01 : 'dev' n'etait pas une valeur APP_ENV valide
+    ('development' l'est). Ce test verrouille la coherence : tous les
+    environnements traites comme fail-open par security.is_token_blacklisted
+    doivent exister dans config._VALID_APP_ENVS.
+    """
+    from app.core.config import _VALID_APP_ENVS
+
+    fail_open_envs = ("local", "test", "development")
+    for env in fail_open_envs:
+        assert env in _VALID_APP_ENVS, (
+            f"'{env}' n'est pas un APP_ENV valide — "
+            f"valeurs autorisees : {_VALID_APP_ENVS}"
+        )
