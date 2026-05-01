@@ -8,7 +8,7 @@ from app.core.exceptions import NotFoundError, ValidationError
 from app.core.logging import get_logger
 from app.domain.schemas.documents import DocumentResponse
 from app.integrations.storage import storage
-from app.repositories import document_repo
+from app.repositories import case_repo, document_repo
 from app.services import audit_service, event_service
 
 logger = get_logger("document_service")
@@ -34,6 +34,13 @@ def upload_document(
 
     Service decouple de FastAPI/UploadFile : testable avec des bytes.
     """
+    # Verrouille l'invariant tenant/case AVANT de toucher S3 ou la DB :
+    # un upload avec case_id appartenant a un autre tenant doit echouer
+    # 404, sinon l'integrite relationnelle se corrompt et le chemin S3
+    # tenants/{X}/cases/{Y} pointe vers un dossier qui n'est pas a X.
+    if case_repo.get_case(db, case_id=case_id, tenant_id=tenant_id) is None:
+        raise NotFoundError("case", case_id)
+
     ext = filename.rsplit(".", 1)[-1] if "." in filename else "bin"
     storage_key = f"tenants/{tenant_id}/cases/{case_id}/{uuid.uuid4().hex}.{ext}"
 

@@ -176,3 +176,18 @@ class TestDownloadDocument:
             follow_redirects=False,
         )
         assert resp.status_code == 404
+
+
+class TestUploadDocumentTenantIsolation:
+    """Codex review 2026-05-01 #12 : un upload avec case_id inconnu/cross-tenant
+    doit echouer avant de toucher S3 ou la DB."""
+
+    def test_upload_unknown_case_returns_404(self, client: TestClient, auth_headers: dict):
+        """case_id inexistant -> 404, pas de fichier orphelin S3."""
+        file_content = io.BytesIO(b"%PDF-1.4 fake")
+        resp = client.post(
+            "/api/v1/cases/999999/documents",
+            files={"file": ("orphan.pdf", file_content, "application/pdf")},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 404
