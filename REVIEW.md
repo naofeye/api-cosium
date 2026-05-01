@@ -1,348 +1,358 @@
 # Audit Codex — api-cosium
 
-_Genere automatiquement le 2026-04-30. Commit audite : `6e5137f`._
+_Genere automatiquement le 2026-05-01. Commit audite : `f67e5b0`._
 
 ## Resume
 
-Le repo est mature sur plusieurs garde-fous applicatifs (tenanting, cookies HttpOnly/SameSite, validations de config production, blacklist JWT, migrations Alembic), mais l'audit remonte des risques bloquants d'exploitation : secrets operationnels versionnes, `.env` production lisible dans le workspace, worker Celery mal branche sur les queues, et export de PII vers Anthropic sans garde-fou metier. `npm audit` root/web est propre et Bandit ne remonte pas de medium/high, mais `pip-audit` signale 2 CVE Python actuellement ignorees en CI. Priorites : rotation/purge secrets, correction Celery, politique IA/RGPD/PWA, puis durcissement CI/docs/env.
+Le depot est globalement structure, mais l'audit met en evidence un risque immediat de fuite de secrets versionnes, plusieurs ecarts production/documentation, et des chemins metier sensibles insuffisamment verrouilles. Les priorites sont de purger/rotater les secrets Cosium, corriger l'exposition nginx/TLS production, mettre a jour les dependances avec CVE, puis renforcer les invariants facturation/synchronisation. Les angles morts les plus dangereux pour un assistant IA sont les conventions implicites autour de `.claude-memory`, du boot Alembic, de MinIO, de Celery et des variables d'environnement non documentees.
 
 ## 🔴 Critiques
 
-### 1. Secrets et acces production versionnes dans `.claude-memory`
+### 1. Secrets Cosium versionnes dans le depot
 
-**Fichier :** `.claude-memory/vps_deployment.md:10`
+**Fichier :** `.claude-memory/project_test_env.md:7`
 
 ```markdown
-- Cle SSH locale : `<redacted>`
-- Sudo password : `<redacted>`
+Le `.env` contient `COSIUM_LOGIN=<redacted>`, `COSIUM_PASSWORD=<redacted>` et `COSIUM_ACCESS_TOKEN=<redacted>` en clair, committe dans le repo.
 ```
 
-**Probleme :** Le dossier `.claude-memory/` est suivi par Git et contient des informations de deploiement production : IP VPS, user SSH, chemin de cle, mot de passe sudo, login applicatif, et consignes demandant explicitement de ne pas nettoyer certains credentials. Les workflows CI/CodeQL/E2E ignorent en plus `.claude-memory/**`, ce qui laisse ces fichiers hors verification sur push.
+**Probleme :** un fichier suivi par Git documente explicitement des identifiants et tokens Cosium reels en clair. Le fichier demande aussi aux assistants de ne pas supprimer ni regenerer ces valeurs, ce qui augmente le risque de reutilisation de credentials compromis. Un second export documentaire contient aussi un `client_secret` dans `DOC API/01CONE06488 10_files/content.html:787`.
 
-**Recommandation :** Revoquer/rotater les secrets exposes (sudo, compte admin, credentials Cosium, MinIO/S3, JWT/ENCRYPTION si concernes), purger l'historique Git via `git filter-repo`/BFG, ajouter `.claude-memory/` au `.gitignore`, et faire tourner Gitleaks en CI sur tout le repo et l'historique.
+**Recommandation :** rotater immediatement les identifiants/tokens Cosium concernes, remplacer tous les secrets versionnes par des placeholders, purger l'historique Git si le depot a ete partage, ajouter un secret scanner bloquant en CI, et exclure `.claude-memory/` ou tout fichier de memoire locale contenant des valeurs sensibles.
 
-**Impact pour Claude :** Tres eleve : ces fichiers sont precisement des notes qu'un assistant IA lira en priorite, et elles contiennent a la fois des secrets et des instructions anti-remediation.
+**Impact pour Claude :** Claude risque de lire ces fichiers comme source d'autorite et de conserver/reutiliser les secrets au lieu de les traiter comme compromis.
 
-### 2. `.env` production present localement avec secrets et origine HTTP
-
-**Fichier :** `.env:14`
-
-```dotenv
-NEXT_PUBLIC_API_BASE_URL=<redacted>
-CORS_ORIGINS=http://187.124.217.73,http://localhost:3000
-COSIUM_BASE_URL=https://c1.cosium.biz
-```
-
-**Probleme :** Le fichier `.env` non versionne est present dans le workspace avec `APP_ENV=production` et plusieurs secrets applicatifs. En production, `auth_cookies.py:17` force les cookies `Secure`, donc une origine `http://...` empeche les navigateurs de conserver les cookies d'authentification. Le meme fichier expose aussi des credentials a tout script, agent ou commande locale lancee depuis le repo.
-
-**Recommandation :** Sortir les secrets du workspace partage vers un secret manager ou injection runtime, forcer un domaine HTTPS avant `APP_ENV=production`, supprimer `localhost` des CORS production, et rotater les valeurs deja lues par des outils locaux.
-
-**Impact pour Claude :** Eleve : un assistant peut diagnostiquer a tort un bug d'auth backend alors que le blocage vient de la combinaison `APP_ENV=production` + HTTP.
-
-### 3. Le worker Celery ne consomme pas les queues routees
-
-**Fichier :** `docker-compose.yml:155`
-
-```yaml
-  worker:
-    restart: unless-stopped
-    command: celery -A app.tasks worker --loglevel=info --concurrency=2
-```
-
-**Probleme :** `app/tasks/__init__.py:25-31` route les familles de taches vers `email`, `sync`, `extraction`, `batch` et `reminder`, mais le worker Docker demarre sans `-Q`. Celery ecoute alors seulement la queue par defaut ; les taches Beat et `.delay()` routees peuvent rester en attente sans erreur applicative visible.
-
-**Recommandation :** Ajouter explicitement `-Q default,email,sync,extraction,batch,reminder` ou separer des workers par queue, puis ajouter un smoke test qui publie une tache par queue et verifie sa consommation.
-
-**Impact pour Claude :** Eleve : les logs Beat peuvent donner l'impression que les jobs sont planifies alors qu'aucun worker ne lit les queues specialisees.
-
-### 4. PII client envoyee a Claude sans consentement ni redaction
-
-**Fichier :** `apps/api/app/services/_ai/context.py:101`
-
-```python
-parts = [
-    f"DOSSIER #{case.id}",
-    f"Client: {case.first_name} {case.last_name}",
-```
-
-**Probleme :** Les contextes IA incluent nom, telephone, email, factures, paiements, documents et donnees optiques. `claude_provider.py:52-53` transmet ensuite ce contexte tel quel a Anthropic des qu'une `ANTHROPIC_API_KEY` est configuree, sans opt-in tenant, redaction, registre de traitement, ni audit explicite des donnees exportees.
-
-**Recommandation :** Ajouter un flag tenant d'activation IA avec consentement admin, minimiser/redacter les champs sensibles par defaut, journaliser les exports de donnees vers le provider, et documenter les obligations DPA/RGPD avant activation production.
-
-**Impact pour Claude :** Eleve : le nom des fichiers laisse penser a un simple "contexte" interne, alors qu'il devient une divulgation externe de donnees client.
-
-## 🟡 Moyens
-
-### 1. La sync quotidienne marque un tenant comme succes malgre des erreurs par domaine
-
-**Fichier :** `apps/api/app/tasks/sync_tasks/_sync_all.py:174`
-
-```python
-except Exception as e:
-    results[name] = {"error": str(e)}
-    logger.error(
-```
-
-**Probleme :** `_sync_single_tenant()` capture les erreurs de chaque domaine et retourne un dict, mais l'appelant `_sync_all_tenants()` ignore ce retour, logge `tenant_sync_done`, incremente `synced`, puis pose la cle Redis d'idempotence. Un tenant peut donc etre marque synchronise pendant 1h alors que `customers`, `invoices` ou `payments` ont echoue.
-
-**Recommandation :** Propager une exception agreggee si un domaine echoue, ou inspecter `results` avant `synced += 1` et avant `setex`. Ajouter un test de regression "un domaine echoue => tenant non marque done".
-
-**Impact pour Claude :** Important : le compteur `synced` et les logs "done" masquent la vraie erreur.
-
-### 2. Endpoint `seed-demo` exposable en prod et sans garde CSRF applicatif
-
-**Fichier :** `apps/api/app/api/routers/sync/_meta.py:15`
-
-```python
-@router.post(
-    "/seed-demo",
-    response_model=SeedDemoResponse,
-```
-
-**Probleme :** L'endpoint admin `POST /api/v1/sync/seed-demo` est enregistre avec tous les routers, importe `tests.factories.seed`, et cree des donnees de demonstration. Il n'a pas de garde `APP_ENV in local/test`. Comme plusieurs routes POST state-changing n'ont pas de body obligatoire, SameSite=Strict ne protege pas contre un POST depuis un sous-domaine same-site compromis.
-
-**Recommandation :** Supprimer cet endpoint en production ou le proteger par un flag local explicite, sortir le seed de `tests/` vers une commande CLI dev, et ajouter une verification Origin/Referer ou token CSRF pour toutes les methodes unsafe basees sur cookies.
-
-**Impact pour Claude :** Important : le nom "tests.factories" donne l'impression d'un helper de test, mais il est appele par une route API en production.
-
-### 3. Anonymisation RGPD incomplete sur les tables liees
-
-**Fichier :** `apps/api/app/services/gdpr_service.py:100`
-
-```python
-customer.first_name = "ANONYMISE"
-customer.last_name = f"CLIENT-{client_id}"
-customer.email = None
-```
-
-**Probleme :** Le droit a l'oubli anonymise principalement `Customer` et les consentements marketing. Les interactions, sujets/commentaires libres, documents, noms de fichiers, factures/devis/paiements, conversations IA et historiques associes peuvent encore contenir des donnees identifiantes.
-
-**Recommandation :** Definir une matrice RGPD par table, supprimer ou pseudonymiser les relations client, purger les documents stockes, et ajouter des tests qui creent un client complet puis verifient l'absence de PII apres anonymisation.
-
-**Impact pour Claude :** Important : l'export RGPD lit plus de domaines que l'anonymisation n'en efface, ce decalage est facile a rater.
-
-### 4. La queue offline PWA stocke encore des interactions client en clair
-
-**Fichier :** `apps/web/public/sw.js:281`
-
-```javascript
-const OFFLINE_QUEUE_ALLOW = [
-  // Notes / action items / interactions : pas de PII sensible, idempotent
-  "/api/v1/action-items",
-```
-
-**Probleme :** Le commentaire affirme que les interactions ne contiennent pas de PII sensible, mais `InteractionCreate` accepte `subject` et `content` libres. Le service worker stocke ensuite le body dans IndexedDB (`sw.js:464-469`) pour rejeu offline, donc des notes client peuvent rester en clair dans le navigateur.
-
-**Recommandation :** Retirer `/api/v1/interactions` de l'allowlist offline, ou chiffrer la queue avec une cle liee a la session et purger strictement au logout/switch tenant. Garder seulement les mutations non sensibles comme "notification lue".
-
-**Impact pour Claude :** Important : les commentaires de securite dans le fichier sont rassurants mais inexacts pour ce endpoint.
-
-### 5. Politique de mot de passe admin plus faible que reset/signup
-
-**Fichier :** `apps/api/app/domain/schemas/admin_users.py:12`
-
-```python
-email: str = Field(..., min_length=1, max_length=255)
-password: str = Field(..., min_length=8, max_length=128)
-role: str = Field(default="operator", max_length=30)
-```
-
-**Probleme :** `AdminUserCreate` accepte 8 caracteres avec majuscule et chiffre seulement. `PasswordMixin` impose 10 caracteres, minuscule, chiffre et caractere special pour reset/signup. Un admin peut donc creer des comptes plus faibles que ceux exiges par les autres flux.
-
-**Recommandation :** Reutiliser `PasswordMixin` ou un validateur central pour tous les points de creation/changement de mot de passe, et ajouter un test qui compare les politiques.
-
-**Impact pour Claude :** Moyen : le nom `strong_password` dans `admin_users.py` masque l'incoherence avec le validateur central.
-
-### 6. Champs PII chiffres sans max input coherent avec la taille DB
-
-**Fichier :** `apps/api/app/models/client.py:22`
-
-```python
-address: Mapped[str | None] = mapped_column(EncryptedString(500), nullable=True)
-street_number: Mapped[str | None] = mapped_column(EncryptedString(200), nullable=True)
-street_name: Mapped[str | None] = mapped_column(EncryptedString(500), nullable=True)
-```
-
-**Probleme :** `EncryptedString` indique lui-meme un overhead Fernet d'environ 2-3x, mais `ClientCreate`/`ClientUpdate` ne posent pas de `max_length` sur `address`, `social_security_number` ou `notes`. Une entree acceptee par Pydantic peut depasser le `VARCHAR` apres chiffrement et produire une erreur DB 500.
-
-**Recommandation :** Passer les champs chiffres longs en `Text`, ou definir des `max_length` Pydantic calcules avec marge Fernet. Ajouter un test avec valeurs proches des limites.
-
-**Impact pour Claude :** Moyen : la migration "encrypt_customer_pii" donne l'impression que la taille a ete reglee, mais le contrat API reste plus large que la colonne chiffree.
-
-### 7. Deux CVE Python sont ignorees en CI sans echeance de remediation
-
-**Fichier :** `.github/workflows/ci.yml:101`
-
-```yaml
-- run: |
-    cd apps/api && pip-audit -r requirements.txt --strict \
-      --ignore-vuln CVE-2025-71176 \
-```
-
-**Probleme :** `pip-audit` remonte `pytest==8.4.2` (CVE-2025-71176, fix 9.0.3) et `starlette==0.47.3` via FastAPI (CVE-2025-62727, fix 0.49.1). Le risque Starlette est surtout latent ici car aucune utilisation directe de `FileResponse`/`StaticFiles` n'a ete trouvee, mais tout ajout futur de download statique rendrait l'ignore dangereux.
-
-**Recommandation :** Creer un ticket date pour upgrader pytest et FastAPI/Starlette, limiter l'ignore avec commentaire d'expiration, et ajouter un test/grep CI qui refuse `FileResponse` tant que Starlette reste vulnerable.
-
-**Impact pour Claude :** Moyen : la CI "security" reste verte, donc un agent peut conclure a tort que les dependances sont clean.
-
-### 8. Script backup off-site expose les credentials dans argv/env-file temporaire
-
-**Fichier :** `scripts/backup_offsite.sh:51`
-
-```bash
-{
-    printf 'MC_HOST_offsite=%s\n' "${OFFSITE_ENDPOINT/https:\/\//https://${OFFSITE_ACCESS_KEY}:${OFFSITE_SECRET_KEY}@}"
-} > "$MC_ENV_FILE"
-```
-
-**Probleme :** Le script injecte les credentials dans une URL d'env-file temporaire, puis appelle `mc alias set offsite "$OFFSITE_ENDPOINT" "$OFFSITE_ACCESS_KEY" "$OFFSITE_SECRET_KEY"`. Les secrets peuvent apparaitre dans `ps`, traces Docker ou fichiers temporaires pendant l'execution.
-
-**Recommandation :** Utiliser un fichier de config `mc` pre-provisionne avec permissions strictes, Docker secrets, ou une methode stdin/config non visible dans argv. Auditer les logs et snapshots existants.
-
-**Impact pour Claude :** Moyen : le `chmod 600` et le `trap cleanup` donnent une impression de securite, mais ne couvrent pas l'exposition via arguments de processus.
-
-### 9. Emails utilisateurs non normalises avant lookup et creation
-
-**Fichier :** `apps/api/app/repositories/user_repo.py:7`
-
-```python
-def get_user_by_email(db: Session, email: str) -> User | None:
-    return db.scalars(select(User).where(User.email == email)).first()
-```
-
-**Probleme :** Les emails sont compares et stockes tels quels. PostgreSQL applique une unicite case-sensitive sauf index specifique, donc `Admin@x` et `admin@x` peuvent coexister, avec risques de confusion login, reset password et audit.
-
-**Recommandation :** Normaliser `strip().lower()` a l'entree, utiliser `EmailStr` pour `LoginRequest`/admin create, et ajouter une contrainte unique sur `lower(email)`.
-
-**Impact pour Claude :** Faible a moyen : les tests seed utilisent toujours la casse attendue, donc le cas limite n'apparait pas naturellement.
-
-## 🟢 Nice-to-have
-
-### 1. Deploiement par `git reset --hard` destructif
-
-**Fichier :** `scripts/deploy.sh:66`
-
-```bash
-# 1. Pull latest code (idempotent : fetch + reset au lieu de pull, evite les conflits merge)
-echo "[1/6] Fetch + reset sur $DEPLOY_BRANCH..."
-git fetch origin "$DEPLOY_BRANCH"
-```
-
-**Probleme :** Le script efface tout changement local serveur avant de reconstruire. C'est pratique pour un VPS jetable, mais dangereux si un hotfix, un fichier de diagnostic ou une correction manuelle non poussee existe.
-
-**Recommandation :** Refuser le deploiement si `git status --porcelain` n'est pas vide, sauvegarder le diff avant reset, ou deployer uniquement des artefacts immuables.
-
-**Impact pour Claude :** Moyen : les notes `.claude-memory` recommandent aussi le reset hard, ce qui peut faire disparaitre des indices de prod.
-
-### 2. Nginx prod reste en catch-all HTTP avec HTTPS commente
+### 2. Le proxy production publie 443 mais la configuration active ne sert que HTTP
 
 **Fichier :** `config/nginx/nginx.conf:55`
 
 ```nginx
 server {
     listen 80;
-    # Dev/staging : "_" catch-all accepte tout Host header (utile pour CI E2E).
+    server_name _;
 ```
 
-**Probleme :** Le fichier prod monte par `docker-compose.prod.yml` contient encore `server_name _;` et un bloc HTTPS entierement commente. Les commentaires signalent le risque Host-header, mais aucune garde ne force le remplacement avant production.
+**Probleme :** `docker-compose.prod.yml` expose `80:80` et `443:443`, mais le bloc SSL actif est absent et le serveur 443 reste commente. La configuration accepte aussi un `server_name _`, ce qui neutralise la defense Host-header attendue en production. Si ce nginx est le point d'entree public, les cookies `secure` de l'API ne fonctionneront pas correctement sans terminaison TLS externe et le trafic peut rester en clair.
 
-**Recommandation :** Templater `server_name` depuis l'environnement, refuser le boot si le placeholder reste actif en prod, et activer TLS/HSTS au reverse-proxy effectif.
+**Recommandation :** activer un bloc `listen 443 ssl http2` avec `server_name` explicite, rediriger strictement HTTP vers HTTPS, monter les certificats reels, ou documenter clairement que TLS est termine par un proxy amont et retirer l'exposition 443 locale si elle est trompeuse.
 
-**Impact pour Claude :** Moyen : selon le deploiement Caddy/nginx, le point d'entree reel peut differer du compose, donc il faut verifier la chaine proxy effective.
+**Impact pour Claude :** un assistant peut croire que la stack production est deja prete pour HTTPS parce que le compose mappe le port 443, alors que la configuration nginx active ne le fait pas.
 
-### 3. Documentation Celery obsolete par rapport au code actuel
+## 🟡 Moyens
 
-**Fichier :** `docs/CELERY.md:7`
+### 1. CVE connues ignorees dans le pipeline API
 
-```markdown
-- **Worker** : `celery -A app.tasks worker --loglevel=info`
-- **Beat** : `celery -A app.tasks beat --schedule=/tmp/celerybeat-schedule`
+**Fichier :** `.github/workflows/ci.yml:101`
+
+```yaml
+cd apps/api && pip-audit -r requirements.txt --strict \
+  --ignore-vuln CVE-2025-71176 \
+  --ignore-vuln CVE-2025-62727
 ```
 
-**Probleme :** La doc indique un worker sans queues et un schedule Beat `/tmp`, alors que le code route des queues dediees et `docker-compose.yml` persiste le schedule dans `/app/celery-schedule/schedule.db`.
+**Probleme :** `pip-audit` detecte encore `pytest==8.4.2` vulnerable a `CVE-2025-71176` et `starlette==0.47.3` vulnerable a `CVE-2025-62727`. Le workflow les ignore explicitement, dont une dependance runtime via FastAPI/Starlette.
 
-**Recommandation :** Mettre `docs/CELERY.md` a jour avec `-Q default,email,sync,extraction,batch,reminder`, le volume `celerybeat_schedule`, et les commandes de diagnostic par queue.
+**Recommandation :** mettre a jour `pytest` vers une version corrigee, puis FastAPI/Starlette des qu'une combinaison compatible inclut `starlette>=0.49.1`; retirer les ignores CI apres validation.
 
-**Impact pour Claude :** Eleve : suivre la doc actuelle reproduit le bug critique Celery.
+**Impact pour Claude :** la CI donne un signal vert alors que l'audit de dependances signale toujours des vulnerabilites.
 
-### 4. Variables d'environnement runtime absentes des exemples
+### 2. Le plan Stripe choisi n'est jamais transmis au webhook
 
-**Fichier :** `apps/api/app/core/config.py:23`
+**Fichier :** `apps/api/app/integrations/stripe_client.py:47`
 
 ```python
-database_pool_size: int = 20
-database_max_overflow: int = 30
+metadata={"tenant_id": str(tenant_id)},
+client_reference_id=str(tenant_id),
+mode="subscription",
+```
+
+**Probleme :** `create_checkout_session` recoit un `plan`, mais ne l'inscrit pas dans les metadata Stripe. Le webhook lit ensuite `data.get("metadata", {}).get("plan", org.plan)`, donc l'organisation peut rester sur son ancien plan apres paiement.
+
+**Recommandation :** ajouter `plan` dans les metadata de session et tester le webhook `checkout.session.completed` avec un changement effectif `trial -> pro` ou `pro -> premium`.
+
+**Impact pour Claude :** l'API semble supporter plusieurs plans parce que le parametre existe, mais l'invariant de propagation Stripe est casse.
+
+### 3. L'idempotence des creations n'est pas atomique
+
+**Fichier :** `apps/api/app/core/idempotency.py:106`
+
+```python
+existing = cache_get(ctx._redis_key)
+if existing:
+    if existing.get("body_hash") != body_hash:
+```
+
+**Probleme :** la cle d'idempotence est lue avant l'execution metier puis ecrite apres la reponse. Deux requetes concurrentes avec la meme cle et le meme corps peuvent donc passer toutes les deux avant que Redis ne stocke la premiere reponse.
+
+**Recommandation :** reserver la cle avec une operation atomique `SET NX` ou un etat `pending` avant l'appel service, retourner `409/425` pendant l'execution concurrente, puis remplacer l'etat par la reponse finale.
+
+**Impact pour Claude :** un assistant peut voir la presence d'un middleware d'idempotence et supposer a tort que les doublons concurrentiels sont couverts.
+
+### 4. Les URLs presignees MinIO pointent vers un endpoint Docker interne
+
+**Fichier :** `.env.prod.example:39`
+
+```dotenv
+S3_ENDPOINT=http://minio:9000
+S3_ACCESS_KEY=your_minio_access_key_here
+S3_SECRET_KEY=your_minio_secret_key_here
+```
+
+**Probleme :** le service genere des URLs presignees avec ce endpoint, puis `documents.py` redirige directement le navigateur vers cette URL. En production, `http://minio:9000` est un nom Docker interne non resolvable depuis le client et expose aussi un detail d'infrastructure.
+
+**Recommandation :** servir les telechargements via l'API, comme pour les documents Cosium, ou introduire un `S3_PUBLIC_ENDPOINT` HTTPS utilise uniquement pour les URLs presignees publiques.
+
+**Impact pour Claude :** la configuration fonctionne entre conteneurs mais pas necessairement depuis un navigateur externe.
+
+### 5. `FRONTEND_BASE_URL` est utilise mais absent des exemples d'environnement
+
+**Fichier :** `apps/api/app/services/_auth/password.py:53`
+
+```python
+frontend_origin = (
+    settings.frontend_base_url.strip()
+    or settings.cors_origins.split(",")[0].strip()
+)
+```
+
+**Probleme :** les liens de reset password dependent de `FRONTEND_BASE_URL`, mais `.env.example`, `.env.prod.example` et `docs/ENV.md` ne le documentent pas. En absence de valeur, l'API prend le premier `CORS_ORIGINS`, ce qui peut produire un lien localhost, API-only ou simplement mauvais selon l'ordre configure.
+
+**Recommandation :** documenter `FRONTEND_BASE_URL` partout, le rendre obligatoire en `staging/production`, et tester la generation de reset link avec plusieurs origines CORS.
+
+**Impact pour Claude :** un assistant peut ajouter une origine CORS sans comprendre qu'elle change aussi les liens d'email.
+
+### 6. La regle `cosium_id` unique par tenant n'est pas appliquee en base
+
+**Fichier :** `apps/api/alembic/versions/y0z1a2b3c4d5_add_customer_cosium_id.py:33`
+
+```python
+op.add_column("customers", sa.Column("cosium_id", sa.String(length=50), nullable=True))
+op.create_index("ix_customers_cosium_id", "customers", ["cosium_id"], unique=False)
+```
+
+**Probleme :** `docs/BUSINESS_RULES.md` annonce `cosium_id UNIQUE par tenant`, mais la migration cree un index non unique uniquement sur `cosium_id`. Des doublons Cosium peuvent etre inseres, notamment lors d'import concurrent ou de reprise partielle.
+
+**Recommandation :** nettoyer les doublons existants puis ajouter un index unique partiel `(tenant_id, cosium_id) WHERE cosium_id IS NOT NULL`.
+
+**Impact pour Claude :** la documentation donne un invariant fort que le schema ne garantit pas.
+
+### 7. Duree d'essai contradictoire entre code et regles metier
+
+**Fichier :** `apps/api/app/services/onboarding_service.py:27`
+
+```python
+TRIAL_DAYS = 14
+DEFAULT_PLAN = "trial"
+```
+
+**Probleme :** `docs/BUSINESS_RULES.md:100` indique un trial de 30 jours, alors que le code cree les organisations avec 14 jours. Cela peut fausser les tests, le support client et les promesses commerciales.
+
+**Recommandation :** choisir la valeur officielle, aligner code, documentation et fixtures, puis ajouter un test d'onboarding qui verrouille la date `trial_ends_at`.
+
+**Impact pour Claude :** Claude peut proposer un correctif ou une reponse support basee sur la documentation alors que la production applique 14 jours.
+
+### 8. La frequence de synchronisation Cosium documentee ne correspond pas au Celery beat
+
+**Fichier :** `apps/api/app/tasks/__init__.py:45`
+
+```python
+"sync-cosium-daily": {
+    "task": "app.tasks.sync_tasks.sync_cosium_daily",
+    "schedule": crontab(hour=6, minute=0),
+```
+
+**Probleme :** la documentation metier evoque une synchronisation incrementale toutes les heures, mais le beat configure une tache quotidienne a 06:00. Les utilisateurs peuvent donc voir des donnees bien moins fraiches que prevu.
+
+**Recommandation :** aligner la documentation et la planification reelle, ou ajouter une tache incrementale horaire distincte si l'objectif produit est une fraicheur inferieure a une heure.
+
+**Impact pour Claude :** sans lire le beat Celery, un assistant peut surestimer la fraicheur des donnees synchronisees.
+
+### 9. `development` est traite comme production pour le fail-open Redis token blacklist
+
+**Fichier :** `apps/api/app/security.py:107`
+
+```python
+fail_closed = settings.app_env not in ("local", "test", "dev")
+if fail_closed:
+    return True
+```
+
+**Probleme :** les environnements valides incluent `development`, pas `dev`. En cas d'indisponibilite Redis, `APP_ENV=development` invalide donc tous les tokens alors que le commentaire annonce un fail-open en dev/test.
+
+**Recommandation :** remplacer `dev` par `development`, centraliser les noms d'environnements valides et ajouter un test parametre sur `local/development/test/staging/production`.
+
+**Impact pour Claude :** le commentaire est plausible mais faux pour l'environnement effectivement documente.
+
+### 10. Le retry frontend apres refresh token perd le timeout
+
+**Fichier :** `apps/web/src/lib/api.ts:33`
+
+```ts
+if (refreshed) {
+  response = await fetch(`${API_BASE}${path}`, {
+    ...options,
+```
+
+**Probleme :** la requete initiale utilise un `AbortController`, mais la requete rejouee apres refresh token n'a plus de signal ni de timeout. Une API bloquee apres refresh peut suspendre l'UI jusqu'a resolution reseau.
+
+**Recommandation :** creer un nouveau `AbortController` et un nouveau timer pour le retry, ou factoriser `fetchWithTimeout` afin que chaque tentative ait la meme politique d'annulation.
+
+**Impact pour Claude :** le timeout semble present en haut de fonction, mais ne couvre pas tous les chemins.
+
+### 11. Les mutations cookie-auth reposent uniquement sur SameSite contre le CSRF
+
+**Fichier :** `apps/api/app/core/deps.py:20`
+
+```python
+token = credentials.credentials if credentials else access_token
+if not token:
+    raise HTTPException(status_code=401, detail="Missing authentication token")
+```
+
+**Probleme :** l'API accepte un JWT depuis le cookie `optiflow_token` pour les routes authentifiees, et les mutations frontend utilisent `credentials: "include"` sans jeton CSRF dedie. `SameSite=Strict` limite le risque cross-site classique, mais une future relaxation cookie, un sous-domaine compromis ou une mutation appelee same-site gardent une surface CSRF inutile.
+
+**Recommandation :** ajouter un double-submit CSRF token pour les routes state-changing en cookie-auth, ou imposer le bearer token pour les mutations API sensibles.
+
+**Impact pour Claude :** un assistant peut conclure "CSRF OK" en voyant `SameSite=Strict`, sans noter la dependance forte a ce choix de cookie.
+
+### 12. Upload de document possible avec un `case_id` d'un autre tenant
+
+**Fichier :** `apps/api/app/services/document_service.py:37`
+
+```python
+key = f"{tenant_id}/{case_id}/{uuid.uuid4()}_{safe_filename}"
+storage.upload_fileobj(file.file, bucket, key, content_type=file.content_type)
+```
+
+**Probleme :** `upload_document` stocke le document avec `tenant_id` courant et `case_id` fourni, mais ne verifie pas que le dossier appartient au meme tenant. La fuite directe est limitee par les filtres tenant, mais l'integrite relationnelle peut etre corrompue et les cascades devenir surprenantes.
+
+**Recommandation :** verifier `Case.id == case_id` et `Case.tenant_id == tenant_id` avant upload, ou ajouter une contrainte composite tenant/case au modele.
+
+**Impact pour Claude :** la presence d'un `tenant_id` dans le chemin de stockage donne une impression d'isolation complete alors que la relation `case_id` reste non validee.
+
+### 13. Les scans Trivy image sont en mode rapport uniquement
+
+**Fichier :** `.github/workflows/security-scan.yml:31`
+
+```yaml
+severity: "CRITICAL,HIGH"
+exit-code: "0"
+format: "sarif"
+```
+
+**Probleme :** les vulnerabilites critiques/hautes dans les images Docker sont remontees en SARIF mais ne bloquent pas les branches ni les pull requests. Une image vulnerable peut donc etre livree avec une CI verte.
+
+**Recommandation :** garder le rapport SARIF planifie si necessaire, mais ajouter un job bloquant sur PR/push pour les CVE fixables critiques et hautes.
+
+**Impact pour Claude :** la presence d'un workflow de scan peut masquer le fait qu'il n'a aucun effet de gate.
+
+## 🟢 Nice-to-have
+
+### 1. Le bootstrap SQL manuel est obsolete face aux migrations Alembic
+
+**Fichier :** `apps/api/sql/001_init.sql:1`
+
+```sql
+-- Initial database schema for OptiFlow
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+```
+
+**Probleme :** ce script cree un schema initial partiel qui ne reflete plus les migrations Alembic actuelles, alors que le demarrage production verifie explicitement la tete Alembic. L'executer manuellement peut produire une base incoherente.
+
+**Recommandation :** supprimer ce script, le marquer clairement comme archive non executable, ou le remplacer par une commande documentee `alembic upgrade head`.
+
+**Impact pour Claude :** un assistant peut proposer ce fichier comme chemin d'initialisation rapide alors qu'il est stale.
+
+### 2. La politique de taille imposee par `CLAUDE.md` n'est pas respectee
+
+**Fichier :** `CLAUDE.md:224`
+
+```markdown
+- Fonctions > 50 lignes
+- Fichiers > 300 lignes
+```
+
+**Probleme :** plusieurs fichiers depassent 300 lignes (`routers/ai.py`, `facture_service.py`, `integrations/cosium/client.py`) et plusieurs fonctions depassent 100 lignes (`export_fec`, `client_merge_service`, `erp_sync_invoices`). La consigne locale n'est donc plus un garde-fou fiable.
+
+**Recommandation :** soit assouplir `CLAUDE.md` avec une limite realiste et des exceptions, soit planifier des extractions ciblees dans les services les plus longs.
+
+**Impact pour Claude :** Claude peut refuser ou sur-decouper des changements pour satisfaire une regle que le code existant viole deja.
+
+### 3. `.dockerignore` API ne protege pas les futurs fichiers `.env`
+
+**Fichier :** `apps/api/.dockerignore:1`
+
+```dockerignore
+__pycache__/
+*.pyc
+*.pyo
+```
+
+**Probleme :** le contexte Docker API exclut les caches et artefacts courants, mais pas `.env`, `.env.*` ni les fichiers de secrets locaux. Le risque est limite aujourd'hui parce que le build part de `apps/api`, mais un futur `.env` local dans ce dossier serait embarque.
+
+**Recommandation :** ajouter `.env`, `.env.*`, `*.pem`, `*.key` et documents de secret au `.dockerignore` API, comme defense en profondeur.
+
+**Impact pour Claude :** un assistant peut ajouter un fichier de test local dans `apps/api` sans realiser qu'il entre dans le contexte Docker.
+
+### 4. Les variables d'environnement pool SQL ne sont pas documentees
+
+**Fichier :** `apps/api/app/core/config.py:73`
+
+```python
+database_pool_size: int = 10
+database_max_overflow: int = 20
 database_pool_recycle_seconds: int = 1800
 ```
 
-**Probleme :** Plusieurs variables lues par le code ne sont pas dans `.env.example` ou `.env.prod.example` : `DATABASE_POOL_*`, `FRONTEND_BASE_URL`, `BACKEND_INTERNAL_URL`, `ANALYZE`, `E2E_*`, `LOAD_TEST_*`. Les defauts marchent, mais les comportements production (liens email, pooling, proxy Next) deviennent implicites.
+**Probleme :** les reglages de pool SQL existent dans le code mais pas dans `.env.example`, `.env.prod.example` ni `docs/ENV.md`. Les incidents de saturation DB seront donc plus difficiles a diagnostiquer et reproduire.
 
-**Recommandation :** Generer une matrice env depuis `Settings` + usages frontend/scripts, et faire echouer la CI si une variable runtime documentable manque aux exemples.
+**Recommandation :** ajouter ces variables aux exemples et au runbook, avec valeurs recommandees pour API web, worker Celery et tests.
 
-**Impact pour Claude :** Moyen : un agent peut modifier le code en ajoutant une variable sans penser aux exemples, car il n'existe pas de check.
+**Impact pour Claude :** Claude peut modifier le pool dans le code au lieu de proposer un tuning par environnement.
 
-### 5. Lint frontend degrade des erreurs utiles en warnings
+### 5. `sync_all` degrade silencieusement les erreurs de factures
 
-**Fichier :** `apps/web/eslint.config.mjs:13`
+**Fichier :** `apps/api/app/tasks/sync_tasks/_sync_all.py:54`
 
-```javascript
-"@typescript-eslint/no-explicit-any": "warn",
-"@typescript-eslint/no-require-imports": "warn",
-"react-hooks/exhaustive-deps": "warn",
+```python
+except Exception as exc:  # noqa: BLE001
+    logger.warning("invoice_sync_failed", extra={"tenant_id": str(tenant_id), "error": str(exc)})
 ```
 
-**Probleme :** La CI lint passe meme avec `any`, imports CommonJS ou dependances hooks incompletes. C'est acceptable pendant migration Next 16, mais ca laisse passer des regressions de types et d'effets React.
+**Probleme :** une erreur sur la synchronisation factures est seulement loggee en warning puis la tache globale continue avec un statut `success`. Les alertes d'exploitation peuvent donc manquer une panne partielle importante.
 
-**Recommandation :** Ajouter un budget de warnings ou remonter progressivement les regles critiques (`exhaustive-deps`, `no-explicit-any`) en erreur sur les dossiers touches.
+**Recommandation :** retourner un statut partiel explicite, incrementer une metrique d'echec, et faire echouer la tache si la synchronisation factures est contractuellement obligatoire.
 
-**Impact pour Claude :** Moyen : un assistant peut croire que `npm run lint` garantit ces invariants alors qu'il ne fait que prevenir.
-
-### 6. TODO/documentation d'etat desynchronises de la stack reelle
-
-**Fichier :** `TODO.md:34`
-
-```markdown
-| Frontend (Next 15, SWR, CSP nonces, 0 `any`, PWA base) | 🟡 Bonne, perf client à travailler |
-| Sécurité (OWASP, JWT, bcrypt, idempotence, audit logs) | 🟡 MFA et CSRF Strict manquants |
-```
-
-**Probleme :** `apps/web/package.json` utilise Next 16, les rules `any` sont en warning, et la couverture CI est a 75% alors que `TODO.md` parle ailleurs d'un alignement a 45%. La doc "source de verite" n'est plus fiable.
-
-**Recommandation :** Regenerer la section etat depuis les manifests/configs, ou supprimer les chiffres/version figes quand ils ne sont pas controles par CI.
-
-**Impact pour Claude :** Moyen : les agents lisent souvent `TODO.md` avant les manifests et peuvent prendre de mauvaises hypotheses de version.
+**Impact pour Claude :** un assistant peut se fier au succes Celery sans inspecter les logs secondaires.
 
 ## 🧠 Angles morts Claude
 
 Elements qu'un assistant IA risque de rater sans cette note :
 
-- **Memoire IA versionnee** : `.claude-memory/` est suivi par Git et ignore par les workflows ; ce n'est pas un stockage prive.
-- **Auth HTTP en prod** : avec `APP_ENV=production`, les cookies sont `Secure`; une URL HTTP donne un symptome de login casse sans bug backend.
-- **Queues Celery** : `task_routes` impose de demarrer le worker avec `-Q`; Beat peut scheduler correctement pendant que rien ne consomme.
-- **Sync partielle** : `_sync_single_tenant()` transforme les exceptions en dicts, puis l'orchestrateur marque quand meme le tenant done.
-- **Seed demo en prod** : `POST /api/v1/sync/seed-demo` importe `tests.factories.seed`; Docker copie `tests/` dans l'image API.
-- **Precedence Cosium** : l'auth Cosium essaie cookies tenant, cookies settings, puis OIDC/basic ; des settings globaux peuvent masquer une config tenant incomplete.
-- **Cle Fernet stable** : changer `ENCRYPTION_KEY` rend illisibles PII client et credentials Cosium chiffres, sauf migration de rechiffrement.
-- **Volume Beat UID 1000** : le volume `celerybeat_schedule` peut necessiter un `chown 1000:1000` au premier deploiement selon les notes VPS.
-- **Alembic avant boot** : `start.prod.sh` lance `alembic upgrade head` et `main.py` fail-fast si le schema prod/staging n'est pas a la head.
-- **IA externe** : des que `ANTHROPIC_API_KEY` existe, le contexte client construit localement devient un transfert externe de PII.
-- **Trusted proxies** : sans `TRUSTED_PROXIES`, le rate limiter peut bucketiser l'IP du reverse-proxy au lieu des clients reels.
-- **Deploy destructif** : `scripts/deploy.sh` reset hard sur `origin/main`; toute investigation locale non commitee disparait.
+- **Memoire locale versionnee** : `.claude-memory/project_test_env.md` est suivi par Git et contient des instructions operationnelles sensibles; ne pas le traiter comme simple brouillon local.
+- **Alembic est obligatoire au boot** : `apps/api/start.prod.sh:27` lance `alembic upgrade head`, et `apps/api/app/main.py:59` refuse de demarrer en production si les migrations ne sont pas a jour.
+- **`CELERY_WORKER` change le comportement SQL** : `apps/api/app/db/session.py:9` passe le `statement_timeout` de 30s a 120s uniquement si `CELERY_WORKER=true`; beat ou jobs lances autrement peuvent garder le timeout court.
+- **Reseau Docker externe requis** : `docker-compose.yml` depend de `vps-net` externe; `README.md:30` demande de le creer avant `docker compose up`.
+- **Proxy IP critique pour le rate limiting** : `TRUSTED_PROXIES` doit inclure nginx en production, sinon le rate limiter groupe les clients derriere l'IP du proxy.
+- **Cosium doit rester read-only** : `apps/api/app/integrations/cosium/client.py` documente que seuls GET et auth POST sont autorises; les tests de regression verifient l'absence de POST/PUT/PATCH/DELETE metier.
+- **Reset password couple a CORS** : sans `FRONTEND_BASE_URL`, le premier `CORS_ORIGINS` devient l'origine des liens email.
+- **MinIO interne n'est pas public** : `S3_ENDPOINT=http://minio:9000` marche entre conteneurs, pas comme URL de redirection navigateur.
+- **Stripe webhook depend du corps brut** : `billing.py` passe `await request.body()` a la verification de signature; tout middleware qui parse/transforme le corps avant peut casser la validation.
+- **Horaires Celery en Europe/Paris** : `apps/api/app/tasks/__init__.py:74` fixe la timezone beat, donc les crons ne sont pas en UTC.
 
 ## ✨ Ameliorations proposees
 
 Non bloquant mais gain qualite / DX :
 
-- **Hygiene secrets** : ajouter Gitleaks en CI obligatoire, purger `.claude-memory`, et stocker runbooks sensibles hors Git.
-- **Smoke Celery** : tester en CI qu'une tache publiee sur chaque queue est consommee par la config Docker.
-- **Privacy-by-design** : unifier IA, PWA offline et RGPD autour d'une classification PII par champ/table.
-- **CSRF unsafe methods** : ajouter un middleware Origin/Referer ou double-submit token pour les routes cookie-based state-changing.
-- **Normalisation email** : migration `lower(email)` + validators communs pour eviter doublons et bugs de login.
-- **Dependances** : planifier upgrade FastAPI/Starlette et pytest 9, puis retirer les `--ignore-vuln`.
-- **Env contract** : generer `.env.example`/`.env.prod.example` depuis `Settings` et les usages frontend/scripts.
-- **Tests cibles** : ajouter regressions pour sync partielle, anonymisation RGPD multi-table, offline queue sans PII et endpoint seed-demo interdit en prod.
-- **Chiffrement PII** : convertir les colonnes Fernet sensibles en `Text` ou appliquer des limites API strictes.
+- **Secret hygiene** : ajouter Gitleaks ou TruffleHog en CI bloquant et documenter une procedure de rotation.
+- **Contrats d'environnement** : generer `.env.example` depuis `Settings` ou ajouter un test qui compare les variables code/docs.
+- **Tests billing** : couvrir `create_checkout_session` + webhook avec metadata plan, subscription id et cas d'echec signature.
+- **Idempotence atomique** : extraire un petit helper Redis `acquire_idempotency_key` teste avec concurrence.
+- **Schema invariants** : ajouter des contraintes DB pour les invariants metier documentes, notamment `cosium_id` par tenant.
+- **Observabilite sync** : distinguer succes total, succes partiel et echec dans les taches Cosium.
+- **Telechargements documents** : proxyfier les downloads S3 via API ou exposer un domaine public HTTPS dedie.
+- **CI security gate** : faire echouer les PR sur CVE fixables critiques/hautes pour Python, npm et images Docker.
 
 ## Conclusion
 
-Priorite recommandee : traiter les secrets et l'exposition operationnelle avant tout, corriger immediatement la config Celery, puis bloquer les exports PII non controles (IA, offline, RGPD). Score global subjectif : 6.5/10 pour une mise en production sans remediation ; le socle applicatif est solide, mais les angles operationnels actuels suffisent a creer des incidents reels.
+Priorite haute : traiter les secrets versionnes, clarifier la terminaison TLS production et supprimer les ignores CVE non justifies. Ensuite, verrouiller les chemins metier a impact client direct : plan Stripe, idempotence des creations, invariants Cosium et URLs de documents. Score global subjectif : 6/10, avec une base technique exploitable mais des risques operationnels et de securite qui doivent etre corriges avant de considerer la production robuste.
