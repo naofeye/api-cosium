@@ -15,7 +15,6 @@ from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
 from app.integrations.cosium.client import CosiumClient
-from app.integrations.cosium.cosium_connector import CosiumConnector
 from app.services import audit_service
 
 # Re-export all individual sync functions for backward compatibility
@@ -38,8 +37,6 @@ from app.services.cosium_reference_sync_entities import (
     sync_tags,
     sync_users,
 )
-from app.services.erp_sync_service import _authenticate_connector, _get_connector_for_tenant
-
 logger = get_logger("cosium_reference_sync")
 
 __all__ = [
@@ -65,12 +62,14 @@ __all__ = [
 
 
 def _get_cosium_client(db: Session, tenant_id: int) -> CosiumClient:
-    """Get an authenticated CosiumClient for the given tenant."""
-    connector, tenant = _get_connector_for_tenant(db, tenant_id)
-    _authenticate_connector(connector, tenant)
-    if not isinstance(connector, CosiumConnector):
-        raise ValueError("Reference sync is only supported for Cosium ERP")
-    return connector._client
+    """Get an authenticated CosiumClient for the given tenant.
+
+    Wrapper retro-compat : delegue a `app.integrations.cosium.factory`.
+    Conserve pour ne pas casser les tests qui patchent ce symbole.
+    """
+    from app.integrations.cosium.factory import get_cosium_client_for_tenant
+
+    return get_cosium_client_for_tenant(db, tenant_id)
 
 
 # ---------------------------------------------------------------------------
