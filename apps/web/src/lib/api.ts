@@ -12,8 +12,8 @@ export async function fetchJson<T = unknown>(path: string, options?: RequestInit
     headers["Content-Type"] = "application/json";
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+  let controller = new AbortController();
+  let timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
 
   try {
     let response = await fetch(`${API_BASE}${path}`, {
@@ -30,11 +30,16 @@ export async function fetchJson<T = unknown>(path: string, options?: RequestInit
       clearTimeout(timeout);
       const refreshed = await refreshAccessToken();
       if (refreshed) {
+        // Reset le controller + timer pour le retry : sans ca, une API
+        // bloquee apres refresh suspend l'UI jusqu'a resolution reseau.
+        controller = new AbortController();
+        timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
         response = await fetch(`${API_BASE}${path}`, {
           ...options,
           headers,
           credentials: "include",
           cache: "no-store",
+          signal: controller.signal,
         });
       } else {
         clearAuthState();
