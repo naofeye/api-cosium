@@ -64,7 +64,10 @@ export function DataTable<T extends { id: number | string }>({
   onPageChange,
   storageKey,
 }: DataTableProps<T>) {
-  const safeData = data ?? [];
+  // useMemo pour stabiliser la reference quand `data` est undefined : sinon
+  // sortedData (qui depend de safeData) recalcule a chaque render meme sans
+  // changement de donnees.
+  const safeData = useMemo(() => data ?? [], [data]);
 
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");

@@ -123,10 +123,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     };
   }, [addToast]);
 
-  // Cleanup timers on unmount
+  // Cleanup timers on unmount.
+  // Capture la ref a l'attache de l'effet : au moment du cleanup,
+  // `timersRef.current` peut avoir change si un timer a ete pousse depuis.
   useEffect(() => {
+    const timers = timersRef.current;
     return () => {
-      timersRef.current.forEach((timer) => clearTimeout(timer));
+      timers.forEach((timer) => clearTimeout(timer));
     };
   }, []);
 

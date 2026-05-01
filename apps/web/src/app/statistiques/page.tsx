@@ -123,7 +123,7 @@ export default function StatistiquesPage() {
         setLoading(false);
       }
     },
-    [],
+    [toast],
   );
 
   const handleExport = useCallback(

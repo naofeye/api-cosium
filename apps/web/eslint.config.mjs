@@ -10,9 +10,9 @@ export default [
         "warn",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
-      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-require-imports": "warn",
-      "react-hooks/exhaustive-deps": "warn",
+      "react-hooks/exhaustive-deps": "error",
       // React Compiler-era rules (eslint-plugin-react-hooks v6) introduced
       // by eslint-config-next v16 — too aggressive for the existing codebase.
       // Downgraded to warn; tighten incrementally (TODO P2 frontend qualité).

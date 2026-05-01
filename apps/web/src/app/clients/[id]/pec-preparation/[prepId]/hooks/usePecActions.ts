@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { fetchJson, API_BASE } from "@/lib/api";
 import type { PecPreparation } from "@/lib/types/pec-preparation";
@@ -16,7 +16,12 @@ export function usePecActions({ prepId, data, mutate }: Args) {
   const [exporting, setExporting] = useState(false);
   const [pendingCorrections, setPendingCorrections] = useState(0);
 
-  const validations = data?.user_validations ?? {};
+  // useMemo pour stabiliser la reference quand `data` est undefined :
+  // sinon `isFieldValidated` se reconstruit a chaque render.
+  const validations = useMemo(
+    () => data?.user_validations ?? {},
+    [data],
+  );
 
   const isFieldValidated = useCallback(
     (fieldName: string): boolean => {

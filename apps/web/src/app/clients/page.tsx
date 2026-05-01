@@ -37,7 +37,10 @@ export default function ClientsPage() {
 
   const { data, error, isLoading, mutate } = useClients({ q: search || undefined, page });
 
-  const items = data?.items ?? [];
+  // useMemo pour stabiliser la reference de `items` quand `data` est
+  // undefined : sinon `allIds` recalcule a chaque render et toggleAll/clear
+  // se reabonnent en cascade.
+  const items = useMemo(() => data?.items ?? [], [data]);
   const allIds = useMemo(() => items.map((c) => c.id), [items]);
   const { selectedIds, toggleOne, toggleAll, clear } = useClientsSelection(allIds);
   const dupes = useClientsDuplicates((msg) => toast(msg, "error"));

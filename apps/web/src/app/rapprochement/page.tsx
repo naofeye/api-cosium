@@ -35,9 +35,11 @@ export default function RapprochementPage() {
   const { data: paymentsData, isLoading: paymentsLoading, mutate: mutatePayments } =
     useSWR<PaymentItem[]>("/banking/unreconciled-payments");
 
-  const transactions = txData?.items ?? [];
+  // useMemo pour stabiliser les references quand SWR retourne undefined :
+  // sinon kpis (qui depend de transactions) recalcule a chaque render.
+  const transactions = useMemo(() => txData?.items ?? [], [txData]);
   const total = txData?.total ?? 0;
-  const payments = paymentsData ?? [];
+  const payments = useMemo(() => paymentsData ?? [], [paymentsData]);
 
   const { state, actions } = useRapprochementActions({
     refetchTx: mutateTx,
