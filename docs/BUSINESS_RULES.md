@@ -46,7 +46,7 @@
 
 ## Reconciliation Cosium (lecture seule)
 
-- Sync incremental toutes les 1h (`sync_cosium_daily` Celery beat 6h00)
+- Sync complet quotidien a 06h00 Europe/Paris (`sync_all_tenants` Celery beat). Pas de sync horaire — la fraicheur garantie est J+1.
 - Statuts dossier client : `solde` | `solde_non_rapproche` | `partiellement_paye` |
   `en_attente` | `incoherent` | `info_insuffisante`
 - Confidence : `certain` | `probable` | `partiel` | `incertain`
