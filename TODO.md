@@ -6,12 +6,18 @@
 
 ---
 
-## 🔴 P0 — Audit 29/04 (à corriger en priorité)
+## 🔴 P0 — Audit 01/05
 
-- [x] ~~Fix 3 tests frontend login cassés~~ _(login.test.tsx + login-flow.test.tsx réécrits pour matcher window.location.href = "/actions")_
-- [x] ~~Fix `test_seed.py` fixture `db` manquante~~ _(.dockerignore retirait conftest.py — fix via .dockerignore)_
-- [x] ~~Investiguer CI failure sur main~~ _(Frontend Lint: migration eslint flat config Next 16. Frontend Tests: ClientScoreCard guard breakdown. Backend Tests: signup ne renvoie plus access_token, switch sur cookies dans test_billing/test_trial)_
-- [x] ~~Monter `tests/` en volume Docker ou retirer du `.dockerignore` pour dev~~ _(retiré, image inclut tests désormais)_
+- [x] ~~Fix test_admin_users.py password PasswordMixin~~ _(commit `32a869d`, "StrongPass1" → "StrongPass1!")_
+- [ ] Docker web build cassé : TypeScript 6 vs peer deps (openapi-typescript veut TS5, @typescript-eslint veut <6.1). Container web tourne avec ancienne image.
+  Action: soit downgrade TS à 5.9, soit attendre que les peer deps supportent TS6
+
+## 🔴 P0 — Audit 29/04 (tous corrigés)
+
+- [x] ~~Fix 3 tests frontend login cassés~~
+- [x] ~~Fix `test_seed.py` fixture `db` manquante~~
+- [x] ~~Investiguer CI failure sur main~~
+- [x] ~~Monter `tests/` en volume Docker~~
 
 ## 🟡 P1 — Audit 29/04
 

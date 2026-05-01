@@ -915,3 +915,12 @@ Commits : `aab3fdd` (P2 quick wins x8), `e9617bc` (C-2 expiration devis), `f4fa1
   - `Header.tsx` 305L → 138L + `_header/NotificationsDropdown.tsx` 181L (button cloche + dropdown SWR + mark-as-read).
 - **Imports relatifs interdits** : `test_architecture.py::test_no_relative_imports_in_app` régression dans les nouveaux packages `_ai/_auth`. Switch `from .X` → `from app.services.Y.X` partout.
 - **Validation finale** : 2194 tests backend passent (vs 2167 avant), 202 tests frontend, ruff vert, typecheck vert, eslint 0 errors. Commits : `e32f13f` (eslint flat config + ClientScoreCard + login tests + dockerignore), `b8193da` (splits + test fixes), `cf40a5f` (ruff F401/I001).
+
+### 2026-05-01 — All Inclusive api-cosium (2e pass)
+
+- **Score** : 7.5/10 (vs 7/10 le 29/04). 53 commits par session api-cosium-claude entre les deux audits.
+- **P0 fix** : `test_admin_users.py` password PasswordMixin (4 occurrences "StrongPass1" → "StrongPass1!"). Commit `32a869d`.
+- **P0 identifié** : Docker web build cassé (TS6 vs peer deps openapi-typescript/typescript-eslint). Container web tourne avec ancienne image.
+- **Progression session projet** : 11 findings Codex moyens corrigés (Stripe metadata, idempotence atomique, S3 presigned URLs, index unique cosium_id, TRIAL_DAYS, sync Cosium doc, fail-open Redis dev, retry frontend, upload tenant check, TLS doc).
+- **Métriques** : 2222 tests backend (4 fail corrigés → 2226), 202 frontend, coverage 80.53%, 0 vuln npm, Semgrep 12 (faux positifs).
+- **Reste** : Docker web TS6 peer conflict, CSRF double-submit (avant prod), Trivy bloquant, 4 fichiers >300L, ChatInterface.tsx regrandi à 342L.
