@@ -924,3 +924,10 @@ Commits : `aab3fdd` (P2 quick wins x8), `e9617bc` (C-2 expiration devis), `f4fa1
 - **Progression session projet** : 11 findings Codex moyens corrigés (Stripe metadata, idempotence atomique, S3 presigned URLs, index unique cosium_id, TRIAL_DAYS, sync Cosium doc, fail-open Redis dev, retry frontend, upload tenant check, TLS doc).
 - **Métriques** : 2222 tests backend (4 fail corrigés → 2226), 202 frontend, coverage 80.53%, 0 vuln npm, Semgrep 12 (faux positifs).
 - **Reste** : Docker web TS6 peer conflict, CSRF double-submit (avant prod), Trivy bloquant, 4 fichiers >300L, ChatInterface.tsx regrandi à 342L.
+
+### 2026-05-02 — Check VPS (vps-master)
+
+- **API container unhealthy** : Alembic migration cassée — `Can't locate revision identified by 'a4b5c6d7e8f9'`. La DB PostgreSQL pointe vers une révision qui n'existe plus dans le code. Le container API crashe au boot en boucle.
+  - **Fix** : soit `alembic stamp head` pour forcer la DB sur la dernière révision, soit recréer la migration manquante. Vérifier `alembic history` vs `alembic_version` table.
+- **Web container down** : build TS6 peer deps cassé (openapi-typescript veut TS5). Fix déjà documenté dans TODO.md P0 : `npm ci --legacy-peer-deps` dans Dockerfile.
+- **Disk** : nettoyé de 93% → 78% (build cache 9.2 GB purgé).
