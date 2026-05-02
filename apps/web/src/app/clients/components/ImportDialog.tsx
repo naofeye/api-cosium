@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { API_BASE } from "@/lib/api";
+import { csrfHeaders } from "@/lib/csrf";
 import {
   Upload,
   X,
@@ -65,6 +66,7 @@ export function ImportDialog({ open, onClose, onImported }: ImportDialogProps) {
         method: "POST",
         body: formData,
         credentials: "include",
+        headers: { ...csrfHeaders("POST") },
       });
       if (!result.ok) {
         const errData = await result.json().catch(() => ({}));

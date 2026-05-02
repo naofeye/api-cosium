@@ -1,9 +1,10 @@
 import { refreshAccessToken, clearAuthState } from "./auth";
+import { csrfHeaders } from "./csrf";
 export { API_BASE } from "./config";
 import { API_BASE } from "./config";
 const DEFAULT_TIMEOUT_MS = 10000;
 
-export async function fetchJson<T = unknown>(path: string, options?: RequestInit): Promise<T> {
+function buildHeaders(method: string, options?: RequestInit): Record<string, string> {
   const headers: Record<string, string> = {
     ...(options?.headers as Record<string, string>),
   };
@@ -11,6 +12,14 @@ export async function fetchJson<T = unknown>(path: string, options?: RequestInit
   if (options?.body && typeof options.body === "string") {
     headers["Content-Type"] = "application/json";
   }
+  // Double-submit CSRF : injection automatique sur methodes mutantes
+  Object.assign(headers, csrfHeaders(method));
+  return headers;
+}
+
+export async function fetchJson<T = unknown>(path: string, options?: RequestInit): Promise<T> {
+  const method = (options?.method ?? "GET").toUpperCase();
+  const headers = buildHeaders(method, options);
 
   let controller = new AbortController();
   let timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
@@ -34,9 +43,11 @@ export async function fetchJson<T = unknown>(path: string, options?: RequestInit
         // bloquee apres refresh suspend l'UI jusqu'a resolution reseau.
         controller = new AbortController();
         timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+        // Rebuild headers : refresh a regenere le cookie CSRF cote backend.
+        const retryHeaders = buildHeaders(method, options);
         response = await fetch(`${API_BASE}${path}`, {
           ...options,
-          headers,
+          headers: retryHeaders,
           credentials: "include",
           cache: "no-store",
           signal: controller.signal,

@@ -1,6 +1,7 @@
 import Cookies from "js-cookie";
 import { logger } from "@/lib/logger";
 import { API_BASE } from "./config";
+import { csrfHeaders } from "./csrf";
 
 const TENANT_ID_KEY = "optiflow_tenant_id";
 const TENANT_NAME_KEY = "optiflow_tenant_name";
@@ -24,6 +25,9 @@ export function clearAuthState() {
   Cookies.remove(TENANT_NAME_KEY);
   Cookies.remove(TENANTS_KEY);
   Cookies.remove("optiflow_authenticated");
+  // Le cookie CSRF est aussi nettoye cote backend a `/auth/logout`, mais on
+  // le retire explicitement au cas ou la requete reseau echoue.
+  Cookies.remove("optiflow_csrf");
 }
 
 // --- Tenant info (non-sensitive, stored in JS cookies) ---
@@ -118,7 +122,10 @@ export async function login(
 export async function switchTenant(tenantId: number): Promise<LoginResult> {
   const res = await fetch(`${API_BASE}/auth/switch-tenant`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...csrfHeaders("POST"),
+    },
     credentials: "include",
     body: JSON.stringify({ tenant_id: tenantId }),
   });
@@ -180,6 +187,7 @@ function clearServiceWorkerAuthData() {
 export function logout() {
   fetch(`${API_BASE}/auth/logout`, {
     method: "POST",
+    headers: { ...csrfHeaders("POST") },
     credentials: "include",
   }).catch((err) => {
     logger.error("[Auth] Erreur lors de la deconnexion:", err);

@@ -12,6 +12,7 @@ import {
 } from "react";
 import { API_BASE } from "@/lib/config";
 import { fetchJson } from "@/lib/api";
+import { csrfHeaders } from "@/lib/csrf";
 import { useToast } from "@/components/ui/Toast";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
@@ -86,7 +87,7 @@ export function ChatInterface() {
         const response = await fetch(`${API_BASE}/ai/copilot/stream`, {
           method: "POST",
           credentials: "include",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...csrfHeaders("POST") },
           body: JSON.stringify({ question, mode }),
           signal: controller.signal,
         });

@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/Toast";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { InlineEdit } from "@/components/ui/InlineEdit";
 import { fetchJson, API_BASE } from "@/lib/api";
+import { csrfHeaders } from "@/lib/csrf";
 
 interface AvatarUploadProps {
   clientId: string;
@@ -62,6 +63,7 @@ export function AvatarUpload({
         method: "POST",
         body: formData,
         credentials: "include",
+        headers: { ...csrfHeaders("POST") },
       });
       if (!response.ok) {
         let msg = "Impossible de mettre a jour l'avatar.";

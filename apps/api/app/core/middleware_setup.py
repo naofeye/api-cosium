@@ -2,7 +2,7 @@
 
 Extrait de `main.py`. Ordre des middlewares : `add_middleware` ajoute
 en outermost, donc le dernier ajouté est le premier exécuté. Ordre
-souhaité (outer → inner) : CORS > SecurityHeaders > RequestId >
+souhaité (outer → inner) : CORS > SecurityHeaders > RequestId > CSRF >
 RateLimiter > GZip. Les middlewares sont donc ajoutés dans l'ordre
 innermost-first.
 """
@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware as _BaseGZipMiddleware
 
 from app.core.config import settings
+from app.core.csrf import CSRF_HEADER_NAME, CsrfMiddleware
 from app.core.logging import get_logger
 from app.core.rate_limiter import RateLimiterMiddleware
 from app.core.request_id import RequestIdMiddleware
@@ -41,9 +42,10 @@ class SelectiveGZipMiddleware(_BaseGZipMiddleware):
 def setup_middlewares(app: FastAPI, app_version: str) -> None:
     """Attache la stack de middlewares à l'application + le logger http."""
     # Middleware stack — last added = outermost in Starlette.
-    # Desired order (outer → inner): CORS > SecurityHeaders > RequestId > RateLimiter > GZip
+    # Desired order (outer → inner): CORS > SecurityHeaders > RequestId > CSRF > RateLimiter > GZip
     app.add_middleware(SelectiveGZipMiddleware, minimum_size=1000)
     app.add_middleware(RateLimiterMiddleware)
+    app.add_middleware(CsrfMiddleware)
     app.add_middleware(RequestIdMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(
@@ -51,7 +53,7 @@ def setup_middlewares(app: FastAPI, app_version: str) -> None:
         allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type", "X-Idempotency-Key"],
+        allow_headers=["Authorization", "Content-Type", "X-Idempotency-Key", CSRF_HEADER_NAME],
     )
 
     @app.middleware("http")

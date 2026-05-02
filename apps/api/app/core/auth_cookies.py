@@ -7,6 +7,11 @@ jeu de cookies.
 from fastapi import Response
 
 from app.core.config import settings
+from app.core.csrf import (
+    clear_csrf_cookie,
+    generate_csrf_token,
+    set_csrf_cookie,
+)
 from app.domain.schemas.auth import TokenResponse
 
 
@@ -36,6 +41,9 @@ def set_auth_cookies(response: Response, result: TokenResponse) -> None:
         samesite="strict",
         secure=settings.app_env not in ("local", "development", "test"),
     )
+    # Token CSRF : double-submit cookie. Genere a chaque pose de session
+    # (login, refresh, switch-tenant) pour rotation reguliere.
+    set_csrf_cookie(response, generate_csrf_token())
 
 
 def clear_auth_cookies(response: Response) -> None:
@@ -48,3 +56,4 @@ def clear_auth_cookies(response: Response) -> None:
         samesite="strict",
         secure=settings.app_env not in ("local", "development", "test"),
     )
+    clear_csrf_cookie(response)
