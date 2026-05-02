@@ -106,10 +106,16 @@ def authenticate(db: Session, payload: LoginRequest) -> TokenResponse:
         is_group_admin=is_admin,
     )
     refresh_token = generate_refresh_token()
-    refresh_token_repo.create(db, refresh_token, user.id, get_refresh_token_expiry())
+    refresh_token_repo.create(
+        db,
+        refresh_token,
+        user.id,
+        get_refresh_token_expiry(),
+        tenant_id=default_tenant["id"],
+    )
     db.commit()
     _clear_login_attempts(payload.email)
-    logger.info("authentication_success", user_id=user.id, email=user.email, tenant_id=default_tenant["id"])
+    logger.info("authentication_success", user_id=user.id, tenant_id=default_tenant["id"])
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -130,27 +136,42 @@ def refresh(db: Session, token: str) -> TokenResponse:
         raise AuthenticationError("Utilisateur introuvable ou désactivé")
 
     tenants = get_user_tenants(db, user.id)
-    default_tenant = tenants[0] if tenants else None
     is_admin = is_group_admin(db, user.id)
 
+    # M2 fix : preserver le tenant courant (celui choisi via switch_tenant ou login)
+    # plutot que de retomber sur tenants[0]. Si le token est anterieur a la migration
+    # a4b5c6d7e8f9 (rt.tenant_id IS NULL) ou si le user n'a plus acces au tenant
+    # initial, on retombe sur tenants[0] pour ne pas casser la session.
+    current_tenant: dict | None = None
+    if rt.tenant_id is not None:
+        current_tenant = next((t for t in tenants if t["id"] == rt.tenant_id), None)
+    if current_tenant is None:
+        current_tenant = tenants[0] if tenants else None
+
     refresh_token_repo.revoke(db, token)
-    tenant_role = default_tenant["role"] if default_tenant else user.role
+    tenant_role = current_tenant["role"] if current_tenant else user.role
     new_access = create_access_token(
         user.email,
         tenant_role,
-        tenant_id=default_tenant["id"] if default_tenant else None,
+        tenant_id=current_tenant["id"] if current_tenant else None,
         is_group_admin=is_admin,
     )
     new_refresh = generate_refresh_token()
-    refresh_token_repo.create(db, new_refresh, user.id, get_refresh_token_expiry())
+    refresh_token_repo.create(
+        db,
+        new_refresh,
+        user.id,
+        get_refresh_token_expiry(),
+        tenant_id=current_tenant["id"] if current_tenant else None,
+    )
     db.commit()
-    logger.info("token_refreshed", user_id=user.id)
+    logger.info("token_refreshed", user_id=user.id, tenant_id=current_tenant["id"] if current_tenant else None)
     return TokenResponse(
         access_token=new_access,
         refresh_token=new_refresh,
         role=tenant_role,
-        tenant_id=default_tenant["id"] if default_tenant else None,
-        tenant_name=default_tenant["name"] if default_tenant else None,
+        tenant_id=current_tenant["id"] if current_tenant else None,
+        tenant_name=current_tenant["name"] if current_tenant else None,
         available_tenants=tenants,
     )
 
@@ -180,7 +201,13 @@ def switch_tenant(db: Session, user_id: int, new_tenant_id: int) -> TokenRespons
         is_group_admin=is_admin,
     )
     refresh_token = generate_refresh_token()
-    refresh_token_repo.create(db, refresh_token, user.id, get_refresh_token_expiry())
+    refresh_token_repo.create(
+        db,
+        refresh_token,
+        user.id,
+        get_refresh_token_expiry(),
+        tenant_id=tenant.id,
+    )
     db.commit()
     logger.info("tenant_switched", user_id=user.id, tenant_id=tenant.id)
     return TokenResponse(

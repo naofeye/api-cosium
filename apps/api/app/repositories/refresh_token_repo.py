@@ -11,8 +11,19 @@ def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def create(db: Session, token: str, user_id: int, expires_at: datetime) -> RefreshToken:
-    rt = RefreshToken(token=_hash_token(token), user_id=user_id, expires_at=expires_at)
+def create(
+    db: Session,
+    token: str,
+    user_id: int,
+    expires_at: datetime,
+    tenant_id: int | None = None,
+) -> RefreshToken:
+    rt = RefreshToken(
+        token=_hash_token(token),
+        user_id=user_id,
+        tenant_id=tenant_id,
+        expires_at=expires_at,
+    )
     db.add(rt)
     db.flush()
     db.refresh(rt)
