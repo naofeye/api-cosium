@@ -9,7 +9,11 @@
 ## 🔴 P0 — Audit 01/05
 
 - [x] ~~Fix test_admin_users.py password PasswordMixin~~ _(commit `32a869d`, "StrongPass1" → "StrongPass1!")_
-- [x] ~~Docker web build cassé~~ _(fix : `npm ci --legacy-peer-deps` dans `apps/web/Dockerfile` aligne avec les workflows CI deja modifies dans `473de33`. openapi-typescript@7.13 marche sur TS6 en pratique malgre le peer ^5.)_
+- [x] ~~Docker web build cassé~~ _(fix : `npm ci --legacy-peer-deps` dans `apps/web/Dockerfile` aligne avec les workflows CI deja modifies dans `473de33`. openapi-typescript@7.13 marche sur TS6 en pratique malgre le peer ^5. **Verifie 2026-05-02 : container web `Up healthy` apres rebuild.**)_
+
+## 🔴 P0 — Audit 02/05 (resolu)
+
+- [x] ~~Migration Alembic `a4b5c6d7e8f9` introuvable~~ _(faux positif : la migration existe (commit `f399f32`, refresh token tenant_id, merge des heads `a4d5e6f7g8h9` + `f8i9j0k1l2m3`). Le panel reportait l'ancien etat avant rebuild de l'image API. **Verifie 2026-05-02 : container API `Up healthy`, `application_started`, `cosium.ia.coging.com` 200.**)_
 
 ## 🔴 P0 — Audit 29/04 (tous corrigés)
 
