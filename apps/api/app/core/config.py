@@ -63,6 +63,10 @@ class Settings(BaseSettings):
 
     # Monitoring
     sentry_dsn: str = ""
+    # Token bearer pour /api/v1/metrics. Si vide en prod/staging, l'endpoint refuse
+    # tout acces (defense en profondeur si nginx/firewall fait defaut). En dev/test,
+    # vide = endpoint ouvert (pour faciliter le scrape Prometheus local).
+    metrics_token: str = ""
 
     # IA (Anthropic)
     anthropic_api_key: str = ""

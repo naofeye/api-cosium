@@ -1,18 +1,61 @@
 """Endpoint Prometheus /metrics — exposition format texte standard.
 
-Pas d'authentification (le bind 127.0.0.1 + nginx restreignent l'acces).
-Stack stack monitoring : Prometheus scrape ce endpoint toutes les 30s.
+Auth :
+- Si `METRICS_TOKEN` est defini : exige `Authorization: Bearer <token>`.
+- Sinon en dev/test : pas d'auth (scrape local).
+- Sinon en prod/staging : refuse 403 (defense en profondeur si nginx fait defaut).
+
+Stack monitoring : Prometheus scrape ce endpoint toutes les 30s.
 """
-from fastapi import APIRouter, Depends, Response
+import secrets
+
+from fastapi import APIRouter, Depends, Header, HTTPException, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.db.session import get_db
 from app.models import Customer, Tenant, User
 from app.models.cosium_data import CosiumInvoice
 from app.models.notification import ActionItem
 
 router = APIRouter(prefix="/api/v1", tags=["metrics"])
+
+
+def _check_metrics_auth(authorization: str | None = Header(default=None)) -> None:
+    """Garde-fou bearer pour /metrics.
+
+    En prod/staging :
+    - Si METRICS_TOKEN configure → exige `Authorization: Bearer <token>`
+      (comparaison constant-time).
+    - Si METRICS_TOKEN vide → 403 (refus par defaut, evite l'exposition silencieuse
+      derriere nginx mal configure).
+
+    En dev/test : ouvert sans token pour ne pas bloquer le scrape local.
+    """
+    expected = settings.metrics_token
+    is_protected_env = settings.app_env in ("production", "staging")
+
+    if not expected:
+        if is_protected_env:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Metrics endpoint protected: METRICS_TOKEN must be configured",
+            )
+        return  # dev/test ouvert
+
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Bearer token required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    provided = authorization[len("Bearer ") :].strip()
+    if not secrets.compare_digest(provided, expected):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid metrics token",
+        )
 
 
 def _format_metric(name: str, value: float, help_text: str = "", labels: dict | None = None) -> str:
@@ -32,7 +75,11 @@ def _format_metric(name: str, value: float, help_text: str = "", labels: dict | 
 @router.get(
     "/metrics",
     summary="Metrics Prometheus (format texte)",
-    description="Expose les compteurs business pour scraping Prometheus. Pas d'auth (bind 127.0.0.1).",
+    description=(
+        "Expose les compteurs business pour scraping Prometheus. "
+        "Auth bearer requise via METRICS_TOKEN en prod/staging."
+    ),
+    dependencies=[Depends(_check_metrics_auth)],
 )
 def prometheus_metrics(db: Session = Depends(get_db)) -> Response:
     """Counters globaux (multi-tenant) pour observabilite."""
