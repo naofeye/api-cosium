@@ -155,3 +155,53 @@ def update_cosium_cookies(
         device_credential=payload.device_credential,
     )
     return CosiumCookiesResponse(status="ok", message="Cookies Cosium mis a jour avec succes")
+
+
+
+# ---------------------------------------------------------------------------
+# Reconciliation factures orphelines (PEC V12)
+# ---------------------------------------------------------------------------
+
+
+class OrphanInvoiceStats(BaseModel):
+    total_invoices: int
+    orphans: int
+    linked_pct: float
+
+
+class OrphanReconcileResult(BaseModel):
+    processed: int
+    matched: int
+    still_orphan: int
+
+
+@router.get(
+    "/cosium/orphan-invoices",
+    response_model=OrphanInvoiceStats,
+    summary="Statistiques factures Cosium orphelines",
+)
+def get_orphan_invoice_stats(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
+) -> OrphanInvoiceStats:
+    from app.services.orphan_invoice_service import count_orphan_invoices
+
+    stats = count_orphan_invoices(db, tenant_ctx.tenant_id)
+    return OrphanInvoiceStats(**stats)
+
+
+@router.post(
+    "/cosium/reconcile-orphans",
+    response_model=OrphanReconcileResult,
+    summary="Rejoue le matching pour les factures orphelines",
+)
+def reconcile_orphans(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin", "manager")),
+) -> OrphanReconcileResult:
+    from app.services.orphan_invoice_service import reconcile_orphan_invoices
+
+    # Limite de securite : 5000 factures max par appel synchrone (UI).
+    # Pour des volumes plus gros, la task Celery quotidienne tourne deja.
+    result = reconcile_orphan_invoices(db, tenant_ctx.tenant_id, limit=5000)
+    return OrphanReconcileResult(**result)
