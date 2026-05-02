@@ -931,3 +931,9 @@ Commits : `aab3fdd` (P2 quick wins x8), `e9617bc` (C-2 expiration devis), `f4fa1
   - **Fix** : soit `alembic stamp head` pour forcer la DB sur la dernière révision, soit recréer la migration manquante. Vérifier `alembic history` vs `alembic_version` table.
 - **Web container down** : build TS6 peer deps cassé (openapi-typescript veut TS5). Fix déjà documenté dans TODO.md P0 : `npm ci --legacy-peer-deps` dans Dockerfile.
 - **Disk** : nettoyé de 93% → 78% (build cache 9.2 GB purgé).
+
+### 2026-05-02 — Confirmation résolution (session api-cosium-claude)
+
+- **Migration Alembic** : ✅ résolu — image rebuild a inclus le fichier (commit `f399f32`)
+- **Web TS6 peer deps** : ✅ résolu — `--legacy-peer-deps` dans Dockerfile (commit `1c698ec`)
+- **8/8 containers healthy**, cosium.ia.coging.com HTTP 200
