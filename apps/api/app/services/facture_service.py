@@ -13,7 +13,7 @@ from app.domain.schemas.factures import (
 from app.integrations.email_sender import EmailAttachment, email_sender
 from app.integrations.email_templates import render_email
 from app.repositories import devis_repo, facture_repo
-from app.services import audit_service, event_service, pdf_service
+from app.services import audit_service, event_service, pdf_service, webhook_emit_helpers
 
 logger = get_logger("facture_service")
 
@@ -90,7 +90,9 @@ def create_from_devis(db: Session, tenant_id: int, devis_id: int, user_id: int) 
         event_service.emit_event(db, tenant_id, "FactureEmise", "facture", facture.id, user_id)
 
     logger.info("facture_created", tenant_id=tenant_id, facture_id=facture.id, numero=numero, devis_id=devis_id)
-    return FactureResponse.model_validate(facture)
+    response = FactureResponse.model_validate(facture)
+    webhook_emit_helpers.emit_facture_created(db, tenant_id, response)
+    return response
 
 
 def list_factures(db: Session, tenant_id: int, limit: int = 25, offset: int = 0) -> list[FactureResponse]:
@@ -241,6 +243,8 @@ def create_avoir(
             },
         )
         event_service.emit_event(db, tenant_id, "AvoirEmis", "facture", avoir.id, user_id)
+        avoir_response = FactureResponse.model_validate(avoir)
+        webhook_emit_helpers.emit_facture_avoir_created(db, tenant_id, avoir_response, facture_id)
         db.commit()
 
     logger.info(

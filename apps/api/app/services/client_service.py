@@ -17,7 +17,7 @@ from app.domain.schemas.clients import (
 )
 from app.models.client import Customer
 from app.repositories import client_repo
-from app.services import audit_service
+from app.services import audit_service, webhook_emit_helpers
 from app.services.client_completeness_service import calculate_client_completeness
 
 # Re-export quick view and avatar functions for backward compatibility
@@ -95,7 +95,9 @@ def create_client(db: Session, tenant_id: int, payload: ClientCreate, user_id: i
         new_value=payload.model_dump(exclude_none=True),
     )
     logger.info("client_created", tenant_id=tenant_id, client_id=customer.id, user_id=user_id)
-    return ClientResponse.model_validate(customer)
+    response = ClientResponse.model_validate(customer)
+    webhook_emit_helpers.emit_client_created(db, tenant_id, response)
+    return response
 
 
 def update_client(db: Session, tenant_id: int, client_id: int, payload: ClientUpdate, user_id: int) -> ClientResponse:
@@ -113,7 +115,9 @@ def update_client(db: Session, tenant_id: int, client_id: int, payload: ClientUp
         new_value=payload.model_dump(exclude_unset=True),
     )
     logger.info("client_updated", tenant_id=tenant_id, client_id=client_id, user_id=user_id)
-    return ClientResponse.model_validate(updated)
+    response = ClientResponse.model_validate(updated)
+    webhook_emit_helpers.emit_client_updated(db, tenant_id, response)
+    return response
 
 
 def delete_client(db: Session, tenant_id: int, client_id: int, user_id: int, force: bool = False) -> None:

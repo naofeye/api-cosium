@@ -15,7 +15,7 @@ from app.domain.schemas.devis import (
 from app.integrations.email_sender import EmailAttachment, email_sender
 from app.integrations.email_templates import render_email
 from app.repositories import devis_repo
-from app.services import audit_service, event_service, pdf_service
+from app.services import audit_service, event_service, pdf_service, webhook_emit_helpers
 
 logger = get_logger("devis_service")
 
@@ -102,6 +102,8 @@ def create_devis(db: Session, tenant_id: int, payload: DevisCreate, user_id: int
             new_value={"numero": numero, "montant_ttc": total_ttc},
         )
         event_service.emit_event(db, tenant_id, "DevisCree", "devis", devis.id, user_id)
+        devis_response = DevisResponse.model_validate(devis)
+        webhook_emit_helpers.emit_devis_created(db, tenant_id, devis_response)
 
     logger.info("devis_created", tenant_id=tenant_id, devis_id=devis.id, numero=numero)
     return DevisResponse.model_validate(devis)
@@ -204,6 +206,9 @@ def change_status(db: Session, tenant_id: int, devis_id: int, new_status: str, u
         event_name = EVENT_MAP.get(new_status)
         if event_name:
             event_service.emit_event(db, tenant_id, event_name, "devis", devis.id, user_id)
+            webhook_emit_helpers.emit_devis_status_changed(
+                db, tenant_id, DevisResponse.model_validate(devis), new_status
+            )
 
     logger.info("devis_status_changed", tenant_id=tenant_id, devis_id=devis.id, old=old_status, new=new_status)
     return DevisResponse.model_validate(devis)

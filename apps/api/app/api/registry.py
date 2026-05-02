@@ -47,6 +47,7 @@ from app.api.routers import (
     gdpr,
     marketing,
     metrics,
+    webhooks,
     notifications,
     ocam_operators,
     onboarding,
@@ -97,6 +98,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(consents.router)
     app.include_router(marketing.router)
     app.include_router(metrics.router)
+    app.include_router(webhooks.router)
     app.include_router(web_vitals.router)
     app.include_router(search.router)
     app.include_router(sync.router)
