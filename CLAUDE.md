@@ -837,6 +837,14 @@ docker compose exec api alembic upgrade head
 > Cette section est maintenue par la session `vps-master` quand elle intervient sur ce projet.
 > La session `api-cosium-claude` doit la lire au demarrage pour savoir ce qui a change.
 
+### 2026-05-02 — All Inclusive VPS (commit `4ba7bd2`)
+
+vps-master a effectué un audit all-inclusive sur l'ensemble du VPS (post-migration hardware Hostinger srv1570816). Pour ce projet :
+
+- **`.github/workflows/ci.yml`** : enrichissement des commentaires de l'ignore-list `pip-audit` avec date de re-évaluation 2026-06-15 explicite (CVE-2025-71176 pytest dev-only, CVE-2025-62727 starlette via FastAPI). Le diff était dirty depuis l'audit précédent, maintenant commit `4ba7bd2`. Si la date passe sans action, supprimer les ignores et bloquer la CI.
+
+Pas d'autre intervention sur ce projet. Tests, code, infra inchangés. CI verte.
+
 ### 2026-04-25 — Audit VPS + fix OOM + CI
 
 - **Fix OOM api container** : `mem_limit` passe de 768m a 1536m dans `docker-compose.yml`. Le worker Celery `bulk_download_cosium_documents` causait des OOM kills en boucle (652 kills en une nuit). Concurrency deja reduite a 2 (session precedente).
