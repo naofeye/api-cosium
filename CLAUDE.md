@@ -945,3 +945,9 @@ Commits : `aab3fdd` (P2 quick wins x8), `e9617bc` (C-2 expiration devis), `f4fa1
 - **Migration Alembic** : ✅ résolu — image rebuild a inclus le fichier (commit `f399f32`)
 - **Web TS6 peer deps** : ✅ résolu — `--legacy-peer-deps` dans Dockerfile (commit `1c698ec`)
 - **8/8 containers healthy**, cosium.ia.coging.com HTTP 200
+
+### 2026-05-02 — Fix CI rollback Alembic (vps-master)
+
+- **CI failure persistant** sur main (`4ba7bd2`, `363946c`) : job *Test Alembic rollback* echoue avec `Ambiguous walk`. Cause : la head `a4b5c6d7e8f9` est un mergepoint a 2 parents, `alembic downgrade -1` ne sait pas quelle branche descendre.
+- **Fix** : `.github/workflows/ci.yml` resout la cible dynamiquement via `alembic show head | grep -E '^(Parent|Merges):'` puis downgrade vers cette revision. Robuste pour mergepoints + migrations lineaires.
+- **Test local** : downgrade traverse 6 migrations puis upgrade head re-applique sans erreur. CodeQL et E2E etaient deja verts ; reste a verifier que le job CI passe sur le push.

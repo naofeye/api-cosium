@@ -51,12 +51,20 @@ jobs:
           cache-dependency-path: apps/api/requirements.txt
       - run: pip install -r apps/api/requirements.txt
       - run: cd apps/api && alembic upgrade head
-      # Rollback test : downgrade -1 puis upgrade head pour valider que la
-      # derniere migration est reversible (pas de DROP TABLE non-recreable).
+      # Rollback test : valide que la derniere migration est reversible
+      # (pas de DROP TABLE non-recreable). On cible la 1ere parent revision
+      # via `alembic show head` au lieu de `downgrade -1`, ambigu quand
+      # head est un mergepoint a 2 parents.
       - name: Test Alembic rollback
         run: |
           cd apps/api
-          alembic downgrade -1
+          TARGET=$(alembic show head | grep -E '^(Parent|Merges):' | head -1 | awk '{print $2}' | tr -d ',')
+          if [ -z "$TARGET" ]; then
+            echo "Impossible de determiner la revision cible" >&2
+            exit 1
+          fi
+          echo "Downgrading head -> $TARGET"
+          alembic downgrade "$TARGET"
           alembic upgrade head
       - name: Run pytest with coverage
         run: |
