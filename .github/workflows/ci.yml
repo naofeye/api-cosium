@@ -95,9 +95,12 @@ jobs:
       - run: pip install bandit pip-audit
       # Bandit : static analysis code security. ll = medium/high, skip assert & shell in subprocess (false positives sur tests).
       - run: cd apps/api && bandit -r app/ -ll --skip B101,B601
-      # pip-audit : CVEs strict. Ignore list documentee (triage 2026-04-16) :
-      #   - CVE-2025-71176 (pytest) : dev-only, pas d'exposition prod
-      #   - CVE-2025-62727 (starlette) : embed FastAPI 0.116, upgrade necessite FastAPI compatible
+      # pip-audit : CVEs strict. Ignore list documentee (Codex audit 2026-05-02 finding M4) :
+      #   - CVE-2025-71176 (pytest 8.4.2 → 9.0.3+) : dev-only, pas d'exposition prod.
+      #     Re-evaluation : 2026-06-15 — upgrade vers pytest 9.x.
+      #   - CVE-2025-62727 (starlette 0.47.3 → 0.49.1+) : exige bump FastAPI ≥0.118.
+      #     Re-evaluation : 2026-06-15 — bump FastAPI/Starlette quand chaine compatible.
+      # Si la date depasse sans action, supprimer les ignores et bloquer la CI.
       - run: |
           cd apps/api && pip-audit -r requirements.txt --strict \
             --ignore-vuln CVE-2025-71176 \
