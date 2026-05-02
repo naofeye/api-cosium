@@ -16,8 +16,6 @@ Best-effort : ne crash pas en bloc si une ligne pose probleme.
 """
 from __future__ import annotations
 
-from typing import Optional
-
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -116,7 +114,7 @@ def reconcile_orphan_invoices(
     matched = 0
     still_orphan = 0
     for inv in orphans:
-        new_customer_id: Optional[int] = None
+        new_customer_id: int | None = None
 
         # 1) cosium_id direct
         if inv.customer_cosium_id:

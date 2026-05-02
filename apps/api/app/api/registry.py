@@ -47,7 +47,6 @@ from app.api.routers import (
     gdpr,
     marketing,
     metrics,
-    webhooks,
     notifications,
     ocam_operators,
     onboarding,
@@ -63,6 +62,7 @@ from app.api.routers import (
     sse,
     sync,
     web_vitals,
+    webhooks,
 )
 
 

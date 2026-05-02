@@ -19,6 +19,15 @@
 
 - [x] ~~Migration Alembic `a4b5c6d7e8f9` introuvable~~ _(faux positif : la migration existe (commit `f399f32`, refresh token tenant_id, merge des heads `a4d5e6f7g8h9` + `f8i9j0k1l2m3`). Le panel reportait l'ancien etat avant rebuild de l'image API. **Verifie 2026-05-02 : container API `Up healthy`, `application_started`, `cosium.ia.coging.com` 200.**)_
 
+## ✅ Sweep autonome 2026-05-02 (vps-master, 4 features livrees + fix CI)
+
+- [x] ~~Fix CI rollback Alembic mergepoint-safe~~ _(commit `6ab50c7`. `alembic downgrade -1` ambigu sur head mergepoint a 2 parents -> extraction dynamique de la 1ere parent revision via `alembic show head | grep -E '^(Parent|Merges):'`. Robuste pour mergepoints + migrations lineaires futures. CI 25245217267 success.)_
+- [x] ~~CSRF double-submit cookie (P1 securite avant prod)~~ _(commit `9c724eb`. Pattern OWASP : middleware FastAPI valide `X-CSRF-Token` header == `optiflow_csrf` cookie sur mutations authentifiees. 9 paths exemptes (login/refresh/signup/Stripe webhooks/web-vitals beacon). Transition deploy : safe requests authentifiees seedent le cookie automatiquement. Bypass app_env=test (suite existante de ~150 fichiers preservee, tests dedies tests/test_csrf.py 15/15). Frontend : helper `lib/csrf.ts` + injection auto dans `fetchJson` + 3 mutations directes patches (chat SSE, avatar upload, CSV import).)_
+- [x] ~~Webhooks HTTP sortants (Coming Soon devenu reel, T3 2026 -> 2026-05-02)~~ _(commit `07ab6d3`. Tables `webhook_subscriptions` + `webhook_deliveries`, migration `b5c6d7e8f9a1`, signature HMAC-SHA256, 14 event_types whitelist, retry backoff [30s, 2m, 15m, 1h, 6h], replay endpoint admin, page `/admin/webhooks` (CRUD + deliveries refresh 5s + secret affiche une seule fois). Hooks integres : `client.created/updated`, `facture.created`, `facture.avoir_created`, `devis.created/signed/refused`. 28 nouveaux tests.)_
+- [x] ~~PEC reconciliation factures Cosium orphelines (V12)~~ _(commit `ff5ad53`. `services/orphan_invoice_service.py::reconcile_orphan_invoices` rejoue le matching cosium_id + name fuzzy pour les factures `customer_id IS NULL`. Utile apres import client posterieur a la sync facture. Task Celery cross-tenant `reconcile_all_tenants_orphans` (a planifier en beat). 2 endpoints admin : `/admin/cosium/orphan-invoices` (stats : total/orphans/linked_pct) + `/admin/cosium/reconcile-orphans` (trigger sync, limit 5000). 5 tests.)_
+
+**Bilan session** : +33 tests backend (2284 vs 2251 avant), 0 regression. 4 commits pushes (`6ab50c7`, `9c724eb`, `07ab6d3`, `ff5ad53`). 1 features Coming Soon livree (Webhooks). 1 P1 securite ferme (CSRF). Session menee de bout en bout : recon, plan, code, tests, validation, push, deploy auto.
+
 ## 🔴 P0 — Audit 29/04 (tous corrigés)
 
 - [x] ~~Fix 3 tests frontend login cassés~~
@@ -45,7 +54,7 @@
 |---|---|
 | Architecture backend (routers/services/repos, multi-tenant, Cosium read-only) | 🟢 Solide |
 | Frontend (Next 15, SWR, CSP nonces, 0 `any`, PWA base) | 🟡 Bonne, perf client à travailler |
-| Sécurité (OWASP, JWT, bcrypt, idempotence, audit logs) | 🟡 MFA et CSRF Strict manquants |
+| Sécurité (OWASP, JWT, bcrypt, idempotence, audit logs, CSRF double-submit) | 🟢 Renforcee |
 | Tests (~107 passent, suites critiques) | 🟡 Baseline coverage non enforcée |
 | Infra/CI (Alembic + rollback, Prometheus, Sentry, Celery beat) | 🟢 Mature |
 | Dette technique | 🟡 6 fichiers >400 lignes, quelques N+1, `time.sleep` Cosium |
