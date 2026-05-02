@@ -64,14 +64,31 @@ def login_form(
     # SameSite=strict protege deja les cookies, mais on ajoute une verification
     # explicite Origin/Referer pour empecher un site externe de creer un compte
     # de session fixation via <form action=...>.
+    from urllib.parse import quote, urlsplit
+
     from app.core.config import settings as _settings
-    allowed_origins = {o.strip() for o in _settings.cors_origins.split(",") if o.strip()}
-    origin = request.headers.get("origin") or request.headers.get("referer", "")
-    if origin:
-        # Match prefix (l'origin est l'URL complete, on autorise si elle commence par
-        # un des origines autorisees)
-        if not any(origin.startswith(allowed) for allowed in allowed_origins):
-            from urllib.parse import quote
+
+    def _normalize_origin(value: str) -> str | None:
+        # Reconstruit scheme://host[:port] depuis une URL ou un origin brut.
+        if not value:
+            return None
+        parts = urlsplit(value)
+        if not parts.scheme or not parts.netloc:
+            return None
+        return f"{parts.scheme}://{parts.netloc}".lower()
+
+    allowed_origins = {
+        norm
+        for raw in _settings.cors_origins.split(",")
+        if (norm := _normalize_origin(raw.strip()))
+    }
+    origin_header = request.headers.get("origin") or request.headers.get("referer", "")
+    if origin_header:
+        # Comparaison stricte sur scheme://host[:port], pas un prefixe :
+        # un origin comme "https://app.example.com.evil.test" ne doit pas matcher
+        # "https://app.example.com".
+        normalized = _normalize_origin(origin_header)
+        if normalized is None or normalized not in allowed_origins:
             return RedirectResponse(
                 url=f"/login?error={quote('Origine non autorisee')}",
                 status_code=303,
@@ -82,7 +99,6 @@ def login_form(
         result = auth_service.authenticate(db, payload)
     except AuthenticationError as exc:
         msg = str(exc) or "Email ou mot de passe incorrect"
-        from urllib.parse import quote
         return RedirectResponse(url=f"/login?error={quote(msg)}", status_code=303)
     except Exception:
         return RedirectResponse(url="/login?error=Erreur+inattendue", status_code=303)
