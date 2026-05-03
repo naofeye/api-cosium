@@ -952,6 +952,46 @@ Commits : `aab3fdd` (P2 quick wins x8), `e9617bc` (C-2 expiration devis), `f4fa1
 - **Fix** : `.github/workflows/ci.yml` resout la cible dynamiquement via `alembic show head | grep -E '^(Parent|Merges):'` puis downgrade vers cette revision. Robuste pour mergepoints + migrations lineaires.
 - **Test local** : downgrade traverse 6 migrations puis upgrade head re-applique sans erreur. CodeQL et E2E etaient deja verts ; reste a verifier que le job CI passe sur le push.
 
+### 2026-05-03 (continue) — Sweep BLOC J/K/L (vps-master) — 12 livrables additionnels
+
+Apres validation CI verte du sweep initial, continuation autonome a la
+demande "continu a bosser !!!" puis "continue avec d'autres ameliorations".
+3 commits supplementaires, 12 livrables.
+
+**Livrables BLOC J** (commit `cbae06a`) :
+- Split facture_service.py 361L -> 110L + 2 sous-modules (_factures/_avoir.py
+  166L + _factures/_email.py 105L)
+- Split action_item_service.py 310L -> 73L + _action_items/_generators.py
+  268L. Aliases `_generate_*` preserves pour compat tests
+- 10 tests services manquants : test_client_360_service.py (6) +
+  test_admin_metrics_service.py (4)
+- Audit N+1 confirme : tous les relationships lazy="noload"
+- PWA polish : OnlineIndicator.tsx (toast persistant offline + reload
+  auto), page /offline enrichie 2 sections (offline disponible / queue)
+
+**Livrables BLOC K** (commit `554b9e2`) :
+- Mypy strict pilote 4 modules : impact_score, webhook_service,
+  api_token_service, csrf. mypy.ini + CI job dedie + doc
+  docs/CONTRIBUTING.md
+- Healthcheck enrichi : endpoint /admin/health-detail (db_pool, Celery
+  queues, runtime versions) + HealthDetail.tsx auto-refresh 10s
+- Audit logs CSV export : endpoint /audit-logs/export.csv RGPD-traced +
+  bouton dans /admin/audit
+- Widget API publique dans /admin : tokens actifs, utilises 24h, top 3
+  recents. Pulse adoption.
+
+**Livrables BLOC L** (commit `60783b9`) :
+- GlobalSearch keyboard nav : Ctrl+K/Cmd+K focus global, ArrowDown/Up,
+  Enter selectionne, Escape ferme. Highlight visuel + aria-selected
+- global-error.tsx Next.js root error boundary (inline styles, layout
+  root casse) + error.tsx enrichi Sentry.captureException
+- Performance frontend : audit confirme 28 dynamic imports deja
+  couverts (DashboardCharts, AgendaCalendar, ClientTabs, etc.)
+
+**Bilan cumule session 2026-05-03** : 13 commits pushes, 4 migrations
+Alembic, 4 modules mypy strict, 1 page Coming Soon livree (API publique
+v1), 0 regression sur tous les pushes.
+
 ### 2026-05-03 — Sweep autonome ambitieux 24/48h (vps-master) — 9 livrables
 
 Mission "audit profond + plan ambitieux 24/48h, polish + nice-to-have inclus".

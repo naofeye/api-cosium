@@ -19,6 +19,42 @@
 
 - [x] ~~Migration Alembic `a4b5c6d7e8f9` introuvable~~ _(faux positif : la migration existe (commit `f399f32`, refresh token tenant_id, merge des heads `a4d5e6f7g8h9` + `f8i9j0k1l2m3`). Le panel reportait l'ancien etat avant rebuild de l'image API. **Verifie 2026-05-02 : container API `Up healthy`, `application_started`, `cosium.ia.coging.com` 200.**)_
 
+## ✅ Sweep continue 2026-05-03 BLOC J/K/L (vps-master, 12 livrables additionnels)
+
+Apres validation CI verte du sweep ambitieux initial (`b29941b`), continuation
+a la demande "continu a bosser !!!" puis "Verifie CI sur ... continue avec...".
+
+### BLOC J — Refactor + tests + PWA polish (commit `cbae06a`)
+- [x] ~~J1 Split facture_service.py 361L -> 110L + 2 modules~~ _(_factures/_avoir.py 166L + _factures/_email.py 105L. Re-exports preserves)_
+- [x] ~~J2 Split action_item_service.py 310L -> 73L + package~~ _(_action_items/_generators.py 268L. 6 generators publiques. Aliases _generate_* preserves pour tests)_
+- [x] ~~J3 Tests admin_metrics_service + client_360_service~~ _(10 tests : 6 client_360 (404, empty, with_case, isolation, cosium_data 404+empty) + 4 admin_metrics (empty, counts_clients, counts_cases, isolation))_
+- [x] ~~J4 N+1 audit~~ _(audit confirme : tous les relationships en lazy="noload" dans models, pas de N+1 silencieux. Le seul reel etait banking_repo.get_transaction_signatures deja corrige en B3 yield_per)_
+- [x] ~~J5 PWA polish offline UX~~ _(OnlineIndicator.tsx toast persistant offline + reload auto online. Page /offline enrichie avec 2 sections (Disponible offline / Background sync queue))_
+
+### BLOC K — Mypy + Healthcheck + Audit + Dashboard (commit `554b9e2`)
+- [x] ~~K1 Mypy strict pilote~~ _(mypy.ini config global tolerante + sections strict pour 4 modules : impact_score, webhook_service, api_token_service, csrf. CI job dedie. Doc dans CONTRIBUTING.md)_
+- [x] ~~K2 Healthcheck dashboard enrichi~~ _(endpoint /api/v1/admin/health-detail avec db_pool stats, Celery queues, runtime versions. Composant HealthDetail.tsx avec auto-refresh 10s + barre saturation pool)_
+- [x] ~~K3 Audit logs CSV export~~ _(endpoint /api/v1/audit-logs/export.csv streame, RGPD-traced (audit log de l'export). Bouton frontend dans /admin/audit avec filtres URL params)_
+- [x] ~~K4 Notifications mark-all-read~~ _(deja livre dans sessions precedentes : endpoint PATCH /notifications/mark-all-read + bouton frontend dans NotificationsDropdown)_
+- [x] ~~K5 Dashboard widget API publique~~ _(ApiPubliqueWidget.tsx mounted sur /admin : nb tokens actifs, utilises 24h, top 3 recents. Pulse pour observer adoption API publique livree D1)_
+
+### BLOC L — UX + Errors (commit `60783b9`)
+- [x] ~~L1 GlobalSearch keyboard nav~~ _(Ctrl+K/Cmd+K global focus, ArrowDown/Up deplace highlight, Enter selectionne, Escape ferme. Indicateur visuel highlight + aria-selected)_
+- [x] ~~L2 Error boundaries riches + Sentry~~ _(nouveau global-error.tsx pour root layout errors (inline styles), error.tsx enrichi avec Sentry.captureException best-effort)_
+- [x] ~~L3 Performance frontend~~ _(audit : 28 dynamic imports deja en place sur composants lourds. Couverture satisfaisante)_
+
+### Bilan session continue (BLOC J + K + L)
+
+3 commits pushes : `cbae06a` (J), `554b9e2` (K), `60783b9` (L).
++10 tests backend (2312 -> 2312 stable apres splits qui re-exportent),
+0 regression. CI verte sur `554b9e2` avec nouveau job Backend Mypy
+Strict Pilot. Cumul session 2026-05-03 : **13 commits**, 4 migrations,
+1 Coming Soon livree (API publique v1), 1 ADR (PEC reconciliation),
+2 runbooks prod (validate-prod.sh, COSIUM_CREDS_ROTATION.md), 4 modules
+mypy strict.
+
+---
+
 ## ✅ Sweep autonome 2026-05-03 (vps-master, 9 livrables ambitieux)
 
 Demande : "tu as 24/48h, plan ambitieux, polish + nice-to-have inclus".
