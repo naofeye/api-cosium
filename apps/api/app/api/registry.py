@@ -41,6 +41,7 @@ from app.api.routers import (
     cosium_spectacles,
     dashboard,
     devis,
+    devis_signature,
     documents,
     exports,
     extractions,
@@ -85,6 +86,8 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(client_mutuelles.router)
     app.include_router(clients.router)
     app.include_router(devis.router)
+    app.include_router(devis_signature.public_router)
+    app.include_router(devis_signature.admin_router)
     app.include_router(documents.router)
     app.include_router(extractions.router)
     app.include_router(factures.router)

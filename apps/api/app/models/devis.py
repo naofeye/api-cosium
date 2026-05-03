@@ -34,6 +34,15 @@ class Devis(Base):
     updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, onupdate=lambda: datetime.now(UTC))
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
 
+    # Signature electronique (eIDAS Simple) — V1 clickwrap. Voir
+    # services/devis_signature_service.py et migration e8f9a1b2c3d4.
+    public_token: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True, index=True)
+    signed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    signature_method: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    signature_ip: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    signature_user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    signature_consent_text: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+
     case: Mapped["Case"] = relationship("Case", back_populates="devis", lazy="noload")  # type: ignore[name-defined]  # noqa: F821
 
 
