@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,6 +8,7 @@ import { devisCreateSchema, type DevisCreateFormData } from "@/lib/schemas/devis
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/Button";
 import { fetchJson } from "@/lib/api";
+import { mutateJson } from "@/lib/mutate";
 import { logger } from "@/lib/logger";
 import { ClientContextPanel } from "./components/ClientContextPanel";
 import type { ClientContext } from "./components/ClientContextPanel";
@@ -94,12 +95,18 @@ export default function NewDevisPage() {
   const totalTVA = Math.round((totalTTC - totalHT) * 100) / 100;
   const reste = Math.max(Math.round((totalTTC - (Number(watchPartSecu) || 0) - (Number(watchPartMutuelle) || 0)) * 100) / 100, 0);
 
+  // Cle d'idempotence stable pour la duree de vie du formulaire (Codex M1) :
+  // un retry sur erreur reseau ou un double clic envoie la MEME cle, ce qui
+  // permet au backend de dedupliquer plutot que creer un doublon.
+  const idempotencyKey = useRef(crypto.randomUUID()).current;
+
   const onSubmit = async (data: DevisCreateFormData) => {
     setError(null);
     try {
-      const resp = await fetchJson<{ id: number }>("/devis", {
+      const resp = await mutateJson<{ id: number }>("/devis", {
         method: "POST",
         body: JSON.stringify(data),
+        idempotencyKey,
       });
       router.push(`/devis/${resp.id}`);
     } catch (err) {

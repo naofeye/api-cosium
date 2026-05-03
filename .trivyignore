@@ -1,0 +1,14 @@
+# Allowlist Trivy — CVE acceptees temporairement.
+#
+# Format : un CVE par ligne. Toujours commenter pourquoi + date d'echeance.
+# Le job CI .github/workflows/security-scan.yml a `exit-code: 1` qui bloque
+# en cas de CVE CRITICAL/HIGH non listee ici.
+#
+# Process pour ajouter une CVE :
+# 1. Trivy a flagge une CVE en CI.
+# 2. Verifier qu'elle n'est pas exploitable (dev dependency, code path mort,
+#    config attenuante, etc.).
+# 3. Ajouter ici avec : `CVE-YYYY-NNNNN  # raison + date re-eval YYYY-MM-DD`
+# 4. Si la fix upstream existe : prioriser le bump plutot que d'ajouter ici.
+#
+# Re-evaluer cette liste a chaque cycle quality (mensuel).

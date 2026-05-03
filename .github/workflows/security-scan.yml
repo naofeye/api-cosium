@@ -35,7 +35,11 @@ jobs:
           format: "table"
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
-          exit-code: "0"  # report only, ne casse pas le workflow
+          # Codex N1 (REVIEW.md 2026-05-03) : exit-code 1 pour bloquer la
+          # CI sur CVE CRITICAL/HIGH non corrigees. Allowlist via .trivyignore
+          # a la racine du repo (ajouter une CVE = documenter pourquoi).
+          exit-code: "1"
+          trivyignores: ".trivyignore"
 
       - name: Trivy SARIF for GitHub Security tab
         uses: aquasecurity/trivy-action@0.28.0
@@ -72,7 +76,8 @@ jobs:
           format: "table"
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
-          exit-code: "0"
+          exit-code: "1"
+          trivyignores: ".trivyignore"
 
       - name: Trivy SARIF for GitHub Security tab
         uses: aquasecurity/trivy-action@0.28.0

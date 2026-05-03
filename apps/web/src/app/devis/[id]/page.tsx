@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { fetchJson } from "@/lib/api";
+import { mutateJson } from "@/lib/mutate";
 import { formatMoney } from "@/lib/format";
 import { factureCreateSchema } from "@/lib/schemas/facture";
 import { Euro, FileText, ShieldCheck, Heart, XCircle } from "lucide-react";
@@ -58,9 +59,12 @@ export default function DevisDetailPage() {
     setMutationError(null);
     try {
       const payload = factureCreateSchema.parse({ devis_id: devis!.id });
-      const resp = await fetchJson<{ id: number }>("/factures", {
+      // Cle d'idempotence stable : le devis_id sert de cle naturelle
+      // pour eviter les doublons de facture sur double-clic / retry.
+      const resp = await mutateJson<{ id: number }>("/factures", {
         method: "POST",
         body: JSON.stringify(payload),
+        idempotencyKey: `facture-from-devis-${devis!.id}`,
       });
       router.push(`/factures/${resp.id}`);
     } catch (err) {

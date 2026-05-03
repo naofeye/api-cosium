@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
-import { fetchJson } from "@/lib/api";
+import { mutateJson } from "@/lib/mutate";
 import { formatMoney } from "@/lib/format";
 import { X, AlertCircle } from "lucide-react";
 
@@ -29,6 +29,9 @@ export function CreateAvoirDialog({
   const [partial, setPartial] = useState(false);
   const [montantPartiel, setMontantPartiel] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
+  // Cle d'idempotence : un seul avoir par "ouverture" du dialogue. Reset
+  // au close pour permettre une 2eme creation legitime.
+  const idempotencyKey = useRef(crypto.randomUUID());
 
   if (!open) return null;
 
@@ -36,6 +39,8 @@ export function CreateAvoirDialog({
     setMotif("");
     setPartial(false);
     setMontantPartiel("");
+    // Nouvelle cle apres close pour ne pas reutiliser sur reouverture.
+    idempotencyKey.current = crypto.randomUUID();
     onClose();
   };
 
@@ -65,11 +70,12 @@ export function CreateAvoirDialog({
 
     setSubmitting(true);
     try {
-      const result = await fetchJson<{ id: number; numero: string }>(
+      const result = await mutateJson<{ id: number; numero: string }>(
         `/factures/${factureId}/avoir`,
         {
           method: "POST",
           body: JSON.stringify({ motif: motif.trim(), montant_ttc_partiel }),
+          idempotencyKey: idempotencyKey.current,
         },
       );
       toast(`Avoir ${result.numero} cree.`, "success");
