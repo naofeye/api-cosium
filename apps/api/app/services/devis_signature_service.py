@@ -116,11 +116,31 @@ def sign_devis_public(
             "Ce devis a deja ete signe.",
             code="DEVIS_ALREADY_SIGNED",
         )
-    if devis.status in {"refuse", "annule"}:
+    if devis.status in {"refuse", "annule", "expire"}:
         raise BusinessError(
             f"Devis en status '{devis.status}' : signature impossible.",
             code="DEVIS_NOT_SIGNABLE",
         )
+    # Defense en profondeur : meme si la task Celery d'expiration n'a pas
+    # encore tourne (elle s'execute toutes les 3h15), refuser les devis
+    # dont valid_until est passe. Couvre la fenetre entre J+validity et le
+    # prochain cron, durant laquelle le devis n'a pas encore le status
+    # 'expire' mais est materiellement perime.
+    if getattr(devis, "valid_until", None) is not None:
+        now = datetime.now(UTC).replace(tzinfo=None)
+        valid_until = devis.valid_until
+        try:
+            expired = valid_until < now
+        except TypeError:
+            # valid_until est un `date`, now est un `datetime` : convertir
+            from datetime import datetime as _dt
+
+            expired = _dt.combine(valid_until, _dt.min.time()) < now
+        if expired:
+            raise BusinessError(
+                "Ce devis a expire et ne peut plus etre signe.",
+                code="DEVIS_EXPIRED",
+            )
 
     devis.signed_at = datetime.now(UTC).replace(tzinfo=None)
     devis.signature_method = "clickwrap"

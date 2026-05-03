@@ -135,6 +135,19 @@ class Settings(BaseSettings):
                 errors.append("DATABASE_POOL_SIZE ne doit pas depasser 50 sans justification explicite")
             if "*" in self.cors_origins:
                 errors.append("CORS_ORIGINS ne doit pas contenir '*' en production")
+            # CORS credentialed avec origine HTTP non-locale = exposition cookies
+            # / responses API a interception reseau (Codex M9). Autorise
+            # uniquement HTTPS, sauf localhost / 127.0.0.1 pour dev local.
+            for origin in (o.strip() for o in self.cors_origins.split(",")):
+                if not origin:
+                    continue
+                if origin.startswith("http://"):
+                    host = origin[len("http://"):].split("/", 1)[0].split(":", 1)[0]
+                    if host not in ("localhost", "127.0.0.1", "::1"):
+                        errors.append(
+                            f"CORS_ORIGINS contient une origine HTTP non-locale "
+                            f"en production : {origin} (utiliser HTTPS)"
+                        )
             if errors:
                 raise ValueError(
                     f"Configuration invalide pour {self.app_env} :\n- " + "\n- ".join(errors)

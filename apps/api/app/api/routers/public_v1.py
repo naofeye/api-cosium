@@ -83,11 +83,13 @@ def get_client_public(
     db: Session = Depends(get_db),
     ctx: ApiTokenContext = Depends(require_api_scope("read:clients")),
 ) -> dict:
-    customer = db.scalars(
-        select(Customer).where(
-            Customer.id == client_id, Customer.tenant_id == ctx.tenant_id
-        )
-    ).first()
+    detail_q = select(Customer).where(
+        Customer.id == client_id, Customer.tenant_id == ctx.tenant_id
+    )
+    # Aligne avec la liste : ne pas exposer les soft-deletes par ID.
+    if hasattr(Customer, "deleted_at"):
+        detail_q = detail_q.where(Customer.deleted_at.is_(None))
+    customer = db.scalars(detail_q).first()
     if customer is None:
         raise HTTPException(status_code=404, detail="Client introuvable")
     return {
@@ -118,6 +120,8 @@ def list_devis_public(
     ctx: ApiTokenContext = Depends(require_api_scope("read:devis")),
 ) -> dict:
     base = select(Devis).where(Devis.tenant_id == ctx.tenant_id)
+    if hasattr(Devis, "deleted_at"):
+        base = base.where(Devis.deleted_at.is_(None))
     if status_filter:
         base = base.where(Devis.status == status_filter)
 
@@ -165,6 +169,8 @@ def list_factures_public(
     ctx: ApiTokenContext = Depends(require_api_scope("read:factures")),
 ) -> dict:
     base = select(Facture).where(Facture.tenant_id == ctx.tenant_id)
+    if hasattr(Facture, "deleted_at"):
+        base = base.where(Facture.deleted_at.is_(None))
     if status_filter:
         base = base.where(Facture.status == status_filter)
 

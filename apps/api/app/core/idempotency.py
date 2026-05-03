@@ -32,7 +32,12 @@ from typing import Any
 from fastapi import Depends, Header, HTTPException, Request, status
 
 from app.core.logging import get_logger
-from app.core.redis_cache import cache_get, cache_set, cache_set_nx
+from app.core.redis_cache import (
+    RedisUnavailableError,
+    cache_get,
+    cache_set,
+    cache_set_nx_atomic,
+)
 from app.core.tenant_context import TenantContext, get_tenant_context
 
 logger = get_logger("idempotency")
@@ -111,8 +116,30 @@ def idempotency(scope: str):
         # eviter deux executions concurrentes sur la meme cle. La premiere
         # requete pose un marqueur "pending", les suivantes voient soit ce
         # marqueur (-> 425 Too Early) soit la reponse finale (-> replay).
+        # Codex M2 (REVIEW.md 2026-05-03) : `cache_set_nx_atomic` leve
+        # `RedisUnavailableError` en prod si Redis est down (au lieu de
+        # retourner True silencieusement). On traduit en 503 pour eviter
+        # de desactiver l'idempotence sur les operations financieres.
         pending_marker = {"body_hash": ctx.body_hash, "pending": True}
-        acquired = cache_set_nx(ctx._redis_key, pending_marker, ttl=_PENDING_TTL_SECONDS)
+        try:
+            acquired = cache_set_nx_atomic(
+                ctx._redis_key, pending_marker, ttl=_PENDING_TTL_SECONDS
+            )
+        except RedisUnavailableError as exc:
+            logger.error(
+                "idempotency_redis_unavailable_failclosed",
+                scope=scope,
+                tenant_id=tenant_ctx.tenant_id,
+                key=x_idempotency_key,
+                error=str(exc),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={
+                    "code": "IDEMPOTENCY_BACKEND_UNAVAILABLE",
+                    "message": "Le service d'idempotence est indisponible. Reessayez dans quelques secondes.",
+                },
+            ) from exc
 
         if not acquired:
             existing = cache_get(ctx._redis_key) or {}

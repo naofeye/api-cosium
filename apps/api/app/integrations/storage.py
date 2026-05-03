@@ -1,3 +1,5 @@
+import contextlib
+
 import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
@@ -78,10 +80,16 @@ class StorageAdapter:
         return url
 
     def download_file(self, bucket: str, key: str) -> bytes:
-        """Download a file from S3/MinIO and return its raw bytes."""
+        """Download a file from S3/MinIO and return its raw bytes.
+
+        boto3 retourne un `StreamingBody` (socket reseau). On le ferme
+        explicitement via `contextlib.closing` pour eviter d'epuiser le
+        pool HTTP sous charge OCR/import/export (Codex M7).
+        """
         try:
             response = self._client.get_object(Bucket=bucket, Key=key)
-            return response["Body"].read()
+            with contextlib.closing(response["Body"]) as body:
+                return body.read()
         except ClientError as exc:
             logger.error("file_download_failed", bucket=bucket, key=key, error=str(exc))
             raise BusinessError(

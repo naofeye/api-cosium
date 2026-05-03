@@ -76,13 +76,23 @@ def cache_set(key: str, value: dict | list, ttl: int = 300) -> None:
         logger.warning("cache_set_failed", key=key, error=str(exc))
 
 
+class RedisUnavailableError(RuntimeError):
+    """Redis est requis pour cette operation et indisponible.
+
+    Levee par `cache_set_nx_atomic` en prod/staging quand l'idempotence
+    est critique : caller (middleware idempotency) doit retourner 503.
+    """
+
+
 def cache_set_nx(key: str, value: dict | list, ttl: int = 300) -> bool:
     """Atomic SET NX (Redis) : pose la cle uniquement si elle n'existe pas.
 
     Retourne True si la cle a ete posee (premier arrivant), False sinon
     (cle existait deja). Si Redis est indisponible, retourne True (degrade
     gracieusement : pas d'idempotence concurrente, mais on n'empeche pas
-    la requete legitime).
+    la requete legitime). Pour les chemins critiques (idempotence sur
+    operation financiere) utiliser `cache_set_nx_atomic` qui leve
+    `RedisUnavailableError` au lieu de retourner True silencieusement.
     """
     r = _get_redis()
     if not r:
@@ -95,6 +105,44 @@ def cache_set_nx(key: str, value: dict | list, ttl: int = 300) -> bool:
         return True
     except Exception as exc:
         logger.warning("cache_set_nx_failed", key=key, error=str(exc))
+        return True
+
+
+def cache_set_nx_atomic(key: str, value: dict | list, ttl: int = 300) -> bool:
+    """Variante stricte de `cache_set_nx` : leve `RedisUnavailableError` au
+    lieu de retourner True quand Redis est indisponible.
+
+    Codex M2 (REVIEW.md 2026-05-03) : `cache_set_nx` returnait True quand
+    Redis etait down, ce qui revenait a desactiver silencieusement
+    l'idempotence sur les endpoints proteges. En prod/staging on veut
+    fail-closed : la requete est refusee plutot que dedupliquee.
+
+    En dev/test (`app_env not in {production, staging}`), conserve la
+    semantique fail-open pour ne pas bloquer le dev local sans Redis.
+    """
+    r = _get_redis()
+    if not r:
+        if settings.app_env in ("production", "staging"):
+            raise RedisUnavailableError(
+                "Redis indisponible : impossible de garantir l'idempotence."
+            )
+        return True
+    try:
+        return bool(r.set(key, json.dumps(value, default=str), nx=True, ex=ttl))
+    except (redis.ConnectionError, redis.TimeoutError) as exc:
+        _reset_on_connection_error()
+        logger.warning("cache_set_nx_atomic_connection_lost", key=key)
+        if settings.app_env in ("production", "staging"):
+            raise RedisUnavailableError(
+                "Redis indisponible : impossible de garantir l'idempotence."
+            ) from exc
+        return True
+    except Exception as exc:
+        logger.warning("cache_set_nx_atomic_failed", key=key, error=str(exc))
+        if settings.app_env in ("production", "staging"):
+            raise RedisUnavailableError(
+                f"Erreur Redis : {exc}"
+            ) from exc
         return True
 
 

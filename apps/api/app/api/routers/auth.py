@@ -224,14 +224,19 @@ def logout_all(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
-    # Blacklister l'access token courant : sans ca, le bearer token deja emis
-    # restait valide jusqu'a son expiration meme apres "logout-all". Cohesion
-    # avec /logout. Note : pour invalider les access tokens des autres devices
-    # de l'utilisateur, il faudrait un token_version par user — feature TODO.
+    # 1. Increment token_version : invalide TOUS les access tokens de cet
+    #    utilisateur, pas seulement celui de ce navigateur. Sans ca les
+    #    tokens emis sur d'autres devices restaient valides jusqu'a leur
+    #    expiration (Codex M6, REVIEW.md 2026-05-03).
+    current_user.token_version = (current_user.token_version or 0) + 1
+    # 2. Blacklister explicitement l'access token courant : evite une
+    #    fenetre de course entre la lecture du JWT et la lecture de
+    #    `users.token_version` en BDD.
     access_tok = request.cookies.get("optiflow_token")
     if access_tok:
         from app.security import blacklist_access_token
         blacklist_access_token(access_tok)
+    # 3. Revoquer tous les refresh tokens : force re-login sur chaque device.
     refresh_token_repo.revoke_all_for_user(db, current_user.id)
     db.commit()
     _clear_auth_cookies(response)

@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user, require_role
+from app.core.request_ip import client_ip as resolve_client_ip
 from app.core.tenant_context import TenantContext, get_tenant_context
 from app.db.session import get_db
 from app.domain.schemas.devis import DevisResponse
@@ -88,17 +89,15 @@ def sign_devis_public(
     request: Request,
     db: Session = Depends(get_db),
 ) -> DevisResponse:
-    # Capture IP / User-Agent
-    client_ip = (
-        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-        or (request.client.host if request.client else "")
-    )
+    # Capture IP / User-Agent — X-Forwarded-For est honore UNIQUEMENT si le
+    # proxy direct est dans TRUSTED_PROXIES, sinon signature_ip serait
+    # forgeable depuis n'importe quel client (Codex M4).
     user_agent = request.headers.get("user-agent", "")
     return devis_signature_service.sign_devis_public(
         db,
         public_token=public_token,
         consent_text=payload.consent_text,
-        client_ip=client_ip,
+        client_ip=resolve_client_ip(request),
         user_agent=user_agent,
     )
 
