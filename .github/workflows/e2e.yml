@@ -45,7 +45,7 @@ jobs:
       E2E_BASE_URL: http://localhost
       E2E_API_URL: http://localhost
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # --- Nginx reverse proxy (same-origin pour cookies) ---
       - name: Install & start nginx
