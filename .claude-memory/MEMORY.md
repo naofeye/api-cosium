@@ -7,6 +7,7 @@
 - [Session 2026-04-18 refacto + splits](project_session_2026_04_18.md) — 7 splits fichiers >400 L + 7 P1 + 5 P2 fermes. Main `6e000e3` CI verte (fix 2026-04-19)
 - [Session 2026-04-29 audit Codex sweep](project_session_2026_04_29.md) — 13 commits, CI verte sur `473de33`. 3 P1 + 9 P2 + 5/7 P3 fixes. Ajout openapi-typescript + audit RGPD exports.
 - [Session 2026-05-02 sweep autonome 24h](project_session_2026_05_02.md) — 5 commits : CSRF + Webhooks + PEC orphan + fix CI Alembic + docs. +33 tests, 0 regression, CI verte 6fbef80
+- [Session 2026-05-03 sweep ambitieux 24/48h](project_session_2026_05_03.md) — 9 livrables : API publique v1, devis signature eIDAS, token revocation, impact_score, exporters Prom, ADR-0008, validate-prod.sh
 - [Branche unifiee main 2026-04-19](project_branch_unified_main.md) — `master` supprimee ; `main` seule branche canonique. VPS a reset sur origin/main
 - [Splits package — imports absolus](feedback_splits_imports_absolus.md) — jamais `from .` dans un nouveau split ; patcher le vrai point d'usage, pas un alias
 - [Pre-commit scope defensif](project_precommit_scope.md) — hooks actifs : sanity + gitleaks. Ruff/Prettier desactives (legacy massif non formate)

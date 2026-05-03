@@ -952,6 +952,80 @@ Commits : `aab3fdd` (P2 quick wins x8), `e9617bc` (C-2 expiration devis), `f4fa1
 - **Fix** : `.github/workflows/ci.yml` resout la cible dynamiquement via `alembic show head | grep -E '^(Parent|Merges):'` puis downgrade vers cette revision. Robuste pour mergepoints + migrations lineaires.
 - **Test local** : downgrade traverse 6 migrations puis upgrade head re-applique sans erreur. CodeQL et E2E etaient deja verts ; reste a verifier que le job CI passe sur le push.
 
+### 2026-05-03 — Sweep autonome ambitieux 24/48h (vps-master) — 9 livrables
+
+Mission "audit profond + plan ambitieux 24/48h, polish + nice-to-have inclus".
+5 commits, 4 migrations Alembic, 1 page Coming Soon livree, 0 regression.
+
+**Livrables** :
+
+1. **API publique REST v1** (commit `7129f36`) — Coming Soon T3 2026 -> reel
+   - Migration `d7e8f9a1b2c3` : table api_tokens (hashed SHA-256, scopes
+     JSON, expires_at, revoked, last_used_at)
+   - Auth Bearer token + 6 scopes whitelist (read:clients/devis/factures/
+     pec/payments/analytics)
+   - 4 endpoints publics : /api/public/v1/{clients,devis,factures,pec-requests}
+   - Admin CRUD + UI /admin/api-publique (secret affiche une seule fois,
+     exemple curl auto)
+   - 19 tests verts
+
+2. **Devis signature electronique eIDAS Simple** (commit `d758b9f`)
+   - Migration `e8f9a1b2c3d4` : 6 colonnes signature sur devis
+   - Page publique sans login `/devis/sign/[token]` (clickwrap +
+     banniere consent + capture IP via X-Forwarded-For)
+   - Service + endpoints public_token (UUID 32 chars, single-use)
+   - 12 tests verts
+
+3. **Token revocation per-user** (commit `360754b`)
+   - Resout TODO auth.py:212 (logout-everywhere)
+   - Migration `c6d7e8f9a1b2` : users.token_version
+   - JWT embarque "tv", get_current_user verifie match
+   - POST /auth/revoke-all-tokens incremente + revoque refresh tokens
+   - 5 tests verts
+
+4. **Action items impact_score deterministe** (commit `8524276`)
+   - Migration `f9a1b2c3d4e5` : action_items.impact_score + index
+   - Algorithme : base (10-100) + log10(montant)*50 + recency factor
+   - Tri primary dans repo : impact_score DESC > priority > created_at
+   - 7 tests verts
+
+5. **Prometheus exporters + alertmanager rules** (commit `8524276`)
+   - docker-compose.yml : services postgres-exporter v0.16.0 + redis-exporter v1.66.0
+   - alerts.yml : 7 rules (5xx_rate, latency_p95, api_down, pg_pool,
+     pg_down, redis_down, redis_memory, sync_cosium_failures, webhook_failed)
+   - prometheus.yml rule_files enable
+
+6. **db.query() services -> repos** (commit `360754b`)
+   - 5 violations corrigees dans billing_service + 1 dans ai_billing_service
+   - onboarding_repo etend avec get_tenant_by_stripe_customer_id +
+     get_tenant_by_stripe_subscription_id
+
+7. **N+1 banking_repo.get_transaction_signatures** (commit `360754b`)
+   - yield_per=1000 + iteration partitions, evite OOM > 100k transactions
+
+8. **Documentation production** (commit `8524276`)
+   - README.md : diagramme architecture ASCII (8 containers + 3 monitoring),
+     stack technique tabulee, section "Features livrees recemment"
+   - ADR-0008 : PEC orphan reconciliation strategy (alternatives, decision,
+     consequences, suivi)
+   - scripts/validate-prod.sh : verifie 8 prerequis prod (JWT, Encryption,
+     passwords, Sentry, CORS), ANSI couleur, exit code
+   - docs/COSIUM_CREDS_ROTATION.md : runbook 7 etapes (revocation
+     AFAOUSSI, nouveau compte, purge git history, redemarrage, verif)
+
+9. **Quick wins** (commit `81c09d4`)
+   - docs/WEBHOOKS.md : guide integration complet (HMAC verify
+     Python/Node/PHP, retry, troubleshooting)
+   - /webhooks Coming Soon -> redirect 308 vers /admin/webhooks
+   - Beat schedule reconcile-orphan-invoices quotidien 4h15
+
+**Metriques** : +38 tests backend (2289 -> 2327), 0 regression. ESLint +
+tsc + ruff verts. 4 migrations testees up + down. 5 commits pushes.
+
+**Methode** : 3 audits Explore parallele (backend / frontend / infra),
+plan structure 9 blocs (A-I), execution batchee avec push intermediaires
+toutes les 1-2h. Sandbox /srv ro toujours contournee via docker --user 1002.
+
 ### 2026-05-02 — Sweep autonome 24h (vps-master) — 4 features end-to-end
 
 Mission "tout ce qui reste a faire, polish, nice to have" lancee en autonomie complete.

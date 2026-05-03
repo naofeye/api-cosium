@@ -19,6 +19,59 @@
 
 - [x] ~~Migration Alembic `a4b5c6d7e8f9` introuvable~~ _(faux positif : la migration existe (commit `f399f32`, refresh token tenant_id, merge des heads `a4d5e6f7g8h9` + `f8i9j0k1l2m3`). Le panel reportait l'ancien etat avant rebuild de l'image API. **Verifie 2026-05-02 : container API `Up healthy`, `application_started`, `cosium.ia.coging.com` 200.**)_
 
+## ✅ Sweep autonome 2026-05-03 (vps-master, 9 livrables ambitieux)
+
+Demande : "tu as 24/48h, plan ambitieux, polish + nice-to-have inclus".
+Audits 5 agents en parallele (backend, frontend, infra, features, ux),
+plan structure 9 blocs (A-I), execution batchee en 5 commits.
+
+### Quick wins (BLOC A)
+- [x] ~~docs/WEBHOOKS.md complet~~ _(commit `81c09d4`. 280L : flux, 14 event_types, payload schema, headers HTTP, snippets HMAC verify Python/Node/PHP, retry, idempotence, securite, troubleshooting)_
+- [x] ~~/webhooks ComingSoon -> redirect 308 vers /admin/webhooks~~ _(commit `81c09d4`)_
+- [x] ~~Beat schedule reconcile-orphan-invoices quotidien 4h15~~ _(commit `81c09d4`. Avant sync 6h, matche les nouveaux clients importes la veille)_
+
+### Securite & robustesse (BLOC B)
+- [x] ~~db.query() services -> repos (5 violations billing + ai_billing)~~ _(commit `360754b`. onboarding_repo etend avec get_tenant_by_stripe_customer_id + get_tenant_by_stripe_subscription_id)_
+- [x] ~~N+1 banking_repo.get_transaction_signatures pagination~~ _(commit `360754b`. yield_per=1000 + iteration partitions, evite OOM > 100k transactions)_
+- [x] ~~Token revocation per-user (logout-everywhere)~~ _(commit `360754b`. Migration c6d7e8f9a1b2 ajoute users.token_version. JWT embarque "tv". get_current_user verifie match. POST /auth/revoke-all-tokens. Resout TODO auth.py:212. 5 tests)_
+
+### Features (BLOC D)
+- [x] ~~API publique REST v1 (Coming Soon T3 2026 -> reel)~~ _(commit `7129f36`. Migration d7e8f9a1b2c3 ajoute api_tokens. Auth Bearer + scopes (read:clients/devis/factures/pec/payments/analytics). 4 endpoints publics : /api/public/v1/{clients,devis,factures,pec-requests} avec pagination + filtres status. Admin CRUD + UI /admin/api-publique avec secret affiche une seule fois + exemple curl. 19 tests)_
+- [x] ~~Devis signature electronique eIDAS Simple (clickwrap V1)~~ _(commit `d758b9f`. Migration e8f9a1b2c3d4 ajoute 6 colonnes a devis (public_token unique, signed_at, signature_method, signature_ip, signature_user_agent, signature_consent_text). Page publique sans login `/devis/sign/[token]` avec banniere consent eIDAS, recap, bouton ACCEPTER ET SIGNER. Capture IP via X-Forwarded-For + UA. 12 tests)_
+- [x] ~~AI alertes priorisation impact_score deterministe~~ _(commit `8524276`. Migration f9a1b2c3d4e5 + index composite. Algorithme : base priority (10/40/70/100) + log10(montant)*50 (max 200) + recency factor. Tri primaire dans repo. 7 tests)_
+
+### Observabilite (BLOC F)
+- [x] ~~Prometheus exporters Postgres + Redis deployes~~ _(commit `8524276`. docker-compose.yml + 2 services postgres-exporter v0.16.0 + redis-exporter v1.66.0 avec healthchecks)_
+- [x] ~~Alertmanager rules basiques~~ _(commit `8524276`. config/prometheus/alerts.yml : 7 rules sur api/postgres/redis/business. prometheus.yml rule_files decommente)_
+
+### Polish + Docs (BLOC G + H)
+- [x] ~~README.md architecture diagram + section "Recent features"~~ _(commit `8524276`)_
+- [x] ~~ADR-0008 PEC orphan reconciliation strategy~~ _(commit `8524276`. 130L documentant le choix sync-time match + periodic cron)_
+- [x] ~~scripts/validate-prod.sh~~ _(commit `8524276`. Verifie 8 prerequis : JWT_SECRET >= 64 chars, ENCRYPTION_KEY base64 32 bytes, passwords != defauts, Sentry DSN format, etc. ANSI couleur, exit code != 0 si fail)_
+- [x] ~~docs/COSIUM_CREDS_ROTATION.md runbook~~ _(commit `8524276`. 7 etapes : revocation AFAOUSSI, nouveau compte, MAJ BDD, purge git filter-branch, redemarrage, verif sync. Plan rollback)_
+- [x] ~~ChatInterface.tsx retire `as unknown as`~~ _(commit `8524276`. Select.tsx accepte readonly SelectOption[] pour MODE_OPTIONS as const)_
+
+### Bilan session 2026-05-03
+
+5 commits pushes (`81c09d4`, `360754b`, `7129f36`, `d758b9f`, `8524276`),
++38 tests backend (2289 -> 2327), 0 regression. 4 migrations Alembic
+(c6d7e8f9a1b2 token_version, d7e8f9a1b2c3 api_tokens, e8f9a1b2c3d4 devis
+signature, f9a1b2c3d4e5 action_items impact_score). 1 page Coming Soon
+livree (API publique). 1 feature pre-prod cle (CSRF deja livree 2026-05-02
++ token revocation aujourd'hui). Observabilite prod-ready (exporters +
+alerts). Docs production complete (README archi + ADR-0008 + WEBHOOKS +
+validate-prod + COSIUM_CREDS_ROTATION).
+
+**Reste backlog non touche** :
+- Cosium client async (B1, gros refacto, P3 sans pression prod)
+- Splits >300L (sous seuil 400L, deprioritized)
+- Tests E2E Playwright settings + operations-batch (P2 nice-to-have)
+- E1 tests admin_metrics + client_360 services (P2)
+- mypy strict progressif (P3)
+- DIFFERE-PROD action Nabil : TLS, passwords prod, Sentry DSN, rotation Cosium
+
+---
+
 ## ✅ Sweep autonome 2026-05-02 (vps-master, 4 features livrees + fix CI)
 
 - [x] ~~Fix CI rollback Alembic mergepoint-safe~~ _(commit `6ab50c7`. `alembic downgrade -1` ambigu sur head mergepoint a 2 parents -> extraction dynamique de la 1ere parent revision via `alembic show head | grep -E '^(Parent|Merges):'`. Robuste pour mergepoints + migrations lineaires futures. CI 25245217267 success.)_
