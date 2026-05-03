@@ -6,7 +6,7 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { DateDisplay } from "@/components/ui/DateDisplay";
 import { cn } from "@/lib/utils";
-import { Shield } from "lucide-react";
+import { Download, Shield } from "lucide-react";
 
 interface AuditLogEntry {
   id: number;
@@ -182,11 +182,28 @@ export default function AuditPage() {
         { label: "Journal d'audit" },
       ]}
       actions={
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Shield className="h-5 w-5 text-text-secondary" aria-hidden="true" />
           <span className="text-sm text-text-secondary">
             {data ? `${data.total} entrees` : ""}
           </span>
+          <button
+            type="button"
+            onClick={() => {
+              const params = new URLSearchParams();
+              if (actionFilter) params.set("action", actionFilter);
+              if (entityFilter) params.set("entity_type", entityFilter);
+              if (dateFrom) params.set("date_from", dateFrom);
+              if (dateTo) params.set("date_to", dateTo);
+              const url = process.env.NEXT_PUBLIC_API_BASE_URL + "/audit-logs/export.csv?" + params.toString();
+              window.location.href = url;
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-bg-card px-3 py-1.5 text-xs font-medium text-text-primary hover:bg-gray-50"
+            aria-label="Exporter en CSV"
+          >
+            <Download size={14} aria-hidden="true" />
+            Export CSV
+          </button>
         </div>
       }
     >

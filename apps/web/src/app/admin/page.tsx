@@ -14,6 +14,8 @@ const ActivityChart = dynamic(
   () => import("./components/ActivityChart").then((m) => ({ default: m.ActivityChart })),
   { ssr: false, loading: () => <SkeletonCard /> },
 );
+import { ApiPubliqueWidget } from "./components/ApiPubliqueWidget";
+import { HealthDetail } from "./components/HealthDetail";
 import { HealthStatus } from "./components/HealthStatus";
 import { CosiumConnection } from "./components/CosiumConnection";
 import { CosiumCookies } from "./components/CosiumCookies";
@@ -66,6 +68,9 @@ export default function AdminPage() {
       description="Monitoring, synchronisation et parametres"
       breadcrumb={[{ label: "Admin" }]}
     >
+      <HealthDetail />
+      <div className="mt-6"><ApiPubliqueWidget /></div>
+      <div className="h-4" />
       <HealthStatus health={health} />
 
       {metrics && (

@@ -83,6 +83,38 @@ Le template demande :
 
 CI doit etre verte. Reviewer assigne automatiquement par CODEOWNERS (a configurer).
 
+## Mypy strict (progressif)
+
+OptiFlow est en migration vers `mypy --strict` fichier par fichier. La
+config est dans `apps/api/mypy.ini` avec un mode global tolerant
+(`ignore_missing_imports`) et des sections `[mypy-app.X.Y]` strict
+pour les modules deja types.
+
+**Modules pilots** (CI verte) :
+- `app.services._action_items.impact_score` (algorithme deterministe pur)
+- `app.services.webhook_service` (signature HMAC, build envelope)
+- `app.services.api_token_service` (hash, verify, scope check)
+- `app.core.csrf` (middleware CSRF double-submit)
+
+**Pour ajouter un nouveau module** :
+1. Verifier qu'il passe localement :
+   ```bash
+   docker compose exec api python -m mypy --config-file=mypy.ini app/X/Y.py
+   ```
+2. Ajouter une section dans `mypy.ini` :
+   ```ini
+   [mypy-app.X.Y]
+   strict = True
+   ```
+3. Ajouter le fichier au job `backend-mypy-pilot` dans `.github/workflows/ci.yml`
+4. Commit + push, verifier que la CI passe
+
+**Bonnes pratiques** :
+- Annoter les retours `-> int`, `-> str`, `-> dict[str, Any]`, etc.
+- Eviter `Any` ; utiliser `object` si vraiment generique
+- Pour les classes externes non-typees (Starlette, etc.) : `# type: ignore[misc]`
+- `dict` doit avoir des type params : `dict[str, int]` pas `dict`
+
 ## Releases
 
 Versionning semver via tags git : `v1.2.3`. CI tag = build prod automatique.

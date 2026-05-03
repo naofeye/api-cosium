@@ -92,6 +92,31 @@ jobs:
       - run: pip install ruff==0.11.8  # pin pour parite local container
       - run: cd apps/api && python -m ruff check app/
 
+  backend-mypy-pilot:
+    name: Backend Mypy Strict Pilot
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install mypy==1.13.0 pydantic sqlalchemy
+      - name: Mypy strict on pilot modules
+        run: |
+          cd apps/api
+          # Pilot scope (voir mypy.ini sections strict) :
+          # - app.services._action_items.impact_score
+          # - app.services.webhook_service
+          # - app.services.api_token_service
+          # - app.core.csrf
+          # Etendre progressivement en ajoutant un nouveau bloc dans mypy.ini
+          # puis le fichier ici. Doc : docs/CONTRIBUTING.md section Mypy.
+          python -m mypy --config-file=mypy.ini \
+            app/services/_action_items/impact_score.py \
+            app/services/webhook_service.py \
+            app/services/api_token_service.py \
+            app/core/csrf.py
+
   backend-security:
     name: Backend Security Scan
     runs-on: ubuntu-latest

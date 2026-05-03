@@ -51,7 +51,7 @@ def sign_payload(secret: str, body: bytes) -> str:
 
 
 def build_envelope(
-    *, event_type: str, tenant_id: int, payload: dict
+    *, event_type: str, tenant_id: int, payload: dict[str, Any]
 ) -> dict[str, Any]:
     """Construit l'enveloppe JSON envoyee au webhook.
 
@@ -78,7 +78,7 @@ def emit_webhook_event(
     *,
     tenant_id: int,
     event_type: str,
-    payload: dict,
+    payload: dict[str, Any],
 ) -> int:
     """Cree les deliveries pour les subscriptions actives du tenant et
     enqueue les jobs Celery.

@@ -3,6 +3,7 @@
 import time
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
@@ -197,4 +198,93 @@ def test_sentry(
 ) -> dict:
     """Admin-only: raise a test exception captured by Sentry."""
     raise ValueError("Sentry test exception from OptiFlow")
+
+
+
+class HealthDetailResponse(BaseModel):
+    """Snapshot riche : services + queues + versions."""
+    status: str
+    version: str
+    uptime_seconds: int
+    services: dict
+    db_pool: dict
+    celery: dict
+    runtime: dict
+
+
+@router.get(
+    "/health-detail",
+    response_model=HealthDetailResponse,
+    summary="Health check enrichi (admin)",
+    description=(
+        "Etend /health avec pool DB, queues Celery, versions runtime. "
+        "Pour le dashboard admin avec auto-refresh."
+    ),
+)
+def health_detail(
+    db: Session = Depends(get_db),
+    tenant_ctx: TenantContext = Depends(require_tenant_role("admin")),
+) -> HealthDetailResponse:
+    import platform
+    import sys
+
+    from app.main import _APP_START_TIME, _APP_VERSION
+
+    base = health_check(db, tenant_ctx)
+
+    # Pool DB stats (SQLAlchemy QueuePool)
+    pool_info: dict = {}
+    try:
+        from app.db.session import engine
+
+        pool = engine.pool
+        pool_info = {
+            "size": pool.size() if hasattr(pool, "size") else None,
+            "checked_in": pool.checkedin() if hasattr(pool, "checkedin") else None,
+            "checked_out": pool.checkedout() if hasattr(pool, "checkedout") else None,
+            "overflow": pool.overflow() if hasattr(pool, "overflow") else None,
+        }
+    except Exception as exc:
+        _health_logger.warning("pool_info_failed", error=str(exc))
+        pool_info = {"error": "unavailable"}
+
+    # Celery queues (Redis brpop) - lecture longueur file
+    celery_info: dict = {}
+    try:
+        import redis as redis_lib
+        r = redis_lib.Redis.from_url(settings.redis_url, socket_timeout=2)
+        queues = ["default", "email", "sync", "extraction", "batch", "reminder"]
+        celery_info["queues"] = {q: int(r.llen(q) or 0) for q in queues}
+    except Exception as exc:
+        _health_logger.warning("celery_queues_failed", error=str(exc))
+        celery_info = {"error": "unavailable"}
+
+    # Runtime versions
+    try:
+        import fastapi as _fastapi
+        fastapi_version = _fastapi.__version__
+    except Exception:
+        fastapi_version = "unknown"
+    try:
+        pg_version = db.scalar(text("SHOW server_version")) or "unknown"
+    except Exception:
+        pg_version = "unknown"
+
+    runtime = {
+        "python": sys.version.split()[0],
+        "platform": platform.platform(),
+        "fastapi": fastapi_version,
+        "postgres": pg_version,
+    }
+
+    base_dict = base if isinstance(base, dict) else base.model_dump()
+    return HealthDetailResponse(
+        status=base_dict.get("status", "unknown"),
+        version=base_dict.get("version", _APP_VERSION),
+        uptime_seconds=base_dict.get("uptime_seconds", int(time.time() - _APP_START_TIME)),
+        services=base_dict.get("services", {}),
+        db_pool=pool_info,
+        celery=celery_info,
+        runtime=runtime,
+    )
 

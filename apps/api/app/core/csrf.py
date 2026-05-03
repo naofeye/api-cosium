@@ -82,7 +82,7 @@ def _is_exempt(path: str) -> bool:
     return any(path.startswith(prefix) for prefix in EXEMPT_PREFIXES)
 
 
-class CsrfMiddleware(BaseHTTPMiddleware):
+class CsrfMiddleware(BaseHTTPMiddleware):  # type: ignore[misc]
     """Double-submit cookie CSRF protection.
 
     Skip:
