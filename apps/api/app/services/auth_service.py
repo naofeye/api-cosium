@@ -104,6 +104,7 @@ def authenticate(db: Session, payload: LoginRequest) -> TokenResponse:
         tenant_role,
         tenant_id=default_tenant["id"],
         is_group_admin=is_admin,
+        token_version=user.token_version,
     )
     refresh_token = generate_refresh_token()
     refresh_token_repo.create(
@@ -155,6 +156,7 @@ def refresh(db: Session, token: str) -> TokenResponse:
         tenant_role,
         tenant_id=current_tenant["id"] if current_tenant else None,
         is_group_admin=is_admin,
+        token_version=user.token_version,
     )
     new_refresh = generate_refresh_token()
     refresh_token_repo.create(
@@ -199,6 +201,7 @@ def switch_tenant(db: Session, user_id: int, new_tenant_id: int) -> TokenRespons
         tenant_user.role,
         tenant_id=tenant.id,
         is_group_admin=is_admin,
+        token_version=user.token_version,
     )
     refresh_token = generate_refresh_token()
     refresh_token_repo.create(

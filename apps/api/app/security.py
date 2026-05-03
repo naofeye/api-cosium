@@ -28,6 +28,7 @@ def create_access_token(
     role: str,
     tenant_id: int | None = None,
     is_group_admin: bool = False,
+    token_version: int = 0,
 ) -> str:
     payload: dict = {
         "sub": subject,
@@ -35,6 +36,7 @@ def create_access_token(
         "exp": datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes),
         "iss": "optiflow",
         "aud": "optiflow-api",
+        "tv": token_version,  # Token version : invalidation per-user via logout-everywhere
     }
     if tenant_id is not None:
         payload["tenant_id"] = tenant_id

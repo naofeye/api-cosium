@@ -6,6 +6,7 @@ from sqlalchemy import extract, func, select
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
+from app.repositories import onboarding_repo
 from app.models import AiUsageLog, Organization, Tenant
 
 logger = get_logger("ai_billing_service")
@@ -36,8 +37,8 @@ def get_usage_summary(db: Session, tenant_id: int, year: int | None = None, mont
     row = db.execute(base).first()
 
     # Get plan quota
-    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
-    org = db.query(Organization).filter(Organization.id == tenant.organization_id).first() if tenant else None
+    tenant = onboarding_repo.get_tenant_by_id(db, tenant_id)
+    org = onboarding_repo.get_org_by_id(db, tenant.organization_id) if tenant else None
     plan = org.plan if org else "solo"
     quota = QUOTAS.get(plan, 500)
 

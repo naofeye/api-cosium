@@ -26,6 +26,24 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
 @router.post(
+    "/revoke-all-tokens",
+    summary="Revoque tous les tokens de l'utilisateur (logout-everywhere)",
+    description="Increment user.token_version. Tous les JWT existants deviennent invalides au prochain refresh. L'utilisateur courant doit se reconnecter sur tous ses appareils.",
+)
+def revoke_all_tokens(
+    response: Response,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    current_user.token_version = (current_user.token_version or 0) + 1
+    db.commit()
+    # Revoke aussi tous les refresh tokens en BDD pour invalider la chaine
+    refresh_token_repo.revoke_all_for_user(db, current_user.id)
+    _clear_auth_cookies(response)
+    return {"status": "revoked", "token_version": current_user.token_version}
+
+
+@router.post(
     "/login",
     response_model=LoginResponse,
     summary="Connexion",

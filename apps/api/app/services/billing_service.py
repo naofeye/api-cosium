@@ -9,6 +9,7 @@ from app.core.exceptions import BusinessError, NotFoundError
 from app.core.logging import get_logger
 from app.integrations import stripe_client
 from app.models import Organization, Tenant
+from app.repositories import onboarding_repo
 
 logger = get_logger("billing_service")
 
@@ -20,14 +21,14 @@ PLAN_PRICE_MAP: dict[str, str] = {
 
 
 def _get_tenant(db: Session, tenant_id: int) -> Tenant:
-    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    tenant = onboarding_repo.get_tenant_by_id(db, tenant_id)
     if tenant is None:
         raise NotFoundError("Tenant", tenant_id)
     return tenant
 
 
 def _get_organization(db: Session, organization_id: int) -> Organization:
-    org = db.query(Organization).filter(Organization.id == organization_id).first()
+    org = onboarding_repo.get_org_by_id(db, organization_id)
     if org is None:
         raise NotFoundError("Organization", organization_id)
     return org
@@ -110,7 +111,7 @@ def _handle_payment_failed(db: Session, data: dict) -> None:
     customer_id = data.get("customer")
     if not customer_id:
         return
-    tenant = db.query(Tenant).filter(Tenant.stripe_customer_id == customer_id).first()
+    tenant = onboarding_repo.get_tenant_by_stripe_customer_id(db, customer_id)
     if tenant is None:
         logger.warning("payment_failed_tenant_not_found", customer_id=customer_id)
         return
@@ -124,7 +125,7 @@ def _handle_subscription_deleted(db: Session, data: dict) -> None:
     subscription_id = data.get("id")
     if not subscription_id:
         return
-    tenant = db.query(Tenant).filter(Tenant.stripe_subscription_id == subscription_id).first()
+    tenant = onboarding_repo.get_tenant_by_stripe_subscription_id(db, subscription_id)
     if tenant is None:
         logger.warning("subscription_deleted_tenant_not_found", subscription_id=subscription_id)
         return
@@ -139,7 +140,7 @@ def _handle_subscription_updated(db: Session, data: dict) -> None:
     status = data.get("status")
     if not subscription_id or not status:
         return
-    tenant = db.query(Tenant).filter(Tenant.stripe_subscription_id == subscription_id).first()
+    tenant = onboarding_repo.get_tenant_by_stripe_subscription_id(db, subscription_id)
     if tenant is None:
         logger.warning("subscription_updated_tenant_not_found", subscription_id=subscription_id)
         return

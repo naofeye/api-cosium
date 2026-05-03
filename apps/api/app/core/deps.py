@@ -49,6 +49,12 @@ def get_current_user(
     if user is None or not user.is_active:
         raise AuthenticationError("Utilisateur introuvable ou désactivé")
 
+    # Verifier le token_version : permet de revoquer en bloc les JWT
+    # d'un utilisateur (logout-everywhere, password change, compromise).
+    token_version = payload.get("tv", 0)
+    if token_version != getattr(user, "token_version", 0):
+        raise AuthenticationError("Session revoquee. Reconnectez-vous.")
+
     # Verifier que l'utilisateur a acces au tenant du token
     tenant_id: int | None = payload.get("tenant_id")
     if tenant_id is not None:

@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -14,6 +14,9 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(50), default="admin", nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    # Logout-everywhere : incremente pour invalider tous les JWT existants
+    # de cet utilisateur. Le JWT contient `token_version` au moment d'emission.
+    token_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     # MFA / TOTP (optionnel, activable par user)
     totp_secret_enc: Mapped[str | None] = mapped_column(String(255), nullable=True)
     totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

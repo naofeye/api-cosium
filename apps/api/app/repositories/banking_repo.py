@@ -60,15 +60,27 @@ def list_unreconciled_payments(db: Session, tenant_id: int, limit: int = 500) ->
 
 
 def get_transaction_signatures(db: Session, tenant_id: int) -> set[tuple[str, float, str]]:
-    """Return a set of (date_iso, amount_rounded, libelle_prefix) for dedup."""
-    rows = db.execute(
+    """Return signatures (date_iso, amount_rounded, libelle_prefix) pour dedup.
+
+    Streame par batches de 1000 via `yield_per` pour eviter l'OOM sur les
+    tenants > 100k transactions (charge initiale + reconciliation periodique).
+    """
+    signatures: set[tuple[str, float, str]] = set()
+    stmt = (
         select(BankTransaction.date, BankTransaction.montant, BankTransaction.libelle)
         .where(BankTransaction.tenant_id == tenant_id)
-    ).all()
-    return {
-        (r.date.date().isoformat() if r.date else "", round(float(r.montant), 2), (r.libelle or "")[:100])
-        for r in rows
-    }
+        .execution_options(yield_per=1000)
+    )
+    for partition in db.execute(stmt).partitions():
+        for r in partition:
+            signatures.add(
+                (
+                    r.date.date().isoformat() if r.date else "",
+                    round(float(r.montant), 2),
+                    (r.libelle or "")[:100],
+                )
+            )
+    return signatures
 
 
 def create_transaction(

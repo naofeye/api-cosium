@@ -48,6 +48,20 @@ def get_org_by_id(db: Session, org_id: int) -> Organization | None:
     return db.scalars(select(Organization).where(Organization.id == org_id)).first()
 
 
+def get_tenant_by_stripe_customer_id(db: Session, customer_id: str) -> Tenant | None:
+    """Lookup utilise par les webhooks Stripe (customer.* events)."""
+    return db.scalars(
+        select(Tenant).where(Tenant.stripe_customer_id == customer_id)
+    ).first()
+
+
+def get_tenant_by_stripe_subscription_id(db: Session, subscription_id: str) -> Tenant | None:
+    """Lookup utilise par les webhooks Stripe (subscription.* events)."""
+    return db.scalars(
+        select(Tenant).where(Tenant.stripe_subscription_id == subscription_id)
+    ).first()
+
+
 def get_active_cosium_tenants(db: Session) -> list[Tenant]:
     """Return all active tenants with Cosium connected."""
     return list(
