@@ -10,7 +10,6 @@ from app.models import Case, Customer, Document, DocumentType, Payment
 from app.models.cosium_data import CosiumInvoice
 from app.models.cosium_reference import CosiumCalendarEvent
 from app.repositories import action_item_repo
-from app.services._action_items.impact_score import compute_impact_score
 
 logger = get_logger("action_item_service")
 

@@ -5,7 +5,6 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-
 # Liste blanche des scopes supportes en V1 (read-only).
 ALLOWED_SCOPES = frozenset(
     {

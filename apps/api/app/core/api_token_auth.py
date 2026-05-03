@@ -9,8 +9,8 @@ token, pas par cookie.
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session

@@ -3,7 +3,6 @@ from sqlalchemy import case as sa_case
 from sqlalchemy.orm import Session
 
 from app.models import ActionItem
-from app.services._action_items.impact_score import compute_impact_score
 
 PRIORITY_ORDER = sa_case(
     (ActionItem.priority == "critical", 0),

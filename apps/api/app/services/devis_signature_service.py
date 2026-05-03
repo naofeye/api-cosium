@@ -25,10 +25,10 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessError, NotFoundError
 from app.core.logging import get_logger
+from app.domain.schemas.devis import DevisResponse
 from app.models.devis import Devis
 from app.repositories import devis_repo
 from app.services import audit_service, event_service, webhook_emit_helpers
-from app.domain.schemas.devis import DevisResponse
 
 logger = get_logger("devis_signature_service")
 

@@ -6,8 +6,8 @@ from sqlalchemy import extract, func, select
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
+from app.models import AiUsageLog
 from app.repositories import onboarding_repo
-from app.models import AiUsageLog, Organization, Tenant
 
 logger = get_logger("ai_billing_service")
 
