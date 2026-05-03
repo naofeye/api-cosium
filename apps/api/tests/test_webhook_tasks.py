@@ -1,14 +1,23 @@
 """Tests Celery webhook delivery + retry / backoff."""
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
 
 from app.repositories import webhook_repo
-from app.services.webhook_service import generate_secret
+
+
+@pytest.fixture(autouse=True)
+def _bypass_ssrf_guard(monkeypatch):
+    """Les fixtures utilisent `https://example.test/hook` (RFC 6761) qui ne
+    resout pas en DNS. Le guard SSRF leverait WebhookUrlForbidden avant
+    httpx.post mocke. On bypasse ici. Les tests SSRF dedies vivent dans
+    `test_webhook_ssrf.py` et n'utilisent pas cette autouse fixture."""
+    monkeypatch.setattr(
+        "app.tasks.webhook_tasks.assert_url_safe", lambda url: None
+    )
 
 
 @pytest.fixture(autouse=True)

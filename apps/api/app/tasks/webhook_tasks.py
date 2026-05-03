@@ -10,6 +10,7 @@ import httpx
 from app.core.logging import get_logger
 from app.db.session import SessionLocal
 from app.repositories import webhook_repo
+from app.services._webhook.url_guard import WebhookUrlForbiddenError, assert_url_safe
 from app.services.webhook_service import (
     MAX_ATTEMPTS,
     RETRY_DELAYS_SECONDS,
@@ -82,7 +83,14 @@ def deliver_webhook(self, delivery_id: int) -> dict[str, str | int]:
         success = False
 
         try:
-            with httpx.Client(timeout=DELIVERY_TIMEOUT_SECONDS) as client:
+            # SSRF guard : refuser loopback / RFC1918 / link-local / metadata
+            # cloud / hostnames Docker internes AVANT d'envoyer la requete.
+            # follow_redirects=False : un endpoint public peut rediriger vers
+            # une cible interne ; on ne suit jamais les 3xx.
+            assert_url_safe(sub.url)
+            with httpx.Client(
+                timeout=DELIVERY_TIMEOUT_SECONDS, follow_redirects=False
+            ) as client:
                 response = client.post(sub.url, content=body, headers=headers)
                 last_status_code = response.status_code
                 if 200 <= response.status_code < 300:
@@ -91,6 +99,8 @@ def deliver_webhook(self, delivery_id: int) -> dict[str, str | int]:
                     last_error = (
                         f"HTTP {response.status_code} : {response.text[:500]}"
                     )
+        except WebhookUrlForbiddenError as exc:
+            last_error = f"url_forbidden : {exc!s}"[:500]
         except httpx.TimeoutException as exc:
             last_error = f"timeout : {exc!s}"[:500]
         except httpx.HTTPError as exc:
