@@ -127,6 +127,7 @@ export const navGroups: NavGroup[] = [
       { href: "/admin/security", label: "Securite", icon: ShieldCheck },
       { href: "/admin/deleted-clients", label: "Clients supprimes", icon: Trash2 },
       { href: "/admin/data-quality", label: "Qualite donnees", icon: Activity },
+      { href: "/admin/health", label: "Sante systeme", icon: Activity },
       { href: "/admin/webhooks", label: "Webhooks", icon: Webhook },
       { href: "/admin/api-publique", label: "API publique", icon: KeyRound },
       { href: "/notifications", label: "Notifications", icon: Bell },
