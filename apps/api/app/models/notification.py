@@ -38,6 +38,7 @@ class ActionItem(Base):
     entity_type: Mapped[str] = mapped_column(String(80), nullable=False)
     entity_id: Mapped[int] = mapped_column(Integer, nullable=False)
     priority: Mapped[str] = mapped_column(String(20), nullable=False, default="medium")
+    impact_score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
     due_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

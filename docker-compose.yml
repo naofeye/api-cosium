@@ -213,6 +213,52 @@ services:
       options:
         max-size: 50m
         max-file: '5'
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.16.0
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-optiflow}:${POSTGRES_PASSWORD:-optiflow}@postgres:5432/${POSTGRES_DB:-optiflow}?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [vps-net]
+    pids_limit: 64
+    mem_limit: 128m
+    cpus: '0.2'
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9187/metrics"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+        max-file: '5'
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.66.0-alpine
+    environment:
+      REDIS_ADDR: "redis://redis:6379"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks: [vps-net]
+    pids_limit: 64
+    mem_limit: 64m
+    cpus: '0.1'
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:9121/metrics || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+        max-file: '5'
+
 volumes:
   postgres_data:
   minio_data:

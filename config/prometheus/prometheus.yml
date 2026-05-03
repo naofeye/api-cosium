@@ -32,6 +32,7 @@ scrape_configs:
         labels:
           service: redis
 
-# Alerting rules a definir dans config/prometheus/alerts.yml
-# rule_files:
-#   - alerts.yml
+# Alerting rules definies dans alerts.yml (5 groupes : api, postgres,
+# redis, business). Reload via SIGHUP au prometheus container.
+rule_files:
+  - alerts.yml

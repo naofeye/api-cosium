@@ -3,6 +3,7 @@ from sqlalchemy import case as sa_case
 from sqlalchemy.orm import Session
 
 from app.models import ActionItem
+from app.services._action_items.impact_score import compute_impact_score
 
 PRIORITY_ORDER = sa_case(
     (ActionItem.priority == "critical", 0),
@@ -31,7 +32,7 @@ def list_by_user(
     if priority:
         q = q.where(ActionItem.priority == priority)
     total = db.scalar(select(func.count()).select_from(q.subquery())) or 0
-    rows = db.scalars(q.order_by(PRIORITY_ORDER, ActionItem.created_at.desc()).limit(limit).offset(offset)).all()
+    rows = db.scalars(q.order_by(ActionItem.impact_score.desc(), PRIORITY_ORDER, ActionItem.created_at.desc()).limit(limit).offset(offset)).all()
     return list(rows), total
 
 

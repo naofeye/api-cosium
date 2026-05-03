@@ -1,0 +1,117 @@
+# Alertmanager rules basiques pour OptiFlow.
+# Voir docs/RUNBOOK.md pour les actions de remediation par alerte.
+groups:
+  - name: optiflow-api
+    interval: 1m
+    rules:
+      - alert: OptiFlowApi5xxHighRate
+        expr: |
+          sum(rate(http_requests_total{job="optiflow_api",code=~"5.."}[5m]))
+            /
+          sum(rate(http_requests_total{job="optiflow_api"}[5m])) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "Taux 5xx API > 1% sur 5min"
+          description: "L'API renvoie >1% de 5xx (5min). Voir logs `docker compose logs api --tail 100` et Sentry."
+
+      - alert: OptiFlowApiHighLatencyP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(http_request_duration_seconds_bucket{job="optiflow_api"}[10m])) by (le)
+          ) > 1
+        for: 10m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "Latence p95 API > 1s sur 10min"
+          description: "Detecter un deadlock DB (pg_stat_activity) ou un hot path mal optimise."
+
+      - alert: OptiFlowApiDown
+        expr: up{job="optiflow_api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "API OptiFlow indisponible"
+          description: "L'instance API ne repond plus depuis >2min. Verifier `docker compose ps api` + redemarrer si crash."
+
+  - name: optiflow-postgres
+    interval: 1m
+    rules:
+      - alert: OptiFlowPgConnSaturation
+        expr: |
+          sum(pg_stat_activity_count{datname="optiflow"})
+            /
+          sum(pg_settings_max_connections) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: postgres
+        annotations:
+          summary: "Pool Postgres > 80% de saturation"
+          description: "Trop de connections actives. Augmenter pool_size ou identifier la fuite (long-running query)."
+
+      - alert: OptiFlowPgDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: postgres
+        annotations:
+          summary: "PostgreSQL down"
+          description: "Voir `docker compose logs postgres --tail 100`. Restore via RUNBOOK.md si corruption."
+
+  - name: optiflow-redis
+    interval: 1m
+    rules:
+      - alert: OptiFlowRedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis down"
+          description: "Celery + cache + rate limiter affectes. Voir `docker compose logs redis`."
+
+      - alert: OptiFlowRedisMemoryHigh
+        expr: |
+          redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis memoire > 85% de la limite (256MB)"
+          description: "Eviction LRU active, perte potentielle de cache. Monitorer `redis-cli info memory`."
+
+  - name: optiflow-business
+    interval: 5m
+    rules:
+      - alert: OptiFlowSyncCosiumFailures
+        expr: |
+          increase(cosium_sync_failed_total[1h]) > 5
+        for: 15m
+        labels:
+          severity: warning
+          service: cosium
+        annotations:
+          summary: "Plus de 5 echecs sync Cosium en 1h"
+          description: "Cookies expires ? Consulter /admin/cosium-test + RUNBOOK.md section Cosium."
+
+      - alert: OptiFlowWebhookDeliveryFailures
+        expr: |
+          increase(webhook_delivery_failed_total[1h]) > 10
+        for: 15m
+        labels:
+          severity: warning
+          service: webhooks
+        annotations:
+          summary: "Plus de 10 webhooks failed en 1h"
+          description: "Verifier /admin/webhooks deliveries + endpoint cible (down ?). Replay possible apres fix."

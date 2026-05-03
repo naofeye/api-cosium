@@ -11,7 +11,7 @@ export type SelectOption = {
 };
 
 type SelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, "children"> & {
-  options: SelectOption[];
+  options: readonly SelectOption[];
   placeholder?: string;
   error?: boolean;
 };

@@ -244,7 +244,7 @@ export function ChatInterface() {
           </label>
           <Select
             id="copilot-mode"
-            options={MODE_OPTIONS as unknown as { value: string; label: string }[]}
+            options={MODE_OPTIONS}
             value={mode}
             onChange={(e) => setMode(e.target.value as CopilotMode)}
             disabled={isStreaming}

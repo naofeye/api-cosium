@@ -85,3 +85,81 @@ Variables importantes:
 ## Deploiement VPS
 
 Voir `docs/VPS_DEPLOYMENT.md`.
+
+## Architecture (vue d'ensemble)
+
+```
+                   Internet (HTTPS)
+                         |
+                  +------v------+
+                  |    Caddy    |  reverse-proxy + TLS
+                  | (vps-panel) |
+                  +------+------+
+                         |
+        +----------------+----------------+
+        |                                 |
+   +----v----+                       +----v----+
+   |   web   |  Next.js 16 + React   |   api   |  FastAPI + Python 3.12
+   | (3000)  |  RSC + Service Worker | (8000)  |  60+ routers, ~300 routes
+   +----+----+                       +----+----+
+        |                                 |
+        |        +------------------------+
+        |        |
+        |   +----v----+    +-----------+    +--------+
+        |   | worker  |    |   beat    |    | celery |
+        |   | (Celery)|    |(scheduler)|    | result |
+        |   +----+----+    +-----+-----+    +--------+
+        |        |               |
+        +--------+---------------+
+                 |
+        +--------+--------+--------+--------+
+        |        |        |        |        |
+   +----v---+ +-v---+ +-v----+ +-v-----+ +-v-----+
+   |postgres| |redis| |minio | |mailhog| |Cosium |
+   | (5432) | |6379 | |(9000)| |(8025) | | API   |
+   +--------+ +-----+ +------+ +-------+ +---+---+
+                                             |
+                                  c1.cosium.biz (read-only)
+```
+
+**8 containers** : web, api, worker, beat, postgres, redis, minio, mailhog.
+**3 monitoring** (prod) : prometheus, grafana, postgres-exporter, redis-exporter.
+
+**Flux donnees** :
+- Sync Cosium **read-only unidirectionnelle** (Cosium -> OptiFlow), jamais l'inverse.
+  Pattern HAL JSON, auth Basic/Cookie/OIDC, retry borne (4 retries).
+- Webhooks HTTP **sortants** : push vers systemes tiers (CRM, comptabilite)
+  signes HMAC-SHA256, retry [30s, 2m, 15m, 1h, 6h]. Voir `docs/WEBHOOKS.md`.
+- API publique **read-only v1** : token Bearer + scopes par tenant. 4
+  endpoints (clients, devis, factures, pec). Voir `/admin/api-publique`.
+- Stripe : checkout, portal, webhooks entrants (subscriptions, payments).
+
+## Stack technique
+
+| Couche | Tech | Notes |
+|---|---|---|
+| **Backend** | Python 3.12, FastAPI, SQLAlchemy 2.x, Pydantic v2 | 60 routers, 290+ routes |
+| **DB** | PostgreSQL 16 | 53+ migrations Alembic, indexes composites |
+| **Cache + queue** | Redis 7 | Celery broker + result backend, rate limiter |
+| **Worker** | Celery 5 | Beat scheduler persistent, retry + DLQ |
+| **Storage** | MinIO (S3 API) | Documents Cosium, exports, GED |
+| **Frontend** | Next.js 16 + React 19 + TypeScript strict | RSC, ESLint strict (0 `any`) |
+| **PWA** | Service Worker | Offline-first, install prompt iOS/Android |
+| **Auth** | JWT (PyJWT) + bcrypt + MFA TOTP | Cookies httpOnly SameSite=Strict, CSRF double-submit |
+| **Tests** | pytest + httpx + Playwright | 2300+ backend, 200+ frontend, 10 E2E |
+| **CI** | GitHub Actions | 9 jobs (lint, test, security, E2E), Trivy + SBOM weekly |
+| **Observabilite** | Prometheus + Grafana | 2 dashboards (ops, business), 7 alertes |
+| **Reverse proxy** | Caddy (auto TLS Let's Encrypt) | Configure dans /srv/reverse-proxy |
+
+## Features livrees recemment
+
+- **2026-05-03** : API publique REST v1 (Coming Soon T3 2026 -> reel),
+  Devis signature electronique eIDAS Simple, Token revocation per-user
+  (logout-everywhere), exporters Postgres+Redis Prometheus, alertmanager
+  rules, validate-prod.sh + COSIUM_CREDS_ROTATION runbook.
+- **2026-05-02** : CSRF double-submit cookie, Webhooks HTTP sortants
+  (Coming Soon -> reel), PEC reconciliation factures orphelines,
+  fix CI rollback Alembic mergepoint-safe.
+
+Voir `docs/WEBHOOKS.md`, `docs/adr/`, `TODO.md` pour le detail.
+
