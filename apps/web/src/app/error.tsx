@@ -1,6 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
+
+import * as Sentry from "@sentry/nextjs";
 import { AlertTriangle } from "lucide-react";
+
 import { Button } from "@/components/ui/Button";
 
 function humanMessage(error: Error & { status?: number }): string {
@@ -20,6 +24,12 @@ function humanMessage(error: Error & { status?: number }): string {
 }
 
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string; status?: number }; reset: () => void }) {
+  useEffect(() => {
+    // Best-effort capture Sentry. Si Sentry n'est pas configure (dev),
+    // l'init est en mode `enabled: false`, donc no-op.
+    Sentry.captureException(error);
+  }, [error]);
+
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
       <div className="rounded-full bg-red-50 p-5">

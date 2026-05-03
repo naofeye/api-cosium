@@ -92,8 +92,24 @@ export function GlobalSearch() {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [highlightIndex, setHighlightIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  // Global Ctrl+K / Cmd+K shortcut focus
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+        setOpen(true);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Debounce
   useEffect(() => {
@@ -149,6 +165,7 @@ export function GlobalSearch() {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
         <input
+          ref={inputRef}
           type="search"
           role="combobox"
           aria-expanded={showDropdown}
@@ -159,6 +176,22 @@ export function GlobalSearch() {
           onChange={(e) => {
             setQuery(e.target.value);
             setOpen(true);
+            setHighlightIndex(0);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setHighlightIndex((i) => Math.min(i + 1, allResults.length - 1));
+            } else if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setHighlightIndex((i) => Math.max(i - 1, 0));
+            } else if (e.key === "Enter" && allResults[highlightIndex]) {
+              e.preventDefault();
+              handleSelect(allResults[highlightIndex] as SearchResultItem & { type: keyof typeof TYPE_CONFIG });
+            } else if (e.key === "Escape") {
+              setOpen(false);
+              inputRef.current?.blur();
+            }
           }}
           onFocus={() => setOpen(true)}
           placeholder="Rechercher un client, dossier, devis, facture..."
@@ -197,10 +230,11 @@ export function GlobalSearch() {
                 const config = TYPE_CONFIG[item.type as keyof typeof TYPE_CONFIG];
                 const Icon = config.icon;
                 return (
-                  <li key={`${item.type}-${item.id}-${i}`} role="option" aria-selected={false}>
+                  <li key={`${item.type}-${item.id}-${i}`} role="option" aria-selected={i === highlightIndex}>
                     <button
+                      onMouseEnter={() => setHighlightIndex(i)}
                       onClick={() => handleSelect(item as SearchResultItem & { type: keyof typeof TYPE_CONFIG })}
-                      className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
+                      className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none ${i === highlightIndex ? "bg-blue-50 dark:bg-blue-900/30" : "hover:bg-gray-50 dark:hover:bg-gray-700"}`}
                     >
                       <Icon className={`h-4 w-4 shrink-0 ${config.color}`} />
                       <div className="min-w-0 flex-1">
