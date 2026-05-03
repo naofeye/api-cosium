@@ -1,20 +1,10 @@
-import { Webhook } from "lucide-react";
-import { ComingSoon } from "@/components/ui/ComingSoon";
+import { redirect } from "next/navigation";
 
-export default function WebhooksPage() {
-  return (
-    <ComingSoon
-      title="Webhooks"
-      description="Connectez OptiFlow a vos outils metier en temps reel : recevez des notifications HTTP a chaque evenement (nouveau client, devis signe, paiement recu)."
-      icon={Webhook}
-      releaseEstimate="T3 2026"
-      features={[
-        "Configuration de plusieurs URLs cibles avec filtres par type d'evenement",
-        "Signature HMAC pour verifier l'authenticite des payloads",
-        "Retry automatique avec backoff exponentiel en cas d'echec",
-        "Historique des deliveries avec replay manuel",
-        "Documentation OpenAPI generee pour chaque webhook",
-      ]}
-    />
-  );
+/**
+ * Redirection 308 vers /admin/webhooks (la page Coming Soon est devenue
+ * reelle le 2026-05-02). Conservée comme alias pour les liens externes
+ * eventuels qui pointaient vers /webhooks.
+ */
+export default function WebhooksRedirect(): never {
+  redirect("/admin/webhooks");
 }

@@ -70,6 +70,13 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.devis_tasks.expire_devis",
         "schedule": crontab(hour=3, minute=15),  # Quotidien 3h15
     },
+    # PEC V12 : rejoue le matching customer_id pour les factures orphelines.
+    # Tourne avant la sync Cosium (6h) pour matcher d'abord les nouveaux
+    # clients importes la veille via le sync precedent.
+    "reconcile-orphan-invoices": {
+        "task": "app.tasks.orphan_invoice_task.reconcile_all_tenants_orphans",
+        "schedule": crontab(hour=4, minute=15),  # Quotidien 4h15
+    },
 }
 celery_app.conf.timezone = "Europe/Paris"
 
