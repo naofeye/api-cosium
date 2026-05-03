@@ -9,6 +9,7 @@
 - [Session 2026-05-02 sweep autonome 24h](project_session_2026_05_02.md) — 5 commits : CSRF + Webhooks + PEC orphan + fix CI Alembic + docs. +33 tests, 0 regression, CI verte 6fbef80
 - [Session 2026-05-03 sweep ambitieux 24/48h](project_session_2026_05_03.md) — 9 livrables : API publique v1, devis signature eIDAS, token revocation, impact_score, exporters Prom, ADR-0008, validate-prod.sh
 - [Session 2026-05-03 continue BLOC J/K/L](project_session_2026_05_03_continue.md) — 3 commits supplementaires : splits + tests + mypy + healthcheck + GlobalSearch + Sentry. Cumul session 13 commits.
+- [Session 2026-05-03 continue 2 BLOC M/N](project_session_2026_05_03_continue2.md) — 3 commits supplementaires : API publique +2 + webhook UX + mypy 7 modules + audit UI + /admin/health
 - [Branche unifiee main 2026-04-19](project_branch_unified_main.md) — `master` supprimee ; `main` seule branche canonique. VPS a reset sur origin/main
 - [Splits package — imports absolus](feedback_splits_imports_absolus.md) — jamais `from .` dans un nouveau split ; patcher le vrai point d'usage, pas un alias
 - [Pre-commit scope defensif](project_precommit_scope.md) — hooks actifs : sanity + gitleaks. Ruff/Prettier desactives (legacy massif non formate)

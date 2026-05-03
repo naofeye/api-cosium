@@ -952,6 +952,27 @@ Commits : `aab3fdd` (P2 quick wins x8), `e9617bc` (C-2 expiration devis), `f4fa1
 - **Fix** : `.github/workflows/ci.yml` resout la cible dynamiquement via `alembic show head | grep -E '^(Parent|Merges):'` puis downgrade vers cette revision. Robuste pour mergepoints + migrations lineaires.
 - **Test local** : downgrade traverse 6 migrations puis upgrade head re-applique sans erreur. CodeQL et E2E etaient deja verts ; reste a verifier que le job CI passe sur le push.
 
+### 2026-05-03 (continue 2) — Sweep BLOC M/N (vps-master) — 8 livrables additionnels
+
+Suite directe apres "continu a bosser". 3 commits supplementaires post J/K/L.
+
+**Livrables BLOC M** (commit `c70936e`) :
+- API publique v1 +2 endpoints (payments + pec-preparations) -> total V1 = 6
+- Webhook test-ping endpoint + frontend Test button + Delivery detail
+  modal (payload JSON pretty + last_error + headers)
+- Mypy strict pilote etendu : 7 modules (devis_signature, orphan_invoice,
+  _factures._email ajoutes)
+- 15 nouveaux tests (M1 6 + M2 3 + M5 6 analytics_kpi_service)
+
+**Livrables BLOC N** (commits `1067e4a` + `7f2e79f`) :
+- Audit logs UI : 2 nouveaux filtres user_id + entity_id (deep dive)
+  + propagation export CSV
+- Page /admin/health dediee avec HealthDetail + liens Grafana/Prometheus
+  + sidebar entry "Sante systeme"
+
+**Cumul session 2026-05-03** : 18 commits, 4 migrations, 7 modules mypy
+strict, 6 endpoints publics, 2 features pre-prod cle.
+
 ### 2026-05-03 (continue) — Sweep BLOC J/K/L (vps-master) — 12 livrables additionnels
 
 Apres validation CI verte du sweep initial, continuation autonome a la

@@ -19,6 +19,36 @@
 
 - [x] ~~Migration Alembic `a4b5c6d7e8f9` introuvable~~ _(faux positif : la migration existe (commit `f399f32`, refresh token tenant_id, merge des heads `a4d5e6f7g8h9` + `f8i9j0k1l2m3`). Le panel reportait l'ancien etat avant rebuild de l'image API. **Verifie 2026-05-02 : container API `Up healthy`, `application_started`, `cosium.ia.coging.com` 200.**)_
 
+## ✅ Sweep continue 2026-05-03 BLOC M/N (vps-master, 8 livrables additionnels)
+
+Suite directe apres "continu a bosser". 3 commits supplementaires.
+
+### BLOC M — API publique +2 endpoints + webhooks UX + mypy + tests (commit `c70936e`)
+- [x] ~~M1 API publique +2 endpoints~~ _(GET /api/public/v1/payments scope read:payments + GET /api/public/v1/pec-preparations scope read:pec. Pagination, filtres status/payer_type. 6 tests dedies. Cumul V1 = 6 endpoints)_
+- [x] ~~M2 Webhook test ping endpoint~~ _(POST /api/v1/webhooks/subscriptions/{id}/test-ping admin/manager : envoie webhook.test_ping payload bidon, suit le meme cycle delivery (retry, replay). Schema event ALLOWED_EVENT_TYPES etendu)_
+- [x] ~~M2 Webhook delivery payload viewer~~ _(modal "Detail" sur chaque delivery dans /admin/webhooks : payload JSON pretty + headers + last_error. Bouton "Test" sur chaque subscription active)_
+- [x] ~~M3 Mypy strict pilote etendu~~ _(7 modules au lieu de 4 : devis_signature_service, orphan_invoice_service, _factures._email ajoutes. CI job mis a jour)_
+- [x] ~~M4 Splits ai.py + cosium/client.py~~ _(reportes : sous seuil 400L, splits invasifs sur retry logic + auth strategies fortement couples. P3)_
+- [x] ~~M5 Tests analytics_kpi_service~~ _(6 tests : empty, factured (CA 120 + encaisse 50 + reste 70 + taux 41%), aging, payer_perf, operational, isolation tenant. cosium_document_sync reportee)_
+
+### BLOC N — Polish UX admin (commits `1067e4a`, `7f2e79f`)
+- [x] ~~N1 Audit logs filtre user_id + entity_id~~ _(2 inputs number ajoutes a /admin/audit. Filtres deja supportes par /audit-logs et /export.csv backend, juste expose UI)_
+- [x] ~~N2 Page dediee /admin/health~~ _(HealthDetail full-width + section liens externes Grafana/Prometheus + section endpoints API utiles. Sidebar "Sante systeme" Activity icone)_
+
+### Bilan continue (BLOC J + K + L + M + N)
+
+**6 commits** : `cbae06a` (J), `554b9e2` (K), `60783b9` (L), `c70936e` (M),
+`1067e4a` (N1), `7f2e79f` (N2). +21 tests dedies (M1 6 + M2 3 + M5 6 +
+imports validation 6).
+
+Cumul session 2026-05-03 : **18 commits, 4 migrations, 7 modules mypy
+strict, 1 page Coming Soon livree (API publique v1), 6 endpoints publics
+read-only, 2 features pre-prod cle (CSRF + Token revocation + Devis
+signature eIDAS), observabilite complete (exporters + 7 alertes +
+healthcheck enrichi + page dediee), 0 regression de logique.**
+
+---
+
 ## ✅ Sweep continue 2026-05-03 BLOC J/K/L (vps-master, 12 livrables additionnels)
 
 Apres validation CI verte du sweep ambitieux initial (`b29941b`), continuation
