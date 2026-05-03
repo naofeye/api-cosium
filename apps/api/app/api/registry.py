@@ -10,6 +10,7 @@ from fastapi import FastAPI
 
 from app.api.routers import (
     action_items,
+    admin_api_tokens,
     admin_cosium,
     admin_health,
     admin_tenant_security,
@@ -54,6 +55,7 @@ from app.api.routers import (
     pec,
     pec_preparation,
     pec_preparation_extras,
+    public_v1,
     push,
     reconciliation,
     reminders,
@@ -89,6 +91,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(notifications.router)
     app.include_router(payments.router)
     app.include_router(pec.router)
+    app.include_router(public_v1.router)
     app.include_router(push.router)
     app.include_router(pec_preparation.router)
     app.include_router(pec_preparation_extras.router)
@@ -107,6 +110,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(client_360.router)
     app.include_router(client_360_interactions.router)
     app.include_router(admin_health.router)
+    app.include_router(admin_api_tokens.router)
     app.include_router(admin_cosium.router)
     app.include_router(admin_tenant_security.router)
     app.include_router(admin_users.router)
