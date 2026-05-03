@@ -84,6 +84,8 @@ export default function AuditPage() {
   const [page, setPage] = useState(1);
   const [actionFilter, setActionFilter] = useState("");
   const [entityFilter, setEntityFilter] = useState("");
+  const [userIdFilter, setUserIdFilter] = useState("");
+  const [entityIdFilter, setEntityIdFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const pageSize = 25;
@@ -94,10 +96,12 @@ export default function AuditPage() {
     params.set("page_size", String(pageSize));
     if (actionFilter) params.set("action", actionFilter);
     if (entityFilter) params.set("entity_type", entityFilter);
+    if (userIdFilter) params.set("user_id", userIdFilter);
+    if (entityIdFilter) params.set("entity_id", entityIdFilter);
     if (dateFrom) params.set("date_from", dateFrom);
     if (dateTo) params.set("date_to", dateTo);
     return `/audit-logs?${params.toString()}`;
-  }, [page, actionFilter, entityFilter, dateFrom, dateTo]);
+  }, [page, actionFilter, entityFilter, userIdFilter, entityIdFilter, dateFrom, dateTo]);
 
   const { data, error, isLoading, mutate } = useSWR<AuditLogList>(buildUrl());
 
@@ -193,6 +197,8 @@ export default function AuditPage() {
               const params = new URLSearchParams();
               if (actionFilter) params.set("action", actionFilter);
               if (entityFilter) params.set("entity_type", entityFilter);
+              if (userIdFilter) params.set("user_id", userIdFilter);
+              if (entityIdFilter) params.set("entity_id", entityIdFilter);
               if (dateFrom) params.set("date_from", dateFrom);
               if (dateTo) params.set("date_to", dateTo);
               const url = process.env.NEXT_PUBLIC_API_BASE_URL + "/audit-logs/export.csv?" + params.toString();
@@ -283,11 +289,49 @@ export default function AuditPage() {
           />
         </div>
 
-        {(actionFilter || entityFilter || dateFrom || dateTo) && (
+        <div>
+          <label htmlFor="user-id-filter" className="block text-sm font-medium text-text-secondary mb-1">
+            User ID
+          </label>
+          <input
+            id="user-id-filter"
+            type="number"
+            min="1"
+            value={userIdFilter}
+            onChange={(e) => {
+              setUserIdFilter(e.target.value);
+              handleFilterChange();
+            }}
+            placeholder="#"
+            className="rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:ring-2 focus:ring-primary focus:outline-none w-24"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="entity-id-filter" className="block text-sm font-medium text-text-secondary mb-1">
+            Entity ID
+          </label>
+          <input
+            id="entity-id-filter"
+            type="number"
+            min="1"
+            value={entityIdFilter}
+            onChange={(e) => {
+              setEntityIdFilter(e.target.value);
+              handleFilterChange();
+            }}
+            placeholder="#"
+            className="rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:ring-2 focus:ring-primary focus:outline-none w-24"
+          />
+        </div>
+
+        {(actionFilter || entityFilter || userIdFilter || entityIdFilter || dateFrom || dateTo) && (
           <button
             onClick={() => {
               setActionFilter("");
               setEntityFilter("");
+              setUserIdFilter("");
+              setEntityIdFilter("");
               setDateFrom("");
               setDateTo("");
               setPage(1);
