@@ -6,6 +6,7 @@ import { ProgressBarProvider } from "@/components/layout/ProgressBar";
 import { ServiceWorkerRegister } from "@/components/layout/ServiceWorkerRegister";
 import { WebVitals } from "@/components/layout/WebVitals";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { OnlineIndicator } from "@/components/pwa/OnlineIndicator";
 import { IosSplashLinks } from "@/components/pwa/IosSplashLinks";
 
 export const metadata: Metadata = {
@@ -55,6 +56,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <WebVitals />
         <AuthLayout>{children}</AuthLayout>
         <InstallPrompt />
+        <OnlineIndicator />
       </body>
     </html>
   );
