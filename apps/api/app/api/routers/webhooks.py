@@ -238,3 +238,47 @@ def replay_delivery(
 
     deliver_webhook.delay(delivery.id)
     return DeliveryResponse.model_validate(delivery)
+
+
+@router.post(
+    "/subscriptions/{subscription_id}/test-ping",
+    response_model=DeliveryResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Envoie un event factice 'webhook.test_ping' pour tester l'URL",
+    dependencies=[Depends(require_role("admin", "manager"))],
+)
+def test_ping_subscription(
+    subscription_id: int,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(get_tenant_context),
+) -> DeliveryResponse:
+    """Test une subscription en envoyant un payload bidon.
+
+    Permet de valider qu'une URL de webhook est joignable et signe
+    correctement avant d'attendre un vrai event metier. La delivery
+    creee suit le meme cycle que les autres (retry, replay, etc).
+    """
+    from app.services.webhook_service import build_envelope
+    from app.tasks.webhook_tasks import deliver_webhook
+
+    sub = webhook_repo.get_subscription(db, ctx.tenant_id, subscription_id)
+    if sub is None:
+        raise HTTPException(status_code=404, detail="Subscription introuvable")
+
+    envelope = build_envelope(
+        event_type="webhook.test_ping",
+        tenant_id=ctx.tenant_id,
+        payload={"message": "OptiFlow webhook test ping", "subscription_id": sub.id},
+    )
+    delivery = webhook_repo.create_delivery(
+        db,
+        subscription_id=sub.id,
+        tenant_id=ctx.tenant_id,
+        event_type="webhook.test_ping",
+        event_id=envelope["event_id"],
+        payload=envelope,
+    )
+    db.commit()
+    deliver_webhook.delay(delivery.id)
+    return DeliveryResponse.model_validate(delivery)
+

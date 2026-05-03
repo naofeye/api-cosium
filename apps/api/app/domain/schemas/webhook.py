@@ -24,6 +24,7 @@ ALLOWED_EVENT_TYPES = frozenset(
         "pec.refused",
         "payment.received",
         "campaign.sent",
+        "webhook.test_ping",
     }
 )
 

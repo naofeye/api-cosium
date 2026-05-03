@@ -115,7 +115,10 @@ jobs:
             app/services/_action_items/impact_score.py \
             app/services/webhook_service.py \
             app/services/api_token_service.py \
-            app/core/csrf.py
+            app/core/csrf.py \
+            app/services/devis_signature_service.py \
+            app/services/orphan_invoice_service.py \
+            app/services/_factures/_email.py
 
   backend-security:
     name: Backend Security Scan

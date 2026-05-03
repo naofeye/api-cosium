@@ -243,3 +243,110 @@ def list_pec_requests_public(
         "limit": limit,
         "offset": offset,
     }
+
+
+# ---------------------------------------------------------------------------
+# Payments
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/payments",
+    summary="Liste des paiements (read:payments)",
+)
+def list_payments_public(
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    status_filter: str | None = Query(None, alias="status", max_length=50),
+    payer_type: str | None = Query(None, max_length=50),
+    db: Session = Depends(get_db),
+    ctx: ApiTokenContext = Depends(require_api_scope("read:payments")),
+) -> dict:
+    from app.models import Payment
+
+    base = select(Payment).where(Payment.tenant_id == ctx.tenant_id)
+    if status_filter:
+        base = base.where(Payment.status == status_filter)
+    if payer_type:
+        base = base.where(Payment.payer_type == payer_type)
+
+    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    rows = list(
+        db.scalars(
+            base.order_by(Payment.id.desc()).limit(limit).offset(offset)
+        ).all()
+    )
+
+    return {
+        "items": [
+            {
+                "id": p.id,
+                "case_id": p.case_id,
+                "facture_id": p.facture_id,
+                "payer_type": p.payer_type,
+                "mode_paiement": p.mode_paiement,
+                "reference_externe": p.reference_externe,
+                "date_paiement": p.date_paiement.isoformat() if p.date_paiement else None,
+                "amount_due": float(p.amount_due or 0),
+                "amount_paid": float(p.amount_paid or 0),
+                "status": p.status,
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+            }
+            for p in rows
+        ],
+        "total": int(total),
+        "limit": limit,
+        "offset": offset,
+    }
+
+
+# ---------------------------------------------------------------------------
+# PEC preparations
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/pec-preparations",
+    summary="Liste des preparations PEC (read:pec)",
+)
+def list_pec_preparations_public(
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    status_filter: str | None = Query(None, alias="status", max_length=50),
+    db: Session = Depends(get_db),
+    ctx: ApiTokenContext = Depends(require_api_scope("read:pec")),
+) -> dict:
+    from app.models import PecPreparation
+
+    base = select(PecPreparation).where(PecPreparation.tenant_id == ctx.tenant_id)
+    if status_filter:
+        base = base.where(PecPreparation.status == status_filter)
+
+    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    rows = list(
+        db.scalars(
+            base.order_by(PecPreparation.id.desc()).limit(limit).offset(offset)
+        ).all()
+    )
+
+    return {
+        "items": [
+            {
+                "id": p.id,
+                "customer_id": p.customer_id,
+                "devis_id": p.devis_id,
+                "pec_request_id": p.pec_request_id,
+                "status": p.status,
+                "completude_score": float(p.completude_score or 0),
+                "errors_count": p.errors_count,
+                "warnings_count": p.warnings_count,
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+                "updated_at": p.updated_at.isoformat() if p.updated_at else None,
+            }
+            for p in rows
+        ],
+        "total": int(total),
+        "limit": limit,
+        "offset": offset,
+    }
+

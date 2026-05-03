@@ -20,7 +20,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
-from app.models import Customer
+from app.models.client import Customer
 from app.models.cosium_data import CosiumInvoice
 from app.services.erp_matching_service import (
     _match_customer_by_name,
@@ -52,7 +52,7 @@ def _build_customer_maps(
     return name_map, cosium_id_map
 
 
-def count_orphan_invoices(db: Session, tenant_id: int) -> dict:
+def count_orphan_invoices(db: Session, tenant_id: int) -> dict[str, int | float]:
     """Statistiques orphelines : total + par strategie de match potentielle."""
     total_orphans = db.scalar(
         select(func.count(CosiumInvoice.id)).where(
