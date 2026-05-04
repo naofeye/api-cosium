@@ -1,4 +1,34 @@
-# Audit Codex — api-cosium
+## ✅ Status 2026-05-04 (post-Codex commits + all-inclusive vps-master)
+
+| ID | Item | Status | Commit |
+|---|---|---|---|
+| C1 | SSRF webhooks | ✅ resolu | `2d1881a` |
+| C2 | Secrets dans .env | ⚠️ ACTION NABIL | rotation requise (voir COSIUM_CREDS_ROTATION.md) |
+| M1 | Idempotence frontend | ✅ resolu | `61b199c` |
+| M2 | Redis indispo idempotence | ✅ resolu | `d3f22fb` |
+| M3 | Devis expire signable | ✅ resolu | `d3f22fb` + fix typing `065024c` |
+| M4 | X-Forwarded-For falsifiable | ✅ resolu | `d3f22fb` |
+| M5 | API publique soft-deleted | ✅ resolu | `d3f22fb` |
+| M6 | logout-all token_version | ✅ resolu | `d3f22fb` |
+| M7 | S3 body close | ✅ resolu | `d3f22fb` |
+| M8 | CVE Python ignorees | 🟡 partiel | `61b199c` (planning rotation 2026-06-15) |
+| M9 | CORS HTTP prod | ✅ resolu | `d3f22fb` |
+| N1 | Trivy non bloquant | ✅ resolu | `61b199c` |
+| N2 | Webhooks page volumineux | ✅ resolu | `61b199c` |
+| N3 | CSP unsafe-inline | ⏸️ Next.js 16 RSC limitation, doc dans middleware.ts |
+| N4 | DLQ Celery non consommee | ✅ resolu | `d3f22fb` |
+
+**Bonus all-inclusive 2026-05-04** :
+- Mypy strict typing fix devis_signature (`065024c`) — CI bloquante
+- Purge .env.bak files leaked accidentally + .gitignore (`f75671a`)
+- CI gitignore-check renforce avec pattern .env.bak* (`a701133`)
+
+Score subjectif passe de 6.5/10 a 8.5/10.
+
+---
+
+# Audit Codex initial (2026-05-03)
+
 
 _Genere automatiquement le 2026-05-03. Commit audite : `91f85e3`._
 

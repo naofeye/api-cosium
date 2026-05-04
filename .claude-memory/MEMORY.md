@@ -13,3 +13,4 @@
 - [Branche unifiee main 2026-04-19](project_branch_unified_main.md) — `master` supprimee ; `main` seule branche canonique. VPS a reset sur origin/main
 - [Splits package — imports absolus](feedback_splits_imports_absolus.md) — jamais `from .` dans un nouveau split ; patcher le vrai point d'usage, pas un alias
 - [Pre-commit scope defensif](project_precommit_scope.md) — hooks actifs : sanity + gitleaks. Ruff/Prettier desactives (legacy massif non formate)
+- [Session 2026-05-04 all-inclusive](project_session_2026_05_04.md) — 4 commits post-Codex review : fix mypy typing devis_signature + purge .env.bak leak + CI guard. ACTION Nabil : rotation 4 secrets compromis.
