@@ -126,17 +126,16 @@ def sign_devis_public(
     # dont valid_until est passe. Couvre la fenetre entre J+validity et le
     # prochain cron, durant laquelle le devis n'a pas encore le status
     # 'expire' mais est materiellement perime.
-    if getattr(devis, "valid_until", None) is not None:
+    valid_until = devis.valid_until
+    if valid_until is not None:
         now = datetime.now(UTC).replace(tzinfo=None)
-        valid_until = devis.valid_until
-        try:
-            expired = valid_until < now
-        except TypeError:
-            # valid_until est un `date`, now est un `datetime` : convertir
+        # valid_until est typed datetime, mais defensif : si SQLite retourne
+        # un date pur, on combine avec min.time() pour comparer.
+        if not isinstance(valid_until, datetime):
             from datetime import datetime as _dt
 
-            expired = _dt.combine(valid_until, _dt.min.time()) < now
-        if expired:
+            valid_until = _dt.combine(valid_until, _dt.min.time())
+        if valid_until < now:
             raise BusinessError(
                 "Ce devis a expire et ne peut plus etre signe.",
                 code="DEVIS_EXPIRED",
