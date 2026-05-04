@@ -22,7 +22,7 @@ jobs:
     name: Trivy scan API image
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Build API image
         run: |
@@ -61,7 +61,7 @@ jobs:
     name: Trivy scan Web image
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Build Web image
         run: |
@@ -99,7 +99,7 @@ jobs:
     name: Generate SBOM (CycloneDX)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Build API image
         run: docker build -t optiflow-api:sbom -f apps/api/Dockerfile apps/api
@@ -139,7 +139,7 @@ jobs:
     name: Docker build dry-run (prod)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Build API (prod target)
         run: docker build -f apps/api/Dockerfile apps/api
