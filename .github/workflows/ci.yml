@@ -237,6 +237,13 @@ jobs:
             errors=$((errors + 1))
           fi
 
+          # Check for .env.bak-* (backups generes par setup.sh, contiennent secrets)
+          if git ls-files --cached '.env.bak*' | grep -q .; then
+            echo "::error::Found tracked .env.bak files (contiennent secrets) :"
+            git ls-files --cached '.env.bak*'
+            errors=$((errors + 1))
+          fi
+
           # Check for node_modules
           if git ls-files --cached '*node_modules*' | grep -q .; then
             echo "::error::Found tracked node_modules files:"
